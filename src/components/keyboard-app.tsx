@@ -295,7 +295,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const [language, setLanguage] = useState<Language>('english');
   const [shiftActive, setShiftActive] = useState(false);
   const [symbolsActive, setSymbolsActive] = useState(false);
-  const [ethiopianNumActive, setEthiopianNumActive] = useState(false);
+  // ethiopianNumActive removed — Ethiopian numbers now shown via symbols button in Amharic mode
   const [activeStickerCategory, setActiveStickerCategory] = useState('featured');
   const [activeGifCategory, setActiveGifCategory] = useState('hello');
   const [clipboardItems, setClipboardItems] = useState<{ id: string; text: string; timestamp: number }[]>([
@@ -362,12 +362,8 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       setShiftActive(!shiftActive);
     } else if (key === 'symbols') {
       setSymbolsActive(!symbolsActive);
-      setEthiopianNumActive(false);
       setShiftActive(false);
-    } else if (key === 'ethiopianNum') {
-      setEthiopianNumActive(!ethiopianNumActive);
-      setSymbolsActive(false);
-      setShiftActive(false);
+      setSelectedConsonant(null);
     } else {
       let char = key;
       if (shiftActive && key.length === 1 && key.match(/[a-z]/)) {
@@ -376,7 +372,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       updateText(text + char);
       if (shiftActive) setShiftActive(false);
     }
-  }, [text, shiftActive, symbolsActive, ethiopianNumActive, updateText]);
+  }, [text, shiftActive, symbolsActive, updateText]);
 
   const handleAmharicPress = useCallback((consonant: string) => {
     const vowels = AMHARIC_VOWELS[consonant];
@@ -506,7 +502,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     const isMedium = key === 'shift' || key === 'backspace' || key === 'symbols' || key === 'enter';
     let displayKey = key;
     if (key === 'backspace') displayKey = '⌫';
-    if (key === 'symbols') displayKey = symbolsActive ? (language === 'amharic' ? '፩፪' : 'ABC') : (language === 'amharic' ? 'አማ' : '?123');
+    if (key === 'symbols') displayKey = symbolsActive ? (language === 'amharic' ? 'አማ' : 'ABC') : (language === 'amharic' ? '፩፪' : '?123');
     if (key === 'space') displayKey = language === 'amharic' ? 'አማርኛ' : 'English';
     if (key === 'enter') displayKey = '↵';
     if (shiftActive && !isSpecial && key.length === 1 && key.match(/[a-z]/)) displayKey = key.toUpperCase();
@@ -808,27 +804,26 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     </AnimatePresence>
   );
 
-  // ─── Vowel Family Sidebar ───────────────────────────────────────────
-  const renderVowelSidebar = () => {
+  // ─── Vowel Family Row (above keyboard) ────────────────────────────
+  const renderVowelRow = () => {
     if (language !== 'amharic' || !selectedConsonant) return null;
     const vowels = AMHARIC_VOWELS[selectedConsonant];
     if (!vowels || vowels.length <= 1) return null;
     return (
       <motion.div
-        initial={{ opacity: 0, width: 0 }}
-        animate={{ opacity: 1, width: 'auto' }}
-        exit={{ opacity: 0, width: 0 }}
-        className="flex flex-col gap-1 py-2 px-1.5 border-l border-border/30 overflow-y-auto scrollbar-hide"
-        style={{ minWidth: '48px', maxWidth: '56px' }}
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: 'auto' }}
+        exit={{ opacity: 0, height: 0 }}
+        className="flex gap-1 justify-center overflow-hidden"
       >
-        <span className="text-[8px] text-center text-muted-foreground/50 mb-0.5">ድምፅ</span>
+        <span className={`flex items-center text-[9px] ${t.keyText} opacity-40 mr-0.5`}>ድምፅ</span>
         {vowels.map((v, i) => (
           <motion.button
             key={i}
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.08, y: -1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => handleVowelSelect(v)}
-            className={`flex items-center justify-center w-10 h-10 rounded-lg text-base font-medium transition-colors
+            className={`flex items-center justify-center flex-1 h-9 rounded-lg text-sm font-medium transition-colors
               ${text.endsWith(v) ? `${t.accent} ${t.accentText}` : `${t.key} ${t.keyText} ${t.keyHover}`}
               ${t.border} border shadow-sm`}
           >
@@ -840,7 +835,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   };
 
   // ─── Main Render ────────────────────────────────────────────────────
-  const currentRows = ethiopianNumActive ? null : (symbolsActive ? SYMBOL_ROWS : ENGLISH_ROWS);
+  const currentRows = symbolsActive ? SYMBOL_ROWS : ENGLISH_ROWS;
 
   return (
     <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300`}>
@@ -879,7 +874,10 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             whileHover={{ scale: 1.05 }}
             onClick={() => {
               setMode(tab.id);
-              if (tab.id === 'keyboard') setSymbolsActive(false);
+              if (tab.id === 'keyboard') {
+                setSymbolsActive(false);
+                setSelectedConsonant(null);
+              }
             }}
             className={`
               flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-all duration-200
@@ -900,7 +898,6 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             setLanguage(language === 'english' ? 'amharic' : 'english');
             setSelectedConsonant(null);
             setSymbolsActive(false);
-            setEthiopianNumActive(false);
             if (mode !== 'keyboard') setMode('keyboard');
           }}
           className={`flex items-center gap-1 px-2 py-1.5 rounded-xl ${t.accent} ${t.accentText} shadow-sm`}
@@ -922,150 +919,172 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       </div>
 
       {/* Keyboard Content */}
-      <div className={`${t.bg} border-t ${t.border}`} style={{ minHeight: mode === 'keyboard' ? '200px' : '240px' }}>
+      <div className={`${t.bg} border-t ${t.border}`} style={{ minHeight: mode === 'keyboard' ? '220px' : '240px' }}>
         <AnimatePresence mode="wait">
           {mode === 'keyboard' && (
             <motion.div key="keyboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
-              <div className="flex">
-                {/* Main Keyboard Area */}
-                <div className="flex-1 flex flex-col gap-1.5 p-2">
-                  {language === 'english' && currentRows && currentRows.map((row, ri) => (
-                    <div key={ri} className={`flex gap-1 ${ri === 1 ? 'px-4' : ''}`}>
-                      {row.map(key => renderEnglishKey(key))}
-                    </div>
-                  ))}
-                  {language === 'amharic' && !ethiopianNumActive && (
-                    <>
-                      {AMHARIC_ROWS.map((row, ri) => (
-                        <div key={ri} className="flex gap-1 justify-center">
-                          {row.map(consonant => {
-                            const isHovered = hoveredKey === consonant;
-                            const isSelected = selectedConsonant === consonant;
-                            return (
-                              <motion.button
-                                key={consonant}
-                                whileTap={{ scale: 0.92 }}
-                                whileHover={{ scale: 1.08, y: -1 }}
-                                onMouseEnter={() => setHoveredKey(consonant)}
-                                onMouseLeave={() => setHoveredKey(null)}
-                                onClick={() => handleAmharicPress(consonant)}
-                                className={`
-                                  flex items-center justify-center flex-1 h-11 rounded-xl font-medium
-                                  transition-all duration-150 select-none text-base
-                                  ${isSelected ? `ring-2 ring-yellow-500/60` : ''}
-                                  ${isHovered ? `${t.keyHover} shadow-md` : ''}
-                                  ${t.key} ${t.keyText} ${t.border} border shadow-sm
-                                `}
-                              >
-                                {consonant}
-                              </motion.button>
-                            );
-                          })}
-                        </div>
-                      ))}
-                      {/* Amharic special keys row */}
-                      <div className="flex gap-1">
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('backspace')}
-                          className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText}`}>
-                          <Delete className="w-4 h-4" />
-                        </motion.button>
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('space')}
-                          className={`flex-[3] flex items-center justify-center h-11 rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}>
-                          አማርኛ
-                        </motion.button>
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('enter')}
-                          className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText}`}>
-                          <CornerDownLeft className="w-4 h-4" />
-                        </motion.button>
+              <div className="flex flex-col gap-1.5 p-2">
+                {/* ─── Number Row (always visible, not in symbols mode) ─── */}
+                {!symbolsActive && (
+                  <div className="flex gap-1">
+                    {(language === 'english'
+                      ? ['1','2','3','4','5','6','7','8','9','0']
+                      : ETHIOPIAN_NUM_ROW_1
+                    ).map((num, i) => (
+                      <motion.button key={i}
+                        whileHover={{ scale: 1.05, y: -1 }}
+                        whileTap={{ scale: 0.92 }}
+                        onClick={() => updateText(text + num)}
+                        className={`flex-1 flex items-center justify-center h-9 rounded-xl text-sm font-medium ${t.suggestion} ${t.keyText} ${t.keyHover} ${t.border} border`}
+                      >
+                        {num}
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+
+                {/* ─── Vowel Family Row (when Amharic consonant selected) ─── */}
+                {renderVowelRow()}
+
+                {/* ─── English Keyboard ─── */}
+                {language === 'english' && currentRows && currentRows.map((row, ri) => (
+                  <div key={ri} className={`flex gap-1 ${ri === 1 ? 'px-4' : ''}`}>
+                    {row.map(key => renderEnglishKey(key))}
+                  </div>
+                ))}
+
+                {/* ─── Amharic Letter Keyboard ─── */}
+                {language === 'amharic' && !symbolsActive && (
+                  <>
+                    {AMHARIC_ROWS.map((row, ri) => (
+                      <div key={ri} className="flex gap-1 justify-center">
+                        {row.map(consonant => {
+                          const isHovered = hoveredKey === consonant;
+                          const isSelected = selectedConsonant === consonant;
+                          return (
+                            <motion.button
+                              key={consonant}
+                              whileTap={{ scale: 0.92 }}
+                              whileHover={{ scale: 1.08, y: -1 }}
+                              onMouseEnter={() => setHoveredKey(consonant)}
+                              onMouseLeave={() => setHoveredKey(null)}
+                              onClick={() => handleAmharicPress(consonant)}
+                              className={`
+                                flex items-center justify-center flex-1 h-11 rounded-xl font-medium
+                                transition-all duration-150 select-none text-base
+                                ${isSelected ? `ring-2 ring-yellow-500/60` : ''}
+                                ${isHovered ? `${t.keyHover} shadow-md` : ''}
+                                ${t.key} ${t.keyText} ${t.border} border shadow-sm
+                              `}
+                            >
+                              {consonant}
+                            </motion.button>
+                          );
+                        })}
                       </div>
-                      {/* Amharic punctuation + Ethiopian numbers toggle */}
-                      <div className="flex gap-1">
-                        {[...ETHIOPIAN_SYMBOLS.slice(0, 6), '፩፪'].map((punct, i) => (
-                          <motion.button
-                            key={i}
-                            whileHover={{ scale: 1.05, y: -1 }}
-                            whileTap={{ scale: 0.92 }}
-                            onClick={() => {
-                              if (punct === '፩፪') {
-                                setEthiopianNumActive(!ethiopianNumActive);
-                                setSymbolsActive(false);
-                              } else {
-                                updateText(text + punct);
-                              }
-                            }}
-                            className={`flex-1 flex items-center justify-center h-9 rounded-lg text-sm font-medium transition-colors
-                              ${punct === '፩፪' && ethiopianNumActive ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`}
-                              ${t.keyHover}`}
-                          >
-                            {punct}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  {language === 'amharic' && ethiopianNumActive && (
-                    <>
-                      <div className="flex gap-1 justify-center">
-                        {ETHIOPIAN_NUM_ROW_1.map((num, i) => (
-                          <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
-                            onClick={() => updateText(text + num)}
-                            className={`flex-1 flex items-center justify-center h-11 rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
-                            {num}
-                          </motion.button>
-                        ))}
-                      </div>
-                      <div className="flex gap-1 justify-center">
-                        {ETHIOPIAN_NUM_ROW_2.map((num, i) => (
-                          <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
-                            onClick={() => updateText(text + num)}
-                            className={`flex-1 flex items-center justify-center h-11 rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
-                            {num}
-                          </motion.button>
-                        ))}
-                      </div>
-                      <div className="flex gap-1 justify-center">
-                        {ETHIOPIAN_SYM_ROW.map((sym, i) => (
-                          <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
-                            onClick={() => updateText(text + sym)}
-                            className={`flex-1 flex items-center justify-center h-11 rounded-xl text-sm font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
-                            {sym}
-                          </motion.button>
-                        ))}
-                      </div>
-                      <div className="flex gap-1">
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEthiopianNumActive(false)}
-                          className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText} text-xs`}>
-                          አማ
-                        </motion.button>
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('space')}
-                          className={`flex-[3] flex items-center justify-center h-11 rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs`}>
-                          አማርኛ
-                        </motion.button>
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('backspace')}
-                          className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText}`}>
-                          <Delete className="w-4 h-4" />
-                        </motion.button>
-                      </div>
-                    </>
-                  )}
-                  {language === 'english' && symbolsActive && (
+                    ))}
+                    {/* Amharic special keys row */}
                     <div className="flex gap-1">
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setSymbolsActive(false); setEthiopianNumActive(true); }}
-                        className={`flex-[1.5] flex items-center justify-center h-9 rounded-lg ${t.suggestion} ${t.keyText} text-xs ${t.keyHover}`}>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setSymbolsActive(true); setSelectedConsonant(null); }}
+                        className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText} text-xs font-medium`}>
                         ፩፪
                       </motion.button>
-                      {['_','=','^','<','>','{','}'].map((sym, i) => (
-                        <motion.button key={i} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.92 }}
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('space')}
+                        className={`flex-[3] flex items-center justify-center h-11 rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}>
+                        አማርኛ
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('backspace')}
+                        className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText}`}>
+                        <Delete className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                    {/* Amharic punctuation row */}
+                    <div className="flex gap-1">
+                      {ETHIOPIAN_SYMBOLS.slice(0, 7).map((punct, i) => (
+                        <motion.button
+                          key={i}
+                          whileHover={{ scale: 1.05, y: -1 }}
+                          whileTap={{ scale: 0.92 }}
+                          onClick={() => updateText(text + punct)}
+                          className={`flex-1 flex items-center justify-center h-9 rounded-lg text-sm font-medium transition-colors
+                            ${t.suggestion} ${t.keyText} ${t.keyHover}`}
+                        >
+                          {punct}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* ─── Amharic Symbols Mode (Ethiopian numbers + symbols) ─── */}
+                {language === 'amharic' && symbolsActive && (
+                  <>
+                    <div className="flex gap-1 justify-center">
+                      {ETHIOPIAN_NUM_ROW_1.map((num, i) => (
+                        <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
+                          onClick={() => updateText(text + num)}
+                          className={`flex-1 flex items-center justify-center h-11 rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
+                          {num}
+                        </motion.button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1 justify-center">
+                      {ETHIOPIAN_NUM_ROW_2.map((num, i) => (
+                        <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
+                          onClick={() => updateText(text + num)}
+                          className={`flex-1 flex items-center justify-center h-11 rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
+                          {num}
+                        </motion.button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1 justify-center">
+                      {ETHIOPIAN_SYM_ROW.map((sym, i) => (
+                        <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + sym)}
-                          className={`flex-1 flex items-center justify-center h-9 rounded-lg text-sm ${t.suggestion} ${t.keyText} ${t.keyHover}`}>
+                          className={`flex-1 flex items-center justify-center h-11 rounded-xl text-sm font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
                           {sym}
                         </motion.button>
                       ))}
                     </div>
-                  )}
-                </div>
-                {/* Vowel Family Sidebar */}
-                {renderVowelSidebar()}
+                    {/* More Ethiopian punctuation & common symbols */}
+                    <div className="flex gap-1 justify-center">
+                      {['′','″','«','»','—','…','·','⟐'].map((sym, i) => (
+                        <motion.button key={i} whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.92 }}
+                          onClick={() => updateText(text + sym)}
+                          className={`flex-1 flex items-center justify-center h-9 rounded-lg text-sm font-medium ${t.suggestion} ${t.keyText} ${t.keyHover}`}>
+                          {sym}
+                        </motion.button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1">
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => setSymbolsActive(false)}
+                        className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText} text-xs`}>
+                        አማ
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('space')}
+                        className={`flex-[3] flex items-center justify-center h-11 rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs`}>
+                        አማርኛ
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('backspace')}
+                        className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText}`}>
+                        <Delete className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </>
+                )}
+
+                {/* ─── English extra symbols when in symbols mode ─── */}
+                {language === 'english' && symbolsActive && (
+                  <div className="flex gap-1">
+                    {['_','=','^','<','>','{','}'].map((sym, i) => (
+                      <motion.button key={i} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.92 }}
+                        onClick={() => updateText(text + sym)}
+                        className={`flex-1 flex items-center justify-center h-9 rounded-lg text-sm ${t.suggestion} ${t.keyText} ${t.keyHover}`}>
+                        {sym}
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
