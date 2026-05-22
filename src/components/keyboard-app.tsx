@@ -612,7 +612,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           {GIF_CATEGORIES.map(cat => (
             <button key={cat.id} onClick={() => setActiveGifCategory(cat.id)}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                activeGifCategory === cat.id ? `${t.tabActive} ${t.tabActiveText} shadow-sm` : `${t.suggestion} ${t.keyText}`}}>
+                activeGifCategory === cat.id ? `${t.tabActive} ${t.tabActiveText} shadow-sm` : `${t.suggestion} ${t.keyText}`}`}>
               <span>{cat.emoji}</span><span>{cat.name}</span>
             </button>
           ))}
