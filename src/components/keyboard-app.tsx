@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
   Delete, CornerDownLeft, Copy, Trash2, Plus,
   ArrowRightLeft, Loader2, Sparkles, Send, Globe,
-  ArrowUp, Pen, Palette, X
+  ArrowUp, Pen, Palette, X, Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-export type KeyboardMode = 'keyboard' | 'stickers' | 'gifs' | 'clipboard' | 'translate' | 'handwriting';
+export type KeyboardMode = 'keyboard' | 'stickers' | 'gifs' | 'clipboard' | 'translate' | 'handwriting' | 'settings';
 export type Language = 'english' | 'amharic';
-export type ThemeName = 'default' | 'midnight' | 'ocean' | 'sunset' | 'forest' | 'ethiopian';
+export type ThemeName = 'default' | 'midnight' | 'ocean' | 'sunset' | 'forest' | 'ethiopian' | 'rose' | 'neon' | 'candy' | 'arctic' | 'cherry' | 'sand';
 
 interface KeyboardAppProps {
   onTextChange?: (text: string) => void;
@@ -74,6 +74,68 @@ const THEMES: Record<ThemeName, {
     border: 'border-yellow-600/50', tabBar: 'bg-green-900', tabActive: 'bg-yellow-500', tabActiveText: 'text-green-900',
     suggestion: 'bg-green-700',
   },
+  rose: {
+    name: 'Rose', flag: '🌹',
+    bg: 'bg-rose-950', card: 'bg-rose-900', key: 'bg-rose-800', keyHover: 'hover:bg-rose-700',
+    keyActive: 'bg-pink-500 text-white', keyText: 'text-rose-50',
+    specialKey: 'bg-rose-700', accent: 'bg-pink-500', accentText: 'text-white',
+    border: 'border-rose-700/50', tabBar: 'bg-rose-900', tabActive: 'bg-pink-500', tabActiveText: 'text-white',
+    suggestion: 'bg-rose-800',
+  },
+  neon: {
+    name: 'Neon', flag: '💜',
+    bg: 'bg-gray-950', card: 'bg-gray-900', key: 'bg-gray-800', keyHover: 'hover:bg-gray-700',
+    keyActive: 'bg-lime-400 text-gray-950', keyText: 'text-gray-100',
+    specialKey: 'bg-gray-700', accent: 'bg-lime-400', accentText: 'text-gray-950',
+    border: 'border-gray-700/50', tabBar: 'bg-gray-900', tabActive: 'bg-lime-400', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-gray-800',
+  },
+  candy: {
+    name: 'Candy', flag: '🍬',
+    bg: 'bg-fuchsia-950', card: 'bg-fuchsia-900', key: 'bg-fuchsia-800', keyHover: 'hover:bg-fuchsia-700',
+    keyActive: 'bg-pink-400 text-white', keyText: 'text-fuchsia-50',
+    specialKey: 'bg-fuchsia-700', accent: 'bg-pink-400', accentText: 'text-white',
+    border: 'border-fuchsia-700/50', tabBar: 'bg-fuchsia-900', tabActive: 'bg-pink-400', tabActiveText: 'text-white',
+    suggestion: 'bg-fuchsia-800',
+  },
+  arctic: {
+    name: 'Arctic', flag: '❄️',
+    bg: 'bg-sky-950', card: 'bg-sky-900', key: 'bg-sky-800', keyHover: 'hover:bg-sky-700',
+    keyActive: 'bg-sky-400 text-sky-950', keyText: 'text-sky-50',
+    specialKey: 'bg-sky-700', accent: 'bg-sky-400', accentText: 'text-sky-950',
+    border: 'border-sky-700/50', tabBar: 'bg-sky-900', tabActive: 'bg-sky-400', tabActiveText: 'text-sky-950',
+    suggestion: 'bg-sky-800',
+  },
+  cherry: {
+    name: 'Cherry', flag: '🍒',
+    bg: 'bg-red-950', card: 'bg-red-900', key: 'bg-red-800', keyHover: 'hover:bg-red-700',
+    keyActive: 'bg-red-400 text-white', keyText: 'text-red-50',
+    specialKey: 'bg-red-700', accent: 'bg-red-400', accentText: 'text-white',
+    border: 'border-red-700/50', tabBar: 'bg-red-900', tabActive: 'bg-red-400', tabActiveText: 'text-white',
+    suggestion: 'bg-red-800',
+  },
+  sand: {
+    name: 'Sand', flag: '🏜️',
+    bg: 'bg-amber-950', card: 'bg-amber-900', key: 'bg-amber-800', keyHover: 'hover:bg-amber-700',
+    keyActive: 'bg-amber-400 text-amber-950', keyText: 'text-amber-50',
+    specialKey: 'bg-amber-700', accent: 'bg-amber-400', accentText: 'text-amber-950',
+    border: 'border-amber-700/50', tabBar: 'bg-amber-900', tabActive: 'bg-amber-400', tabActiveText: 'text-amber-950',
+    suggestion: 'bg-amber-800',
+  },
+};
+
+// ─── Long Press Alternates ────────────────────────────────────────────────
+const LONG_PRESS_ALTERNATES: Record<string, string[]> = {
+  'a': ['@', 'á', 'à', 'ä', 'ã', 'â'],
+  'e': ['é', 'è', 'ë', 'ê', '3'],
+  'i': ['í', 'ì', 'ï', 'î', '8'],
+  'o': ['ó', 'ò', 'ö', 'õ', 'ô', '9'],
+  'u': ['ú', 'ù', 'ü', 'û', '7'],
+  'c': ['ç', 'ć', 'č'],
+  'n': ['ñ', 'ń', 'ň'],
+  's': ['ß', 'ś', 'š'],
+  '.': [',', ';', ':', '!', '?'],
+  ',': [';', ':', '!', '?', '.'],
 };
 
 // ─── Amharic Character Data ───────────────────────────────────────────────
@@ -350,11 +412,11 @@ const NEXT_WORD_AM: Record<string, string[]> = {
 export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<KeyboardMode>('keyboard');
+  const [prevMode, setPrevMode] = useState<KeyboardMode>('keyboard');
   const [language, setLanguage] = useState<Language>('english');
   const [shiftActive, setShiftActive] = useState(false);
   const [symbolsActive, setSymbolsActive] = useState(false);
-  // ethiopianNumActive removed — Ethiopian numbers now shown via symbols button in Amharic mode
-  const [activeStickerCategory, setActiveStickerCategory] = useState('featured');
+  const [activeStickerCategory, setActiveStickerCategory] = useState('smileys');
   const [activeGifCategory, setActiveGifCategory] = useState('hello');
   const [clipboardItems, setClipboardItems] = useState<{ id: string; text: string; timestamp: number }[]>([
     { id: '1', text: 'Hello, how are you?', timestamp: Date.now() - 60000 },
@@ -376,11 +438,43 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const [drawingPaths, setDrawingPaths] = useState<{ x: number; y: number }[][]>([]);
   const [currentPath, setCurrentPath] = useState<{ x: number; y: number }[]>([]);
 
+  // New state for Change 1: Long press
+  const [longPressKey, setLongPressKey] = useState<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // New state for Change 2: Recent emojis
+  const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
+
+  // New state for Change 4: Handwriting suggestions
+  const [hwSuggestions, setHwSuggestions] = useState<string[]>([]);
+  const [selectedHwSuggestion, setSelectedHwSuggestion] = useState<string | null>(null);
+
+  // New state for Change 6: Settings
+  const [keyPressFeedback, setKeyPressFeedback] = useState(true);
+  const [keyboardHeight, setKeyboardHeight] = useState<'compact' | 'normal' | 'tall'>('normal');
+  const [showNumberRow, setShowNumberRow] = useState(true);
+  const [autoSpaceAfterPunctuation, setAutoSpaceAfterPunctuation] = useState(true);
+  const [keyPopupOnLongPress, setKeyPopupOnLongPress] = useState(true);
+
+  // Animation state for Change 7
+  const [textBounce, setTextBounce] = useState(false);
+  const [rippleKey, setRippleKey] = useState<string | null>(null);
+
   const t = THEMES[theme];
+
+  // Cleanup long press timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
 
   const updateText = useCallback((newText: string) => {
     setText(newText);
     onTextChange?.(newText);
+    // Trigger bounce animation
+    setTextBounce(true);
+    setTimeout(() => setTextBounce(false), 300);
     // Update suggestions
     const words = newText.trim().split(/\s+/);
     const lastWord = words[words.length - 1]?.toLowerCase() || '';
@@ -394,6 +488,14 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       setNextWordSuggestions(prevWord ? (NEXT_WORD_AM[prevWord] || []) : []);
     }
   }, [onTextChange, language]);
+
+  // Change 2: Add emoji to recent
+  const addRecentEmoji = useCallback((emoji: string) => {
+    setRecentEmojis(prev => {
+      const filtered = prev.filter(e => e !== emoji);
+      return [emoji, ...filtered].slice(0, 24);
+    });
+  }, []);
 
   const handleSuggestionClick = useCallback((word: string) => {
     const words = text.trim().split(/\s+/);
@@ -410,6 +512,10 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   }, [text, updateText]);
 
   const handleKeyPress = useCallback((key: string) => {
+    // Ripple effect
+    setRippleKey(key);
+    setTimeout(() => setRippleKey(null), 400);
+
     if (key === 'backspace') {
       updateText(text.slice(0, -1));
     } else if (key === 'space') {
@@ -427,10 +533,15 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       if (shiftActive && key.length === 1 && key.match(/[a-z]/)) {
         char = key.toUpperCase();
       }
-      updateText(text + char);
+      let newText = text + char;
+      // Auto-space after punctuation
+      if (autoSpaceAfterPunctuation && key.length === 1 && ['.','!','?',';',':'].includes(key)) {
+        newText = text + char + ' ';
+      }
+      updateText(newText);
       if (shiftActive) setShiftActive(false);
     }
-  }, [text, shiftActive, symbolsActive, updateText]);
+  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation]);
 
   const handleAmharicPress = useCallback((consonant: string) => {
     const vowels = AMHARIC_VOWELS[consonant];
@@ -441,7 +552,6 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   }, [text, updateText]);
 
   const handleVowelSelect = useCallback((vowel: string) => {
-    // Replace last character with selected vowel form
     const lastChar = text.slice(-1);
     const currentConsonant = selectedConsonant;
     if (currentConsonant && AMHARIC_VOWELS[currentConsonant]?.includes(lastChar)) {
@@ -450,6 +560,32 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       updateText(text + vowel);
     }
   }, [text, selectedConsonant, updateText]);
+
+  // Change 1: Long press handlers
+  const handlePointerDown = useCallback((key: string) => {
+    if (language !== 'english') return;
+    if (!keyPopupOnLongPress) return;
+    if (!LONG_PRESS_ALTERNATES[key]) return;
+    longPressTimerRef.current = setTimeout(() => {
+      setLongPressKey(key);
+    }, 300);
+  }, [language, keyPopupOnLongPress]);
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handleAlternateSelect = useCallback((alt: string) => {
+    updateText(text + alt);
+    setLongPressKey(null);
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, [text, updateText]);
 
   // ─── Handwriting Canvas ─────────────────────────────────────────────
   const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -495,10 +631,16 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const stopDrawing = useCallback(() => {
     if (currentPath.length > 0) {
       setDrawingPaths(prev => [...prev, currentPath]);
+      // Change 4: Generate suggestions when path is completed
+      const suggestions = language === 'english'
+        ? ['a','b','c','d','e','f'].sort(() => Math.random() - 0.5).slice(0, 5)
+        : ['ሀ','ለ','መ','ሰ','በ','ወ'].sort(() => Math.random() - 0.5).slice(0, 5);
+      setHwSuggestions(suggestions);
+      if (suggestions.length > 0) setSelectedHwSuggestion(suggestions[0]);
     }
     setIsDrawing(false);
     setCurrentPath([]);
-  }, [currentPath]);
+  }, [currentPath, language]);
 
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -508,7 +650,16 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setDrawingPaths([]);
     setCurrentPath([]);
+    setHwSuggestions([]);
+    setSelectedHwSuggestion(null);
   }, []);
+
+  const confirmHwSuggestion = useCallback(() => {
+    if (selectedHwSuggestion) {
+      updateText(text + selectedHwSuggestion);
+      clearCanvas();
+    }
+  }, [selectedHwSuggestion, text, updateText, clearCanvas]);
 
   // ─── Translation ────────────────────────────────────────────────────
   const handleTranslate = useCallback(async () => {
@@ -536,35 +687,47 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   }, [text, translateOutput, updateText]);
 
   // ─── English Keyboard Rows ──────────────────────────────────────────
+  // Change 3: Language button moved into bottom row
   const ENGLISH_ROWS = [
     ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
     ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
     ['shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace'],
-    ['symbols', ',', 'space', '.', 'enter'],
+    ['symbols', 'language', 'space', '.', 'enter'],
   ];
 
   const SYMBOL_ROWS = [
     ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
     ['@', '#', '$', '%', '&', '-', '+', '(', ')', '/'],
     ['shift', '*', '"', "'", ':', ';', '!', '?', '~', 'backspace'],
-    ['symbols', '|', 'space', '\\', 'enter'],
+    ['symbols', 'language', 'space', '\\', 'enter'],
   ];
 
   const ETHIOPIAN_NUM_ROW_1 = ['፩','፪','፫','፬','፭','፮','፯','፰','፱','፲'];
   const ETHIOPIAN_NUM_ROW_2 = ['፳','፴','፵','፶','፷','፸','፹','፺','፻','፼'];
   const ETHIOPIAN_SYM_ROW = ['፣','።','፤','፡','፥','፦','፧','፨','«','»'];
 
+  // Change 3: Language toggle handler (now from keyboard row)
+  const handleLanguageToggle = useCallback(() => {
+    setLanguage(language === 'english' ? 'amharic' : 'english');
+    setSelectedConsonant(null);
+    setSymbolsActive(false);
+    if (mode !== 'keyboard') setMode('keyboard');
+  }, [language, mode]);
+
   const renderEnglishKey = (key: string) => {
-    const isSpecial = ['shift', 'backspace', 'symbols', 'space', 'enter'].includes(key);
+    const isSpecial = ['shift', 'backspace', 'symbols', 'space', 'enter', 'language'].includes(key);
     const isWide = key === 'space';
-    const isMedium = key === 'shift' || key === 'backspace' || key === 'symbols' || key === 'enter';
+    const isMedium = key === 'shift' || key === 'backspace' || key === 'symbols' || key === 'enter' || key === 'language';
     let displayKey = key;
     if (key === 'backspace') displayKey = '⌫';
     if (key === 'symbols') displayKey = symbolsActive ? (language === 'amharic' ? 'አማ' : 'ABC') : (language === 'amharic' ? '፩፪' : '?123');
     if (key === 'space') displayKey = language === 'amharic' ? 'አማርኛ' : 'English';
     if (key === 'enter') displayKey = '↵';
+    if (key === 'language') displayKey = language === 'english' ? '🌐 አማ' : '🌐 EN';
     if (shiftActive && !isSpecial && key.length === 1 && key.match(/[a-z]/)) displayKey = key.toUpperCase();
     const isHovered = hoveredKey === key;
+    const isLongPressed = longPressKey === key;
+    const isRippled = rippleKey === key;
 
     return (
       <motion.button
@@ -572,21 +735,60 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
         whileTap={{ scale: 0.92 }}
         whileHover={{ scale: 1.05, y: -1 }}
         onMouseEnter={() => setHoveredKey(key)}
-        onMouseLeave={() => setHoveredKey(null)}
-        onClick={() => handleKeyPress(key)}
+        onMouseLeave={() => { setHoveredKey(null); handlePointerUp(); }}
+        onClick={() => {
+          if (key === 'language') {
+            handleLanguageToggle();
+          } else {
+            handleKeyPress(key);
+          }
+        }}
+        onPointerDown={() => handlePointerDown(key)}
+        onPointerUp={handlePointerUp}
         className={`
           relative flex items-center justify-center rounded-xl font-medium
-          transition-all duration-150 select-none
+          transition-all duration-150 select-none overflow-visible
           ${isWide ? 'flex-[3] h-11' : isMedium ? 'flex-[1.5] h-11' : 'flex-1 h-11'}
           ${isHovered ? `${t.keyHover} shadow-md` : ''}
           ${isSpecial ? `${t.specialKey} ${t.keyText}` : `${t.key} ${t.keyText} ${t.border} border shadow-sm`}
         `}
       >
+        {/* Ripple effect */}
+        {isRippled && (
+          <motion.span
+            initial={{ scale: 0, opacity: 0.5 }}
+            animate={{ scale: 2.5, opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className={`absolute inset-0 rounded-xl ${t.accent} pointer-events-none`}
+          />
+        )}
         {key === 'shift' && <ArrowUp className={`w-4 h-4 ${shiftActive ? 'text-yellow-500' : ''}`} />}
         {key === 'backspace' && <Delete className="w-4 h-4" />}
         {key === 'enter' && <CornerDownLeft className="w-4 h-4" />}
-        {key !== 'shift' && key !== 'backspace' && key !== 'enter' && (
+        {key === 'language' && <span className="text-[10px] font-bold">{displayKey}</span>}
+        {key !== 'shift' && key !== 'backspace' && key !== 'enter' && key !== 'language' && (
           <span className={isWide ? 'text-xs' : 'text-sm'}>{displayKey}</span>
+        )}
+        {/* Change 1: Long press popup */}
+        {isLongPressed && LONG_PRESS_ALTERNATES[key] && (
+          <motion.div
+            initial={{ opacity: 0, y: 5, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 5, scale: 0.9 }}
+            className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 ${t.card} ${t.border} border rounded-xl shadow-2xl p-1.5 z-50 flex gap-1 min-w-max`}
+          >
+            {LONG_PRESS_ALTERNATES[key].map((alt, i) => (
+              <motion.button
+                key={i}
+                whileHover={{ scale: 1.15, y: -2 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => { e.stopPropagation(); handleAlternateSelect(alt); }}
+                className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm`}
+              >
+                {alt}
+              </motion.button>
+            ))}
+          </motion.div>
         )}
       </motion.button>
     );
@@ -630,29 +832,46 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     </div>
   );
 
+  // Change 2: Stickers with recent emojis
   const renderStickers = () => {
-    const category = STICKER_CATEGORIES.find(c => c.id === activeStickerCategory);
+    const category = activeStickerCategory === 'recent'
+      ? { id: 'recent', name: 'Recent', icon: '🕐', stickers: recentEmojis }
+      : STICKER_CATEGORIES.find(c => c.id === activeStickerCategory);
+    const allCategories = [
+      ...(recentEmojis.length > 0 ? [{ id: 'recent', name: 'Recent', icon: '🕐', stickers: recentEmojis }] : []),
+      ...STICKER_CATEGORIES,
+    ];
     return (
       <div className="flex flex-col h-full">
         <div className="flex gap-1 px-2 py-1.5 overflow-x-auto scrollbar-hide border-b border-border/30">
-          {STICKER_CATEGORIES.map(cat => (
-            <button key={cat.id} onClick={() => setActiveStickerCategory(cat.id)}
+          {allCategories.map(cat => (
+            <motion.button key={cat.id}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveStickerCategory(cat.id)}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                 activeStickerCategory === cat.id ? `${t.tabActive} ${t.tabActiveText} shadow-sm` : `${t.suggestion} ${t.keyText}`}`}>
               <span>{cat.icon}</span><span>{cat.name}</span>
-            </button>
+            </motion.button>
           ))}
         </div>
         <div className="flex-1 p-2 overflow-y-auto">
-          <div className="grid grid-cols-4 gap-2">
-            {category?.stickers.map((sticker, i) => (
-              <motion.button key={i} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-                onClick={() => updateText(text + sticker)}
-                className={`flex items-center justify-center p-2 rounded-xl ${t.key} ${t.border} border shadow-sm text-2xl aspect-square`}>
-                {sticker}
-              </motion.button>
-            ))}
-          </div>
+          {activeStickerCategory === 'recent' && recentEmojis.length === 0 ? (
+            <div className={`flex flex-col items-center justify-center h-full ${t.keyText} opacity-50`}>
+              <span className="text-2xl mb-2">🕐</span>
+              <span className="text-xs">No recent emojis yet</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {category?.stickers.map((sticker, i) => (
+                <motion.button key={i} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
+                  onClick={() => { updateText(text + sticker); addRecentEmoji(sticker); }}
+                  className={`flex items-center justify-center p-2 rounded-xl ${t.key} ${t.border} border shadow-sm text-2xl aspect-square`}>
+                  {sticker}
+                </motion.button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -664,18 +883,21 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       <div className="flex flex-col h-full">
         <div className="flex gap-1 px-2 py-1.5 overflow-x-auto scrollbar-hide border-b border-border/30">
           {GIF_CATEGORIES.map(cat => (
-            <button key={cat.id} onClick={() => setActiveGifCategory(cat.id)}
+            <motion.button key={cat.id}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setActiveGifCategory(cat.id)}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                 activeGifCategory === cat.id ? `${t.tabActive} ${t.tabActiveText} shadow-sm` : `${t.suggestion} ${t.keyText}`}`}>
               <span>{cat.emoji}</span><span>{cat.name}</span>
-            </button>
+            </motion.button>
           ))}
         </div>
         <div className="flex-1 p-2 overflow-y-auto">
           <div className="grid grid-cols-2 gap-2">
             {category.map((gif, i) => (
               <motion.button key={i} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
-                onClick={() => updateText(text + gif.emoji + ' ')}
+                onClick={() => { updateText(text + gif.emoji + ' '); addRecentEmoji(gif.emoji); }}
                 className={`flex flex-col items-center justify-center p-3 rounded-xl ${t.key} ${t.border} border shadow-sm aspect-video relative overflow-hidden`}
               >
                 <motion.span className="text-3xl relative z-10"
@@ -703,10 +925,12 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     <div className="flex flex-col h-full">
       <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
         <span className={`text-xs font-medium ${t.keyText} opacity-70`}>Clipboard History</span>
-        <Button variant="ghost" size="sm" onClick={() => { if (text.trim()) setClipboardItems(prev => [{ id: Date.now().toString(), text: text.trim(), timestamp: Date.now() }, ...prev]); }}
-          className={`h-7 text-xs gap-1 ${t.keyText}`}>
-          <Plus className="w-3 h-3" />Add Current
-        </Button>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button variant="ghost" size="sm" onClick={() => { if (text.trim()) setClipboardItems(prev => [{ id: Date.now().toString(), text: text.trim(), timestamp: Date.now() }, ...prev]); }}
+            className={`h-7 text-xs gap-1 ${t.keyText}`}>
+            <Plus className="w-3 h-3" />Add Current
+          </Button>
+        </motion.div>
       </div>
       <div className="flex-1 p-2 overflow-y-auto">
         {clipboardItems.length === 0 ? (
@@ -726,8 +950,12 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                   </p>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="sm" onClick={() => updateText(text + item.text)} className="h-7 w-7 p-0"><Copy className="w-3 h-3" /></Button>
-                  <Button variant="ghost" size="sm" onClick={() => setClipboardItems(prev => prev.filter(i => i.id !== item.id))} className="h-7 w-7 p-0 text-red-500"><Trash2 className="w-3 h-3" /></Button>
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <Button variant="ghost" size="sm" onClick={() => updateText(text + item.text)} className="h-7 w-7 p-0"><Copy className="w-3 h-3" /></Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <Button variant="ghost" size="sm" onClick={() => setClipboardItems(prev => prev.filter(i => i.id !== item.id))} className="h-7 w-7 p-0 text-red-500"><Trash2 className="w-3 h-3" /></Button>
+                  </motion.div>
                 </div>
               </motion.div>
             ))}
@@ -741,11 +969,13 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     <div className="flex flex-col h-full">
       <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
         <span className={`text-xs font-medium ${t.keyText} opacity-70`}>AI Translator</span>
-        <Button variant="ghost" size="sm"
-          onClick={() => { setTranslateFrom(translateFrom === 'English' ? 'Amharic' : 'English'); setTranslateInput(''); setTranslateOutput(''); }}
-          className={`h-7 text-xs gap-1 ${t.keyText}`}>
-          <ArrowRightLeft className="w-3 h-3" />Switch
-        </Button>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button variant="ghost" size="sm"
+            onClick={() => { setTranslateFrom(translateFrom === 'English' ? 'Amharic' : 'English'); setTranslateInput(''); setTranslateOutput(''); }}
+            className={`h-7 text-xs gap-1 ${t.keyText}`}>
+            <ArrowRightLeft className="w-3 h-3" />Switch
+          </Button>
+        </motion.div>
       </div>
       <div className="flex-1 p-3 overflow-y-auto flex flex-col gap-3">
         <div className="flex items-center gap-2">
@@ -758,11 +988,13 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             placeholder={translateFrom === 'English' ? 'Type in English...' : 'በአማርኛ ይጻፉ...'}
             className={`w-full p-3 text-sm rounded-xl ${t.card} ${t.border} border focus:outline-none resize-none min-h-[60px] ${t.keyText} placeholder:opacity-40`}
             rows={2} />
-          <Button onClick={handleTranslate} disabled={isTranslating || !translateInput.trim()}
-            className={`w-full gap-2 ${t.accent} ${t.accentText}`} size="sm">
-            {isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
-            {isTranslating ? 'Translating...' : 'Translate'}
-          </Button>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button onClick={handleTranslate} disabled={isTranslating || !translateInput.trim()}
+              className={`w-full gap-2 ${t.accent} ${t.accentText}`} size="sm">
+              {isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
+              {isTranslating ? 'Translating...' : 'Translate'}
+            </Button>
+          </motion.div>
         </div>
         {translateOutput && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -774,10 +1006,14 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
               </div>
               <div className="flex gap-1">
                 <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" onClick={handleUseTranslation} className="h-7 w-7 p-0"><Send className="w-3 h-3" /></Button>
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <Button variant="ghost" size="sm" onClick={handleUseTranslation} className="h-7 w-7 p-0"><Send className="w-3 h-3" /></Button>
+                  </motion.div>
                 </TooltipTrigger><TooltipContent>Use in text</TooltipContent></Tooltip></TooltipProvider>
                 <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" onClick={() => navigator.clipboard?.writeText(translateOutput)} className="h-7 w-7 p-0"><Copy className="w-3 h-3" /></Button>
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <Button variant="ghost" size="sm" onClick={() => navigator.clipboard?.writeText(translateOutput)} className="h-7 w-7 p-0"><Copy className="w-3 h-3" /></Button>
+                  </motion.div>
                 </TooltipTrigger><TooltipContent>Copy</TooltipContent></Tooltip></TooltipProvider>
               </div>
             </div>
@@ -792,21 +1028,24 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     </div>
   );
 
+  // Change 4: Enhanced handwriting with suggestions and confirm
   const renderHandwriting = () => (
     <div className="flex flex-col h-full">
       <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
         <span className={`text-xs font-medium ${t.keyText} opacity-70`}>Handwriting Input</span>
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" onClick={clearCanvas} className={`h-7 text-xs gap-1 ${t.keyText}`}>
-            <Trash2 className="w-3 h-3" />Clear
-          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button variant="ghost" size="sm" onClick={clearCanvas} className={`h-7 text-xs gap-1 ${t.keyText}`}>
+              <Trash2 className="w-3 h-3" />Clear & Try Again
+            </Button>
+          </motion.div>
         </div>
       </div>
       <div className="flex-1 p-2">
         <canvas
           ref={canvasRef}
           width={280}
-          height={180}
+          height={160}
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
@@ -818,9 +1057,160 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           style={{ touchAction: 'none' }}
         />
       </div>
-      <div className={`px-3 py-2 text-center ${t.keyText} opacity-50`}>
-        <p className="text-[10px]">Draw a character or word in the canvas above</p>
-        <p className="text-[10px]">Supports both English and Amharic script</p>
+      {/* Suggested characters row */}
+      {hwSuggestions.length > 0 && (
+        <div className={`px-3 py-2 border-t ${t.border}`}>
+          <p className={`text-[10px] font-medium mb-1.5 ${t.keyText} opacity-60`}>Suggested characters:</p>
+          <div className="flex gap-1.5">
+            {hwSuggestions.map((sug, i) => (
+              <motion.button
+                key={i}
+                whileHover={{ scale: 1.1, y: -2 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setSelectedHwSuggestion(sug)}
+                className={`flex items-center justify-center w-10 h-10 rounded-lg text-base font-medium border shadow-sm transition-all
+                  ${selectedHwSuggestion === sug ? `${t.accent} ${t.accentText} border-transparent` : `${t.key} ${t.keyText} ${t.border}`}`}
+              >
+                {sug}
+              </motion.button>
+            ))}
+          </div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="mt-2">
+            <Button onClick={confirmHwSuggestion} disabled={!selectedHwSuggestion}
+              className={`w-full gap-2 ${t.accent} ${t.accentText}`} size="sm">
+              Confirm & Insert
+            </Button>
+          </motion.div>
+        </div>
+      )}
+      {hwSuggestions.length === 0 && (
+        <div className={`px-3 py-2 text-center ${t.keyText} opacity-50`}>
+          <p className="text-[10px]">Draw a character or word in the canvas above</p>
+          <p className="text-[10px]">Supports both English and Amharic script</p>
+        </div>
+      )}
+    </div>
+  );
+
+  // Change 6: Settings panel
+  const renderSettings = () => (
+    <div className="flex flex-col h-full">
+      <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
+        <span className={`text-xs font-medium ${t.keyText} opacity-70`}>Keyboard Settings</span>
+      </div>
+      <div className="flex-1 p-3 overflow-y-auto flex flex-col gap-4">
+        {/* Theme Picker */}
+        <div>
+          <p className={`text-xs font-semibold mb-2 ${t.keyText}`}>Theme</p>
+          <div className="grid grid-cols-4 gap-2">
+            {Object.entries(THEMES).map(([key, tData]) => (
+              <motion.button
+                key={key}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setTheme(key as ThemeName)}
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
+                  theme === key ? `${t.accent} ${t.accentText} border-transparent` : `${t.card} ${t.border} border`
+                }`}
+              >
+                <span className="text-lg">{tData.flag}</span>
+                <span className="text-[9px] font-medium">{tData.name}</span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        {/* Key press feedback toggle */}
+        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <div>
+            <p className={`text-xs font-medium ${t.keyText}`}>Key Press Feedback</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Visual feedback on key press</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setKeyPressFeedback(!keyPressFeedback)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${keyPressFeedback ? t.accent : 'bg-gray-600'}`}
+          >
+            <motion.div
+              animate={{ x: keyPressFeedback ? 16 : 2 }}
+              className="w-5 h-5 bg-white rounded-full shadow-sm"
+            />
+          </motion.button>
+        </div>
+
+        {/* Keyboard height selector */}
+        <div className={`p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Keyboard Height</p>
+          <div className="flex gap-2">
+            {(['compact', 'normal', 'tall'] as const).map(h => (
+              <motion.button
+                key={h}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setKeyboardHeight(h)}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                  keyboardHeight === h ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
+                }`}
+              >
+                {h}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        {/* Show number row toggle */}
+        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <div>
+            <p className={`text-xs font-medium ${t.keyText}`}>Show Number Row</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Always show number row above letters</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowNumberRow(!showNumberRow)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${showNumberRow ? t.accent : 'bg-gray-600'}`}
+          >
+            <motion.div
+              animate={{ x: showNumberRow ? 16 : 2 }}
+              className="w-5 h-5 bg-white rounded-full shadow-sm"
+            />
+          </motion.button>
+        </div>
+
+        {/* Auto-space after punctuation toggle */}
+        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <div>
+            <p className={`text-xs font-medium ${t.keyText}`}>Auto-Space After Punctuation</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Add space after . ! ? ; :</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setAutoSpaceAfterPunctuation(!autoSpaceAfterPunctuation)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${autoSpaceAfterPunctuation ? t.accent : 'bg-gray-600'}`}
+          >
+            <motion.div
+              animate={{ x: autoSpaceAfterPunctuation ? 16 : 2 }}
+              className="w-5 h-5 bg-white rounded-full shadow-sm"
+            />
+          </motion.button>
+        </div>
+
+        {/* Key popup on long press toggle */}
+        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <div>
+            <p className={`text-xs font-medium ${t.keyText}`}>Key Popup on Long Press</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Show alternate characters on long press</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setKeyPopupOnLongPress(!keyPopupOnLongPress)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${keyPopupOnLongPress ? t.accent : 'bg-gray-600'}`}
+          >
+            <motion.div
+              animate={{ x: keyPopupOnLongPress ? 16 : 2 }}
+              className="w-5 h-5 bg-white rounded-full shadow-sm"
+            />
+          </motion.button>
+        </div>
       </div>
     </div>
   );
@@ -837,11 +1227,11 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
         >
           <div className="flex items-center justify-between mb-2">
             <span className={`text-xs font-semibold ${t.keyText}`}>Choose Theme</span>
-            <button onClick={() => setShowThemePicker(false)} className={`${t.keyText} opacity-50 hover:opacity-100`}>
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setShowThemePicker(false)} className={`${t.keyText} opacity-50 hover:opacity-100`}>
               <X className="w-4 h-4" />
-            </button>
+            </motion.button>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {Object.entries(THEMES).map(([key, tData]) => (
               <motion.button
                 key={key}
@@ -892,6 +1282,37 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     );
   };
 
+  // ─── Panel transition direction (Change 7) ─────────────────────────
+  const modeOrder: KeyboardMode[] = ['keyboard', 'stickers', 'gifs', 'clipboard', 'translate', 'handwriting', 'settings'];
+  const getPanelVariants = (direction: number) => ({
+    initial: { opacity: 0, x: direction > 0 ? 50 : -50 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: direction > 0 ? -50 : 50 },
+  });
+
+  const handleModeChange = useCallback((newMode: KeyboardMode) => {
+    const oldIdx = modeOrder.indexOf(mode);
+    const newIdx = modeOrder.indexOf(newMode);
+    const direction = newIdx > oldIdx ? 1 : -1;
+    setPrevMode(mode);
+    setMode(newMode);
+    // Store direction for animation
+    (window as unknown as Record<string, number>).__panelDirection = direction;
+    if (newMode === 'keyboard') {
+      setSymbolsActive(false);
+      setSelectedConsonant(null);
+    }
+  }, [mode]);
+
+  const getDirection = () => {
+    return (window as unknown as Record<string, number>).__panelDirection || 1;
+  };
+
+  // Keyboard height class
+  const kbHeightClass = keyboardHeight === 'compact' ? 'min-h-[180px]' : keyboardHeight === 'tall' ? 'min-h-[280px]' : 'min-h-[220px]';
+  const kbPanelHeight = keyboardHeight === 'compact' ? 'h-[200px]' : keyboardHeight === 'tall' ? 'h-[300px]' : 'h-[240px]';
+  const kbKeyHeight = keyboardHeight === 'compact' ? 'h-9' : keyboardHeight === 'tall' ? 'h-13' : 'h-11';
+
   // ─── Main Render ────────────────────────────────────────────────────
   const currentRows = symbolsActive ? SYMBOL_ROWS : ENGLISH_ROWS;
 
@@ -901,7 +1322,13 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       <div className="flex-1 min-h-[60px] p-2">
         <div className={`h-full rounded-xl ${t.card} ${t.border} border p-2.5 overflow-y-auto`}>
           {text ? (
-            <p className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${t.keyText}`}>{text}</p>
+            <motion.p
+              key={text.slice(-1)}
+              initial={textBounce ? { scale: 1.02 } : {}}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.2 }}
+              className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${t.keyText}`}
+            >{text}</motion.p>
           ) : (
             <p className={`text-sm italic opacity-40 ${t.keyText}`}>{language === 'english' ? 'Tap the keyboard to start typing...' : 'ቁልፉን መታ በማድረግ ይጻፉ...'}</p>
           )}
@@ -925,45 +1352,33 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           { id: 'clipboard' as KeyboardMode, label: 'Clip', icon: ClipboardList },
           { id: 'translate' as KeyboardMode, label: 'AI', icon: Sparkles },
           { id: 'handwriting' as KeyboardMode, label: 'Draw', icon: Pen },
+          { id: 'settings' as KeyboardMode, label: 'Set', icon: Settings },
         ].map(tab => (
           <motion.button
             key={tab.id}
             whileTap={{ scale: 0.92 }}
             whileHover={{ scale: 1.05 }}
-            onClick={() => {
-              setMode(tab.id);
-              if (tab.id === 'keyboard') {
-                setSymbolsActive(false);
-                setSelectedConsonant(null);
-              }
-            }}
+            onClick={() => handleModeChange(tab.id)}
             className={`
-              flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-all duration-200
+              flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-all duration-200 relative
               ${mode === tab.id
                 ? `${t.tabActive} ${t.tabActiveText} shadow-sm`
                 : `${t.keyText} opacity-60 hover:opacity-100`}
             `}
           >
-            <tab.icon className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-medium">{tab.label}</span>
+            {/* Change 7: Subtle pulse on active tab */}
+            {mode === tab.id && (
+              <motion.div
+                className={`absolute inset-0 rounded-xl ${t.accent} opacity-20`}
+                animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.1, 0.2] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              />
+            )}
+            <tab.icon className="w-3.5 h-3.5 relative z-10" />
+            <span className="text-[10px] font-medium relative z-10">{tab.label}</span>
           </motion.button>
         ))}
-        {/* Language Toggle */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.08 }}
-          onClick={() => {
-            setLanguage(language === 'english' ? 'amharic' : 'english');
-            setSelectedConsonant(null);
-            setSymbolsActive(false);
-            if (mode !== 'keyboard') setMode('keyboard');
-          }}
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-xl ${t.accent} ${t.accentText} shadow-sm`}
-          title={`Switch to ${language === 'english' ? 'Amharic' : 'English'}`}
-        >
-          <Globe className="w-3.5 h-3.5" />
-          <span className="text-[10px] font-bold">{language === 'english' ? 'አማ' : 'EN'}</span>
-        </motion.button>
+        {/* Change 3: Language toggle REMOVED from tab bar - now in keyboard bottom row */}
         {/* Theme Toggle */}
         <motion.button
           whileTap={{ scale: 0.9 }}
@@ -977,13 +1392,19 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       </div>
 
       {/* Keyboard Content */}
-      <div className={`${t.bg} border-t ${t.border}`} style={{ minHeight: mode === 'keyboard' ? '220px' : '240px' }}>
+      <div className={`${t.bg} border-t ${t.border}`} style={{ minHeight: mode === 'keyboard' ? undefined : undefined }}>
         <AnimatePresence mode="wait">
           {mode === 'keyboard' && (
-            <motion.div key="keyboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
+            <motion.div
+              key="keyboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
+            >
               <div className="flex flex-col gap-1.5 p-2">
-                {/* ─── Number Row (always visible, not in symbols mode) ─── */}
-                {!symbolsActive && (
+                {/* ─── Number Row (conditionally visible based on settings) ─── */}
+                {!symbolsActive && showNumberRow && (
                   <div className="flex gap-1">
                     {(language === 'english'
                       ? ['1','2','3','4','5','6','7','8','9','0']
@@ -993,7 +1414,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                         whileHover={{ scale: 1.05, y: -1 }}
                         whileTap={{ scale: 0.92 }}
                         onClick={() => updateText(text + num)}
-                        className={`flex-1 flex items-center justify-center h-9 rounded-xl text-sm font-medium ${t.suggestion} ${t.keyText} ${t.keyHover} ${t.border} border`}
+                        className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-xl text-sm font-medium ${t.suggestion} ${t.keyText} ${t.keyHover} ${t.border} border`}
                       >
                         {num}
                       </motion.button>
@@ -1028,31 +1449,47 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                               onMouseLeave={() => setHoveredKey(null)}
                               onClick={() => handleAmharicPress(consonant)}
                               className={`
-                                flex items-center justify-center flex-1 h-11 rounded-xl font-medium
+                                relative flex items-center justify-center flex-1 ${kbKeyHeight} rounded-xl font-medium
                                 transition-all duration-150 select-none text-base
                                 ${isSelected ? `ring-2 ring-yellow-500/60` : ''}
                                 ${isHovered ? `${t.keyHover} shadow-md` : ''}
                                 ${t.key} ${t.keyText} ${t.border} border shadow-sm
                               `}
                             >
+                              {/* Change 7: Glow effect on active consonant */}
+                              {isSelected && (
+                                <motion.div
+                                  className="absolute inset-0 rounded-xl"
+                                  animate={{ boxShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 12px rgba(234,179,8,0.4)', '0 0 0px rgba(234,179,8,0)'] }}
+                                  transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                                />
+                              )}
                               {consonant}
                             </motion.button>
                           );
                         })}
                       </div>
                     ))}
-                    {/* Amharic special keys row */}
+                    {/* Change 3: Amharic special keys row with language button */}
                     <div className="flex gap-1">
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setSymbolsActive(true); setSelectedConsonant(null); }}
-                        className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText} text-xs font-medium`}>
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => { setSymbolsActive(true); setSelectedConsonant(null); }}
+                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText} text-xs font-medium`}>
                         ፩፪
                       </motion.button>
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('space')}
-                        className={`flex-[3] flex items-center justify-center h-11 rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}>
+                      {/* Language toggle button in Amharic row */}
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                        onClick={handleLanguageToggle}
+                        className={`flex-[1.5] flex items-center justify-center gap-1 ${kbKeyHeight} rounded-xl ${t.accent} ${t.accentText} text-[10px] font-bold shadow-sm`}
+                        title={`Switch to ${language === 'english' ? 'Amharic' : 'English'}`}
+                      >
+                        <Globe className="w-3 h-3" />EN
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('space')}
+                        className={`flex-[3] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}>
                         አማርኛ
                       </motion.button>
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('backspace')}
-                        className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText}`}>
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('backspace')}
+                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText}`}>
                         <Delete className="w-4 h-4" />
                       </motion.button>
                     </div>
@@ -1067,7 +1504,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                       {ETHIOPIAN_NUM_ROW_1.map((num, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + num)}
-                          className={`flex-1 flex items-center justify-center h-11 rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
+                          className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
                           {num}
                         </motion.button>
                       ))}
@@ -1076,7 +1513,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                       {ETHIOPIAN_NUM_ROW_2.map((num, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + num)}
-                          className={`flex-1 flex items-center justify-center h-11 rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
+                          className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
                           {num}
                         </motion.button>
                       ))}
@@ -1085,7 +1522,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                       {ETHIOPIAN_SYM_ROW.map((sym, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + sym)}
-                          className={`flex-1 flex items-center justify-center h-11 rounded-xl text-sm font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
+                          className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-xl text-sm font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
                           {sym}
                         </motion.button>
                       ))}
@@ -1100,17 +1537,24 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                         </motion.button>
                       ))}
                     </div>
+                    {/* Change 3: Amharic symbols bottom row with language button */}
                     <div className="flex gap-1">
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => setSymbolsActive(false)}
-                        className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText} text-xs`}>
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => setSymbolsActive(false)}
+                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText} text-xs`}>
                         አማ
                       </motion.button>
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('space')}
-                        className={`flex-[3] flex items-center justify-center h-11 rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs`}>
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                        onClick={handleLanguageToggle}
+                        className={`flex-[1.5] flex items-center justify-center gap-1 ${kbKeyHeight} rounded-xl ${t.accent} ${t.accentText} text-[10px] font-bold shadow-sm`}
+                      >
+                        <Globe className="w-3 h-3" />EN
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('space')}
+                        className={`flex-[3] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs`}>
                         አማርኛ
                       </motion.button>
-                      <motion.button whileTap={{ scale: 0.9 }} onClick={() => handleKeyPress('backspace')}
-                        className={`flex-[1.5] flex items-center justify-center h-11 rounded-xl ${t.specialKey} ${t.keyText}`}>
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('backspace')}
+                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText}`}>
                         <Delete className="w-4 h-4" />
                       </motion.button>
                     </div>
@@ -1134,28 +1578,33 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           )}
 
           {mode === 'stickers' && (
-            <motion.div key="stickers" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-[240px]">
+            <motion.div key="stickers" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={kbPanelHeight}>
               {renderStickers()}
             </motion.div>
           )}
           {mode === 'gifs' && (
-            <motion.div key="gifs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-[240px]">
+            <motion.div key="gifs" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={kbPanelHeight}>
               {renderGifs()}
             </motion.div>
           )}
           {mode === 'clipboard' && (
-            <motion.div key="clipboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-[240px]">
+            <motion.div key="clipboard" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={kbPanelHeight}>
               {renderClipboard()}
             </motion.div>
           )}
           {mode === 'translate' && (
-            <motion.div key="translate" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-[300px]">
+            <motion.div key="translate" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={keyboardHeight === 'compact' ? 'h-[260px]' : keyboardHeight === 'tall' ? 'h-[360px]' : 'h-[300px]'}>
               {renderTranslate()}
             </motion.div>
           )}
           {mode === 'handwriting' && (
-            <motion.div key="handwriting" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-[260px]">
+            <motion.div key="handwriting" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={keyboardHeight === 'compact' ? 'h-[220px]' : keyboardHeight === 'tall' ? 'h-[320px]' : 'h-[260px]'}>
               {renderHandwriting()}
+            </motion.div>
+          )}
+          {mode === 'settings' && (
+            <motion.div key="settings" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={keyboardHeight === 'compact' ? 'h-[280px]' : keyboardHeight === 'tall' ? 'h-[380px]' : 'h-[320px]'}>
+              {renderSettings()}
             </motion.div>
           )}
         </AnimatePresence>
