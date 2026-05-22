@@ -14,22 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KeyFlow - English & Amharic Keyboard with AI Translation",
-  description: "The smartest bilingual keyboard for English and Amharic. Featuring AI translation, stickers, GIFs, clipboard manager, and the full Ge'ez script.",
-  keywords: ["keyboard", "Amharic", "English", "bilingual", "AI translation", "Ge'ez", "stickers", "GIFs", "clipboard"],
-  authors: [{ name: "KeyFlow Team" }],
+  title: "AkAI - Amharic Keyboard + AI | English & Amharic Bilingual Keyboard",
+  description: "AkAI: The smartest bilingual keyboard for English and Amharic. AI translation, stickers, GIFs, handwriting, 6 themes, Ethiopian numbers, word suggestions.",
+  keywords: ["AkAI", "keyboard", "Amharic", "English", "bilingual", "AI translation", "Ge'ez", "stickers", "GIFs", "handwriting", "themes", "Ethiopian"],
+  authors: [{ name: "AkAI Team" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/akai-icon.png",
   },
   openGraph: {
-    title: "KeyFlow - Bilingual Keyboard",
-    description: "English & Amharic keyboard with AI translation",
+    title: "AkAI - Amharic Keyboard + AI",
+    description: "English & Amharic keyboard with AI translation, handwriting, themes",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "KeyFlow - Bilingual Keyboard",
-    description: "English & Amharic keyboard with AI translation",
+    title: "AkAI - Amharic Keyboard + AI",
+    description: "English & Amharic keyboard with AI translation, handwriting, themes",
   },
 };
 
