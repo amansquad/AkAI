@@ -2483,12 +2483,22 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     );
   };
 
-  // Desktop keyboard with 3D keys and function row
+  // Desktop keyboard with 3D keys and function row - NO DUPLICATES
   const renderDesktopKeyboard = () => {
-    const currentRows = symbolsActive ? SYMBOL_ROWS : ENGLISH_ROWS;
+    // Desktop-specific rows - only character keys, special keys added explicitly in layout
+    const DESKTOP_QWERTY_ROWS = [
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm'],
+    ];
+    const DESKTOP_SYMBOL_ROWS = [
+      ['@', '#', '$', '%', '&', '-', '+', '(', ')', '/'],
+      ['*', '"', "'", ':', ';', '!', '?', '~'],
+    ];
+
     return (
       <div className="desktop-keyboard-chassis">
-        {/* Function row - distinct styling */}
+        {/* Function row */}
         <div className="desktop-key-row desktop-function-row desktop-function-row-styled">
           {renderDesktopKey('esc', 'flex-[1.2]', 'Esc')}
           {renderDesktopKey('tab', 'flex-[1.5]', 'Insert tab')}
@@ -2502,17 +2512,41 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           {['1','2','3','4','5','6','7','8','9','0'].map(k => renderDesktopKey(k))}
         </div>
 
-        {/* Letter rows */}
+        {/* Main key area */}
         {language === 'english' ? (
           <>
-            {currentRows.map((row, rowIdx) => (
-              <div key={rowIdx} className="desktop-key-row desktop-letter-row">
-                {rowIdx === 2 && renderDesktopKey('shift', 'flex-[1.5]', 'Toggle shift')}
-                {row.map(key => renderDesktopKey(key))}
-                {rowIdx === 2 && renderDesktopKey('backspace', 'flex-[2]', 'Delete')}
-              </div>
-            ))}
-            {/* Bottom row with wider space */}
+            {symbolsActive ? (
+              <>
+                {/* Symbol row 1 */}
+                <div className="desktop-key-row desktop-letter-row">
+                  {DESKTOP_SYMBOL_ROWS[0].map(key => renderDesktopKey(key))}
+                </div>
+                {/* Symbol row 2 with shift & backspace */}
+                <div className="desktop-key-row desktop-letter-row">
+                  {renderDesktopKey('shift', 'flex-[1.5]', 'Toggle shift')}
+                  {DESKTOP_SYMBOL_ROWS[1].map(key => renderDesktopKey(key))}
+                  {renderDesktopKey('backspace', 'flex-[2]', 'Delete')}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* QWERTY Row 1 */}
+                <div className="desktop-key-row desktop-letter-row">
+                  {DESKTOP_QWERTY_ROWS[0].map(key => renderDesktopKey(key))}
+                </div>
+                {/* QWERTY Row 2 */}
+                <div className="desktop-key-row desktop-letter-row">
+                  {DESKTOP_QWERTY_ROWS[1].map(key => renderDesktopKey(key))}
+                </div>
+                {/* QWERTY Row 3 with shift & backspace */}
+                <div className="desktop-key-row desktop-letter-row">
+                  {renderDesktopKey('shift', 'flex-[1.5]', 'Toggle shift')}
+                  {DESKTOP_QWERTY_ROWS[2].map(key => renderDesktopKey(key))}
+                  {renderDesktopKey('backspace', 'flex-[2]', 'Delete')}
+                </div>
+              </>
+            )}
+            {/* Bottom row */}
             <div className="desktop-key-row desktop-letter-row">
               {renderDesktopKey('symbols', 'flex-[1.5]', 'Toggle symbols')}
               {renderDesktopKey(',', 'flex-[0.8]')}
@@ -2549,10 +2583,9 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             <div className="desktop-key-row desktop-letter-row">
               {renderDesktopKey('symbols', 'flex-[1.5]', 'Toggle symbols')}
               {renderDesktopKey(',', 'flex-[0.8]')}
-              {renderDesktopKey('space', 'flex-[4]')}
+              {renderDesktopKey('space', 'flex-[5]')}
               {renderDesktopKey('.', 'flex-[0.8]')}
-              {renderDesktopKey('backspace', 'flex-[1.5]', 'Delete')}
-              {renderDesktopKey('enter', 'flex-[1.5]', 'New line')}
+              {renderDesktopKey('enter', 'flex-[2]', 'New line')}
             </div>
           </>
         )}

@@ -363,3 +363,35 @@ Work Log:
 - `bun run lint` passes with no errors
 - Dev server compiles successfully (all compilations successful)
 - No mobile keyboard code was modified
+
+---
+Task ID: 3
+Agent: main
+Task: Fix duplicate keys in desktop keyboard layout and improve desktop keyboard appearance
+
+Work Log:
+- Analyzed user screenshot showing duplicate buttons: 3 caps, 2 space, 2 fullstop, 2 language change, 2 symbols
+- Root cause: ENGLISH_ROWS data included special keys (shift, backspace, symbols, language, space, ., enter) AND the rendering code also added them explicitly, causing duplicates
+- The old code iterated through ALL rows of ENGLISH_ROWS (including bottom row with symbols/language/space/./enter) AND added extra shift/backspace AND a separate bottom row
+- Completely rewrote renderDesktopKeyboard() with dedicated DESKTOP_QWERTY_ROWS and DESKTOP_SYMBOL_ROWS that contain ONLY character keys
+- Special keys (shift, backspace, symbols, space, enter, caps, tab, esc, language) are now added explicitly in the correct layout positions
+- Removed all duplicate key rendering
+- Desktop keyboard now has proper layout:
+  - Function row: Esc | Tab | Caps | ... | Language
+  - Number row: 1-0
+  - QWERTY Row 1: Q W E R T Y U I O P
+  - QWERTY Row 2: A S D F G H J K L
+  - QWERTY Row 3: Shift | Z X C V B N M | Backspace
+  - Bottom row: Symbols | , | Space | . | Enter
+- Increased keyboard max-width from 1000px to 1200px
+- Increased key sizes: letter keys 42px→46px, number keys 36px→38px, function keys 32px→34px
+- Increased font sizes: letter keys 14px→15px, number keys 12px→13px
+- Added min-width:0 to prevent flex items from overflowing
+- Increased chassis padding and border-radius for better desktop feel
+- Amharic keyboard bottom row also cleaned up (removed duplicate backspace)
+
+Stage Summary:
+- Desktop keyboard no longer has ANY duplicate keys
+- Each special key appears exactly once in the correct position
+- Keyboard is wider and keys are larger for desktop use
+- Lint passes, dev server compiles successfully
