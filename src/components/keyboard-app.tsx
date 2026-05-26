@@ -1,33 +1,52 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
   Delete, CornerDownLeft, Copy, Trash2, Plus,
   ArrowRightLeft, Loader2, Sparkles, Send, Globe,
-  ArrowUp, Pen, Palette, X, Settings
+  ArrowUp, Pen, Palette, X, Settings, Sun, Moon, Monitor, Wand2, ImagePlus,
+  SquareCheck, LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTheme } from 'next-themes';
 
-export type KeyboardMode = 'keyboard' | 'stickers' | 'gifs' | 'clipboard' | 'translate' | 'handwriting' | 'settings';
+export type KeyboardMode = 'keyboard' | 'stickers' | 'gifs' | 'clipboard' | 'translate' | 'handwriting' | 'settings' | 'themes';
 export type Language = 'english' | 'amharic';
-export type ThemeName = 'default' | 'midnight' | 'ocean' | 'sunset' | 'forest' | 'ethiopian' | 'rose' | 'neon' | 'candy' | 'arctic' | 'cherry' | 'sand';
+export type ThemeName = string;
 
 interface KeyboardAppProps {
   onTextChange?: (text: string) => void;
 }
 
-// ─── Theme Definitions ────────────────────────────────────────────────────
-const THEMES: Record<ThemeName, {
+interface ThemeDef {
   name: string; flag: string;
   bg: string; card: string; key: string; keyHover: string; keyActive: string; keyText: string;
   specialKey: string; accent: string; accentText: string; border: string;
   tabBar: string; tabActive: string; tabActiveText: string; suggestion: string;
-}> = {
+  isLive?: boolean; liveClass?: string; category?: 'solid' | 'live' | 'custom';
+}
+
+interface CustomThemeData {
+  id: string; name: string;
+  bgColor: string; keyColor: string; keyTextColor: string; accentColor: string; specialKeyColor: string;
+  bgImageUrl?: string; bgGifUrl?: string;
+}
+
+interface GiphyGif {
+  id: string;
+  url: string;
+  title: string;
+  images: { fixed_height: { url: string } };
+  _fallback?: { emoji: string; label: string };
+}
+
+// ─── Theme Definitions ────────────────────────────────────────────────────
+const THEMES: Record<string, ThemeDef> = {
   default: {
-    name: 'Classic', flag: '⬜',
+    name: 'Classic', flag: '⬜', category: 'solid',
     bg: 'bg-background', card: 'bg-card', key: 'bg-card', keyHover: 'hover:bg-accent',
     keyActive: 'bg-primary text-primary-foreground', keyText: 'text-foreground',
     specialKey: 'bg-muted/80', accent: 'bg-primary', accentText: 'text-primary-foreground',
@@ -35,7 +54,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-muted/60',
   },
   midnight: {
-    name: 'Midnight', flag: '🌙',
+    name: 'Midnight', flag: '🌙', category: 'solid',
     bg: 'bg-slate-950', card: 'bg-slate-900', key: 'bg-slate-800', keyHover: 'hover:bg-slate-700',
     keyActive: 'bg-violet-600 text-white', keyText: 'text-slate-100',
     specialKey: 'bg-slate-700', accent: 'bg-violet-600', accentText: 'text-white',
@@ -43,7 +62,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-slate-800',
   },
   ocean: {
-    name: 'Ocean', flag: '🌊',
+    name: 'Ocean', flag: '🌊', category: 'solid',
     bg: 'bg-cyan-950', card: 'bg-cyan-900', key: 'bg-cyan-800', keyHover: 'hover:bg-cyan-700',
     keyActive: 'bg-teal-500 text-white', keyText: 'text-cyan-50',
     specialKey: 'bg-cyan-700', accent: 'bg-teal-500', accentText: 'text-white',
@@ -51,7 +70,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-cyan-800',
   },
   sunset: {
-    name: 'Sunset', flag: '🌅',
+    name: 'Sunset', flag: '🌅', category: 'solid',
     bg: 'bg-orange-950', card: 'bg-orange-900', key: 'bg-orange-800', keyHover: 'hover:bg-orange-700',
     keyActive: 'bg-amber-500 text-white', keyText: 'text-orange-50',
     specialKey: 'bg-orange-700', accent: 'bg-amber-500', accentText: 'text-white',
@@ -59,7 +78,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-orange-800',
   },
   forest: {
-    name: 'Forest', flag: '🌿',
+    name: 'Forest', flag: '🌿', category: 'solid',
     bg: 'bg-green-950', card: 'bg-green-900', key: 'bg-green-800', keyHover: 'hover:bg-green-700',
     keyActive: 'bg-emerald-500 text-white', keyText: 'text-green-50',
     specialKey: 'bg-green-700', accent: 'bg-emerald-500', accentText: 'text-white',
@@ -67,7 +86,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-green-800',
   },
   ethiopian: {
-    name: 'Ethiopian', flag: '🇪🇹',
+    name: 'Ethiopian', flag: '🇪🇹', category: 'solid',
     bg: 'bg-gradient-to-b from-green-900 to-yellow-900', card: 'bg-green-800/80', key: 'bg-green-700', keyHover: 'hover:bg-yellow-600',
     keyActive: 'bg-yellow-500 text-green-900', keyText: 'text-green-50',
     specialKey: 'bg-yellow-700', accent: 'bg-yellow-500', accentText: 'text-green-900',
@@ -75,7 +94,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-green-700',
   },
   rose: {
-    name: 'Rose', flag: '🌹',
+    name: 'Rose', flag: '🌹', category: 'solid',
     bg: 'bg-rose-950', card: 'bg-rose-900', key: 'bg-rose-800', keyHover: 'hover:bg-rose-700',
     keyActive: 'bg-pink-500 text-white', keyText: 'text-rose-50',
     specialKey: 'bg-rose-700', accent: 'bg-pink-500', accentText: 'text-white',
@@ -83,7 +102,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-rose-800',
   },
   neon: {
-    name: 'Neon', flag: '💜',
+    name: 'Neon', flag: '💜', category: 'solid',
     bg: 'bg-gray-950', card: 'bg-gray-900', key: 'bg-gray-800', keyHover: 'hover:bg-gray-700',
     keyActive: 'bg-lime-400 text-gray-950', keyText: 'text-gray-100',
     specialKey: 'bg-gray-700', accent: 'bg-lime-400', accentText: 'text-gray-950',
@@ -91,7 +110,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-gray-800',
   },
   candy: {
-    name: 'Candy', flag: '🍬',
+    name: 'Candy', flag: '🍬', category: 'solid',
     bg: 'bg-fuchsia-950', card: 'bg-fuchsia-900', key: 'bg-fuchsia-800', keyHover: 'hover:bg-fuchsia-700',
     keyActive: 'bg-pink-400 text-white', keyText: 'text-fuchsia-50',
     specialKey: 'bg-fuchsia-700', accent: 'bg-pink-400', accentText: 'text-white',
@@ -99,7 +118,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-fuchsia-800',
   },
   arctic: {
-    name: 'Arctic', flag: '❄️',
+    name: 'Arctic', flag: '❄️', category: 'solid',
     bg: 'bg-sky-950', card: 'bg-sky-900', key: 'bg-sky-800', keyHover: 'hover:bg-sky-700',
     keyActive: 'bg-sky-400 text-sky-950', keyText: 'text-sky-50',
     specialKey: 'bg-sky-700', accent: 'bg-sky-400', accentText: 'text-sky-950',
@@ -107,7 +126,7 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-sky-800',
   },
   cherry: {
-    name: 'Cherry', flag: '🍒',
+    name: 'Cherry', flag: '🍒', category: 'solid',
     bg: 'bg-red-950', card: 'bg-red-900', key: 'bg-red-800', keyHover: 'hover:bg-red-700',
     keyActive: 'bg-red-400 text-white', keyText: 'text-red-50',
     specialKey: 'bg-red-700', accent: 'bg-red-400', accentText: 'text-white',
@@ -115,12 +134,326 @@ const THEMES: Record<ThemeName, {
     suggestion: 'bg-red-800',
   },
   sand: {
-    name: 'Sand', flag: '🏜️',
+    name: 'Sand', flag: '🏜️', category: 'solid',
     bg: 'bg-amber-950', card: 'bg-amber-900', key: 'bg-amber-800', keyHover: 'hover:bg-amber-700',
     keyActive: 'bg-amber-400 text-amber-950', keyText: 'text-amber-50',
     specialKey: 'bg-amber-700', accent: 'bg-amber-400', accentText: 'text-amber-950',
     border: 'border-amber-700/50', tabBar: 'bg-amber-900', tabActive: 'bg-amber-400', tabActiveText: 'text-amber-950',
     suggestion: 'bg-amber-800',
+  },
+  lavender: {
+    name: 'Lavender', flag: '💐', category: 'solid',
+    bg: 'bg-purple-950', card: 'bg-purple-900', key: 'bg-purple-800', keyHover: 'hover:bg-purple-700',
+    keyActive: 'bg-purple-400 text-white', keyText: 'text-purple-50',
+    specialKey: 'bg-purple-700', accent: 'bg-purple-400', accentText: 'text-white',
+    border: 'border-purple-700/50', tabBar: 'bg-purple-900', tabActive: 'bg-purple-400', tabActiveText: 'text-white',
+    suggestion: 'bg-purple-800',
+  },
+  teal: {
+    name: 'Teal', flag: '🦚', category: 'solid',
+    bg: 'bg-teal-950', card: 'bg-teal-900', key: 'bg-teal-800', keyHover: 'hover:bg-teal-700',
+    keyActive: 'bg-teal-400 text-teal-950', keyText: 'text-teal-50',
+    specialKey: 'bg-teal-700', accent: 'bg-teal-400', accentText: 'text-teal-950',
+    border: 'border-teal-700/50', tabBar: 'bg-teal-900', tabActive: 'bg-teal-400', tabActiveText: 'text-teal-950',
+    suggestion: 'bg-teal-800',
+  },
+  crimson: {
+    name: 'Crimson', flag: '🔮', category: 'solid',
+    bg: 'bg-rose-950', card: 'bg-rose-900', key: 'bg-rose-800', keyHover: 'hover:bg-rose-700',
+    keyActive: 'bg-rose-400 text-white', keyText: 'text-rose-50',
+    specialKey: 'bg-rose-700', accent: 'bg-rose-400', accentText: 'text-white',
+    border: 'border-rose-700/50', tabBar: 'bg-rose-900', tabActive: 'bg-rose-400', tabActiveText: 'text-white',
+    suggestion: 'bg-rose-800',
+  },
+  moss: {
+    name: 'Moss', flag: '🌱', category: 'solid',
+    bg: 'bg-lime-950', card: 'bg-lime-900', key: 'bg-lime-800', keyHover: 'hover:bg-lime-700',
+    keyActive: 'bg-lime-400 text-lime-950', keyText: 'text-lime-50',
+    specialKey: 'bg-lime-700', accent: 'bg-lime-400', accentText: 'text-lime-950',
+    border: 'border-lime-700/50', tabBar: 'bg-lime-900', tabActive: 'bg-lime-400', tabActiveText: 'text-lime-950',
+    suggestion: 'bg-lime-800',
+  },
+  storm: {
+    name: 'Storm', flag: '⛈️', category: 'solid',
+    bg: 'bg-zinc-950', card: 'bg-zinc-900', key: 'bg-zinc-800', keyHover: 'hover:bg-zinc-700',
+    keyActive: 'bg-zinc-400 text-zinc-950', keyText: 'text-zinc-100',
+    specialKey: 'bg-zinc-700', accent: 'bg-zinc-400', accentText: 'text-zinc-950',
+    border: 'border-zinc-700/50', tabBar: 'bg-zinc-900', tabActive: 'bg-zinc-400', tabActiveText: 'text-zinc-950',
+    suggestion: 'bg-zinc-800',
+  },
+  peach: {
+    name: 'Peach', flag: '🍑', category: 'solid',
+    bg: 'bg-orange-950', card: 'bg-orange-900', key: 'bg-orange-800', keyHover: 'hover:bg-orange-700',
+    keyActive: 'bg-orange-300 text-orange-950', keyText: 'text-orange-50',
+    specialKey: 'bg-orange-700', accent: 'bg-orange-300', accentText: 'text-orange-950',
+    border: 'border-orange-700/50', tabBar: 'bg-orange-900', tabActive: 'bg-orange-300', tabActiveText: 'text-orange-950',
+    suggestion: 'bg-orange-800',
+  },
+  indigo: {
+    name: 'Indigo', flag: '🔵', category: 'solid',
+    bg: 'bg-blue-950', card: 'bg-blue-900', key: 'bg-blue-800', keyHover: 'hover:bg-blue-700',
+    keyActive: 'bg-blue-400 text-white', keyText: 'text-blue-50',
+    specialKey: 'bg-blue-700', accent: 'bg-blue-400', accentText: 'text-white',
+    border: 'border-blue-700/50', tabBar: 'bg-blue-900', tabActive: 'bg-blue-400', tabActiveText: 'text-white',
+    suggestion: 'bg-blue-800',
+  },
+  gold: {
+    name: 'Gold', flag: '👑', category: 'solid',
+    bg: 'bg-yellow-950', card: 'bg-yellow-900', key: 'bg-yellow-800', keyHover: 'hover:bg-yellow-700',
+    keyActive: 'bg-yellow-400 text-yellow-950', keyText: 'text-yellow-50',
+    specialKey: 'bg-yellow-700', accent: 'bg-yellow-400', accentText: 'text-yellow-950',
+    border: 'border-yellow-700/50', tabBar: 'bg-yellow-900', tabActive: 'bg-yellow-400', tabActiveText: 'text-yellow-950',
+    suggestion: 'bg-yellow-800',
+  },
+  // ─── NEW SOLID THEMES ──────────────────────────────────────────────────
+  volcano: {
+    name: 'Volcano', flag: '🌋', category: 'solid',
+    bg: 'bg-red-950', card: 'bg-red-900', key: 'bg-red-800', keyHover: 'hover:bg-orange-700',
+    keyActive: 'bg-orange-500 text-white', keyText: 'text-red-50',
+    specialKey: 'bg-red-700', accent: 'bg-orange-500', accentText: 'text-white',
+    border: 'border-red-700/50', tabBar: 'bg-red-900', tabActive: 'bg-orange-500', tabActiveText: 'text-white',
+    suggestion: 'bg-red-800',
+  },
+  carbon: {
+    name: 'Carbon', flag: '🖤', category: 'solid',
+    bg: 'bg-neutral-950', card: 'bg-neutral-900', key: 'bg-neutral-800', keyHover: 'hover:bg-neutral-700',
+    keyActive: 'bg-neutral-300 text-neutral-950', keyText: 'text-neutral-100',
+    specialKey: 'bg-neutral-700', accent: 'bg-neutral-300', accentText: 'text-neutral-950',
+    border: 'border-neutral-700/50', tabBar: 'bg-neutral-900', tabActive: 'bg-neutral-300', tabActiveText: 'text-neutral-950',
+    suggestion: 'bg-neutral-800',
+  },
+  sapphire: {
+    name: 'Sapphire', flag: '💎', category: 'solid',
+    bg: 'bg-blue-950', card: 'bg-blue-900', key: 'bg-blue-800', keyHover: 'hover:bg-blue-700',
+    keyActive: 'bg-blue-300 text-blue-950', keyText: 'text-blue-50',
+    specialKey: 'bg-blue-700', accent: 'bg-blue-300', accentText: 'text-blue-950',
+    border: 'border-blue-700/50', tabBar: 'bg-blue-900', tabActive: 'bg-blue-300', tabActiveText: 'text-blue-950',
+    suggestion: 'bg-blue-800',
+  },
+  coral: {
+    name: 'Coral', flag: '🪸', category: 'solid',
+    bg: 'bg-orange-950', card: 'bg-orange-900', key: 'bg-orange-800', keyHover: 'hover:bg-pink-700',
+    keyActive: 'bg-pink-400 text-white', keyText: 'text-orange-50',
+    specialKey: 'bg-orange-700', accent: 'bg-pink-400', accentText: 'text-white',
+    border: 'border-orange-700/50', tabBar: 'bg-orange-900', tabActive: 'bg-pink-400', tabActiveText: 'text-white',
+    suggestion: 'bg-orange-800',
+  },
+  jade: {
+    name: 'Jade', flag: '🟢', category: 'solid',
+    bg: 'bg-emerald-950', card: 'bg-emerald-900', key: 'bg-emerald-800', keyHover: 'hover:bg-emerald-700',
+    keyActive: 'bg-emerald-400 text-emerald-950', keyText: 'text-emerald-50',
+    specialKey: 'bg-emerald-700', accent: 'bg-emerald-400', accentText: 'text-emerald-950',
+    border: 'border-emerald-700/50', tabBar: 'bg-emerald-900', tabActive: 'bg-emerald-400', tabActiveText: 'text-emerald-950',
+    suggestion: 'bg-emerald-800',
+  },
+  ruby: {
+    name: 'Ruby', flag: '♦️', category: 'solid',
+    bg: 'bg-red-950', card: 'bg-red-900', key: 'bg-red-800', keyHover: 'hover:bg-red-600',
+    keyActive: 'bg-red-300 text-red-950', keyText: 'text-red-50',
+    specialKey: 'bg-red-700', accent: 'bg-red-300', accentText: 'text-red-950',
+    border: 'border-red-700/50', tabBar: 'bg-red-900', tabActive: 'bg-red-300', tabActiveText: 'text-red-950',
+    suggestion: 'bg-red-800',
+  },
+  platinum: {
+    name: 'Platinum', flag: '🪩', category: 'solid',
+    bg: 'bg-gray-100', card: 'bg-gray-200', key: 'bg-gray-300', keyHover: 'hover:bg-gray-400',
+    keyActive: 'bg-gray-600 text-white', keyText: 'text-gray-800',
+    specialKey: 'bg-gray-400', accent: 'bg-gray-600', accentText: 'text-white',
+    border: 'border-gray-400/50', tabBar: 'bg-gray-100', tabActive: 'bg-gray-600', tabActiveText: 'text-white',
+    suggestion: 'bg-gray-300',
+  },
+  copper: {
+    name: 'Copper', flag: '🟤', category: 'solid',
+    bg: 'bg-amber-950', card: 'bg-amber-900', key: 'bg-amber-800', keyHover: 'hover:bg-amber-600',
+    keyActive: 'bg-amber-300 text-amber-950', keyText: 'text-amber-50',
+    specialKey: 'bg-amber-700', accent: 'bg-amber-300', accentText: 'text-amber-950',
+    border: 'border-amber-700/50', tabBar: 'bg-amber-900', tabActive: 'bg-amber-300', tabActiveText: 'text-amber-950',
+    suggestion: 'bg-amber-800',
+  },
+  emerald: {
+    name: 'Emerald', flag: '💚', category: 'solid',
+    bg: 'bg-green-950', card: 'bg-green-900', key: 'bg-green-800', keyHover: 'hover:bg-green-600',
+    keyActive: 'bg-green-300 text-green-950', keyText: 'text-green-50',
+    specialKey: 'bg-green-700', accent: 'bg-green-300', accentText: 'text-green-950',
+    border: 'border-green-700/50', tabBar: 'bg-green-900', tabActive: 'bg-green-300', tabActiveText: 'text-green-950',
+    suggestion: 'bg-green-800',
+  },
+  marble: {
+    name: 'Marble', flag: '🏛️', category: 'solid',
+    bg: 'bg-stone-100', card: 'bg-stone-200', key: 'bg-stone-300', keyHover: 'hover:bg-stone-400',
+    keyActive: 'bg-stone-600 text-white', keyText: 'text-stone-800',
+    specialKey: 'bg-stone-400', accent: 'bg-stone-600', accentText: 'text-white',
+    border: 'border-stone-400/50', tabBar: 'bg-stone-100', tabActive: 'bg-stone-600', tabActiveText: 'text-white',
+    suggestion: 'bg-stone-300',
+  },
+  obsidian: {
+    name: 'Obsidian', flag: '⬛', category: 'solid',
+    bg: 'bg-black', card: 'bg-gray-950', key: 'bg-gray-900', keyHover: 'hover:bg-gray-800',
+    keyActive: 'bg-gray-500 text-white', keyText: 'text-gray-100',
+    specialKey: 'bg-gray-800', accent: 'bg-gray-500', accentText: 'text-white',
+    border: 'border-gray-800/50', tabBar: 'bg-black', tabActive: 'bg-gray-500', tabActiveText: 'text-white',
+    suggestion: 'bg-gray-900',
+  },
+  turquoise: {
+    name: 'Turquoise', flag: '💠', category: 'solid',
+    bg: 'bg-teal-950', card: 'bg-teal-900', key: 'bg-teal-800', keyHover: 'hover:bg-teal-600',
+    keyActive: 'bg-teal-300 text-teal-950', keyText: 'text-teal-50',
+    specialKey: 'bg-teal-700', accent: 'bg-teal-300', accentText: 'text-teal-950',
+    border: 'border-teal-700/50', tabBar: 'bg-teal-900', tabActive: 'bg-teal-300', tabActiveText: 'text-teal-950',
+    suggestion: 'bg-teal-800',
+  },
+  magenta: {
+    name: 'Magenta', flag: '🩷', category: 'solid',
+    bg: 'bg-pink-950', card: 'bg-pink-900', key: 'bg-pink-800', keyHover: 'hover:bg-pink-700',
+    keyActive: 'bg-pink-400 text-white', keyText: 'text-pink-50',
+    specialKey: 'bg-pink-700', accent: 'bg-pink-400', accentText: 'text-white',
+    border: 'border-pink-700/50', tabBar: 'bg-pink-900', tabActive: 'bg-pink-400', tabActiveText: 'text-white',
+    suggestion: 'bg-pink-800',
+  },
+  cinnamon: {
+    name: 'Cinnamon', flag: '🫎', category: 'solid',
+    bg: 'bg-stone-950', card: 'bg-stone-900', key: 'bg-stone-800', keyHover: 'hover:bg-stone-700',
+    keyActive: 'bg-amber-600 text-white', keyText: 'text-stone-100',
+    specialKey: 'bg-stone-700', accent: 'bg-amber-600', accentText: 'text-white',
+    border: 'border-stone-700/50', tabBar: 'bg-stone-900', tabActive: 'bg-amber-600', tabActiveText: 'text-white',
+    suggestion: 'bg-stone-800',
+  },
+  slate: {
+    name: 'Slate', flag: '🪨', category: 'solid',
+    bg: 'bg-slate-950', card: 'bg-slate-900', key: 'bg-slate-800', keyHover: 'hover:bg-slate-600',
+    keyActive: 'bg-slate-300 text-slate-950', keyText: 'text-slate-50',
+    specialKey: 'bg-slate-700', accent: 'bg-slate-300', accentText: 'text-slate-950',
+    border: 'border-slate-700/50', tabBar: 'bg-slate-900', tabActive: 'bg-slate-300', tabActiveText: 'text-slate-950',
+    suggestion: 'bg-slate-800',
+  },
+  honey: {
+    name: 'Honey', flag: '🍯', category: 'solid',
+    bg: 'bg-yellow-950', card: 'bg-yellow-900', key: 'bg-yellow-800', keyHover: 'hover:bg-yellow-600',
+    keyActive: 'bg-yellow-300 text-yellow-950', keyText: 'text-yellow-50',
+    specialKey: 'bg-yellow-700', accent: 'bg-yellow-300', accentText: 'text-yellow-950',
+    border: 'border-yellow-700/50', tabBar: 'bg-yellow-900', tabActive: 'bg-yellow-300', tabActiveText: 'text-yellow-950',
+    suggestion: 'bg-yellow-800',
+  },
+  abyss: {
+    name: 'Abyss', flag: '🕳️', category: 'solid',
+    bg: 'bg-gray-950', card: 'bg-gray-900', key: 'bg-gray-800', keyHover: 'hover:bg-blue-900',
+    keyActive: 'bg-blue-600 text-white', keyText: 'text-gray-100',
+    specialKey: 'bg-gray-800', accent: 'bg-blue-600', accentText: 'text-white',
+    border: 'border-gray-800/50', tabBar: 'bg-gray-950', tabActive: 'bg-blue-600', tabActiveText: 'text-white',
+    suggestion: 'bg-gray-800',
+  },
+  frost: {
+    name: 'Frost', flag: '🧊', category: 'solid',
+    bg: 'bg-sky-50', card: 'bg-sky-100', key: 'bg-sky-200', keyHover: 'hover:bg-sky-300',
+    keyActive: 'bg-sky-600 text-white', keyText: 'text-sky-900',
+    specialKey: 'bg-sky-300', accent: 'bg-sky-600', accentText: 'text-white',
+    border: 'border-sky-300/50', tabBar: 'bg-sky-50', tabActive: 'bg-sky-600', tabActiveText: 'text-white',
+    suggestion: 'bg-sky-200',
+  },
+  blossom: {
+    name: 'Blossom', flag: '🌸', category: 'solid',
+    bg: 'bg-pink-50', card: 'bg-pink-100', key: 'bg-pink-200', keyHover: 'hover:bg-pink-300',
+    keyActive: 'bg-pink-600 text-white', keyText: 'text-pink-900',
+    specialKey: 'bg-pink-300', accent: 'bg-pink-600', accentText: 'text-white',
+    border: 'border-pink-300/50', tabBar: 'bg-pink-50', tabActive: 'bg-pink-600', tabActiveText: 'text-white',
+    suggestion: 'bg-pink-200',
+  },
+  // ─── LIVE THEMES ──────────────────────────────────────────────────────
+  aurora_live: {
+    name: 'Aurora', flag: '🌌', category: 'live', isLive: true, liveClass: 'theme-aurora-live',
+    bg: 'bg-slate-950', card: 'bg-slate-900/80', key: 'bg-slate-800/90', keyHover: 'hover:bg-cyan-700',
+    keyActive: 'bg-cyan-400 text-gray-950', keyText: 'text-cyan-50',
+    specialKey: 'bg-slate-700', accent: 'bg-cyan-400', accentText: 'text-gray-950',
+    border: 'border-cyan-700/30', tabBar: 'bg-slate-900/80', tabActive: 'bg-cyan-400', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-slate-800/80',
+  },
+  lava_live: {
+    name: 'Lava', flag: '🌋', category: 'live', isLive: true, liveClass: 'theme-lava-live',
+    bg: 'bg-red-950', card: 'bg-red-900/80', key: 'bg-red-800/90', keyHover: 'hover:bg-orange-600',
+    keyActive: 'bg-orange-400 text-red-950', keyText: 'text-orange-50',
+    specialKey: 'bg-red-700', accent: 'bg-orange-400', accentText: 'text-red-950',
+    border: 'border-orange-700/30', tabBar: 'bg-red-900/80', tabActive: 'bg-orange-400', tabActiveText: 'text-red-950',
+    suggestion: 'bg-red-800/80',
+  },
+  ocean_live: {
+    name: 'Ocean Wave', flag: '🌊', category: 'live', isLive: true, liveClass: 'theme-ocean-live',
+    bg: 'bg-blue-950', card: 'bg-blue-900/80', key: 'bg-blue-800/90', keyHover: 'hover:bg-cyan-700',
+    keyActive: 'bg-cyan-400 text-blue-950', keyText: 'text-cyan-50',
+    specialKey: 'bg-blue-700', accent: 'bg-cyan-400', accentText: 'text-blue-950',
+    border: 'border-cyan-700/30', tabBar: 'bg-blue-900/80', tabActive: 'bg-cyan-400', tabActiveText: 'text-blue-950',
+    suggestion: 'bg-blue-800/80',
+  },
+  neon_pulse: {
+    name: 'Neon Pulse', flag: '⚡', category: 'live', isLive: true, liveClass: 'theme-neon-pulse-live',
+    bg: 'bg-gray-950', card: 'bg-gray-900/80', key: 'bg-gray-800/90', keyHover: 'hover:bg-violet-700',
+    keyActive: 'bg-violet-400 text-gray-950', keyText: 'text-violet-100',
+    specialKey: 'bg-gray-700', accent: 'bg-violet-400', accentText: 'text-gray-950',
+    border: 'border-violet-700/30', tabBar: 'bg-gray-900/80', tabActive: 'bg-violet-400', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-gray-800/80',
+  },
+  sunset_live: {
+    name: 'Sunset Glow', flag: '🌇', category: 'live', isLive: true, liveClass: 'theme-sunset-live',
+    bg: 'bg-orange-950', card: 'bg-orange-900/80', key: 'bg-orange-800/90', keyHover: 'hover:bg-pink-700',
+    keyActive: 'bg-pink-400 text-white', keyText: 'text-orange-50',
+    specialKey: 'bg-orange-700', accent: 'bg-pink-400', accentText: 'text-white',
+    border: 'border-pink-700/30', tabBar: 'bg-orange-900/80', tabActive: 'bg-pink-400', tabActiveText: 'text-white',
+    suggestion: 'bg-orange-800/80',
+  },
+  matrix_live: {
+    name: 'Matrix', flag: '🟩', category: 'live', isLive: true, liveClass: 'theme-matrix-live',
+    bg: 'bg-black', card: 'bg-green-950/80', key: 'bg-green-900/90', keyHover: 'hover:bg-green-700',
+    keyActive: 'bg-green-400 text-black', keyText: 'text-green-100',
+    specialKey: 'bg-green-900', accent: 'bg-green-400', accentText: 'text-black',
+    border: 'border-green-700/30', tabBar: 'bg-black/80', tabActive: 'bg-green-400', tabActiveText: 'text-black',
+    suggestion: 'bg-green-900/80',
+  },
+  rainbow_live: {
+    name: 'Rainbow', flag: '🌈', category: 'live', isLive: true, liveClass: 'theme-rainbow-live',
+    bg: 'bg-gray-950', card: 'bg-gray-900/80', key: 'bg-gray-800/90', keyHover: 'hover:bg-gray-700',
+    keyActive: 'bg-white text-gray-950', keyText: 'text-white',
+    specialKey: 'bg-gray-700', accent: 'bg-white', accentText: 'text-gray-950',
+    border: 'border-white/20', tabBar: 'bg-gray-900/80', tabActive: 'bg-white', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-gray-800/80',
+  },
+  fire_live: {
+    name: 'Fire', flag: '🔥', category: 'live', isLive: true, liveClass: 'theme-fire-live',
+    bg: 'bg-red-950', card: 'bg-red-900/80', key: 'bg-red-800/90', keyHover: 'hover:bg-yellow-700',
+    keyActive: 'bg-yellow-400 text-red-950', keyText: 'text-yellow-50',
+    specialKey: 'bg-red-700', accent: 'bg-yellow-400', accentText: 'text-red-950',
+    border: 'border-yellow-700/30', tabBar: 'bg-red-900/80', tabActive: 'bg-yellow-400', tabActiveText: 'text-red-950',
+    suggestion: 'bg-red-800/80',
+  },
+  galaxy_live: {
+    name: 'Galaxy', flag: '🪐', category: 'live', isLive: true, liveClass: 'theme-galaxy-live',
+    bg: 'bg-purple-950', card: 'bg-purple-900/80', key: 'bg-purple-800/90', keyHover: 'hover:bg-indigo-700',
+    keyActive: 'bg-indigo-400 text-white', keyText: 'text-purple-100',
+    specialKey: 'bg-purple-700', accent: 'bg-indigo-400', accentText: 'text-white',
+    border: 'border-indigo-700/30', tabBar: 'bg-purple-900/80', tabActive: 'bg-indigo-400', tabActiveText: 'text-white',
+    suggestion: 'bg-purple-800/80',
+  },
+  waterfall_live: {
+    name: 'Waterfall', flag: '💧', category: 'live', isLive: true, liveClass: 'theme-waterfall-live',
+    bg: 'bg-teal-950', card: 'bg-teal-900/80', key: 'bg-teal-800/90', keyHover: 'hover:bg-cyan-600',
+    keyActive: 'bg-cyan-300 text-teal-950', keyText: 'text-teal-50',
+    specialKey: 'bg-teal-700', accent: 'bg-cyan-300', accentText: 'text-teal-950',
+    border: 'border-cyan-600/30', tabBar: 'bg-teal-900/80', tabActive: 'bg-cyan-300', tabActiveText: 'text-teal-950',
+    suggestion: 'bg-teal-800/80',
+  },
+  autumn_live: {
+    name: 'Autumn', flag: '🍂', category: 'live', isLive: true, liveClass: 'theme-autumn-live',
+    bg: 'bg-orange-950', card: 'bg-orange-900/80', key: 'bg-orange-800/90', keyHover: 'hover:bg-amber-600',
+    keyActive: 'bg-amber-400 text-orange-950', keyText: 'text-orange-50',
+    specialKey: 'bg-orange-700', accent: 'bg-amber-400', accentText: 'text-orange-950',
+    border: 'border-amber-600/30', tabBar: 'bg-orange-900/80', tabActive: 'bg-amber-400', tabActiveText: 'text-orange-950',
+    suggestion: 'bg-orange-800/80',
+  },
+  cyberpunk_live: {
+    name: 'Cyberpunk', flag: '🤖', category: 'live', isLive: true, liveClass: 'theme-cyberpunk-live',
+    bg: 'bg-gray-950', card: 'bg-gray-900/80', key: 'bg-gray-800/90', keyHover: 'hover:bg-pink-700',
+    keyActive: 'bg-pink-400 text-gray-950', keyText: 'text-cyan-100',
+    specialKey: 'bg-gray-700', accent: 'bg-pink-400', accentText: 'text-gray-950',
+    border: 'border-cyan-500/30', tabBar: 'bg-gray-900/80', tabActive: 'bg-pink-400', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-gray-800/80',
   },
 };
 
@@ -164,7 +497,7 @@ const AMHARIC_VOWELS: Record<string, string[]> = {
   'ኘ': ['ኘ', 'ኙ', 'ኚ', 'ኛ', 'ኜ', 'ኝ', 'ኞ', 'ኟ'],
   'አ': ['አ', 'ኡ', 'ኢ', 'ኣ', 'ኤ', 'እ', 'ኦ'],
   'ከ': ['ከ', 'ኩ', 'ኪ', 'ካ', 'ኬ', 'ክ', 'ኮ', 'ኳ'],
-  'ኸ': ['ኸ', 'ዩ', 'ዪ', 'ያ', 'ዬ', 'ይ', 'ዮ'],
+  'ኸ': ['ኸ', 'ኹ', 'ኺ', 'ኻ', 'ኼ', 'ኽ', 'ኾ'],
   'ወ': ['ወ', 'ዉ', 'ዊ', 'ዋ', 'ዌ', 'ው', 'ዎ', 'ዏ'],
   'ዘ': ['ዘ', 'ዙ', 'ዚ', 'ዛ', 'ዜ', 'ዝ', 'ዞ', 'ዟ'],
   'ዠ': ['ዠ', 'ዡ', 'ዢ', 'ዣ', 'ዤ', 'ዥ', 'ዦ', 'ዧ'],
@@ -432,7 +765,32 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const [nextWordSuggestions, setNextWordSuggestions] = useState<string[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [theme, setTheme] = useState<ThemeName>('default');
-  const [showThemePicker, setShowThemePicker] = useState(false);
+  const { resolvedTheme: appTheme, setTheme: setAppTheme } = useTheme();
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  // Custom themes
+  const [customThemes, setCustomThemes] = useState<CustomThemeData[]>([]);
+  const [showCustomCreator, setShowCustomCreator] = useState(false);
+  const [customName, setCustomName] = useState('My Theme');
+  const [customBgColor, setCustomBgColor] = useState('#1a1a2e');
+  const [customKeyColor, setCustomKeyColor] = useState('#16213e');
+  const [customKeyTextColor, setCustomKeyTextColor] = useState('#e0e0ff');
+  const [customAccentColor, setCustomAccentColor] = useState('#7c3aed');
+  const [customSpecialKeyColor, setCustomSpecialKeyColor] = useState('#2d2d5e');
+  const [customBgImageUrl, setCustomBgImageUrl] = useState('');
+  const [customBgGifUrl, setCustomBgGifUrl] = useState('');
+  // Theme picker category
+  const [themeCategory, setThemeCategory] = useState<'all' | 'solid' | 'live' | 'custom'>('all');
+  // Desktop view
+  const [desktopView, setDesktopView] = useState(false);
+  // Giphy
+  const [giphyResults, setGiphyResults] = useState<GiphyGif[] | null>(null);
+  const [giphyLoading, setGiphyLoading] = useState(false);
+  const [giphyQuery, setGiphyQuery] = useState('');
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawingPaths, setDrawingPaths] = useState<{ x: number; y: number }[][]>([]);
@@ -447,7 +805,11 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
 
   // New state for Change 4: Handwriting suggestions
   const [hwSuggestions, setHwSuggestions] = useState<string[]>([]);
+  const [hwWordSuggestions, setHwWordSuggestions] = useState<string[]>([]);
+  const [hwSentenceSuggestions, setHwSentenceSuggestions] = useState<string[]>([]);
   const [selectedHwSuggestion, setSelectedHwSuggestion] = useState<string | null>(null);
+  const [hwRecognizing, setHwRecognizing] = useState(false);
+  const [hwStrokes, setHwStrokes] = useState(0);
 
   // New state for Change 6: Settings
   const [keyPressFeedback, setKeyPressFeedback] = useState(true);
@@ -460,7 +822,68 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const [textBounce, setTextBounce] = useState(false);
   const [rippleKey, setRippleKey] = useState<string | null>(null);
 
-  const t = THEMES[theme];
+  // Desktop settings modal state
+  const [showDesktopSettings, setShowDesktopSettings] = useState(false);
+
+  // Build merged theme (built-in + custom)
+  const getCustomThemeDef = (ct: CustomThemeData): ThemeDef => ({
+    name: ct.name, flag: '🎨', category: 'custom',
+    bg: 'bg-gray-950', card: 'bg-gray-900/80', key: 'bg-gray-800/90', keyHover: 'hover:bg-gray-700',
+    keyActive: 'bg-gray-300 text-gray-950', keyText: 'text-gray-100',
+    specialKey: 'bg-gray-700', accent: 'bg-gray-300', accentText: 'text-gray-950',
+    border: 'border-gray-700/30', tabBar: 'bg-gray-900/80', tabActive: 'bg-gray-300', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-gray-800/80',
+  });
+
+  const allThemes = { ...THEMES };
+  customThemes.forEach(ct => { allThemes[`custom_${ct.id}`] = getCustomThemeDef(ct); });
+
+  const t = allThemes[theme] || THEMES.default;
+
+  // Custom theme style overrides
+  const customThemeData = theme.startsWith('custom_') ? customThemes.find(ct => `custom_${ct.id}` === theme) : null;
+  const customBgStyle: React.CSSProperties = customThemeData ? {
+    backgroundColor: customThemeData.bgColor,
+    backgroundImage: customThemeData.bgGifUrl ? `url(${customThemeData.bgGifUrl})` : customThemeData.bgImageUrl ? `url(${customThemeData.bgImageUrl})` : undefined,
+    backgroundSize: 'cover', backgroundPosition: 'center',
+  } : {};
+  const customKeyStyle: React.CSSProperties = customThemeData ? { backgroundColor: customThemeData.keyColor, color: customThemeData.keyTextColor } : {};
+  const customAccentStyle: React.CSSProperties = customThemeData ? { backgroundColor: customThemeData.accentColor } : {};
+  const customSpecialStyle: React.CSSProperties = customThemeData ? { backgroundColor: customThemeData.specialKeyColor } : {};
+
+  // Create custom theme
+  const handleCreateCustomTheme = useCallback(() => {
+    const id = Date.now().toString();
+    const newTheme: CustomThemeData = {
+      id, name: customName || 'Custom Theme',
+      bgColor: customBgColor, keyColor: customKeyColor, keyTextColor: customKeyTextColor,
+      accentColor: customAccentColor, specialKeyColor: customSpecialKeyColor,
+      bgImageUrl: customBgImageUrl || undefined, bgGifUrl: customBgGifUrl || undefined,
+    };
+    setCustomThemes(prev => [...prev, newTheme]);
+    setTheme(`custom_${id}`);
+    setShowCustomCreator(false);
+    setMode('keyboard');
+  }, [customName, customBgColor, customKeyColor, customKeyTextColor, customAccentColor, customSpecialKeyColor, customBgImageUrl, customBgGifUrl]);
+
+  // Fetch Giphy
+  const fetchGiphy = useCallback(async (query: string) => {
+    setGiphyLoading(true);
+    try {
+      const type = query ? 'search' : 'trending';
+      const res = await fetch(`/api/giphy?type=${type}&q=${encodeURIComponent(query)}&limit=20`);
+      const data = await res.json();
+      setGiphyResults(data.data || []);
+    } catch {
+      setGiphyResults(null);
+    } finally {
+      setGiphyLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode === 'gifs') fetchGiphy(giphyQuery);
+  }, [mode, giphyQuery, fetchGiphy]);
 
   // Cleanup long press timer on unmount
   useEffect(() => {
@@ -631,16 +1054,60 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const stopDrawing = useCallback(() => {
     if (currentPath.length > 0) {
       setDrawingPaths(prev => [...prev, currentPath]);
-      // Change 4: Generate suggestions when path is completed
-      const suggestions = language === 'english'
-        ? ['a','b','c','d','e','f'].sort(() => Math.random() - 0.5).slice(0, 5)
-        : ['ሀ','ለ','መ','ሰ','በ','ወ'].sort(() => Math.random() - 0.5).slice(0, 5);
-      setHwSuggestions(suggestions);
-      if (suggestions.length > 0) setSelectedHwSuggestion(suggestions[0]);
+      const newStrokeCount = drawingPaths.length + 1;
+      setHwStrokes(newStrokeCount);
     }
     setIsDrawing(false);
     setCurrentPath([]);
-  }, [currentPath, language]);
+  }, [currentPath, drawingPaths.length]);
+
+  // AI-powered handwriting recognition
+  const recognizeHandwriting = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || drawingPaths.length === 0) return;
+
+    setHwRecognizing(true);
+    try {
+      // Capture canvas as base64 image
+      const imageData = canvas.toDataURL('image/png');
+
+      const res = await fetch('/api/handwriting-recognize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageData, language }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const chars = data.characters || [];
+        const words = data.words || [];
+        const sentences = data.sentences || [];
+
+        setHwSuggestions(chars);
+        setHwWordSuggestions(words);
+        setHwSentenceSuggestions(sentences);
+        if (chars.length > 0) setSelectedHwSuggestion(chars[0]);
+        else if (words.length > 0) setSelectedHwSuggestion(words[0]);
+        else if (sentences.length > 0) setSelectedHwSuggestion(sentences[0]);
+      } else {
+        // Fallback: generate local suggestions
+        const fallbackChars = language === 'english'
+          ? ['a','e','i','o','u','n','s','t'].sort(() => Math.random() - 0.5).slice(0, 5)
+          : ['ሀ','ለ','መ','ሰ','በ','ወ','ነ','ገ'].sort(() => Math.random() - 0.5).slice(0, 5);
+        setHwSuggestions(fallbackChars);
+        if (fallbackChars.length > 0) setSelectedHwSuggestion(fallbackChars[0]);
+      }
+    } catch {
+      // Fallback on error
+      const fallbackChars = language === 'english'
+        ? ['a','b','c','d','e'].sort(() => Math.random() - 0.5).slice(0, 5)
+        : ['ሀ','ለ','መ','ሰ','በ'].sort(() => Math.random() - 0.5).slice(0, 5);
+      setHwSuggestions(fallbackChars);
+      if (fallbackChars.length > 0) setSelectedHwSuggestion(fallbackChars[0]);
+    } finally {
+      setHwRecognizing(false);
+    }
+  }, [drawingPaths.length, language]);
 
   const clearCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -651,12 +1118,16 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     setDrawingPaths([]);
     setCurrentPath([]);
     setHwSuggestions([]);
+    setHwWordSuggestions([]);
+    setHwSentenceSuggestions([]);
     setSelectedHwSuggestion(null);
+    setHwStrokes(0);
   }, []);
 
   const confirmHwSuggestion = useCallback(() => {
     if (selectedHwSuggestion) {
-      updateText(text + selectedHwSuggestion);
+      const separator = text.length > 0 && !text.endsWith(' ') ? ' ' : '';
+      updateText(text + separator + selectedHwSuggestion);
       clearCanvas();
     }
   }, [selectedHwSuggestion, text, updateText, clearCanvas]);
@@ -877,25 +1348,74 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     );
   };
 
-  const renderGifs = () => {
-    const category = GIF_ITEMS[activeGifCategory] || [];
-    return (
-      <div className="flex flex-col h-full">
-        <div className="flex gap-1 px-2 py-1.5 overflow-x-auto scrollbar-hide border-b border-border/30">
-          {GIF_CATEGORIES.map(cat => (
-            <motion.button key={cat.id}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveGifCategory(cat.id)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                activeGifCategory === cat.id ? `${t.tabActive} ${t.tabActiveText} shadow-sm` : `${t.suggestion} ${t.keyText}`}`}>
-              <span>{cat.emoji}</span><span>{cat.name}</span>
-            </motion.button>
-          ))}
+  const renderGifs = () => (
+    <div className="flex flex-col h-full">
+      <div className={`flex gap-1 px-2 py-1.5 overflow-x-auto scrollbar-hide border-b border-border/30`}>
+        {/* Search bar */}
+        <div className={`flex items-center gap-1 flex-1 px-2 py-1 rounded-lg ${t.card} ${t.border} border`}>
+          <input
+            type="text"
+            value={giphyQuery}
+            onChange={e => setGiphyQuery(e.target.value)}
+            placeholder="Search GIFs..."
+            className={`flex-1 bg-transparent text-xs outline-none ${t.keyText} placeholder:opacity-40`}
+          />
+          {giphyQuery && (
+            <button onClick={() => setGiphyQuery('')} className="opacity-50 hover:opacity-100">
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
-        <div className="flex-1 p-2 overflow-y-auto">
+        {GIF_CATEGORIES.slice(0, 6).map(cat => (
+          <motion.button key={cat.id}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setGiphyQuery(cat.name.toLowerCase())}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+              giphyQuery === cat.name.toLowerCase() ? `${t.tabActive} ${t.tabActiveText} shadow-sm` : `${t.suggestion} ${t.keyText}`}`}>
+            <span>{cat.emoji}</span><span className="hidden sm:inline">{cat.name}</span>
+          </motion.button>
+        ))}
+      </div>
+      <div className="flex-1 p-2 overflow-y-auto">
+        {giphyLoading ? (
+          <div className={`flex items-center justify-center h-full ${t.keyText}`}>
+            <Loader2 className="w-6 h-6 animate-spin opacity-50" />
+          </div>
+        ) : giphyResults && giphyResults.length > 0 ? (
           <div className="grid grid-cols-2 gap-2">
-            {category.map((gif, i) => (
+            {giphyResults.map((gif, i) => (
+              <motion.button key={gif.id || i} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  const emoji = gif._fallback?.emoji || '🖼️';
+                  updateText(text + emoji + ' ');
+                  addRecentEmoji(emoji);
+                }}
+                className={`relative flex flex-col items-center justify-center p-2 rounded-xl ${t.key} ${t.border} border shadow-sm aspect-video overflow-hidden`}
+              >
+                {gif.images?.fixed_height?.url && !gif._fallback ? (
+                  <img
+                    src={gif.images.fixed_height.url}
+                    alt={gif.title || 'GIF'}
+                    className="w-full h-full object-cover rounded-lg"
+                    loading="lazy"
+                  />
+                ) : (
+                  <motion.span className="text-3xl"
+                    animate={{ y: [0, -3, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}>
+                    {gif._fallback?.emoji || '🖼️'}
+                  </motion.span>
+                )}
+                <span className={`text-[9px] font-medium mt-1 ${t.keyText} opacity-70 truncate w-full text-center`}>
+                  {gif._fallback?.label || gif.title?.slice(0, 15) || 'GIF'}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {(GIF_ITEMS[activeGifCategory] || GIF_ITEMS.hello).map((gif, i) => (
               <motion.button key={i} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
                 onClick={() => { updateText(text + gif.emoji + ' '); addRecentEmoji(gif.emoji); }}
                 className={`flex flex-col items-center justify-center p-3 rounded-xl ${t.key} ${t.border} border shadow-sm aspect-video relative overflow-hidden`}
@@ -916,10 +1436,10 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
               </motion.button>
             ))}
           </div>
-        </div>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
 
   const renderClipboard = () => (
     <div className="flex flex-col h-full">
@@ -1028,24 +1548,181 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     </div>
   );
 
-  // Change 4: Enhanced handwriting with suggestions and confirm
-  const renderHandwriting = () => (
-    <div className="flex flex-col h-full">
-      <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
-        <span className={`text-xs font-medium ${t.keyText} opacity-70`}>Handwriting Input</span>
-        <div className="flex gap-1">
+  // Change 4: Enhanced handwriting with AI word/sentence recognition
+  const renderHandwriting = () => {
+    const hasAnySuggestions = hwSuggestions.length > 0 || hwWordSuggestions.length > 0 || hwSentenceSuggestions.length > 0;
+
+    return (
+    <div className="flex flex-col h-full overflow-hidden relative z-10">
+      {/* Header */}
+      <div className={`flex items-center justify-between px-3 py-1.5 border-b shrink-0 ${t.border}`}
+        style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-semibold ${t.keyText}`}>✏️ Handwriting</span>
+          {hwStrokes > 0 && (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${t.accent} ${t.accentText}`} style={customAccentStyle}>
+              {hwStrokes} stroke{hwStrokes !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        <div className="flex gap-1 items-center">
+          {drawingPaths.length > 0 && (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={recognizeHandwriting}
+                disabled={hwRecognizing}
+                className={`h-6 text-[10px] gap-1 ${t.accentText}`}
+                style={customAccentStyle}>
+                {hwRecognizing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {hwRecognizing ? 'Recognizing...' : 'Recognize'}
+              </Button>
+            </motion.div>
+          )}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button variant="ghost" size="sm" onClick={clearCanvas} className={`h-7 text-xs gap-1 ${t.keyText}`}>
-              <Trash2 className="w-3 h-3" />Clear & Try Again
+            <Button variant="ghost" size="sm" onClick={clearCanvas} className={`h-6 text-[10px] gap-1 ${t.keyText}`}>
+              <Trash2 className="w-3 h-3" />Clear
             </Button>
           </motion.div>
         </div>
       </div>
-      <div className="flex-1 p-2">
+
+      {/* Suggestions area - ALWAYS visible, solid background */}
+      <div className="shrink-0 border-b"
+        style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', borderColor: 'rgba(255,255,255,0.1)' }}>
+
+        {hasAnySuggestions ? (
+          <div className="px-2 py-2 max-h-[140px] overflow-y-auto">
+            {/* Sentences */}
+            {hwSentenceSuggestions.length > 0 && (
+              <div className="mb-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Languages className="w-3 h-3 text-emerald-400" />
+                  <p className="text-[10px] font-semibold text-emerald-300">
+                    {language === 'english' ? 'Sentences' : 'ዓረፍተ ነገሮች'}
+                  </p>
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {hwSentenceSuggestions.map((sug, i) => (
+                    <motion.button
+                      key={`s${i}`}
+                      whileHover={{ scale: 1.02, y: -1 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setSelectedHwSuggestion(sug);
+                        const separator = text.length > 0 && !text.endsWith(' ') ? ' ' : '';
+                        updateText(text + separator + sug);
+                        clearCanvas();
+                      }}
+                      className={`flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
+                        ${selectedHwSuggestion === sug
+                          ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400/50 shadow-md'
+                          : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'}`}
+                    >
+                      {sug}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Words */}
+            {hwWordSuggestions.length > 0 && (
+              <div className="mb-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Sparkles className="w-3 h-3 text-cyan-400" />
+                  <p className="text-[10px] font-semibold text-cyan-300">
+                    {language === 'english' ? 'Words' : 'ቃላት'}
+                  </p>
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {hwWordSuggestions.map((sug, i) => (
+                    <motion.button
+                      key={`w${i}`}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSelectedHwSuggestion(sug);
+                        const separator = text.length > 0 && !text.endsWith(' ') ? ' ' : '';
+                        updateText(text + separator + sug);
+                        clearCanvas();
+                      }}
+                      className={`flex items-center px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all
+                        ${selectedHwSuggestion === sug
+                          ? 'bg-cyan-500/30 text-cyan-200 border-cyan-400/50 shadow-md'
+                          : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'}`}
+                    >
+                      {sug}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Characters */}
+            {hwSuggestions.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Pen className="w-3 h-3 text-amber-400" />
+                  <p className="text-[10px] font-semibold text-amber-300">
+                    {language === 'english' ? 'Characters' : 'ፊደላት'}
+                  </p>
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {hwSuggestions.map((sug, i) => (
+                    <motion.button
+                      key={`c${i}`}
+                      whileHover={{ scale: 1.1, y: -2 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => {
+                        setSelectedHwSuggestion(sug);
+                        updateText(text + sug);
+                        clearCanvas();
+                      }}
+                      className={`flex items-center justify-center min-w-[36px] h-9 px-2 rounded-lg text-sm font-bold border transition-all
+                        ${selectedHwSuggestion === sug
+                          ? 'bg-amber-500/30 text-amber-200 border-amber-400/50 shadow-md'
+                          : 'bg-white/10 text-white/90 border-white/20 hover:bg-white/20'}`}
+                    >
+                      {sug}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="px-3 py-2 text-center">
+            {hwRecognizing ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                <p className="text-[10px] text-cyan-300">AI recognizing your handwriting...</p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-[10px] text-white/50">
+                  {language === 'english'
+                    ? '✍️ Draw characters, words, or sentences below'
+                    : '✍️ ከታች ፊደላት፣ ቃላት ወይም ዓረፍተ ነገሮች ይጻፉ'}
+                </p>
+                <p className="text-[9px] text-white/30 mt-0.5">
+                  {language === 'english'
+                    ? 'Draw multiple strokes, then tap Recognize'
+                    : 'ብዙ ስታይሮኮች ይጻፉ፣ ከዚያ አስተውል ይጫኑ'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Canvas area - takes remaining space */}
+      <div className="flex-1 p-2 min-h-0">
         <canvas
           ref={canvasRef}
-          width={280}
-          height={160}
+          width={400}
+          height={200}
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
@@ -1053,86 +1730,51 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           onTouchStart={startDrawing}
           onTouchMove={draw}
           onTouchEnd={stopDrawing}
-          className={`w-full h-full rounded-xl ${t.card} border-2 ${t.border} border-dashed cursor-crosshair touch-none`}
-          style={{ touchAction: 'none' }}
+          className={`w-full h-full rounded-xl border-2 border-dashed cursor-crosshair touch-none`}
+          style={{
+            touchAction: 'none',
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            borderColor: 'rgba(255,255,255,0.2)',
+          }}
         />
       </div>
-      {/* Suggested characters row */}
-      {hwSuggestions.length > 0 && (
-        <div className={`px-3 py-2 border-t ${t.border}`}>
-          <p className={`text-[10px] font-medium mb-1.5 ${t.keyText} opacity-60`}>Suggested characters:</p>
-          <div className="flex gap-1.5">
-            {hwSuggestions.map((sug, i) => (
-              <motion.button
-                key={i}
-                whileHover={{ scale: 1.1, y: -2 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setSelectedHwSuggestion(sug)}
-                className={`flex items-center justify-center w-10 h-10 rounded-lg text-base font-medium border shadow-sm transition-all
-                  ${selectedHwSuggestion === sug ? `${t.accent} ${t.accentText} border-transparent` : `${t.key} ${t.keyText} ${t.border}`}`}
-              >
-                {sug}
-              </motion.button>
-            ))}
-          </div>
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="mt-2">
-            <Button onClick={confirmHwSuggestion} disabled={!selectedHwSuggestion}
-              className={`w-full gap-2 ${t.accent} ${t.accentText}`} size="sm">
-              Confirm & Insert
+
+      {/* Bottom action bar */}
+      {hasAnySuggestions && selectedHwSuggestion && (
+        <div className="shrink-0 px-3 py-1.5 border-t"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', borderColor: 'rgba(255,255,255,0.1)' }}>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button onClick={confirmHwSuggestion} className="w-full gap-2 bg-cyan-600 hover:bg-cyan-500 text-white" size="sm">
+              <CornerDownLeft className="w-3.5 h-3.5" />
+              Insert &quot;{selectedHwSuggestion.length > 20 ? selectedHwSuggestion.substring(0, 20) + '...' : selectedHwSuggestion}&quot;
             </Button>
           </motion.div>
         </div>
       )}
-      {hwSuggestions.length === 0 && (
-        <div className={`px-3 py-2 text-center ${t.keyText} opacity-50`}>
-          <p className="text-[10px]">Draw a character or word in the canvas above</p>
-          <p className="text-[10px]">Supports both English and Amharic script</p>
-        </div>
-      )}
     </div>
-  );
+    );
+  };
 
-  // Change 6: Settings panel
+  // Change 6: Settings panel (NO theme picker - themes are in themes button)
   const renderSettings = () => (
     <div className="flex flex-col h-full">
       <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
         <span className={`text-xs font-medium ${t.keyText} opacity-70`}>Keyboard Settings</span>
       </div>
       <div className="flex-1 p-3 overflow-y-auto flex flex-col gap-4">
-        {/* Theme Picker */}
-        <div>
-          <p className={`text-xs font-semibold mb-2 ${t.keyText}`}>Theme</p>
-          <div className="grid grid-cols-4 gap-2">
-            {Object.entries(THEMES).map(([key, tData]) => (
-              <motion.button
-                key={key}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setTheme(key as ThemeName)}
-                className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
-                  theme === key ? `${t.accent} ${t.accentText} border-transparent` : `${t.card} ${t.border} border`
-                }`}
-              >
-                <span className="text-lg">{tData.flag}</span>
-                <span className="text-[9px] font-medium">{tData.name}</span>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        {/* Key press feedback toggle */}
+        {/* Desktop View toggle */}
         <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
           <div>
-            <p className={`text-xs font-medium ${t.keyText}`}>Key Press Feedback</p>
-            <p className={`text-[10px] ${t.keyText} opacity-50`}>Visual feedback on key press</p>
+            <p className={`text-xs font-medium ${t.keyText}`}>Desktop View</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Wide layout for larger screens</p>
           </div>
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => setKeyPressFeedback(!keyPressFeedback)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center ${keyPressFeedback ? t.accent : 'bg-gray-600'}`}
+            onClick={() => setDesktopView(!desktopView)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${desktopView ? t.accent : 'bg-gray-600'}`}
           >
             <motion.div
-              animate={{ x: keyPressFeedback ? 16 : 2 }}
+              animate={{ x: desktopView ? 16 : 2 }}
               className="w-5 h-5 bg-white rounded-full shadow-sm"
             />
           </motion.button>
@@ -1215,42 +1857,183 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     </div>
   );
 
-  // ─── Theme Picker ───────────────────────────────────────────────────
-  const renderThemePicker = () => (
-    <AnimatePresence>
-      {showThemePicker && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          className={`absolute bottom-full left-2 right-2 mb-2 ${t.card} rounded-xl shadow-xl ${t.border} border p-3 z-50`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className={`text-xs font-semibold ${t.keyText}`}>Choose Theme</span>
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setShowThemePicker(false)} className={`${t.keyText} opacity-50 hover:opacity-100`}>
+  // ─── Full-Screen Theme Picker ────────────────────────────────────────
+  const renderThemePickerPanel = () => {
+    const filteredThemes = Object.entries(allThemes).filter(([key, tData]) => {
+      if (themeCategory === 'all') return true;
+      if (themeCategory === 'solid') return tData.category === 'solid';
+      if (themeCategory === 'live') return tData.category === 'live';
+      if (themeCategory === 'custom') return key.startsWith('custom_');
+      return true;
+    });
+
+    return (
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
+          <span className={`text-sm font-bold ${t.keyText}`}>🎨 Themes</span>
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { setShowCustomCreator(true); }}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium ${t.accent} ${t.accentText}`}
+            >
+              <Plus className="w-3 h-3" />Create
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setMode('keyboard')}
+              className={`${t.keyText} opacity-50 hover:opacity-100`}
+            >
               <X className="w-4 h-4" />
             </motion.button>
           </div>
-          <div className="grid grid-cols-4 gap-2">
-            {Object.entries(THEMES).map(([key, tData]) => (
-              <motion.button
-                key={key}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => { setTheme(key as ThemeName); setShowThemePicker(false); }}
-                className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
-                  theme === key ? `${t.accent} ${t.accentText} border-transparent` : `${t.card} ${t.border} border`
-                }`}
-              >
-                <span className="text-lg">{tData.flag}</span>
-                <span className="text-[10px] font-medium">{tData.name}</span>
-              </motion.button>
-            ))}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+        </div>
+
+        {/* Category tabs */}
+        <div className={`flex gap-1 px-2 py-1.5 border-b ${t.border}`}>
+          {(['all', 'solid', 'live', 'custom'] as const).map(cat => (
+            <motion.button key={cat}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setThemeCategory(cat)}
+              className={`px-3 py-1 rounded-full text-[10px] font-semibold capitalize transition-all ${
+                themeCategory === cat ? `${t.tabActive} ${t.tabActiveText} shadow-sm` : `${t.suggestion} ${t.keyText}`
+              }`}
+            >
+              {cat === 'all' ? '✨ All' : cat === 'solid' ? '🎨 Solid' : cat === 'live' ? '⚡ Live' : '🖌️ Custom'}
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Custom Theme Creator */}
+        <AnimatePresence>
+          {showCustomCreator && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden border-b"
+              style={{ borderColor: 'rgba(128,128,128,0.2)' }}
+            >
+              <div className="p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-semibold ${t.keyText}`}>Create Custom Theme</span>
+                  <button onClick={() => setShowCustomCreator(false)} className="opacity-50 hover:opacity-100"><X className="w-3.5 h-3.5" /></button>
+                </div>
+                <input type="text" value={customName} onChange={e => setCustomName(e.target.value)}
+                  placeholder="Theme name" className={`w-full px-2 py-1.5 rounded-lg text-xs ${t.card} ${t.border} border ${t.keyText} outline-none`} />
+                <div className="grid grid-cols-5 gap-2">
+                  <div className="flex flex-col items-center gap-1">
+                    <label className={`text-[8px] ${t.keyText} opacity-60`}>Background</label>
+                    <input type="color" value={customBgColor} onChange={e => setCustomBgColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <label className={`text-[8px] ${t.keyText} opacity-60`}>Keys</label>
+                    <input type="color" value={customKeyColor} onChange={e => setCustomKeyColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <label className={`text-[8px] ${t.keyText} opacity-60`}>Text</label>
+                    <input type="color" value={customKeyTextColor} onChange={e => setCustomKeyTextColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <label className={`text-[8px] ${t.keyText} opacity-60`}>Accent</label>
+                    <input type="color" value={customAccentColor} onChange={e => setCustomAccentColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <label className={`text-[8px] ${t.keyText} opacity-60`}>Special</label>
+                    <input type="color" value={customSpecialKeyColor} onChange={e => setCustomSpecialKeyColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                  </div>
+                </div>
+                <input type="text" value={customBgImageUrl} onChange={e => setCustomBgImageUrl(e.target.value)}
+                  placeholder="Background image URL (optional)" className={`w-full px-2 py-1.5 rounded-lg text-[10px] ${t.card} ${t.border} border ${t.keyText} outline-none`} />
+                <input type="text" value={customBgGifUrl} onChange={e => setCustomBgGifUrl(e.target.value)}
+                  placeholder="Background GIF URL (optional)" className={`w-full px-2 py-1.5 rounded-lg text-[10px] ${t.card} ${t.border} border ${t.keyText} outline-none`} />
+                {/* Preview */}
+                <div className="rounded-xl overflow-hidden border" style={{ backgroundColor: customBgColor, height: 48 }}>
+                  <div className="flex items-center justify-center gap-1 p-2">
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: customKeyColor }} />
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: customAccentColor }} />
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: customSpecialKeyColor }} />
+                  </div>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleCreateCustomTheme}
+                  className={`w-full py-1.5 rounded-lg text-xs font-medium ${t.accent} ${t.accentText}`}
+                >
+                  💾 Save & Apply Theme
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Themes grid */}
+        <div className="flex-1 p-2 overflow-y-auto max-h-[350px]">
+          {themeCategory === 'custom' && customThemes.length === 0 ? (
+            <div className={`flex flex-col items-center justify-center h-full ${t.keyText} opacity-50`}>
+              <span className="text-2xl mb-2">🎨</span>
+              <span className="text-xs">No custom themes yet</span>
+              <span className="text-[10px] mt-1">Click &quot;Create&quot; to make one</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {filteredThemes.map(([key, tData]) => (
+                <motion.button
+                  key={key}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { setTheme(key); setMode('keyboard'); }}
+                  className={`relative flex flex-col items-center gap-1 p-2 rounded-xl border transition-all overflow-hidden ${
+                    theme === key ? `${t.accent} ${t.accentText} border-transparent shadow-md` : `${t.card} ${t.border} border`
+                  }`}
+                >
+                  {/* Live theme 3D image preview */}
+                  {tData.isLive && tData.liveClass && (
+                    <>
+                      <div className={`absolute inset-0 ${tData.liveClass} pointer-events-none`} style={{ borderRadius: 'inherit' }} />
+                      <div className="absolute inset-0 pointer-events-none" style={{
+                        background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%)',
+                        borderRadius: 'inherit'
+                      }} />
+                    </>
+                  )}
+                  {/* Custom theme bg preview */}
+                  {key.startsWith('custom_') && (() => {
+                    const ct = customThemes.find(c => `custom_${c.id}` === key);
+                    return ct ? (
+                      <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: ct.bgColor, opacity: 0.3 }} />
+                    ) : null;
+                  })()}
+                  <span className="text-lg relative z-10">{tData.flag}</span>
+                  <span className="text-[8px] font-semibold leading-tight relative z-10 text-center">{tData.name}</span>
+                  <div className="flex gap-0.5 mt-0.5 relative z-10">
+                    <span className={`w-2 h-2 rounded-full ${tData.key.replace('hover:', '').split(' ')[0]}`} />
+                    <span className={`w-2 h-2 rounded-full ${tData.accent.replace('hover:', '').split(' ')[0]}`} />
+                    <span className={`w-2 h-2 rounded-full ${tData.bg.replace('hover:', '').split(' ')[0]}`} />
+                  </div>
+                  {tData.isLive && (
+                    <span className="absolute top-1 right-1 text-[7px] bg-white/20 rounded px-0.5 z-10 pointer-events-none">LIVE</span>
+                  )}
+                  {/* Delete button for custom themes */}
+                  {key.startsWith('custom_') && (
+                    <button
+                      onClick={e => { e.stopPropagation(); setCustomThemes(prev => prev.filter(ct => `custom_${ct.id}` !== key)); if (theme === key) setTheme('default'); }}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center bg-red-500/70 text-white rounded-full text-[8px] z-20 hover:bg-red-500"
+                    >×</button>
+                  )}
+                </motion.button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // ─── Vowel Family Row (above keyboard) ────────────────────────────
   const renderVowelRow = () => {
@@ -1283,7 +2066,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   };
 
   // ─── Panel transition direction (Change 7) ─────────────────────────
-  const modeOrder: KeyboardMode[] = ['keyboard', 'stickers', 'gifs', 'clipboard', 'translate', 'handwriting', 'settings'];
+  const modeOrder: KeyboardMode[] = ['keyboard', 'stickers', 'gifs', 'clipboard', 'translate', 'handwriting', 'settings', 'themes'];
   const getPanelVariants = (direction: number) => ({
     initial: { opacity: 0, x: direction > 0 ? 50 : -50 },
     animate: { opacity: 1, x: 0 },
@@ -1313,87 +2096,677 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const kbPanelHeight = keyboardHeight === 'compact' ? 'h-[200px]' : keyboardHeight === 'tall' ? 'h-[300px]' : 'h-[240px]';
   const kbKeyHeight = keyboardHeight === 'compact' ? 'h-9' : keyboardHeight === 'tall' ? 'h-13' : 'h-11';
 
+  // ─── Desktop Render Functions ─────────────────────────────────────────
+
+  // Number row shift characters mapping
+  const NUMBER_SHIFT_CHARS: Record<string, string> = {
+    '1': '!', '2': '@', '3': '#', '4': '$', '5': '%',
+    '6': '^', '7': '&', '8': '*', '9': '(', '0': ')',
+  };
+
+  // Desktop text area with toolbar
+  const renderDesktopTextArea = () => {
+    const charCount = text.length;
+    const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+    return (
+      <div className="desktop-text-editor">
+        {/* Toolbar */}
+        <div className={`desktop-toolbar ${t.card} ${t.border} border`}>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                  onClick={() => navigator.clipboard?.writeText(text)}
+                  className={`flex items-center justify-center w-7 h-7 rounded-md ${t.suggestion} ${t.keyText} transition-colors`}
+                  disabled={!text}>
+                  <Copy className="w-3.5 h-3.5" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>Copy text</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                  onClick={() => { if (text) updateText(text); /* select all via focus */ }}
+                  className={`flex items-center justify-center w-7 h-7 rounded-md ${t.suggestion} ${t.keyText} transition-colors`}
+                  disabled={!text}>
+                  <SquareCheck className="w-3.5 h-3.5" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>Select all</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                  onClick={() => updateText('')}
+                  className={`flex items-center justify-center w-7 h-7 rounded-md ${t.suggestion} ${t.keyText} transition-colors`}
+                  disabled={!text}>
+                  <Trash2 className="w-3.5 h-3.5" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>Clear text</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <div className="flex-1" />
+          <span className={`text-[10px] ${t.keyText} opacity-40`}>
+            {charCount} chars · {wordCount} word{wordCount !== 1 ? 's' : ''}
+          </span>
+          <span className={`ml-2 px-2 py-0.5 rounded-full text-[9px] font-semibold ${t.accent} ${t.accentText}`}>
+            {language === 'english' ? 'EN' : 'አማ'}
+          </span>
+        </div>
+        {/* Text content */}
+        <div className={`${t.card} ${t.border} border border-t-0 rounded-t-none p-3 min-h-[80px] max-h-[160px] overflow-y-auto`}
+          style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '40' } : {}}>
+          {text ? (
+            <motion.p
+              key={text.slice(-1)}
+              initial={textBounce ? { scale: 1.01 } : {}}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.15 }}
+              className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${t.keyText} desktop-cursor`}
+              style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
+              {text}
+            </motion.p>
+          ) : (
+            <p className={`text-sm italic opacity-40 ${t.keyText}`}
+              style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
+              {language === 'english' ? 'Start typing...' : 'ይጻፉ...'}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Desktop tab bar
+  const renderDesktopTabBar = () => {
+    const tabs = [
+      { id: 'keyboard' as KeyboardMode, label: 'Keyboard', icon: Keyboard, emoji: '⌨️' },
+      { id: 'stickers' as KeyboardMode, label: 'Stickers', icon: Smile, emoji: '😀' },
+      { id: 'gifs' as KeyboardMode, label: 'GIFs', icon: Image, emoji: '🎬' },
+      { id: 'clipboard' as KeyboardMode, label: 'Clipboard', icon: ClipboardList, emoji: '📋' },
+      { id: 'translate' as KeyboardMode, label: 'Translate', icon: Sparkles, emoji: '✨' },
+      { id: 'handwriting' as KeyboardMode, label: 'Draw', icon: Pen, emoji: '✏️' },
+    ];
+    return (
+      <div className={`desktop-tab-bar border-b ${t.border} ${t.tabBar}`}
+        style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '20' } : {}}>
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => handleModeChange(tab.id)}
+            className={`desktop-tab-item ${mode === tab.id ? 'active' : ''} ${t.keyText}`}
+            style={mode === tab.id && customThemeData ? { color: customThemeData.accentColor, borderBottomColor: customThemeData.accentColor } : customThemeData ? { color: customThemeData.keyTextColor } : {}}>
+            <span className="text-sm">{tab.emoji}</span>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+        <div className="flex-1" />
+        {/* Right-side controls */}
+        <div className="flex items-center gap-1 py-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08 }}
+                  onClick={() => handleModeChange('themes')}
+                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${t.suggestion} ${t.keyText} ${theme !== 'default' ? 'ring-1 ring-primary/30' : ''}`}
+                  style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
+                  <Palette className="w-4 h-4" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>Themes</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08 }}
+                  onClick={() => setAppTheme(appTheme === 'dark' ? 'light' : 'dark')}
+                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${t.suggestion} ${t.keyText}`}
+                  style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
+                  {mounted && appTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>Toggle dark mode</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08 }}
+                  onClick={() => setShowDesktopSettings(true)}
+                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${t.suggestion} ${t.keyText}`}
+                  style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
+                  <Settings className="w-4 h-4" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>Settings</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08 }}
+                  onClick={() => setDesktopView(false)}
+                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${t.accent} ${t.accentText}`}
+                  style={customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                  <Monitor className="w-4 h-4" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>Exit desktop view</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+    );
+  };
+
+  // Desktop 3D key component
+  const renderDesktopKey = (key: string, flex?: string, tooltip?: string) => {
+    const isSpecial = ['shift', 'backspace', 'symbols', 'space', 'enter', 'language', 'tab', 'esc', 'caps'].includes(key);
+    const isWide = key === 'space';
+    const isMedium = key === 'shift' || key === 'backspace' || key === 'enter' || key === 'tab' || key === 'caps' || key === 'symbols' || key === 'language';
+    let displayKey = key;
+    let subLabel = '';
+
+    if (key === 'backspace') displayKey = '⌫';
+    if (key === 'symbols') displayKey = symbolsActive ? (language === 'amharic' ? 'አማ' : 'ABC') : (language === 'amharic' ? '፩፪' : '?123');
+    if (key === 'space') displayKey = language === 'amharic' ? 'አማርኛ' : 'Space';
+    if (key === 'enter') displayKey = 'Enter';
+    if (key === 'tab') displayKey = 'Tab';
+    if (key === 'esc') displayKey = 'Esc';
+    if (key === 'caps') displayKey = 'Caps';
+    if (key === 'language') displayKey = language === 'english' ? '🌐 አማ' : '🌐 EN';
+    if (shiftActive && !isSpecial && key.length === 1 && key.match(/[a-z]/)) {
+      displayKey = key.toUpperCase();
+    }
+    // Sub-labels for number row
+    if (NUMBER_SHIFT_CHARS[key]) {
+      subLabel = NUMBER_SHIFT_CHARS[key];
+    }
+    // Sub-labels for some letter keys
+    if (!isSpecial && key.length === 1) {
+      const shiftChar = shiftActive ? key : key.toUpperCase();
+      if (key.match(/[a-z]/) && !shiftActive) {
+        subLabel = key.toUpperCase();
+      }
+    }
+
+    const flexClass = flex || (isWide ? 'flex-[4]' : isMedium ? 'flex-[1.8]' : 'flex-1');
+    const isRippled = rippleKey === key;
+    const isLongPressed = longPressKey === key;
+
+    return (
+      <motion.button
+        key={key}
+        whileTap={{ translateY: 1, boxShadow: '0 1px 0 0 rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1)' }}
+        onClick={() => {
+          if (key === 'language') {
+            handleLanguageToggle();
+          } else if (key === 'tab') {
+            updateText(text + '    ');
+          } else if (key === 'esc') {
+            // Do nothing or close panel
+          } else if (key === 'caps') {
+            setShiftActive(!shiftActive);
+          } else {
+            handleKeyPress(key);
+          }
+        }}
+        onPointerDown={() => handlePointerDown(key)}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        className={`
+          desktop-key-3d ${isRippled ? 'desktop-key-press' : ''}
+          relative flex items-center justify-center font-medium
+          select-none overflow-visible ${flexClass}
+          ${isSpecial
+            ? `${t.specialKey} ${t.keyText}`
+            : `${t.key} ${t.keyText} ${t.border} border`
+          }
+        `}
+        style={customThemeData && !isSpecial ? { backgroundColor: customThemeData.keyColor, color: customThemeData.keyTextColor } : customThemeData && isSpecial ? { backgroundColor: customThemeData.specialKeyColor, color: customThemeData.keyTextColor } : {}}
+      >
+        {/* Tooltip on special keys */}
+        {tooltip && (
+          <span className={`desktop-key-tooltip ${t.card} ${t.keyText} ${t.border} border shadow-lg`}>
+            {tooltip}
+          </span>
+        )}
+        {/* Sub-label (shift character) */}
+        {subLabel && !isSpecial && (
+          <span className="desktop-key-sublabel">{subLabel}</span>
+        )}
+        {/* Icons for special keys */}
+        {key === 'shift' && <ArrowUp className={`w-4 h-4 ${shiftActive ? 'text-yellow-500' : ''}`} />}
+        {key === 'backspace' && <Delete className="w-4 h-4" />}
+        {key === 'enter' && <CornerDownLeft className="w-4 h-4" />}
+        {key === 'esc' && <LogOut className="w-3.5 h-3.5" />}
+        {key === 'caps' && (
+          <div className="flex items-center gap-1">
+            <ArrowUp className={`w-3.5 h-3.5 ${shiftActive ? 'text-yellow-500' : ''}`} />
+            <span className="text-[10px]">Caps</span>
+          </div>
+        )}
+        {key === 'tab' && <span className="text-[10px] font-medium">Tab</span>}
+        {key === 'language' && <span className="text-[10px] font-bold">{displayKey}</span>}
+        {key !== 'shift' && key !== 'backspace' && key !== 'enter' && key !== 'esc' && key !== 'caps' && key !== 'tab' && key !== 'language' && (
+          <span className={isWide ? 'text-xs' : 'text-sm'}>{displayKey}</span>
+        )}
+        {/* Long press popup */}
+        {isLongPressed && LONG_PRESS_ALTERNATES[key] && (
+          <motion.div
+            initial={{ opacity: 0, y: 5, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 5, scale: 0.9 }}
+            className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 ${t.card} ${t.border} border rounded-xl shadow-2xl p-1.5 z-50 flex gap-1 min-w-max`}>
+            {LONG_PRESS_ALTERNATES[key].map((alt, i) => (
+              <motion.button
+                key={i}
+                whileHover={{ scale: 1.15, y: -2 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => { e.stopPropagation(); handleAlternateSelect(alt); }}
+                className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm`}>
+                {alt}
+              </motion.button>
+            ))}
+          </motion.div>
+        )}
+      </motion.button>
+    );
+  };
+
+  // Desktop keyboard with 3D keys and function row
+  const renderDesktopKeyboard = () => {
+    const currentRows = symbolsActive ? SYMBOL_ROWS : ENGLISH_ROWS;
+    return (
+      <div className="desktop-keyboard-chassis">
+        {/* Function row */}
+        <div className="desktop-key-row desktop-function-row">
+          {renderDesktopKey('esc', 'flex-[1.2]', 'Esc')}
+          {renderDesktopKey('tab', 'flex-[1.5]', 'Insert tab')}
+          {renderDesktopKey('caps', 'flex-[1.8]', shiftActive ? 'Caps ON' : 'Toggle uppercase')}
+          <div className="flex-1" />
+          {renderDesktopKey('language', 'flex-[1.5]', 'Switch language')}
+        </div>
+
+        {/* Number row - always visible */}
+        <div className="desktop-key-row desktop-number-row">
+          {['1','2','3','4','5','6','7','8','9','0'].map(k => renderDesktopKey(k))}
+        </div>
+
+        {/* Letter rows */}
+        {language === 'english' ? (
+          <>
+            {currentRows.map((row, rowIdx) => (
+              <div key={rowIdx} className="desktop-key-row desktop-letter-row">
+                {rowIdx === 2 && renderDesktopKey('shift', 'flex-[1.5]', 'Toggle shift')}
+                {row.map(key => renderDesktopKey(key))}
+                {rowIdx === 2 && renderDesktopKey('backspace', 'flex-[2]', 'Delete')}
+              </div>
+            ))}
+            {/* Bottom row with wider space */}
+            <div className="desktop-key-row desktop-letter-row">
+              {renderDesktopKey('symbols', 'flex-[1.5]', 'Toggle symbols')}
+              {renderDesktopKey(',', 'flex-[0.8]')}
+              {renderDesktopKey('space', 'flex-[5]')}
+              {renderDesktopKey('.', 'flex-[0.8]')}
+              {renderDesktopKey('enter', 'flex-[2]', 'New line')}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Amharic keyboard rows */}
+            {AMHARIC_ROWS.map((row, rowIdx) => (
+              <div key={rowIdx} className="desktop-key-row desktop-letter-row">
+                {row.map(consonant => {
+                  return (
+                    <motion.button
+                      key={consonant}
+                      whileTap={{ translateY: 1, boxShadow: '0 1px 0 0 rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1)' }}
+                      onClick={() => handleAmharicPress(consonant)}
+                      className={`desktop-key-3d flex-1 flex items-center justify-center text-sm font-medium select-none overflow-visible
+                        ${selectedConsonant === consonant ? `${t.accent} ${t.accentText}` : `${t.key} ${t.keyText} ${t.border} border`}
+                      `}
+                      style={customThemeData && selectedConsonant !== consonant ? { backgroundColor: customThemeData.keyColor, color: customThemeData.keyTextColor } : customThemeData && selectedConsonant === consonant ? { backgroundColor: customThemeData.accentColor } : {}}
+                    >
+                      {consonant}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            ))}
+            {/* Vowel row */}
+            {renderVowelRow()}
+            {/* Bottom row */}
+            <div className="desktop-key-row desktop-letter-row">
+              {renderDesktopKey('symbols', 'flex-[1.5]', 'Toggle symbols')}
+              {renderDesktopKey(',', 'flex-[0.8]')}
+              {renderDesktopKey('space', 'flex-[4]')}
+              {renderDesktopKey('.', 'flex-[0.8]')}
+              {renderDesktopKey('backspace', 'flex-[1.5]', 'Delete')}
+              {renderDesktopKey('enter', 'flex-[1.5]', 'New line')}
+            </div>
+          </>
+        )}
+
+        {/* Suggestions bar */}
+        <div className={`mt-1 ${t.tabBar} rounded-lg`}>
+          {renderSuggestions()}
+        </div>
+
+        {/* AkAI branding */}
+        <span className="desktop-branding">AkAI</span>
+      </div>
+    );
+  };
+
+  // Desktop side panel for non-keyboard modes
+  const renderDesktopSidePanel = () => {
+    if (mode === 'keyboard' || mode === 'settings' || mode === 'themes') return null;
+    return (
+      <div className={`desktop-side-panel ${t.card} ${t.border} border flex flex-col`}
+        style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '30' } : {}}>
+        {/* Side panel header with close button */}
+        <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
+          <span className={`text-xs font-semibold ${t.keyText}`}>
+            {mode === 'stickers' && '😀 Stickers'}
+            {mode === 'gifs' && '🎬 GIFs'}
+            {mode === 'clipboard' && '📋 Clipboard'}
+            {mode === 'translate' && '✨ Translate'}
+            {mode === 'handwriting' && '✏️ Draw'}
+          </span>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.1 }}
+            onClick={() => setMode('keyboard')}
+            className={`w-6 h-6 flex items-center justify-center rounded-md ${t.suggestion} ${t.keyText}`}>
+            <X className="w-3.5 h-3.5" />
+          </motion.button>
+        </div>
+        {/* Side panel content */}
+        <div className="desktop-side-panel-content flex-1">
+          {mode === 'stickers' && renderStickers()}
+          {mode === 'gifs' && renderGifs()}
+          {mode === 'clipboard' && renderClipboard()}
+          {mode === 'translate' && renderTranslate()}
+          {mode === 'handwriting' && renderHandwriting()}
+        </div>
+      </div>
+    );
+  };
+
+  // Desktop settings modal
+  const renderDesktopSettingsModal = () => {
+    if (!showDesktopSettings) return null;
+    return (
+      <div className="desktop-settings-overlay" onClick={() => setShowDesktopSettings(false)}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          className={`desktop-settings-modal ${t.card} ${t.border} border shadow-2xl`}
+          onClick={e => e.stopPropagation()}
+          style={customThemeData ? { backgroundColor: customThemeData.bgColor } : {}}>
+          {/* Modal header */}
+          <div className={`flex items-center justify-between px-4 py-3 border-b ${t.border}`}>
+            <span className={`text-sm font-bold ${t.keyText}`}>⚙️ Settings</span>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.1 }}
+              onClick={() => setShowDesktopSettings(false)}
+              className={`w-7 h-7 flex items-center justify-center rounded-lg ${t.suggestion} ${t.keyText}`}>
+              <X className="w-4 h-4" />
+            </motion.button>
+          </div>
+          {/* Modal content */}
+          <div className="p-4 overflow-y-auto max-h-[60vh] flex flex-col gap-3"
+            style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
+            {/* Keyboard height selector */}
+            <div className={`p-3 rounded-xl ${t.key} ${t.border} border`}
+              style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
+              <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Keyboard Height</p>
+              <div className="flex gap-2">
+                {(['compact', 'normal', 'tall'] as const).map(h => (
+                  <motion.button key={h}
+                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    onClick={() => setKeyboardHeight(h)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                      keyboardHeight === h ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
+                    }`}
+                    style={keyboardHeight === h && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                    {h}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+            {/* Show number row */}
+            <div className={`flex items-center justify-between p-3 rounded-xl ${t.key} ${t.border} border`}
+              style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
+              <div>
+                <p className={`text-xs font-medium ${t.keyText}`}>Show Number Row</p>
+                <p className={`text-[10px] ${t.keyText} opacity-50`}>Always show numbers above letters</p>
+              </div>
+              <motion.button whileTap={{ scale: 0.9 }}
+                onClick={() => setShowNumberRow(!showNumberRow)}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${showNumberRow ? t.accent : 'bg-gray-600'}`}
+                style={showNumberRow && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                <motion.div animate={{ x: showNumberRow ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+              </motion.button>
+            </div>
+            {/* Auto-space */}
+            <div className={`flex items-center justify-between p-3 rounded-xl ${t.key} ${t.border} border`}
+              style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
+              <div>
+                <p className={`text-xs font-medium ${t.keyText}`}>Auto-Space After Punctuation</p>
+                <p className={`text-[10px] ${t.keyText} opacity-50`}>Add space after . ! ? ; :</p>
+              </div>
+              <motion.button whileTap={{ scale: 0.9 }}
+                onClick={() => setAutoSpaceAfterPunctuation(!autoSpaceAfterPunctuation)}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${autoSpaceAfterPunctuation ? t.accent : 'bg-gray-600'}`}
+                style={autoSpaceAfterPunctuation && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                <motion.div animate={{ x: autoSpaceAfterPunctuation ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+              </motion.button>
+            </div>
+            {/* Key popup on long press */}
+            <div className={`flex items-center justify-between p-3 rounded-xl ${t.key} ${t.border} border`}
+              style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
+              <div>
+                <p className={`text-xs font-medium ${t.keyText}`}>Key Popup on Long Press</p>
+                <p className={`text-[10px] ${t.keyText} opacity-50`}>Show alternate characters on long press</p>
+              </div>
+              <motion.button whileTap={{ scale: 0.9 }}
+                onClick={() => setKeyPopupOnLongPress(!keyPopupOnLongPress)}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${keyPopupOnLongPress ? t.accent : 'bg-gray-600'}`}
+                style={keyPopupOnLongPress && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                <motion.div animate={{ x: keyPopupOnLongPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
+  // Main desktop view
+  const renderDesktopView = () => {
+    const isSidePanelOpen = mode !== 'keyboard' && mode !== 'settings' && mode !== 'themes';
+    return (
+      <>
+        {/* Desktop Tab Bar */}
+        {renderDesktopTabBar()}
+
+        {/* Main content area: text editor + keyboard + side panel */}
+        <div className="flex-1 flex flex-col p-3 gap-3 relative z-10">
+          {/* Text editor area */}
+          {renderDesktopTextArea()}
+
+          {/* Keyboard + Side Panel row */}
+          <div className="flex gap-3 flex-1 min-h-0">
+            {/* Keyboard - shrinks when side panel is open */}
+            <div className={`flex-1 transition-all duration-300 ${isSidePanelOpen ? '' : ''}`}>
+              {mode === 'themes' ? (
+                <div className={`${t.card} ${t.border} border rounded-xl h-full overflow-hidden`}
+                  style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '30' } : {}}>
+                  {renderThemePickerPanel()}
+                </div>
+              ) : (
+                renderDesktopKeyboard()
+              )}
+            </div>
+            {/* Side panel */}
+            {isSidePanelOpen && renderDesktopSidePanel()}
+          </div>
+        </div>
+
+        {/* Settings modal overlay */}
+        {renderDesktopSettingsModal()}
+      </>
+    );
+  };
+
   // ─── Main Render ────────────────────────────────────────────────────
   const currentRows = symbolsActive ? SYMBOL_ROWS : ENGLISH_ROWS;
 
   return (
-    <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300`}>
-      {/* Text Display Area */}
-      <div className="flex-1 min-h-[60px] p-2">
-        <div className={`h-full rounded-xl ${t.card} ${t.border} border p-2.5 overflow-y-auto`}>
-          {text ? (
-            <motion.p
-              key={text.slice(-1)}
-              initial={textBounce ? { scale: 1.02 } : {}}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.2 }}
-              className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${t.keyText}`}
-            >{text}</motion.p>
-          ) : (
-            <p className={`text-sm italic opacity-40 ${t.keyText}`}>{language === 'english' ? 'Tap the keyboard to start typing...' : 'ቁልፉን መታ በማድረግ ይጻፉ...'}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Suggestions Bar */}
-      {mode === 'keyboard' && (
-        <div className={`${t.tabBar} border-t border-b ${t.border}`}>
-          {renderSuggestions()}
-        </div>
+    <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''}`}
+      style={customBgStyle}>
+      {/* Live theme background overlay - 3D image with animation */}
+      {t.isLive && t.liveClass && (
+        <>
+          <div className={`absolute inset-0 ${t.liveClass}`} style={{ borderRadius: 'inherit', zIndex: 0 }} />
+          <div className="absolute inset-0" style={{
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.55) 100%)',
+            backdropFilter: 'blur(1px)',
+            borderRadius: 'inherit',
+            zIndex: 1
+          }} />
+        </>
       )}
 
-      {/* Mode Tab Bar */}
-      <div className={`flex items-center gap-0.5 px-2 py-1.5 border-t ${t.border} ${t.tabBar} relative`}>
-        {renderThemePicker()}
-        {[
-          { id: 'keyboard' as KeyboardMode, label: language === 'english' ? 'ABC' : 'አማ', icon: Keyboard },
-          { id: 'stickers' as KeyboardMode, label: 'Stickers', icon: Smile },
-          { id: 'gifs' as KeyboardMode, label: 'GIFs', icon: Image },
-          { id: 'clipboard' as KeyboardMode, label: 'Clip', icon: ClipboardList },
-          { id: 'translate' as KeyboardMode, label: 'AI', icon: Sparkles },
-          { id: 'handwriting' as KeyboardMode, label: 'Draw', icon: Pen },
-          { id: 'settings' as KeyboardMode, label: 'Set', icon: Settings },
-        ].map(tab => (
-          <motion.button
-            key={tab.id}
-            whileTap={{ scale: 0.92 }}
-            whileHover={{ scale: 1.05 }}
-            onClick={() => handleModeChange(tab.id)}
-            className={`
-              flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-all duration-200 relative
-              ${mode === tab.id
-                ? `${t.tabActive} ${t.tabActiveText} shadow-sm`
-                : `${t.keyText} opacity-60 hover:opacity-100`}
-            `}
-          >
-            {/* Change 7: Subtle pulse on active tab */}
-            {mode === tab.id && (
-              <motion.div
-                className={`absolute inset-0 rounded-xl ${t.accent} opacity-20`}
-                animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.1, 0.2] }}
-                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              />
-            )}
-            <tab.icon className="w-3.5 h-3.5 relative z-10" />
-            <span className="text-[10px] font-medium relative z-10">{tab.label}</span>
-          </motion.button>
-        ))}
-        {/* Change 3: Language toggle REMOVED from tab bar - now in keyboard bottom row */}
-        {/* Theme Toggle */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.08 }}
-          onClick={() => setShowThemePicker(!showThemePicker)}
-          className={`flex items-center justify-center w-8 h-8 rounded-xl ${t.suggestion} ${t.keyText}`}
-          title="Change theme"
-        >
-          <Palette className="w-3.5 h-3.5" />
-        </motion.button>
-      </div>
+      {/* ─── DESKTOP VIEW ─── */}
+      {desktopView ? (
+        <div className="flex-1 flex flex-col relative z-10">
+          {renderDesktopView()}
+        </div>
+      ) : mode === 'themes' ? (
+        <div className="flex-1 flex flex-col relative z-10">
+          {renderThemePickerPanel()}
+        </div>
+      ) : (
+        <>
+          {/* Text Display Area */}
+          <div className={`kb-text-area ${desktopView ? 'flex-1 min-h-[80px]' : 'flex-1 min-h-[60px]'} p-2 relative z-10`}>
+            <div className={`h-full rounded-xl ${t.isLive ? 'border-white/10' : t.border} border p-2.5 overflow-y-auto`}
+              style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '40' } : t.isLive ? { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' } : {}}>
+              {text ? (
+                <motion.p
+                  key={text.slice(-1)}
+                  initial={textBounce ? { scale: 1.02 } : {}}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                  className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${t.keyText}`}
+                  style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
+                >{text}</motion.p>
+              ) : (
+                <p className={`text-sm italic opacity-40 ${t.keyText}`}
+                  style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
+                >{language === 'english' ? 'Tap the keyboard to start typing...' : 'ቁልፉን መታ በማድረግ ይጻፉ...'}</p>
+              )}
+            </div>
+          </div>
 
-      {/* Keyboard Content */}
-      <div className={`${t.bg} border-t ${t.border}`} style={{ minHeight: mode === 'keyboard' ? undefined : undefined }}>
-        <AnimatePresence mode="wait">
+          {/* Suggestions Bar */}
+          {mode === 'keyboard' && (
+            <div className={`${t.isLive ? '' : t.tabBar} border-t border-b ${t.isLive ? 'border-white/10' : t.border} relative z-10`}
+              style={t.isLive ? { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' } : {}}>
+              {renderSuggestions()}
+            </div>
+          )}
+
+          {/* Mode Tab Bar */}
+          <div className={`flex items-center gap-0.5 px-2 py-1.5 border-t ${t.isLive ? 'border-white/10' : t.border} ${t.isLive ? '' : t.tabBar} relative z-10`}
+            style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '20' } : t.isLive ? { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' } : {}}>
+            {[
+              { id: 'keyboard' as KeyboardMode, label: language === 'english' ? 'ABC' : 'አማ', icon: Keyboard },
+              { id: 'stickers' as KeyboardMode, label: 'Stickers', icon: Smile },
+              { id: 'gifs' as KeyboardMode, label: 'GIFs', icon: Image },
+              { id: 'clipboard' as KeyboardMode, label: 'Clip', icon: ClipboardList },
+              { id: 'translate' as KeyboardMode, label: 'AI', icon: Sparkles },
+              { id: 'handwriting' as KeyboardMode, label: 'Draw', icon: Pen },
+              { id: 'settings' as KeyboardMode, label: 'Set', icon: Settings },
+            ].map(tab => (
+              <motion.button
+                key={tab.id}
+                whileTap={{ scale: 0.92 }}
+                whileHover={{ scale: 1.05 }}
+                onClick={() => handleModeChange(tab.id)}
+                className={`
+                  flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-all duration-200 relative
+                  ${mode === tab.id
+                    ? `${t.tabActive} ${t.tabActiveText} shadow-sm`
+                    : `${t.keyText} opacity-60 hover:opacity-100`}
+                `}
+                style={mode === tab.id && customThemeData ? customAccentStyle : customThemeData ? { color: customThemeData.keyTextColor } : {}}
+              >
+                {mode === tab.id && (
+                  <motion.div
+                    className={`absolute inset-0 rounded-xl ${t.accent} opacity-20`}
+                    animate={{ scale: [1, 1.05, 1], opacity: [0.2, 0.1, 0.2] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                  />
+                )}
+                <tab.icon className="w-3.5 h-3.5 relative z-10" />
+                <span className="text-[10px] font-medium relative z-10">{tab.label}</span>
+              </motion.button>
+            ))}
+            {/* Theme Toggle */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.08 }}
+              onClick={() => handleModeChange('themes')}
+              className={`flex items-center justify-center w-8 h-8 rounded-xl ${t.suggestion} ${t.keyText} ${theme !== 'default' ? 'ring-1 ring-primary/30' : ''}`}
+              style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
+              title="Change theme"
+            >
+              <Palette className="w-3.5 h-3.5" />
+            </motion.button>
+            {/* Dark Mode Toggle */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.08 }}
+              onClick={() => setAppTheme(appTheme === 'dark' ? 'light' : 'dark')}
+              className={`flex items-center justify-center w-8 h-8 rounded-xl ${t.suggestion} ${t.keyText}`}
+              style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
+              title="Toggle dark mode"
+            >
+              {mounted && appTheme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            </motion.button>
+            {/* Desktop View Toggle */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.08 }}
+              onClick={() => setDesktopView(!desktopView)}
+              className={`flex items-center justify-center w-8 h-8 rounded-xl ${t.suggestion} ${t.keyText}`}
+              style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
+              title="Toggle desktop view"
+            >
+              <Monitor className="w-3.5 h-3.5" />
+            </motion.button>
+          </div>
+
+          {/* Keyboard Content */}
+          <div className={`kb-input-area ${t.isLive ? 'bg-transparent' : t.bg} border-t ${t.border} relative z-10`}
+            style={{
+              ...(customThemeData ? { backgroundColor: customThemeData.bgColor + '80' } : {}),
+              ...(t.isLive ? { backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' } : {})
+            }}>
+            <AnimatePresence mode="wait">
           {mode === 'keyboard' && (
             <motion.div
               key="keyboard"
@@ -1598,7 +2971,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             </motion.div>
           )}
           {mode === 'handwriting' && (
-            <motion.div key="handwriting" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={keyboardHeight === 'compact' ? 'h-[220px]' : keyboardHeight === 'tall' ? 'h-[320px]' : 'h-[260px]'}>
+            <motion.div key="handwriting" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={keyboardHeight === 'compact' ? 'h-[280px]' : keyboardHeight === 'tall' ? 'h-[380px]' : 'h-[320px]'}>
               {renderHandwriting()}
             </motion.div>
           )}
@@ -1609,6 +2982,8 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           )}
         </AnimatePresence>
       </div>
+    </>
+  )}
     </div>
   );
 }

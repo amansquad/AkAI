@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from 'next-themes';
 import {
   Keyboard, Globe, Sparkles, Smile, Image, ClipboardList,
   Languages, Shield, Zap, Star,
-  ArrowRight, Check, Pen, Palette
+  ArrowRight, Check, Pen, Palette, Sun, Moon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import KeyboardApp from '@/components/keyboard-app';
@@ -37,8 +38,8 @@ const FEATURES = [
   },
   {
     icon: Palette,
-    title: '6 Beautiful Themes',
-    description: 'Classic, Midnight, Ocean, Sunset, Forest, and Ethiopian-themed keyboard styles.',
+    title: '20+ Beautiful Themes',
+    description: 'Classic, Midnight, Ocean, Sunset, Forest, Ethiopian, Neon, Candy, and many more keyboard styles.',
     color: 'from-violet-500 to-purple-600',
   },
   {
@@ -52,12 +53,47 @@ const FEATURES = [
 const STATS = [
   { value: '2', label: 'Languages' },
   { value: '200+', label: 'Stickers' },
-  { value: '6', label: 'Themes' },
+  { value: '20+', label: 'Themes' },
   { value: 'AI', label: 'Translator' },
 ];
 
+const ALL_THEMES = [
+  { name: 'Classic', emoji: '⬜', colors: 'from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900' },
+  { name: 'Midnight', emoji: '🌙', colors: 'from-slate-800 to-slate-950' },
+  { name: 'Ocean', emoji: '🌊', colors: 'from-cyan-700 to-cyan-950' },
+  { name: 'Sunset', emoji: '🌅', colors: 'from-orange-700 to-orange-950' },
+  { name: 'Forest', emoji: '🌿', colors: 'from-green-700 to-green-950' },
+  { name: 'Ethiopian', emoji: '🇪🇹', colors: 'from-green-700 via-yellow-500 to-red-600' },
+  { name: 'Rose', emoji: '🌹', colors: 'from-rose-700 to-rose-950' },
+  { name: 'Neon', emoji: '💜', colors: 'from-gray-800 to-lime-400' },
+  { name: 'Candy', emoji: '🍬', colors: 'from-fuchsia-700 to-fuchsia-950' },
+  { name: 'Arctic', emoji: '❄️', colors: 'from-sky-700 to-sky-950' },
+  { name: 'Cherry', emoji: '🍒', colors: 'from-red-700 to-red-950' },
+  { name: 'Sand', emoji: '🏜️', colors: 'from-amber-700 to-amber-950' },
+  { name: 'Lavender', emoji: '💜', colors: 'from-purple-700 to-purple-950' },
+  { name: 'Teal', emoji: '🦚', colors: 'from-teal-700 to-teal-950' },
+  { name: 'Crimson', emoji: '🔮', colors: 'from-rose-800 to-rose-950' },
+  { name: 'Moss', emoji: '🌿', colors: 'from-lime-700 to-lime-950' },
+  { name: 'Storm', emoji: '⛈️', colors: 'from-zinc-700 to-zinc-950' },
+  { name: 'Peach', emoji: '🍑', colors: 'from-orange-600 to-orange-950' },
+  { name: 'Indigo', emoji: '🔵', colors: 'from-blue-700 to-blue-950' },
+  { name: 'Gold', emoji: '👑', colors: 'from-yellow-600 to-yellow-950' },
+];
+
+const emptySubscribe = () => () => {};
+
+function useIsMounted() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
 export default function Home() {
   const [showDemo, setShowDemo] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  const mounted = useIsMounted();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -79,6 +115,15 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                className="gap-1.5"
+                title="Toggle dark mode"
+              >
+                {mounted && resolvedTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => setShowDemo(!showDemo)} className="gap-1.5">
                 {showDemo ? 'Hide Demo' : 'Try Demo'}
                 <ArrowRight className={`w-3.5 h-3.5 transition-transform ${showDemo ? 'rotate-90' : ''}`} />
@@ -101,7 +146,7 @@ export default function Home() {
                   The smartest bilingual keyboard for English and Amharic.
                 </p>
                 <p className="text-sm text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6 leading-relaxed">
-                  AI translation • Stickers & GIFs • Handwriting • Themes • Ethiopian numbers • Word suggestions
+                  AI translation • Stickers & GIFs • Handwriting • 20+ Themes • Ethiopian numbers • Word suggestions • Dark mode
                 </p>
                 <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start">
                   <Button size="lg" onClick={() => setShowDemo(true)}
@@ -255,29 +300,22 @@ export default function Home() {
         <div className="text-center mb-10">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
             <h2 className="text-3xl sm:text-4xl font-bold mb-3">
-              6 Beautiful <span className="bg-gradient-to-r from-violet-500 to-purple-600 bg-clip-text text-transparent">Themes</span>
+              20+ Beautiful <span className="bg-gradient-to-r from-violet-500 to-purple-600 bg-clip-text text-transparent">Themes</span>
             </h2>
             <p className="text-base text-muted-foreground max-w-lg mx-auto">
-              Customize your keyboard with themes that match your style. Including a special Ethiopian flag theme!
+              Customize your keyboard with themes that match your style. Including a special Ethiopian flag theme, dark mode, and many more!
             </p>
           </motion.div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[
-            { name: 'Classic', emoji: '⬜', colors: 'from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900' },
-            { name: 'Midnight', emoji: '🌙', colors: 'from-slate-800 to-slate-950' },
-            { name: 'Ocean', emoji: '🌊', colors: 'from-cyan-700 to-cyan-950' },
-            { name: 'Sunset', emoji: '🌅', colors: 'from-orange-700 to-orange-950' },
-            { name: 'Forest', emoji: '🌿', colors: 'from-green-700 to-green-950' },
-            { name: 'Ethiopian', emoji: '🇪🇹', colors: 'from-green-700 via-yellow-500 to-red-600' },
-          ].map((theme, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          {ALL_THEMES.map((themeItem, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: i * 0.08 }}
+              transition={{ duration: 0.3, delay: i * 0.05 }}
               className="flex flex-col items-center gap-2 p-4 rounded-xl bg-card border border-border/30 shadow-sm hover:shadow-md transition-shadow">
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${theme.colors} flex items-center justify-center text-xl shadow-md`}>
-                {theme.emoji}
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${themeItem.colors} flex items-center justify-center text-xl shadow-md`}>
+                {themeItem.emoji}
               </div>
-              <span className="text-xs font-medium">{theme.name}</span>
+              <span className="text-xs font-medium">{themeItem.name}</span>
             </motion.div>
           ))}
         </div>
@@ -364,9 +402,11 @@ export default function Home() {
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span>English & Amharic</span>
               <span>•</span>
-              <span>6 Themes</span>
+              <span>20+ Themes</span>
               <span>•</span>
               <span>AI Translation</span>
+              <span>•</span>
+              <span>Dark Mode</span>
             </div>
           </div>
         </div>

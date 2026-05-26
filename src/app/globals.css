@@ -176,3 +176,564 @@
 .emoji-text {
   font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }
+
+/* ─── Live Theme Animations (Image-Based 3D) ─────────────────────────────── */
+
+/* Shared live theme image animation keyframes */
+
+/* Slow diagonal pan for landscape images */
+@keyframes liveImagePanDiagonal {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+/* Slow horizontal pan */
+@keyframes liveImagePanH {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Slow vertical pan */
+@keyframes liveImagePanV {
+  0% { background-position: 50% 0%; }
+  50% { background-position: 50% 100%; }
+  100% { background-position: 50% 0%; }
+}
+
+/* Subtle breathing zoom */
+@keyframes liveImageBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* Parallax depth shift */
+@keyframes liveImageParallax {
+  0%, 100% { transform: scale(1.05) translate(0%, 0%); }
+  25% { transform: scale(1.08) translate(-1%, 1%); }
+  50% { transform: scale(1.05) translate(0%, 0%); }
+  75% { transform: scale(1.08) translate(1%, -1%); }
+}
+
+/* Hue-rotate shimmer for color shifts */
+@keyframes liveImageShimmer {
+  0%, 100% { filter: brightness(1) saturate(1.3) hue-rotate(0deg); }
+  25% { filter: brightness(1.1) saturate(1.4) hue-rotate(5deg); }
+  50% { filter: brightness(1.05) saturate(1.5) hue-rotate(-5deg); }
+  75% { filter: brightness(1.15) saturate(1.35) hue-rotate(3deg); }
+}
+
+/* Fire flicker brightness */
+@keyframes liveFireFlicker {
+  0%, 100% { filter: brightness(1) saturate(1.5); }
+  25% { filter: brightness(1.25) saturate(1.7); }
+  50% { filter: brightness(0.9) saturate(1.3); }
+  75% { filter: brightness(1.2) saturate(1.6); }
+}
+
+/* Matrix scanline effect */
+@keyframes liveMatrixScan {
+  0%, 100% { filter: brightness(0.9) saturate(1.2); }
+  50% { filter: brightness(1.15) saturate(1.4); }
+}
+
+/* Neon pulse */
+@keyframes liveNeonFlicker {
+  0%, 100% { filter: brightness(1) saturate(1.3) hue-rotate(0deg); }
+  33% { filter: brightness(1.5) saturate(1.6) hue-rotate(10deg); }
+  66% { filter: brightness(1.2) saturate(1.4) hue-rotate(-8deg); }
+}
+
+/* Cyberpunk flicker */
+@keyframes liveCyberFlicker {
+  0%, 100% { filter: brightness(1.1) saturate(1.3) hue-rotate(0deg); }
+  30% { filter: brightness(1.4) saturate(1.5) hue-rotate(12deg); }
+  60% { filter: brightness(0.95) saturate(1.2) hue-rotate(-8deg); }
+}
+
+/* ─── Image-Based Live Theme Classes ──────────────────────────────────── */
+
+/* Common base for all image-based live themes */
+.live-theme-base {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Aurora - Northern Lights over snowy mountains */
+.theme-aurora-live {
+  background-image: url('/themes/aurora.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanDiagonal 20s ease infinite, liveImageShimmer 8s ease infinite !important;
+}
+
+/* Lava - molten volcanic rock */
+.theme-lava-live {
+  background-image: url('/themes/lava.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanH 15s ease infinite, liveFireFlicker 3s ease infinite !important;
+}
+
+/* Ocean Wave - deep underwater */
+.theme-ocean-live {
+  background-image: url('/themes/ocean.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanV 18s ease infinite, liveImageShimmer 10s ease infinite !important;
+}
+
+/* Neon Pulse - electric neon city */
+.theme-neon-pulse-live {
+  background-image: url('/themes/neon-pulse.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanH 16s ease infinite, liveNeonFlicker 4s ease infinite !important;
+}
+
+/* Sunset Glow - warm sunset sky */
+.theme-sunset-live {
+  background-image: url('/themes/sunset.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanDiagonal 22s ease infinite, liveImageShimmer 12s ease infinite !important;
+}
+
+/* Matrix - digital rain */
+.theme-matrix-live {
+  background-image: url('/themes/matrix.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanV 12s ease infinite, liveMatrixScan 3s ease infinite !important;
+}
+
+/* Rainbow - vibrant spectrum */
+.theme-rainbow-live {
+  background-image: url('/themes/rainbow.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanDiagonal 18s ease infinite, liveImageShimmer 6s ease infinite !important;
+}
+
+/* Fire - blazing flames */
+.theme-fire-live {
+  background-image: url('/themes/fire.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanV 10s ease infinite, liveFireFlicker 2s ease infinite !important;
+}
+
+/* Galaxy - deep space nebula */
+.theme-galaxy-live {
+  background-image: url('/themes/galaxy.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanDiagonal 25s ease infinite, liveImageShimmer 15s ease infinite !important;
+}
+
+/* Waterfall - cascading tropical water */
+.theme-waterfall-live {
+  background-image: url('/themes/waterfall.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanV 16s ease infinite, liveImageShimmer 9s ease infinite !important;
+}
+
+/* Autumn - golden fall foliage */
+.theme-autumn-live {
+  background-image: url('/themes/autumn.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanDiagonal 20s ease infinite, liveImageShimmer 10s ease infinite !important;
+}
+
+/* Cyberpunk - neon futuristic city */
+.theme-cyberpunk-live {
+  background-image: url('/themes/cyberpunk.png') !important;
+  background-size: 130% 130% !important;
+  background-position: center !important;
+  animation: liveImagePanH 14s ease infinite, liveCyberFlicker 3.5s ease infinite !important;
+}
+
+/* ─── Live Theme Keyboard Element Overrides ─────────────────────────────── */
+
+/* When live theme is active, keys and UI elements get frosted glass effect */
+.live-keyboard-active [class*="bg-slate-8"],
+.live-keyboard-active [class*="bg-red-8"],
+.live-keyboard-active [class*="bg-blue-8"],
+.live-keyboard-active [class*="bg-gray-8"],
+.live-keyboard-active [class*="bg-green-9"],
+.live-keyboard-active [class*="bg-orange-8"],
+.live-keyboard-active [class*="bg-purple-8"],
+.live-keyboard-active [class*="bg-teal-8"],
+.live-keyboard-active [class*="bg-pink-"] {
+  background-color: rgba(10, 10, 20, 0.55) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Live theme key hover states */
+.live-keyboard-active button:hover {
+  background-color: rgba(30, 30, 50, 0.6) !important;
+}
+
+/* Live theme special keys */
+.live-keyboard-active [class*="bg-slate-7"],
+.live-keyboard-active [class*="bg-red-7"],
+.live-keyboard-active [class*="bg-blue-7"],
+.live-keyboard-active [class*="bg-gray-7"],
+.live-keyboard-active [class*="bg-green-9"],
+.live-keyboard-active [class*="bg-orange-7"],
+.live-keyboard-active [class*="bg-purple-7"],
+.live-keyboard-active [class*="bg-teal-7"] {
+  background-color: rgba(20, 20, 35, 0.5) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Live theme black bg elements */
+.live-keyboard-active [class*="bg-black"],
+.live-keyboard-active [class*="bg-slate-9"],
+.live-keyboard-active [class*="bg-red-9"],
+.live-keyboard-active [class*="bg-blue-9"],
+.live-keyboard-active [class*="bg-gray-9"],
+.live-keyboard-active [class*="bg-orange-9"],
+.live-keyboard-active [class*="bg-purple-9"],
+.live-keyboard-active [class*="bg-teal-9"] {
+  background-color: rgba(5, 5, 15, 0.5) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* Live theme text area */
+.live-keyboard-active .kb-text-area > div {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Live theme input area */
+.live-keyboard-active .kb-input-area {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(2px) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Ensure key text remains visible on live themes */
+.live-keyboard-active button {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Live theme suggestion bar */
+.live-keyboard-active .suggestion-bar {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* Live theme desktop keyboard chassis */
+.live-keyboard-active .desktop-keyboard-chassis {
+  background-color: rgba(10, 10, 20, 0.5) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+}
+
+/* Live theme desktop keys */
+.live-keyboard-active .desktop-key-3d {
+  background-color: rgba(15, 15, 30, 0.55) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 2px 0 0 rgba(0,0,0,0.3), 0 3px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+
+.live-keyboard-active .desktop-key-3d:hover {
+  background-color: rgba(25, 25, 45, 0.6) !important;
+  box-shadow: 0 3px 0 0 rgba(0,0,0,0.25), 0 5px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+}
+
+.live-keyboard-active .desktop-key-3d:active,
+.live-keyboard-active .desktop-key-3d.pressed {
+  background-color: rgba(10, 10, 20, 0.65) !important;
+  box-shadow: 0 1px 0 0 rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.15), inset 0 1px 3px rgba(0,0,0,0.15) !important;
+}
+
+/* ─── Desktop View Styles ────────────────────────────────────────────────── */
+
+/* Desktop container - vertical layout, centered, max-width */
+.desktop-keyboard-layout {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex !important;
+  flex-direction: column !important;
+  background: linear-gradient(145deg, rgba(30,30,40,0.02) 0%, rgba(50,50,70,0.04) 100%);
+}
+
+/* Desktop text editor area */
+.desktop-text-editor {
+  min-height: 120px;
+  border-radius: 12px;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+}
+
+/* Blinking cursor animation for desktop text area */
+@keyframes desktopBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.desktop-cursor::after {
+  content: '|';
+  animation: desktopBlink 1s step-end infinite;
+  font-weight: 200;
+  margin-left: 1px;
+}
+
+/* Desktop toolbar */
+.desktop-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 10px 10px 0 0;
+}
+
+/* Desktop tab bar - horizontal with underline indicator */
+.desktop-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 12px;
+  position: relative;
+}
+.desktop-tab-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+}
+.desktop-tab-item:hover {
+  opacity: 0.85;
+}
+.desktop-tab-item.active {
+  border-bottom-color: currentColor;
+  opacity: 1;
+}
+
+/* 3D Desktop key effect */
+.desktop-key-3d {
+  position: relative;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.1s ease;
+  box-shadow:
+    0 2px 0 0 rgba(0,0,0,0.25),
+    0 3px 4px rgba(0,0,0,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  transform: translateY(0);
+}
+.desktop-key-3d:hover {
+  box-shadow:
+    0 3px 0 0 rgba(0,0,0,0.2),
+    0 5px 8px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+}
+.desktop-key-3d:active,
+.desktop-key-3d.pressed {
+  box-shadow:
+    0 1px 0 0 rgba(0,0,0,0.3),
+    0 1px 2px rgba(0,0,0,0.1),
+    inset 0 1px 3px rgba(0,0,0,0.1);
+  transform: translateY(1px);
+}
+
+/* Desktop key press animation */
+@keyframes desktopKeyPress {
+  0% { transform: translateY(0); box-shadow: 0 2px 0 0 rgba(0,0,0,0.25), 0 3px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08); }
+  50% { transform: translateY(1px); box-shadow: 0 1px 0 0 rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1); }
+  100% { transform: translateY(0); box-shadow: 0 2px 0 0 rgba(0,0,0,0.25), 0 3px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08); }
+}
+.desktop-key-press {
+  animation: desktopKeyPress 0.12s ease-out;
+}
+
+/* Desktop keyboard chassis/frame */
+.desktop-keyboard-chassis {
+  border-radius: 14px;
+  padding: 12px 14px 14px;
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.1),
+    0 4px 16px rgba(0,0,0,0.08),
+    0 2px 4px rgba(0,0,0,0.04);
+  background: linear-gradient(180deg, rgba(60,60,70,0.06) 0%, rgba(40,40,50,0.03) 100%);
+}
+
+/* Desktop key row */
+.desktop-key-row {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  padding: 3px 0;
+}
+
+/* Desktop number row (always visible) */
+.desktop-number-row .desktop-key-3d {
+  font-size: 12px;
+  height: 36px;
+}
+
+/* Desktop letter row keys */
+.desktop-letter-row .desktop-key-3d {
+  height: 42px;
+  font-size: 14px;
+}
+
+/* Desktop function row */
+.desktop-function-row .desktop-key-3d {
+  height: 32px;
+  font-size: 11px;
+}
+
+/* Desktop key with sub-label (shift character) */
+.desktop-key-sublabel {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 8px;
+  opacity: 0.45;
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* Desktop side panel */
+.desktop-side-panel {
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
+  border-radius: 12px;
+  overflow: hidden;
+  animation: desktopSidePanelIn 0.25s ease-out;
+}
+@keyframes desktopSidePanelIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.desktop-side-panel-content {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+/* Desktop settings modal */
+.desktop-settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.desktop-settings-modal {
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  border-radius: 16px;
+  overflow: hidden;
+  animation: modalIn 0.2s ease-out;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Desktop branding text */
+.desktop-branding {
+  position: absolute;
+  bottom: 4px;
+  right: 10px;
+  font-size: 8px;
+  opacity: 0.2;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Desktop tooltip on special keys */
+.desktop-key-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 30;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.desktop-key-3d:hover .desktop-key-tooltip {
+  opacity: 1;
+}
+
+/* Dark mode adjustments for desktop */
+.dark .desktop-keyboard-chassis {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    inset 0 -1px 0 rgba(0,0,0,0.2),
+    0 4px 20px rgba(0,0,0,0.3),
+    0 2px 6px rgba(0,0,0,0.2);
+}
+.dark .desktop-key-3d {
+  box-shadow:
+    0 2px 0 0 rgba(0,0,0,0.4),
+    0 3px 6px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.dark .desktop-key-3d:hover {
+  box-shadow:
+    0 3px 0 0 rgba(0,0,0,0.35),
+    0 5px 10px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.dark .desktop-key-3d:active,
+.dark .desktop-key-3d.pressed {
+  box-shadow:
+    0 1px 0 0 rgba(0,0,0,0.5),
+    0 1px 2px rgba(0,0,0,0.15),
+    inset 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* Desktop responsive */
+@media (max-width: 768px) {
+  .desktop-keyboard-layout {
+    max-width: 100%;
+  }
+  .desktop-side-panel {
+    width: 240px;
+    min-width: 240px;
+    max-width: 240px;
+  }
+  .desktop-key-row {
+    gap: 3px;
+  }
+}
