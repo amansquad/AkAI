@@ -296,3 +296,70 @@ Stage Summary:
 - Frosted glass key overlays maintain readability while showing image
 - Both mobile and desktop views support the new live theme images
 - Lint passes, dev server compiles successfully
+
+---
+Task ID: 2-a
+Agent: main
+Task: Improve Desktop Keyboard View in AkAI Keyboard App
+
+Work Log:
+
+### 1. Desktop Text Area Improvements (`renderDesktopTextArea`)
+- Added Undo/Redo buttons with `Undo2` and `Redo2` icons from lucide-react
+- Added `undoStack` and `redoStack` state for undo/redo functionality
+- Added green-styled Send button (bg-green-500) with `Send` icon
+- Made language badge more prominent with animated pulsing border (`desktop-language-badge` class + CSS animation)
+- Added subtle separator line between toolbar and text content
+- Improved empty state placeholder text: "Start typing with the keyboard below..." with Zap icon
+
+### 2. Desktop Tab Bar Improvements (`renderDesktopTabBar`)
+- Changed active tab from underline to pill-style indicator (rounded background + inset box-shadow)
+- Added subtle hover background on tabs (rgba(120,130,255,0.08))
+- Moved AkAI branding/logo to the left side of the tab bar (small square "Ak" badge + "AkAI" text)
+- Made right-side control buttons larger (w-8 h-8 → w-9 h-9)
+- Added visual separator between tabs and controls (vertical divider)
+- Updated icon sizes from w-4 h-4 to w-4.5 h-4.5
+
+### 3. Desktop Keyboard Improvements (`renderDesktopKeyboard`)
+- Added LED-style indicator lights on Caps/Shift keys (small green dot when active, dim dot when inactive)
+- Added `.desktop-led-indicator` and `.desktop-led-on` CSS classes with green glow effect
+- Added `.desktop-key-function` class for function row keys (Esc, Tab, Caps, Language) with distinct gradient styling
+- Added `.desktop-function-row-styled` class with bottom border separator
+- Added `.desktop-key-special` class with subtle gradient to differentiate from letter keys
+- Added hover glow effect on keys (subtle blue glow in box-shadow)
+- Improved branding text "AkAI" with `.desktop-branding-enhanced` class (flex layout with dot indicator)
+
+### 4. Desktop Side Panel Improvements (`renderDesktopSidePanel`)
+- Added `.desktop-side-panel-enhanced` class with border-left and box-shadow
+- Added improved slide-in animation with cubic-bezier easing (`desktopSidePanelSlideIn`)
+- Made header more prominent with Lucide icons (Smile, Image, ClipboardList, Sparkles, Pen) instead of emoji
+- Increased header padding (py-2 → py-2.5)
+- Added suggestion background to header for visual weight
+
+### 5. Auto-detect Desktop Mode
+- Added `useEffect` that checks `window.innerWidth >= 768` on mount
+- Automatically enables desktop view on desktop-width screens
+- Added resize listener that toggles desktop view based on viewport width
+- Cleanup listener on unmount
+
+### 6. CSS Improvements in globals.css
+- Updated `.desktop-keyboard-chassis` with radial gradient background (ellipse at 50% 0%)
+- Added LED indicator dot CSS (`.desktop-led-indicator`, `.desktop-led-on`) with green glow
+- Added hover glow effect for desktop keys (subtle blue box-shadow)
+- Added special key gradient (`.desktop-key-special`) to differentiate from letter keys
+- Added function row distinct styling (`.desktop-function-row-styled`, `.desktop-key-function`)
+- Merged tab item styles into pill-style indicator (no underline, rounded, background highlight)
+- Added language badge animated pulse border (`desktopBadgePulse` keyframes)
+- Added side panel enhanced styling with border-left, shadow, and cubic-bezier slide-in
+- Added enhanced branding with dot indicator
+- Added dark mode adjustments for all new enhancements
+- Cleaned up duplicate CSS declarations from previous edits
+
+### Files Modified
+- `/home/z/my-project/src/components/keyboard-app.tsx` - Imports, state, render functions
+- `/home/z/my-project/src/app/globals.css` - Desktop enhancement styles
+
+### Verification
+- `bun run lint` passes with no errors
+- Dev server compiles successfully (all compilations successful)
+- No mobile keyboard code was modified

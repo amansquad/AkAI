@@ -7,7 +7,7 @@ import {
   Delete, CornerDownLeft, Copy, Trash2, Plus,
   ArrowRightLeft, Loader2, Sparkles, Send, Globe,
   ArrowUp, Pen, Palette, X, Settings, Sun, Moon, Monitor, Wand2, ImagePlus,
-  SquareCheck, LogOut
+  SquareCheck, LogOut, Undo2, Redo2, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -824,6 +824,25 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
 
   // Desktop settings modal state
   const [showDesktopSettings, setShowDesktopSettings] = useState(false);
+
+  // Desktop undo/redo state
+  const [undoStack, setUndoStack] = useState<string[]>([]);
+  const [redoStack, setRedoStack] = useState<string[]>([]);
+
+  // Auto-detect desktop mode on mount + resize
+  useEffect(() => {
+    const checkDesktop = () => {
+      if (window.innerWidth >= 768) {
+        setDesktopView(true);
+      }
+    };
+    checkDesktop();
+    const handleResize = () => {
+      setDesktopView(window.innerWidth >= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Build merged theme (built-in + custom)
   const getCustomThemeDef = (ct: CustomThemeData): ThemeDef => ({
@@ -2108,10 +2127,60 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const renderDesktopTextArea = () => {
     const charCount = text.length;
     const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+
+    const handleUndo = () => {
+      if (undoStack.length > 0) {
+        const prev = undoStack[undoStack.length - 1];
+        setRedoStack(prev => [...prev, text]);
+        setUndoStack(prev => prev.slice(0, -1));
+        updateText(prev);
+      }
+    };
+    const handleRedo = () => {
+      if (redoStack.length > 0) {
+        const next = redoStack[redoStack.length - 1];
+        setUndoStack(prev => [...prev, text]);
+        setRedoStack(prev => prev.slice(0, -1));
+        updateText(next);
+      }
+    };
+    const handleTextChange = (newText: string) => {
+      setUndoStack(prev => [...prev, text]);
+      setRedoStack([]);
+      updateText(newText);
+    };
+
     return (
       <div className="desktop-text-editor">
         {/* Toolbar */}
         <div className={`desktop-toolbar ${t.card} ${t.border} border`}>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                  onClick={handleUndo}
+                  className={`flex items-center justify-center w-7 h-7 rounded-md ${t.suggestion} ${t.keyText} transition-colors`}
+                  disabled={undoStack.length === 0}>
+                  <Undo2 className="w-3.5 h-3.5" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>Undo</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                  onClick={handleRedo}
+                  className={`flex items-center justify-center w-7 h-7 rounded-md ${t.suggestion} ${t.keyText} transition-colors`}
+                  disabled={redoStack.length === 0}>
+                  <Redo2 className="w-3.5 h-3.5" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent>Redo</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <div className={`w-px h-4 mx-1 ${t.border} bg-current opacity-20`} />
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -2142,7 +2211,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
-                  onClick={() => updateText('')}
+                  onClick={() => handleTextChange('')}
                   className={`flex items-center justify-center w-7 h-7 rounded-md ${t.suggestion} ${t.keyText} transition-colors`}
                   disabled={!text}>
                   <Trash2 className="w-3.5 h-3.5" />
@@ -2155,10 +2224,23 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           <span className={`text-[10px] ${t.keyText} opacity-40`}>
             {charCount} chars · {wordCount} word{wordCount !== 1 ? 's' : ''}
           </span>
-          <span className={`ml-2 px-2 py-0.5 rounded-full text-[9px] font-semibold ${t.accent} ${t.accentText}`}>
+          {/* Language badge with animated border */}
+          <span className={`ml-2 px-2.5 py-0.5 rounded-full text-[9px] font-bold desktop-language-badge ${t.accent} ${t.accentText}`}
+            style={customThemeData ? { backgroundColor: customThemeData.accentColor, color: customThemeData.keyTextColor } : {}}>
             {language === 'english' ? 'EN' : 'አማ'}
           </span>
+          {/* Send button with green styling */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.08 }}
+            onClick={() => { if (text) { navigator.clipboard?.writeText(text); }}}
+            disabled={!text}
+            className={`ml-2 flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${text ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}`}>
+            <Send className="w-3.5 h-3.5" />
+          </motion.button>
         </div>
+        {/* Separator line between toolbar and text */}
+        <div className={`h-px ${t.border} opacity-30`} />
         {/* Text content */}
         <div className={`${t.card} ${t.border} border border-t-0 rounded-t-none p-3 min-h-[80px] max-h-[160px] overflow-y-auto`}
           style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '40' } : {}}>
@@ -2173,10 +2255,13 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
               {text}
             </motion.p>
           ) : (
-            <p className={`text-sm italic opacity-40 ${t.keyText}`}
-              style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
-              {language === 'english' ? 'Start typing...' : 'ይጻፉ...'}
-            </p>
+            <div className="flex flex-col items-center justify-center py-3 gap-1">
+              <Zap className={`w-5 h-5 opacity-20 ${t.keyText}`} />
+              <p className={`text-sm italic opacity-50 ${t.keyText}`}
+                style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
+                {language === 'english' ? 'Start typing with the keyboard below...' : 'ከታች በሚገኘው ቁልፍ ይጻፉ...'}
+              </p>
+            </div>
           )}
         </div>
       </div>
@@ -2196,27 +2281,38 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     return (
       <div className={`desktop-tab-bar border-b ${t.border} ${t.tabBar}`}
         style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '20' } : {}}>
+        {/* AkAI branding on left side */}
+        <div className="flex items-center gap-1.5 mr-3 pr-3 border-r border-current/10">
+          <div className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-[10px] ${t.accent} ${t.accentText}`}
+            style={customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+            Ak
+          </div>
+          <span className={`text-xs font-bold tracking-wide ${t.keyText} opacity-70`}>AkAI</span>
+        </div>
+        {/* Tab items with pill-style indicator */}
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => handleModeChange(tab.id)}
             className={`desktop-tab-item ${mode === tab.id ? 'active' : ''} ${t.keyText}`}
-            style={mode === tab.id && customThemeData ? { color: customThemeData.accentColor, borderBottomColor: customThemeData.accentColor } : customThemeData ? { color: customThemeData.keyTextColor } : {}}>
+            style={mode === tab.id && customThemeData ? { color: customThemeData.accentColor, backgroundColor: customThemeData.accentColor + '15' } : customThemeData ? { color: customThemeData.keyTextColor } : {}}>
             <span className="text-sm">{tab.emoji}</span>
             <span>{tab.label}</span>
           </button>
         ))}
         <div className="flex-1" />
-        {/* Right-side controls */}
-        <div className="flex items-center gap-1 py-1">
+        {/* Separator between tabs and controls */}
+        <div className={`w-px h-5 mx-2 ${t.border} bg-current opacity-15`} />
+        {/* Right-side controls - slightly larger */}
+        <div className="flex items-center gap-1.5 py-1">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08 }}
                   onClick={() => handleModeChange('themes')}
-                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${t.suggestion} ${t.keyText} ${theme !== 'default' ? 'ring-1 ring-primary/30' : ''}`}
+                  className={`flex items-center justify-center w-9 h-9 rounded-lg ${t.suggestion} ${t.keyText} ${theme !== 'default' ? 'ring-1 ring-primary/30' : ''}`}
                   style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
-                  <Palette className="w-4 h-4" />
+                  <Palette className="w-4.5 h-4.5" />
                 </motion.button>
               </TooltipTrigger>
               <TooltipContent>Themes</TooltipContent>
@@ -2227,9 +2323,9 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
               <TooltipTrigger asChild>
                 <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08 }}
                   onClick={() => setAppTheme(appTheme === 'dark' ? 'light' : 'dark')}
-                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${t.suggestion} ${t.keyText}`}
+                  className={`flex items-center justify-center w-9 h-9 rounded-lg ${t.suggestion} ${t.keyText}`}
                   style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
-                  {mounted && appTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {mounted && appTheme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
                 </motion.button>
               </TooltipTrigger>
               <TooltipContent>Toggle dark mode</TooltipContent>
@@ -2240,9 +2336,9 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
               <TooltipTrigger asChild>
                 <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08 }}
                   onClick={() => setShowDesktopSettings(true)}
-                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${t.suggestion} ${t.keyText}`}
+                  className={`flex items-center justify-center w-9 h-9 rounded-lg ${t.suggestion} ${t.keyText}`}
                   style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
-                  <Settings className="w-4 h-4" />
+                  <Settings className="w-4.5 h-4.5" />
                 </motion.button>
               </TooltipTrigger>
               <TooltipContent>Settings</TooltipContent>
@@ -2253,9 +2349,9 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
               <TooltipTrigger asChild>
                 <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08 }}
                   onClick={() => setDesktopView(false)}
-                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${t.accent} ${t.accentText}`}
+                  className={`flex items-center justify-center w-9 h-9 rounded-lg ${t.accent} ${t.accentText}`}
                   style={customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
-                  <Monitor className="w-4 h-4" />
+                  <Monitor className="w-4.5 h-4.5" />
                 </motion.button>
               </TooltipTrigger>
               <TooltipContent>Exit desktop view</TooltipContent>
@@ -2271,6 +2367,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     const isSpecial = ['shift', 'backspace', 'symbols', 'space', 'enter', 'language', 'tab', 'esc', 'caps'].includes(key);
     const isWide = key === 'space';
     const isMedium = key === 'shift' || key === 'backspace' || key === 'enter' || key === 'tab' || key === 'caps' || key === 'symbols' || key === 'language';
+    const isFunction = key === 'esc' || key === 'tab' || key === 'caps' || key === 'language';
     let displayKey = key;
     let subLabel = '';
 
@@ -2326,9 +2423,10 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           relative flex items-center justify-center font-medium
           select-none overflow-visible ${flexClass}
           ${isSpecial
-            ? `${t.specialKey} ${t.keyText}`
+            ? `${t.specialKey} ${t.keyText} desktop-key-special`
             : `${t.key} ${t.keyText} ${t.border} border`
           }
+          ${isFunction ? 'desktop-key-function' : ''}
         `}
         style={customThemeData && !isSpecial ? { backgroundColor: customThemeData.keyColor, color: customThemeData.keyTextColor } : customThemeData && isSpecial ? { backgroundColor: customThemeData.specialKeyColor, color: customThemeData.keyTextColor } : {}}
       >
@@ -2337,6 +2435,10 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           <span className={`desktop-key-tooltip ${t.card} ${t.keyText} ${t.border} border shadow-lg`}>
             {tooltip}
           </span>
+        )}
+        {/* LED indicator for Caps/Shift state */}
+        {(key === 'caps' || key === 'shift') && (
+          <span className={`desktop-led-indicator ${shiftActive ? 'desktop-led-on' : ''}`} />
         )}
         {/* Sub-label (shift character) */}
         {subLabel && !isSpecial && (
@@ -2386,8 +2488,8 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
     const currentRows = symbolsActive ? SYMBOL_ROWS : ENGLISH_ROWS;
     return (
       <div className="desktop-keyboard-chassis">
-        {/* Function row */}
-        <div className="desktop-key-row desktop-function-row">
+        {/* Function row - distinct styling */}
+        <div className="desktop-key-row desktop-function-row desktop-function-row-styled">
           {renderDesktopKey('esc', 'flex-[1.2]', 'Esc')}
           {renderDesktopKey('tab', 'flex-[1.5]', 'Insert tab')}
           {renderDesktopKey('caps', 'flex-[1.8]', shiftActive ? 'Caps ON' : 'Toggle uppercase')}
@@ -2460,8 +2562,11 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
           {renderSuggestions()}
         </div>
 
-        {/* AkAI branding */}
-        <span className="desktop-branding">AkAI</span>
+        {/* AkAI branding - improved */}
+        <span className="desktop-branding desktop-branding-enhanced">
+          <span className="desktop-branding-dot" />
+          AkAI
+        </span>
       </div>
     );
   };
@@ -2470,17 +2575,24 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const renderDesktopSidePanel = () => {
     if (mode === 'keyboard' || mode === 'settings' || mode === 'themes') return null;
     return (
-      <div className={`desktop-side-panel ${t.card} ${t.border} border flex flex-col`}
+      <div className={`desktop-side-panel ${t.card} ${t.border} border flex flex-col desktop-side-panel-enhanced`}
         style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '30' } : {}}>
-        {/* Side panel header with close button */}
-        <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
-          <span className={`text-xs font-semibold ${t.keyText}`}>
-            {mode === 'stickers' && '😀 Stickers'}
-            {mode === 'gifs' && '🎬 GIFs'}
-            {mode === 'clipboard' && '📋 Clipboard'}
-            {mode === 'translate' && '✨ Translate'}
-            {mode === 'handwriting' && '✏️ Draw'}
-          </span>
+        {/* Side panel header with close button - more prominent */}
+        <div className={`flex items-center justify-between px-3 py-2.5 border-b ${t.border} ${t.suggestion}`}>
+          <div className="flex items-center gap-2">
+            {mode === 'stickers' && <Smile className={`w-4 h-4 ${t.keyText} opacity-70`} />}
+            {mode === 'gifs' && <Image className={`w-4 h-4 ${t.keyText} opacity-70`} />}
+            {mode === 'clipboard' && <ClipboardList className={`w-4 h-4 ${t.keyText} opacity-70`} />}
+            {mode === 'translate' && <Sparkles className={`w-4 h-4 ${t.keyText} opacity-70`} />}
+            {mode === 'handwriting' && <Pen className={`w-4 h-4 ${t.keyText} opacity-70`} />}
+            <span className={`text-xs font-semibold ${t.keyText}`}>
+              {mode === 'stickers' && 'Stickers'}
+              {mode === 'gifs' && 'GIFs'}
+              {mode === 'clipboard' && 'Clipboard'}
+              {mode === 'translate' && 'Translate'}
+              {mode === 'handwriting' && 'Draw'}
+            </span>
+          </div>
           <motion.button
             whileTap={{ scale: 0.9 }}
             whileHover={{ scale: 1.1 }}
