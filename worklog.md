@@ -395,3 +395,68 @@ Stage Summary:
 - Each special key appears exactly once in the correct position
 - Keyboard is wider and keys are larger for desktop use
 - Lint passes, dev server compiles successfully
+
+---
+Task ID: 4
+Agent: main
+Task: Fix mobile view toggle visibility and make live themes animated instead of static
+
+Work Log:
+
+### 1. Mobile View Toggle Fix
+- The "Exit desktop view" button was a tiny Monitor icon hidden among other tab bar buttons
+- Changed icon from Monitor to Smartphone + "Mobile" text label for clarity
+- Made button more prominent: added px-3 padding, font-semibold, shadow-md
+- Added a FLOATING "Mobile View" button (fixed bottom-right, z-50) that's always visible
+  - Styled with dark semi-transparent background + blur + white border
+  - Uses Smartphone icon + "Mobile View" text
+  - Has whileTap/whileHover animations
+- The tab bar button still exists as secondary option
+
+### 2. Live Themes Animation Overhaul
+- Problem: Live themes showed static images with barely visible slow panning
+- Root cause: Simple background-position panning of a 130% image looks static
+- Solution: Added Ken Burns effect (zoom + pan simultaneously) + theme-specific animated overlay effects
+
+#### Ken Burns Effect
+- Replaced simple pan animations (liveImagePanDiagonal, liveImagePanH, liveImagePanV) with Ken Burns zoom-pan
+- Two new keyframes: liveKenBurns1 and liveKenBurns2 with opposite directions
+- Changes both background-position AND background-size simultaneously (160%→200%→170% etc.)
+- Increased background-size from 130% to 200% for more dramatic zoom range
+- Slower durations (12-30s) for cinematic feel
+
+#### Theme-Specific Animated Effect Overlays
+Added 12 unique CSS overlay layers (live-fx-xxx) with mix-blend-mode:screen:
+- **Aurora**: Shimmering light curtains (multi-color gradient, 400% bg-size, curtain animation)
+- **Lava**: Flowing molten cracks + heat glow (radial gradients with position animation)
+- **Ocean**: Moving wave lines + caustic light effects (repeating gradients + vertical scroll)
+- **Neon Pulse**: Electric sparks + glow pulses (radial gradients with spark animation)
+- **Sunset**: Drifting warm clouds (gradient drift + glow pulse)
+- **Matrix**: Falling digital rain lines + horizontal scan (repeating gradient + pseudo-element)
+- **Rainbow**: Shifting color bands (rainbow gradient shift + pulse)
+- **Fire**: Rising flame particles + heat shimmer (radial gradients with rise animation + scaleY)
+- **Galaxy**: Twinkling stars + nebula drift (multiple radial gradient "stars" + drift)
+- **Waterfall**: Flowing water streams + mist (repeating vertical lines + mist opacity)
+- **Autumn**: Drifting leaf-like particles + wind sway (radial gradient drift + translateX sway)
+- **Cyberpunk**: Glitch lines + neon sweep (repeating gradient glitch + horizontal sweep)
+
+#### Component Changes
+- Added effect overlay div in main keyboard container: `live-fx-${theme.replace('_live', '')}`
+- Added effect overlay in theme picker preview cards
+- Reduced dark gradient overlay opacity (was 0.25-0.55, now 0.15-0.45) so animations are more visible
+- Added pointer-events-none to all overlay layers
+
+### 3. Added Smartphone icon import
+- Added Smartphone to lucide-react imports
+
+### Files Modified
+- `/home/z/my-project/src/components/keyboard-app.tsx` - Smartphone import, mobile toggle button, effect overlay layers
+- `/home/z/my-project/src/app/globals.css` - Ken Burns keyframes, 12 live-fx overlay classes, all fx keyframes
+
+Stage Summary:
+- Floating "Mobile View" button always visible at bottom-right of desktop view
+- Tab bar also has clear "Mobile" label button
+- All 12 live themes now have dramatic animated effects making them look truly alive
+- Ken Burns zoom-pan replaces simple panning for more dynamic image movement
+- Theme-specific overlay effects add movement unique to each theme
+- Lint passes, dev server compiles successfully (HTTP 200)

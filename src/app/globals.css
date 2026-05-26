@@ -267,97 +267,435 @@
 /* Aurora - Northern Lights over snowy mountains */
 .theme-aurora-live {
   background-image: url('/themes/aurora.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanDiagonal 20s ease infinite, liveImageShimmer 8s ease infinite !important;
+  animation: liveKenBurns1 25s ease infinite, liveImageShimmer 8s ease infinite !important;
 }
 
 /* Lava - molten volcanic rock */
 .theme-lava-live {
   background-image: url('/themes/lava.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanH 15s ease infinite, liveFireFlicker 3s ease infinite !important;
+  animation: liveKenBurns2 20s ease infinite, liveFireFlicker 3s ease infinite !important;
 }
 
 /* Ocean Wave - deep underwater */
 .theme-ocean-live {
   background-image: url('/themes/ocean.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanV 18s ease infinite, liveImageShimmer 10s ease infinite !important;
+  animation: liveKenBurns1 22s ease infinite, liveImageShimmer 10s ease infinite !important;
 }
 
 /* Neon Pulse - electric neon city */
 .theme-neon-pulse-live {
   background-image: url('/themes/neon-pulse.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanH 16s ease infinite, liveNeonFlicker 4s ease infinite !important;
+  animation: liveKenBurns2 18s ease infinite, liveNeonFlicker 4s ease infinite !important;
 }
 
 /* Sunset Glow - warm sunset sky */
 .theme-sunset-live {
   background-image: url('/themes/sunset.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanDiagonal 22s ease infinite, liveImageShimmer 12s ease infinite !important;
+  animation: liveKenBurns1 28s ease infinite, liveImageShimmer 12s ease infinite !important;
 }
 
 /* Matrix - digital rain */
 .theme-matrix-live {
   background-image: url('/themes/matrix.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanV 12s ease infinite, liveMatrixScan 3s ease infinite !important;
+  animation: liveKenBurns2 15s ease infinite, liveMatrixScan 3s ease infinite !important;
 }
 
 /* Rainbow - vibrant spectrum */
 .theme-rainbow-live {
   background-image: url('/themes/rainbow.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanDiagonal 18s ease infinite, liveImageShimmer 6s ease infinite !important;
+  animation: liveKenBurns1 20s ease infinite, liveImageShimmer 6s ease infinite !important;
 }
 
 /* Fire - blazing flames */
 .theme-fire-live {
   background-image: url('/themes/fire.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanV 10s ease infinite, liveFireFlicker 2s ease infinite !important;
+  animation: liveKenBurns2 12s ease infinite, liveFireFlicker 2s ease infinite !important;
 }
 
 /* Galaxy - deep space nebula */
 .theme-galaxy-live {
   background-image: url('/themes/galaxy.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanDiagonal 25s ease infinite, liveImageShimmer 15s ease infinite !important;
+  animation: liveKenBurns1 30s ease infinite, liveImageShimmer 15s ease infinite !important;
 }
 
 /* Waterfall - cascading tropical water */
 .theme-waterfall-live {
   background-image: url('/themes/waterfall.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanV 16s ease infinite, liveImageShimmer 9s ease infinite !important;
+  animation: liveKenBurns1 20s ease infinite, liveImageShimmer 9s ease infinite !important;
 }
 
 /* Autumn - golden fall foliage */
 .theme-autumn-live {
   background-image: url('/themes/autumn.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanDiagonal 20s ease infinite, liveImageShimmer 10s ease infinite !important;
+  animation: liveKenBurns2 24s ease infinite, liveImageShimmer 10s ease infinite !important;
 }
 
 /* Cyberpunk - neon futuristic city */
 .theme-cyberpunk-live {
   background-image: url('/themes/cyberpunk.png') !important;
-  background-size: 130% 130% !important;
+  background-size: 200% 200% !important;
   background-position: center !important;
-  animation: liveImagePanH 14s ease infinite, liveCyberFlicker 3.5s ease infinite !important;
+  animation: liveKenBurns2 16s ease infinite, liveCyberFlicker 3.5s ease infinite !important;
+}
+
+/* ─── Animated Effect Overlay Layers ──────────────────────────────────── */
+
+/* Aurora - shimmering light curtains */
+.live-fx-aurora {
+  background:
+    linear-gradient(135deg,
+      rgba(0, 255, 128, 0.08) 0%,
+      rgba(0, 200, 255, 0.12) 25%,
+      rgba(128, 0, 255, 0.08) 50%,
+      rgba(0, 255, 200, 0.1) 75%,
+      rgba(0, 128, 255, 0.06) 100%
+    );
+  background-size: 400% 400% !important;
+  animation: fxAuroraCurtain 8s ease infinite, fxAuroraPulse 4s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Lava - flowing molten cracks and heat distortion */
+.live-fx-lava {
+  background:
+    radial-gradient(ellipse at 30% 80%, rgba(255, 80, 0, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(255, 160, 0, 0.15) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 90%, rgba(255, 50, 0, 0.18) 0%, transparent 45%);
+  animation: fxLavaFlow 6s ease infinite, fxLavaGlow 3s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Ocean - moving wave lines and caustics */
+.live-fx-ocean {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 150, 255, 0.06) 0px,
+      transparent 3px,
+      rgba(0, 200, 255, 0.04) 6px,
+      transparent 9px
+    ),
+    linear-gradient(180deg,
+      rgba(0, 100, 200, 0.1) 0%,
+      rgba(0, 180, 255, 0.08) 30%,
+      rgba(0, 150, 255, 0.12) 60%,
+      rgba(0, 80, 200, 0.1) 100%
+    );
+  background-size: 100% 200% !important;
+  animation: fxOceanWaves 4s ease infinite, fxOceanCaustics 7s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Neon Pulse - electric sparks and glow */
+.live-fx-neon_pulse, .live-fx-neon-pulse {
+  background:
+    radial-gradient(circle at 20% 50%, rgba(255, 0, 200, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(0, 255, 255, 0.1) 0%, transparent 35%),
+    radial-gradient(circle at 50% 80%, rgba(255, 0, 128, 0.08) 0%, transparent 30%);
+  animation: fxNeonSpark 5s ease infinite, fxNeonPulseGlow 2.5s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Sunset - drifting warm clouds */
+.live-fx-sunset {
+  background:
+    linear-gradient(135deg,
+      rgba(255, 120, 50, 0.1) 0%,
+      rgba(255, 80, 120, 0.08) 30%,
+      rgba(255, 160, 50, 0.12) 60%,
+      rgba(200, 50, 100, 0.06) 100%
+    );
+  background-size: 300% 300% !important;
+  animation: fxSunsetDrift 12s ease infinite, fxSunsetGlow 6s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Matrix - falling digital rain lines */
+.live-fx-matrix {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      rgba(0, 255, 0, 0.03) 2px,
+      transparent 4px
+    );
+  background-size: 100% 8px !important;
+  animation: fxMatrixRain 1.5s linear infinite !important;
+  mix-blend-mode: screen;
+}
+.live-fx-matrix::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      rgba(0, 255, 65, 0.02) 1px,
+      transparent 2px
+    );
+  animation: fxMatrixScanH 8s linear infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Rainbow - shifting color bands */
+.live-fx-rainbow {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.06) 0%,
+    rgba(255, 165, 0, 0.06) 16%,
+    rgba(255, 255, 0, 0.06) 33%,
+    rgba(0, 255, 0, 0.06) 50%,
+    rgba(0, 150, 255, 0.06) 66%,
+    rgba(75, 0, 130, 0.06) 83%,
+    rgba(238, 130, 238, 0.06) 100%
+  );
+  background-size: 300% 100% !important;
+  animation: fxRainbowShift 6s ease infinite, fxRainbowPulse 4s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Fire - rising flame particles and heat shimmer */
+.live-fx-fire {
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(255, 200, 0, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 80%, rgba(255, 80, 0, 0.15) 0%, transparent 35%),
+    radial-gradient(ellipse at 70% 70%, rgba(255, 120, 0, 0.12) 0%, transparent 30%);
+  animation: fxFireRise 4s ease infinite, fxFireFlicker 1.5s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Galaxy - twinkling stars and nebula drift */
+.live-fx-galaxy {
+  background:
+    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.04) 0%, transparent 3%),
+    radial-gradient(circle at 75% 35%, rgba(255, 255, 255, 0.03) 0%, transparent 2%),
+    radial-gradient(circle at 40% 70%, rgba(200, 150, 255, 0.06) 0%, transparent 4%),
+    radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 2%),
+    radial-gradient(circle at 15% 60%, rgba(150, 100, 255, 0.05) 0%, transparent 3%),
+    linear-gradient(135deg, rgba(100, 50, 200, 0.06) 0%, rgba(50, 0, 150, 0.04) 100%);
+  animation: fxGalaxyTwinkle 3s ease infinite, fxGalaxyDrift 20s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Waterfall - flowing water streams and mist */
+.live-fx-waterfall {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(150, 220, 255, 0.06) 0px,
+      transparent 4px,
+      rgba(100, 200, 255, 0.04) 8px,
+      transparent 12px
+    ),
+    linear-gradient(180deg,
+      rgba(200, 240, 255, 0.05) 0%,
+      rgba(100, 200, 255, 0.1) 40%,
+      rgba(150, 230, 255, 0.08) 70%,
+      rgba(200, 245, 255, 0.12) 100%
+    );
+  background-size: 100% 200% !important;
+  animation: fxWaterfallStream 3s ease infinite, fxWaterfallMist 8s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Autumn - falling leaf particles and wind */
+.live-fx-autumn {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 140, 0, 0.08) 0%, transparent 15%),
+    radial-gradient(circle at 60% 40%, rgba(200, 80, 0, 0.06) 0%, transparent 12%),
+    radial-gradient(circle at 80% 70%, rgba(255, 180, 50, 0.07) 0%, transparent 10%),
+    linear-gradient(180deg, rgba(200, 100, 0, 0.04) 0%, rgba(180, 60, 0, 0.06) 100%);
+  animation: fxAutumnDrift 10s ease infinite, fxAutumnSway 5s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Cyberpunk - glitch lines and neon signs */
+.live-fx-cyberpunk {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      rgba(255, 0, 100, 0.02) 1px,
+      transparent 2px
+    ),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.04) 0%, transparent 50%, rgba(255, 0, 200, 0.04) 100%);
+  background-size: 100% 4px, 200% 100% !important;
+  animation: fxCyberGlitch 4s steps(10) infinite, fxCyberSweep 6s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* ─── Ken Burns Zoom-Pan Keyframes (more dramatic than simple pan) ─── */
+@keyframes liveKenBurns1 {
+  0% { background-position: 20% 20%; background-size: 160% 160%; }
+  25% { background-position: 60% 30%; background-size: 180% 180%; }
+  50% { background-position: 80% 60%; background-size: 200% 200%; }
+  75% { background-position: 40% 70%; background-size: 170% 170%; }
+  100% { background-position: 20% 20%; background-size: 160% 160%; }
+}
+@keyframes liveKenBurns2 {
+  0% { background-position: 80% 80%; background-size: 170% 170%; }
+  25% { background-position: 30% 60%; background-size: 190% 190%; }
+  50% { background-position: 20% 30%; background-size: 200% 200%; }
+  75% { background-position: 60% 20%; background-size: 175% 175%; }
+  100% { background-position: 80% 80%; background-size: 170% 170%; }
+}
+
+/* ─── Effect Overlay Animation Keyframes ─── */
+
+@keyframes fxAuroraCurtain {
+  0% { background-position: 0% 0%; }
+  25% { background-position: 50% 30%; }
+  50% { background-position: 100% 60%; }
+  75% { background-position: 50% 80%; }
+  100% { background-position: 0% 0%; }
+}
+@keyframes fxAuroraPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes fxLavaFlow {
+  0% { background-position: 0% 0%, 100% 50%, 50% 100%; }
+  33% { background-position: 50% 20%, 0% 80%, 80% 50%; }
+  66% { background-position: 100% 40%, 50% 0%, 20% 80%; }
+  100% { background-position: 0% 0%, 100% 50%, 50% 100%; }
+}
+@keyframes fxLavaGlow {
+  0%, 100% { opacity: 0.6; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.3); }
+}
+
+@keyframes fxOceanWaves {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+@keyframes fxOceanCaustics {
+  0%, 100% { opacity: 0.5; filter: brightness(1) hue-rotate(0deg); }
+  25% { opacity: 0.8; filter: brightness(1.2) hue-rotate(5deg); }
+  50% { opacity: 0.6; filter: brightness(1.1) hue-rotate(-3deg); }
+  75% { opacity: 0.9; filter: brightness(1.3) hue-rotate(8deg); }
+}
+
+@keyframes fxNeonSpark {
+  0% { background-position: 0% 0%; }
+  33% { background-position: 100% 50%; }
+  66% { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+@keyframes fxNeonPulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes fxSunsetDrift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+@keyframes fxSunsetGlow {
+  0%, 100% { opacity: 0.5; filter: brightness(1); }
+  50% { opacity: 0.9; filter: brightness(1.2); }
+}
+
+@keyframes fxMatrixRain {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100%; }
+}
+@keyframes fxMatrixScanH {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+@keyframes fxRainbowShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes fxRainbowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes fxFireRise {
+  0% { background-position: 50% 100%, 30% 80%, 70% 70%; }
+  50% { background-position: 50% 0%, 30% 20%, 70% 10%; }
+  100% { background-position: 50% 100%, 30% 80%, 70% 70%; }
+}
+@keyframes fxFireFlicker {
+  0%, 100% { opacity: 0.6; transform: scaleY(1); }
+  25% { opacity: 1; transform: scaleY(1.05); }
+  50% { opacity: 0.7; transform: scaleY(0.98); }
+  75% { opacity: 0.95; transform: scaleY(1.02); }
+}
+
+@keyframes fxGalaxyTwinkle {
+  0%, 100% { opacity: 0.5; }
+  30% { opacity: 0.9; }
+  60% { opacity: 0.4; }
+  80% { opacity: 1; }
+}
+@keyframes fxGalaxyDrift {
+  0% { background-position: 25% 25%, 75% 35%, 40% 70%, 85% 80%, 15% 60%, 0% 0%; }
+  50% { background-position: 30% 30%, 70% 40%, 45% 65%, 80% 75%, 20% 55%, 100% 100%; }
+  100% { background-position: 25% 25%, 75% 35%, 40% 70%, 85% 80%, 15% 60%, 0% 0%; }
+}
+
+@keyframes fxWaterfallStream {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 0% 100%; }
+}
+@keyframes fxWaterfallMist {
+  0%, 100% { opacity: 0.5; filter: brightness(1); }
+  33% { opacity: 0.9; filter: brightness(1.15); }
+  66% { opacity: 0.6; filter: brightness(1.05); }
+}
+
+@keyframes fxAutumnDrift {
+  0% { background-position: 20% 20%, 60% 40%, 80% 70%, 0% 0%; }
+  50% { background-position: 25% 30%, 55% 50%, 85% 80%, 0% 100%; }
+  100% { background-position: 20% 20%, 60% 40%, 80% 70%, 0% 0%; }
+}
+@keyframes fxAutumnSway {
+  0%, 100% { opacity: 0.5; transform: translateX(0); }
+  25% { opacity: 0.8; transform: translateX(2px); }
+  75% { opacity: 0.7; transform: translateX(-2px); }
+}
+
+@keyframes fxCyberGlitch {
+  0% { background-position: 0% 0%, 0% 50%; }
+  20% { background-position: 0% 60%, 40% 50%; }
+  40% { background-position: 0% 20%, 80% 50%; }
+  60% { background-position: 0% 80%, 20% 50%; }
+  80% { background-position: 0% 40%, 60% 50%; }
+  100% { background-position: 0% 0%, 0% 50%; }
+}
+@keyframes fxCyberSweep {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
 }
 
 /* ─── Live Theme Keyboard Element Overrides ─────────────────────────────── */

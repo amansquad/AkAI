@@ -7,7 +7,7 @@ import {
   Delete, CornerDownLeft, Copy, Trash2, Plus,
   ArrowRightLeft, Loader2, Sparkles, Send, Globe,
   ArrowUp, Pen, Palette, X, Settings, Sun, Moon, Monitor, Wand2, ImagePlus,
-  SquareCheck, LogOut, Undo2, Redo2, Zap
+  SquareCheck, LogOut, Undo2, Redo2, Zap, Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -2015,6 +2015,7 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                   {tData.isLive && tData.liveClass && (
                     <>
                       <div className={`absolute inset-0 ${tData.liveClass} pointer-events-none`} style={{ borderRadius: 'inherit' }} />
+                      <div className={`absolute inset-0 live-fx-${key.replace('_live', '')} pointer-events-none`} style={{ borderRadius: 'inherit' }} />
                       <div className="absolute inset-0 pointer-events-none" style={{
                         background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%)',
                         borderRadius: 'inherit'
@@ -2349,12 +2350,13 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
               <TooltipTrigger asChild>
                 <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.08 }}
                   onClick={() => setDesktopView(false)}
-                  className={`flex items-center justify-center w-9 h-9 rounded-lg ${t.accent} ${t.accentText}`}
+                  className={`flex items-center gap-1.5 h-9 px-3 rounded-lg ${t.accent} ${t.accentText} text-xs font-semibold shadow-md`}
                   style={customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
-                  <Monitor className="w-4.5 h-4.5" />
+                  <Smartphone className="w-4 h-4" />
+                  <span>Mobile</span>
                 </motion.button>
               </TooltipTrigger>
-              <TooltipContent>Exit desktop view</TooltipContent>
+              <TooltipContent>Switch to mobile view</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
@@ -2771,6 +2773,23 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
 
         {/* Settings modal overlay */}
         {renderDesktopSettingsModal()}
+
+        {/* Floating mobile view toggle - always visible */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.05 }}
+          onClick={() => setDesktopView(false)}
+          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg transition-all"
+          style={{
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            color: 'white',
+          }}
+        >
+          <Smartphone className="w-4 h-4" />
+          <span className="text-xs font-semibold">Mobile View</span>
+        </motion.button>
       </>
     );
   };
@@ -2784,12 +2803,15 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       {/* Live theme background overlay - 3D image with animation */}
       {t.isLive && t.liveClass && (
         <>
+          {/* Base animated image */}
           <div className={`absolute inset-0 ${t.liveClass}`} style={{ borderRadius: 'inherit', zIndex: 0 }} />
+          {/* Theme-specific animated effect layer */}
+          <div className={`absolute inset-0 live-fx-${theme.replace('_live', '')} pointer-events-none`} style={{ borderRadius: 'inherit', zIndex: 1 }} />
+          {/* Dark gradient overlay for readability */}
           <div className="absolute inset-0" style={{
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.55) 100%)',
-            backdropFilter: 'blur(1px)',
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.45) 100%)',
             borderRadius: 'inherit',
-            zIndex: 1
+            zIndex: 2
           }} />
         </>
       )}
