@@ -127,20 +127,8 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<string[]>([]);
 
-  // Auto-detect desktop mode on mount + resize
-  useEffect(() => {
-    const checkDesktop = () => {
-      if (window.innerWidth >= 768) {
-        setDesktopView(true);
-      }
-    };
-    checkDesktop();
-    const handleResize = () => {
-      setDesktopView(window.innerWidth >= 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Mobile view is the default. Desktop mode is only activated manually.
+  // (Removed auto-detect so mobile is always the starting view.)
 
   // Build merged theme (built-in + custom)
   const getCustomThemeDef = (ct: CustomThemeData): ThemeDef => ({
@@ -1821,9 +1809,19 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             <div className="desktop-key-row desktop-letter-row">
               {renderDesktopKey('symbols', 'flex-[1.5]', 'Toggle symbols')}
               {renderDesktopKey(',', 'flex-[0.8]')}
-              {renderDesktopKey('space', 'flex-[5]')}
+              {renderDesktopKey('space', 'flex-[4]')}
               {renderDesktopKey('.', 'flex-[0.8]')}
               {renderDesktopKey('enter', 'flex-[2]', 'New line')}
+              {/* Mobile View toggle inside keyboard */}
+              <motion.button
+                whileTap={{ translateY: 1, boxShadow: '0 1px 0 0 rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1)' }}
+                onClick={() => setDesktopView(false)}
+                className={`desktop-key-3d flex-[1.5] flex items-center justify-center gap-1 text-xs font-semibold select-none ${t.accent} ${t.accentText} border`}
+                style={customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}
+              >
+                <Smartphone className="w-3 h-3" />
+                <span className="text-[10px]">Mobile</span>
+              </motion.button>
             </div>
           </>
         ) : (
@@ -1854,9 +1852,19 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             <div className="desktop-key-row desktop-letter-row">
               {renderDesktopKey('symbols', 'flex-[1.5]', 'Toggle symbols')}
               {renderDesktopKey(',', 'flex-[0.8]')}
-              {renderDesktopKey('space', 'flex-[5]')}
+              {renderDesktopKey('space', 'flex-[4]')}
               {renderDesktopKey('.', 'flex-[0.8]')}
               {renderDesktopKey('enter', 'flex-[2]', 'New line')}
+              {/* Mobile View toggle inside keyboard */}
+              <motion.button
+                whileTap={{ translateY: 1, boxShadow: '0 1px 0 0 rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1)' }}
+                onClick={() => setDesktopView(false)}
+                className={`desktop-key-3d flex-[1.5] flex items-center justify-center gap-1 text-xs font-semibold select-none ${t.accent} ${t.accentText} border`}
+                style={customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}
+              >
+                <Smartphone className="w-3 h-3" />
+                <span className="text-[10px]">Mobile</span>
+              </motion.button>
             </div>
           </>
         )}
@@ -2043,22 +2051,19 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
         {/* Settings modal overlay */}
         {renderDesktopSettingsModal()}
 
-        {/* Floating mobile view toggle - always visible */}
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.05 }}
-          onClick={() => setDesktopView(false)}
-          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg transition-all"
-          style={{
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            color: 'white',
-          }}
-        >
-          <Smartphone className="w-4 h-4" />
-          <span className="text-xs font-semibold">Mobile View</span>
-        </motion.button>
+        {/* Mobile view toggle inside the keyboard chassis */}
+        <div className="flex justify-end px-2 pb-1.5 relative z-10">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05 }}
+            onClick={() => setDesktopView(false)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl shadow-md text-xs font-semibold ${t.accent} ${t.accentText}`}
+            style={customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Mobile View</span>
+          </motion.button>
+        </div>
       </>
     );
   };

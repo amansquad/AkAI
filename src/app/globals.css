@@ -1068,7 +1068,8 @@
 
 /* Desktop container - vertical layout, centered, max-width */
 .desktop-keyboard-layout {
-  max-width: 1200px;
+  max-width: 100%;
+  width: 100%;
   margin: 0 auto;
   display: flex !important;
   flex-direction: column !important;

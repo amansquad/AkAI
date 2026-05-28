@@ -620,3 +620,22 @@ Stage Summary:
 - Added 10 new live themes total: snowfall, bubbles, plasma, deep_sea, crystal, storm, cherry_blossom, stardust, vortex, northern_lights
 - All themes have complete canvas animations, theme data definitions, and CSS styling
 - Total live themes now: 12 original + 10 new = 22 live themes
+---
+Task ID: 1
+Agent: Main
+Task: Make mobile view default, expand desktop width, add mobile view toggle inside keyboard
+
+Work Log:
+- Changed `desktopView` initial state to remain `false` (was already false, but auto-detect useEffect was setting it to true on desktop screens >=768px)
+- Removed the auto-detect desktop mode useEffect that was overriding the default mobile view
+- Changed `.desktop-keyboard-layout` max-width from 1200px to 100% full width so the mobile view button is always visible
+- Added "Mobile View" button as an actual key in the desktop keyboard's bottom row (both English and Amharic layouts) - appears after the Enter key with Smartphone icon
+- Moved the floating "Mobile View" button from fixed position outside keyboard to inside the keyboard chassis as a proper button in the footer area
+- Kept the existing "Mobile" button in the desktop tab bar header
+- Kept the Monitor icon in mobile keyboard tab bar to switch TO desktop view
+
+Stage Summary:
+- Mobile view is now always the default regardless of screen size
+- Desktop view expands to full width when activated
+- Mobile view toggle is now available in 3 places: desktop keyboard bottom row key, desktop tab bar header, and keyboard chassis footer
+- No lint errors, server compiles and runs correctly
