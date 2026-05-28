@@ -361,7 +361,7 @@ function drawOcean(ctx: CanvasRenderingContext2D, w: number, h: number, time: nu
   state.ripples = ripples;
 }
 
-// ─── 4. Neon Pulse ─────────────────────────────────────────────────────────
+// ─── 4. Neon Pulse (Enhanced) ───────────────────────────────────────────────
 
 function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
   if (!state.init) {
@@ -380,9 +380,24 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
       speed: rand(0.005, 0.02), sides: Math.floor(rand(3, 7)),
       hue: rand(270, 330),
     }));
+    // Lightning bolt state
+    state.lightningBolts = [] as { segments: { x: number; y: number }[]; life: number; hue: number }[];
+    state.lastLightning = 0;
+    // Shockwave rings state
+    state.shockwaves = [] as { x: number; y: number; r: number; maxR: number; alpha: number; hue: number }[];
+    // Energy beams state
+    state.energyBeams = [] as { x: number; y: number; horizontal: boolean; life: number; hue: number; width: number }[];
+    state.lastBeam = 0;
+    // Mouse click flash state
+    state.clickFlash = 0;
+    state.clickX = 0;
+    state.clickY = 0;
   }
   const sparks = state.sparks as Particle[];
   const shapes = state.shapes as { x: number; y: number; r: number; rot: number; speed: number; sides: number; hue: number }[];
+  const lightningBolts = (state.lightningBolts || []) as { segments: { x: number; y: number }[]; life: number; hue: number }[];
+  const shockwaves = (state.shockwaves || []) as { x: number; y: number; r: number; maxR: number; alpha: number; hue: number }[];
+  const energyBeams = (state.energyBeams || []) as { x: number; y: number; horizontal: boolean; life: number; hue: number; width: number }[];
 
   // Background
   ctx.fillStyle = '#0a0010';
@@ -418,6 +433,73 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     }
   }
 
+  // ── Energy Beams ──
+  if (time - (state.lastBeam as number) > rand(1.5, 4)) {
+    state.lastBeam = time;
+    const isHorizontal = Math.random() > 0.5;
+    energyBeams.push({
+      x: isHorizontal ? 0 : rand(0, w),
+      y: isHorizontal ? rand(0, h) : 0,
+      horizontal: isHorizontal,
+      life: 1,
+      hue: rand(270, 340),
+      width: rand(2, 6),
+    });
+  }
+  for (let i = energyBeams.length - 1; i >= 0; i--) {
+    const beam = energyBeams[i];
+    beam.life -= 0.025;
+    if (beam.life <= 0) { energyBeams.splice(i, 1); continue; }
+
+    const sweepProgress = 1 - beam.life;
+    const beamAlpha = beam.life * 0.4 * (sweepProgress < 0.3 ? sweepProgress / 0.3 : 1);
+
+    ctx.save();
+    if (beam.horizontal) {
+      const beamY = beam.y + sweepProgress * h * 0.5 * Math.sin(time + beam.y * 0.01);
+      const beamGrad = ctx.createLinearGradient(0, beamY - 20, 0, beamY + 20);
+      beamGrad.addColorStop(0, hsl(beam.hue, 100, 70, 0));
+      beamGrad.addColorStop(0.3, hsl(beam.hue, 100, 80, beamAlpha * 0.3));
+      beamGrad.addColorStop(0.5, hsl(beam.hue, 100, 90, beamAlpha));
+      beamGrad.addColorStop(0.7, hsl(beam.hue, 100, 80, beamAlpha * 0.3));
+      beamGrad.addColorStop(1, hsl(beam.hue, 100, 70, 0));
+      ctx.fillStyle = beamGrad;
+      ctx.fillRect(0, beamY - 20, w, 40);
+      // Core line
+      ctx.beginPath();
+      ctx.moveTo(0, beamY);
+      ctx.lineTo(w, beamY);
+      ctx.strokeStyle = hsl(beam.hue, 100, 95, beamAlpha * 0.8);
+      ctx.lineWidth = beam.width * beam.life;
+      ctx.shadowColor = hsl(beam.hue, 100, 80, 1);
+      ctx.shadowBlur = 15;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else {
+      const beamX = beam.x + sweepProgress * w * 0.5 * Math.sin(time + beam.x * 0.01);
+      const beamGrad = ctx.createLinearGradient(beamX - 20, 0, beamX + 20, 0);
+      beamGrad.addColorStop(0, hsl(beam.hue, 100, 70, 0));
+      beamGrad.addColorStop(0.3, hsl(beam.hue, 100, 80, beamAlpha * 0.3));
+      beamGrad.addColorStop(0.5, hsl(beam.hue, 100, 90, beamAlpha));
+      beamGrad.addColorStop(0.7, hsl(beam.hue, 100, 80, beamAlpha * 0.3));
+      beamGrad.addColorStop(1, hsl(beam.hue, 100, 70, 0));
+      ctx.fillStyle = beamGrad;
+      ctx.fillRect(beamX - 20, 0, 40, h);
+      // Core line
+      ctx.beginPath();
+      ctx.moveTo(beamX, 0);
+      ctx.lineTo(beamX, h);
+      ctx.strokeStyle = hsl(beam.hue, 100, 95, beamAlpha * 0.8);
+      ctx.lineWidth = beam.width * beam.life;
+      ctx.shadowColor = hsl(beam.hue, 100, 80, 1);
+      ctx.shadowBlur = 15;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+  }
+  state.energyBeams = energyBeams;
+
   // Geometric shapes
   for (const s of shapes) {
     s.rot += s.speed;
@@ -440,6 +522,109 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     ctx.shadowBlur = 0;
     ctx.restore();
   }
+
+  // ── Lightning Bolts ──
+  if (time - (state.lastLightning as number) > rand(2, 5)) {
+    state.lastLightning = time;
+    // Generate jagged lightning path
+    const startX = rand(w * 0.1, w * 0.9);
+    const startY = 0;
+    const endX = rand(w * 0.1, w * 0.9);
+    const endY = h;
+    const segments: { x: number; y: number }[] = [{ x: startX, y: startY }];
+    const steps = 12;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      segments.push({
+        x: lerp(startX, endX, t) + rand(-40, 40),
+        y: lerp(startY, endY, t),
+      });
+    }
+    segments.push({ x: endX, y: endY });
+    // Add branching bolts
+    const branchCount = Math.floor(rand(1, 4));
+    for (let b = 0; b < branchCount; b++) {
+      const branchStart = Math.floor(rand(2, segments.length - 2));
+      const branchSegs: { x: number; y: number }[] = [];
+      const bp = segments[branchStart];
+      let bx = bp.x;
+      let by = bp.y;
+      const bSteps = Math.floor(rand(3, 7));
+      for (let i = 0; i <= bSteps; i++) {
+        branchSegs.push({ x: bx, y: by });
+        bx += rand(-30, 30);
+        by += rand(10, 30);
+      }
+      lightningBolts.push({ segments: branchSegs, life: 1, hue: rand(200, 300) });
+    }
+    lightningBolts.push({ segments, life: 1, hue: rand(260, 320) });
+  }
+  for (let i = lightningBolts.length - 1; i >= 0; i--) {
+    const bolt = lightningBolts[i];
+    bolt.life -= 0.05;
+    if (bolt.life <= 0) { lightningBolts.splice(i, 1); continue; }
+
+    // Draw main bolt
+    ctx.beginPath();
+    ctx.moveTo(bolt.segments[0].x, bolt.segments[0].y);
+    for (let j = 1; j < bolt.segments.length; j++) {
+      ctx.lineTo(bolt.segments[j].x, bolt.segments[j].y);
+    }
+    // Outer glow
+    ctx.strokeStyle = hsl(bolt.hue, 60, 80, bolt.life * 0.3);
+    ctx.lineWidth = 8 * bolt.life;
+    ctx.shadowColor = hsl(bolt.hue, 100, 80, 0.8);
+    ctx.shadowBlur = 25;
+    ctx.stroke();
+    // Core
+    ctx.strokeStyle = hsl(bolt.hue, 80, 95, bolt.life * 0.9);
+    ctx.lineWidth = 2 * bolt.life;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  state.lightningBolts = lightningBolts;
+
+  // ── Shockwave Rings ──
+  // Trigger shockwaves periodically
+  if (Math.random() < 0.01) {
+    shockwaves.push({
+      x: rand(w * 0.1, w * 0.9),
+      y: rand(h * 0.1, h * 0.9),
+      r: 0, maxR: rand(60, 150),
+      alpha: 0.6,
+      hue: rand(270, 340),
+    });
+  }
+  // Also create shockwaves from lightning impacts
+  for (const bolt of lightningBolts) {
+    if (bolt.life > 0.9 && bolt.segments.length > 2) {
+      const lastSeg = bolt.segments[bolt.segments.length - 1];
+      if (Math.random() < 0.3) {
+        shockwaves.push({
+          x: lastSeg.x, y: lastSeg.y,
+          r: 0, maxR: rand(40, 80),
+          alpha: 0.5, hue: bolt.hue,
+        });
+      }
+    }
+  }
+  for (let i = shockwaves.length - 1; i >= 0; i--) {
+    const sw = shockwaves[i];
+    sw.r += 2.5;
+    sw.alpha = 0.6 * (1 - sw.r / sw.maxR);
+    if (sw.r >= sw.maxR || sw.alpha <= 0) { shockwaves.splice(i, 1); continue; }
+
+    ctx.beginPath();
+    ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+    ctx.strokeStyle = hsl(sw.hue, 100, 70, sw.alpha);
+    ctx.lineWidth = 2 + (1 - sw.r / sw.maxR) * 3;
+    ctx.shadowColor = hsl(sw.hue, 100, 60, sw.alpha * 0.5);
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  if (shockwaves.length > 15) shockwaves.splice(0, shockwaves.length - 15);
+  state.shockwaves = shockwaves;
 
   // Sparks
   for (const p of sparks) {
@@ -472,6 +657,18 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     ctx.shadowBlur = 8;
     ctx.fill();
     ctx.shadowBlur = 0;
+  }
+
+  // ── Mouse Click Flash Effect ──
+  // Detect mouse presence and create radial flash
+  if (mx > 0 && my > 0) {
+    const flashIntensity = 0.03 + 0.02 * Math.sin(time * 8);
+    const flashGrad = ctx.createRadialGradient(mx, my, 0, mx, my, 120);
+    flashGrad.addColorStop(0, hsl(300, 100, 90, flashIntensity));
+    flashGrad.addColorStop(0.3, hsl(280, 100, 70, flashIntensity * 0.5));
+    flashGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = flashGrad;
+    ctx.fillRect(0, 0, w, h);
   }
 }
 
@@ -1336,6 +1533,983 @@ function drawCyberpunk(ctx: CanvasRenderingContext2D, w: number, h: number, time
   ctx.beginPath(); ctx.moveTo(0, h); ctx.lineTo(w, h); ctx.stroke();
 }
 
+// ─── 13. Snowfall ────────────────────────────────────────────────────────────
+
+function drawSnowfall(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.snowflakes = Array.from({ length: 220 }, () => ({
+      x: rand(0, w), y: rand(-h * 0.2, h),
+      size: rand(1, 5), speed: rand(0.5, 2.5),
+      drift: rand(-0.3, 0.3), swayPhase: rand(0, Math.PI * 2),
+      swaySpeed: rand(0.5, 2), swayAmp: rand(0.3, 1.5),
+      alpha: rand(0.3, 0.9), rotation: rand(0, Math.PI * 2),
+      rotSpeed: rand(-0.02, 0.02),
+    }));
+    state.gusts = [] as { x: number; y: number; vx: number; life: number; alpha: number }[];
+    state.gustTimer = 0;
+  }
+  const snowflakes = state.snowflakes as { x: number; y: number; size: number; speed: number; drift: number; swayPhase: number; swaySpeed: number; swayAmp: number; alpha: number; rotation: number; rotSpeed: number }[];
+  const gusts = (state.gusts || []) as { x: number; y: number; vx: number; life: number; alpha: number }[];
+
+  // Dark blue/purple night sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, '#050520');
+  sky.addColorStop(0.3, '#0a0a35');
+  sky.addColorStop(0.6, '#101045');
+  sky.addColorStop(1, '#151530');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  // Stars in the sky
+  for (let i = 0; i < 40; i++) {
+    const sx = (Math.sin(i * 127.1 + 311.7) * 0.5 + 0.5) * w;
+    const sy = (Math.cos(i * 269.5 + 183.3) * 0.5 + 0.5) * h * 0.4;
+    const twinkle = 0.3 + 0.7 * Math.abs(Math.sin(time * 1.5 + i * 1.3));
+    ctx.beginPath();
+    ctx.arc(sx, sy, 1 * twinkle, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200,210,255,${0.4 * twinkle})`;
+    ctx.fill();
+  }
+
+  // Snow accumulation at bottom
+  const snowGround = ctx.createLinearGradient(0, h * 0.88, 0, h);
+  snowGround.addColorStop(0, 'rgba(200,210,230,0)');
+  snowGround.addColorStop(0.3, 'rgba(200,210,230,0.05)');
+  snowGround.addColorStop(1, 'rgba(220,225,240,0.15)');
+  ctx.fillStyle = snowGround;
+  ctx.fillRect(0, h * 0.88, w, h * 0.12);
+
+  // Wavy snow ground line
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  for (let x = 0; x <= w; x += 3) {
+    const groundY = h * 0.92 + Math.sin(x * 0.02 + time * 0.2) * 3 + Math.sin(x * 0.05) * 2;
+    ctx.lineTo(x, groundY);
+  }
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(200,210,230,0.08)';
+  ctx.fill();
+
+  // ── Wind Gusts (horizontal streaks) ──
+  if (time - (state.gustTimer as number) > rand(3, 8)) {
+    state.gustTimer = time;
+    gusts.push({
+      x: -50,
+      y: rand(h * 0.1, h * 0.7),
+      vx: rand(4, 10),
+      life: 1,
+      alpha: rand(0.1, 0.25),
+    });
+  }
+  for (let i = gusts.length - 1; i >= 0; i--) {
+    const g = gusts[i];
+    g.x += g.vx;
+    g.life -= 0.008;
+    if (g.life <= 0 || g.x > w + 100) { gusts.splice(i, 1); continue; }
+    // Draw as horizontal streaks
+    const streakLen = 60 + g.vx * 10;
+    ctx.beginPath();
+    ctx.moveTo(g.x, g.y);
+    ctx.lineTo(g.x - streakLen, g.y + rand(-2, 2));
+    ctx.strokeStyle = `rgba(180,200,230,${g.alpha * g.life})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  if (gusts.length > 5) gusts.splice(0, gusts.length - 5);
+  state.gusts = gusts;
+
+  // ── Snowflakes ──
+  for (const s of snowflakes) {
+    // Wind sway
+    const sway = Math.sin(time * s.swaySpeed + s.swayPhase) * s.swayAmp;
+
+    // Mouse warmth zone — melt/push snowflakes away
+    const dx = s.x - mx;
+    const dy = s.y - my;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    let pushX = 0;
+    let pushY = 0;
+    if (d < 100) {
+      const force = (1 - d / 100) * 2;
+      pushX = (dx / d) * force;
+      pushY = (dy / d) * force - force * 0.5; // upward push (warmth rises)
+    }
+
+    s.x += s.drift + sway + pushX;
+    s.y += s.speed + pushY;
+    s.rotation += s.rotSpeed;
+
+    if (s.y > h * 0.92 + Math.sin(s.x * 0.02) * 3) {
+      // Accumulate at ground level
+      Object.assign(s, {
+        x: rand(0, w), y: rand(-30, -5),
+        size: rand(1, 5), speed: rand(0.5, 2.5),
+      });
+    }
+    if (s.x < -20) s.x = w + 10;
+    if (s.x > w + 20) s.x = -10;
+
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rotation);
+
+    if (s.size > 3) {
+      // Larger snowflakes with crystal shape
+      ctx.beginPath();
+      for (let arm = 0; arm < 6; arm++) {
+        const angle = (arm / 6) * Math.PI * 2;
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(angle) * s.size, Math.sin(angle) * s.size);
+      }
+      ctx.strokeStyle = `rgba(220,230,255,${s.alpha * 0.6})`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.arc(0, 0, s.size * 0.6, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(220,230,255,${s.alpha})`;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ─── 14. Bubbles ────────────────────────────────────────────────────────────
+
+function drawBubbles(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.bubbles = Array.from({ length: 35 }, () => ({
+      x: rand(w * 0.1, w * 0.9), y: h + rand(0, h * 0.3),
+      r: rand(8, 35), speed: rand(0.3, 1.2),
+      drift: rand(-0.2, 0.2), phase: rand(0, Math.PI * 2),
+      hue: rand(0, 360), wobble: rand(0, Math.PI * 2),
+    }));
+    state.popParticles = [] as Particle[];
+    state.causticTime = 0;
+  }
+  const bubbles = state.bubbles as { x: number; y: number; r: number; speed: number; drift: number; phase: number; hue: number; wobble: number }[];
+  const popParticles = (state.popParticles || []) as Particle[];
+
+  // Deep blue/purple background
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#050520');
+  bg.addColorStop(0.5, '#0a0a40');
+  bg.addColorStop(1, '#080830');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Underwater light caustics
+  for (let i = 0; i < 15; i++) {
+    const cx = (Math.sin(i * 1.7 + time * 0.6) * 0.5 + 0.5) * w;
+    const cy = (Math.cos(i * 2.3 + time * 0.4) * 0.5 + 0.5) * h;
+    const cr = 30 + 20 * Math.sin(time * 0.8 + i);
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(60,100,200,${0.025 + 0.015 * Math.sin(time + i)})`;
+    ctx.fill();
+  }
+
+  // Light rays from top
+  for (let i = 0; i < 6; i++) {
+    const rx = w * (0.15 + i * 0.14) + Math.sin(time * 0.3 + i) * 20;
+    const rayGrad = ctx.createLinearGradient(rx, 0, rx + 30, h);
+    rayGrad.addColorStop(0, `rgba(80,120,200,${0.03 + 0.02 * Math.sin(time * 0.5 + i)})`);
+    rayGrad.addColorStop(0.5, `rgba(60,100,180,0.01)`);
+    rayGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = rayGrad;
+    ctx.beginPath();
+    ctx.moveTo(rx, 0);
+    ctx.lineTo(rx + 50, h);
+    ctx.lineTo(rx - 20, h);
+    ctx.lineTo(rx - 10, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // ── Bubbles ──
+  for (let bi = bubbles.length - 1; bi >= 0; bi--) {
+    const b = bubbles[bi];
+    b.y -= b.speed;
+    b.x += b.drift + Math.sin(time * 0.8 + b.phase) * 0.5;
+    b.wobble += 0.03;
+
+    // Mouse repels bubbles
+    const dx = b.x - mx;
+    const dy = b.y - my;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    if (d < 80 + b.r) {
+      const force = (1 - d / (80 + b.r)) * 2;
+      b.x += (dx / d) * force;
+      b.y += (dy / d) * force;
+    }
+
+    // Pop at top
+    if (b.y + b.r < -10) {
+      // Create pop particles
+      for (let p = 0; p < 8; p++) {
+        popParticles.push(makeParticle({
+          x: b.x, y: b.r > 0 ? 5 : b.y,
+          vx: rand(-2, 2), vy: rand(-1, 1),
+          size: rand(1, 3), maxLife: rand(0.3, 0.8), life: 1,
+          hue: b.hue, sat: 80, light: 70, alpha: 0.7,
+        }));
+      }
+      // Reset bubble
+      Object.assign(b, {
+        x: rand(w * 0.1, w * 0.9), y: h + rand(10, 60),
+        r: rand(8, 35), speed: rand(0.3, 1.2),
+        hue: rand(0, 360),
+      });
+    }
+
+    // Draw bubble
+    const wobbleX = Math.sin(b.wobble) * b.r * 0.05;
+    const wobbleY = Math.cos(b.wobble * 1.3) * b.r * 0.05;
+
+    ctx.save();
+    ctx.translate(b.x + wobbleX, b.y + wobbleY);
+
+    // Bubble body — semi-transparent
+    const bodyGrad = ctx.createRadialGradient(-b.r * 0.2, -b.r * 0.2, 0, 0, 0, b.r);
+    bodyGrad.addColorStop(0, `rgba(200,220,255,0.08)`);
+    bodyGrad.addColorStop(0.7, `rgba(150,180,230,0.04)`);
+    bodyGrad.addColorStop(0.9, `rgba(120,160,220,0.08)`);
+    bodyGrad.addColorStop(1, `rgba(100,140,200,0.15)`);
+    ctx.beginPath();
+    ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+
+    // Bubble outline
+    ctx.beginPath();
+    ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(180,200,240,0.2)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Iridescent/rainbow reflection
+    const iriGrad = ctx.createLinearGradient(-b.r, -b.r, b.r, b.r);
+    const hueShift = time * 20 + b.hue;
+    iriGrad.addColorStop(0, hsl(hueShift, 80, 80, 0.15));
+    iriGrad.addColorStop(0.3, hsl(hueShift + 60, 90, 75, 0.1));
+    iriGrad.addColorStop(0.6, hsl(hueShift + 120, 80, 80, 0.12));
+    iriGrad.addColorStop(1, hsl(hueShift + 180, 90, 75, 0.08));
+    ctx.beginPath();
+    ctx.arc(0, 0, b.r * 0.85, 0, Math.PI * 2);
+    ctx.fillStyle = iriGrad;
+    ctx.fill();
+
+    // Specular highlight
+    ctx.beginPath();
+    ctx.ellipse(-b.r * 0.25, -b.r * 0.3, b.r * 0.25, b.r * 0.15, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // Pop particles
+  for (let i = popParticles.length - 1; i >= 0; i--) {
+    const p = popParticles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05; // gravity
+    p.life -= 0.03;
+    if (p.life <= 0) { popParticles.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(p.hue, 80, 70, p.life * 0.7);
+    ctx.fill();
+  }
+  if (popParticles.length > 50) popParticles.splice(0, popParticles.length - 50);
+  state.popParticles = popParticles;
+}
+
+// ─── 15. Plasma ─────────────────────────────────────────────────────────────
+
+function drawPlasma(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.blobs = Array.from({ length: 6 }, (_, i) => ({
+      x: rand(w * 0.2, w * 0.8), y: rand(h * 0.2, h * 0.8),
+      baseX: rand(w * 0.2, w * 0.8), baseY: rand(h * 0.2, h * 0.8),
+      r: rand(40, 80), phase: rand(0, Math.PI * 2),
+      speedX: rand(0.3, 0.8), speedY: rand(0.2, 0.6),
+      hue: [320, 200, 120, 280, 160, 350][i],
+      orbiters: Array.from({ length: 5 }, () => ({
+        angle: rand(0, Math.PI * 2),
+        dist: rand(30, 60),
+        speed: rand(1, 3),
+        size: rand(1, 3),
+        hueOff: rand(-30, 30),
+      })),
+    }));
+  }
+  const blobs = state.blobs as { x: number; y: number; baseX: number; baseY: number; r: number; phase: number; speedX: number; speedY: number; hue: number; orbiters: { angle: number; dist: number; speed: number; size: number; hueOff: number }[] }[];
+
+  // Deep black background
+  ctx.fillStyle = '#020005';
+  ctx.fillRect(0, 0, w, h);
+
+  // ── Plasma Blobs ──
+  for (const blob of blobs) {
+    // Morphing movement using sine/cosine combinations
+    blob.x = blob.baseX + Math.sin(time * blob.speedX + blob.phase) * w * 0.15
+      + Math.cos(time * blob.speedX * 0.7 + blob.phase * 2) * w * 0.08;
+    blob.y = blob.baseY + Math.cos(time * blob.speedY + blob.phase) * h * 0.15
+      + Math.sin(time * blob.speedY * 0.6 + blob.phase * 1.5) * h * 0.08;
+
+    // Mouse attracts plasma toward cursor
+    const dx = mx - blob.x;
+    const dy = my - blob.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    if (d < 200) {
+      const pull = (1 - d / 200) * 30;
+      blob.x += (dx / d) * pull * 0.02;
+      blob.y += (dy / d) * pull * 0.02;
+    }
+
+    // Morphing radius with sine combinations
+    const morphR = blob.r + Math.sin(time * 1.5 + blob.phase) * 15
+      + Math.cos(time * 2.3 + blob.phase * 0.7) * 10;
+
+    // Pulsing glow
+    const pulseGlow = 0.5 + 0.3 * Math.sin(time * 2 + blob.phase);
+
+    // Color shifts through hot pink, electric blue, neon green, purple
+    const colorShift = time * 15 + blob.phase * 30;
+    const currentHue = (blob.hue + colorShift) % 360;
+
+    // Outer glow
+    const outerGrad = ctx.createRadialGradient(blob.x, blob.y, 0, blob.x, blob.y, morphR * 2);
+    outerGrad.addColorStop(0, hsl(currentHue, 100, 60, 0.08 * pulseGlow));
+    outerGrad.addColorStop(0.5, hsl(currentHue + 30, 80, 40, 0.03 * pulseGlow));
+    outerGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = outerGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Main blob with morphing shape (using multiple radial gradients offset)
+    for (let layer = 0; layer < 3; layer++) {
+      const offsetAngle = time * (1 + layer * 0.3) + blob.phase + layer * 2;
+      const ox = Math.cos(offsetAngle) * morphR * 0.15;
+      const oy = Math.sin(offsetAngle * 0.7) * morphR * 0.15;
+      const layerR = morphR * (0.8 + layer * 0.1);
+
+      const grad = ctx.createRadialGradient(
+        blob.x + ox, blob.y + oy, 0,
+        blob.x + ox, blob.y + oy, layerR
+      );
+      const layerHue = (currentHue + layer * 40) % 360;
+      const layerAlpha = (0.15 - layer * 0.03) * pulseGlow;
+      grad.addColorStop(0, hsl(layerHue, 100, 65, layerAlpha));
+      grad.addColorStop(0.4, hsl(layerHue + 20, 90, 50, layerAlpha * 0.6));
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(blob.x + ox, blob.y + oy, layerR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Orbiting particles
+    for (const orb of blob.orbiters) {
+      orb.angle += orb.speed * 0.02;
+      const orbX = blob.x + Math.cos(orb.angle) * (orb.dist + Math.sin(time * 2 + orb.angle) * 5);
+      const orbY = blob.y + Math.sin(orb.angle) * (orb.dist + Math.cos(time * 1.5 + orb.angle) * 5);
+
+      ctx.beginPath();
+      ctx.arc(orbX, orbY, orb.size, 0, Math.PI * 2);
+      const orbHue = (currentHue + orb.hueOff) % 360;
+      ctx.fillStyle = hsl(orbHue, 100, 75, 0.6 + 0.3 * Math.sin(time * 3 + orb.angle));
+      ctx.shadowColor = hsl(orbHue, 100, 60, 0.5);
+      ctx.shadowBlur = 6;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Trail
+      const trailX = orbX - Math.cos(orb.angle) * 8;
+      const trailY = orbY - Math.sin(orb.angle) * 8;
+      ctx.beginPath();
+      ctx.moveTo(orbX, orbY);
+      ctx.lineTo(trailX, trailY);
+      ctx.strokeStyle = hsl(orbHue, 100, 70, 0.2);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+}
+
+// ─── 16. Deep Sea ───────────────────────────────────────────────────────────
+
+function drawDeepSea(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.jellyfish = Array.from({ length: 18 }, () => ({
+      x: rand(w * 0.05, w * 0.95), y: rand(h * 0.1, h * 0.9),
+      baseY: rand(h * 0.2, h * 0.8),
+      size: rand(10, 25), speed: rand(0.1, 0.4),
+      phase: rand(0, Math.PI * 2), hue: rand(160, 220),
+      pulsePhase: rand(0, Math.PI * 2),
+      tentacles: Array.from({ length: Math.floor(rand(4, 8)) }, () => ({
+        angle: rand(-0.5, 0.5),
+        length: rand(15, 35),
+        wavePhase: rand(0, Math.PI * 2),
+        waveAmp: rand(3, 8),
+      })),
+    }));
+    state.plankton = Array.from({ length: 80 }, () =>
+      makeParticle({
+        x: rand(0, w), y: rand(0, h),
+        vx: rand(-0.2, 0.2), vy: rand(-0.3, 0.1),
+        size: rand(0.5, 2), maxLife: rand(5, 15), life: rand(0, 1),
+        hue: rand(160, 200), sat: 80, light: rand(50, 80),
+      })
+    );
+    state.bubbles = Array.from({ length: 15 }, () => ({
+      x: rand(0, w), y: h + rand(0, 50),
+      r: rand(2, 5), speed: rand(0.5, 1.5),
+      drift: rand(-0.1, 0.1), alpha: rand(0.1, 0.3),
+    }));
+  }
+  const jellyfish = state.jellyfish as { x: number; y: number; baseY: number; size: number; speed: number; phase: number; hue: number; pulsePhase: number; tentacles: { angle: number; length: number; wavePhase: number; waveAmp: number }[] }[];
+  const plankton = state.plankton as Particle[];
+  const bubbles = state.bubbles as { x: number; y: number; r: number; speed: number; drift: number; alpha: number }[];
+
+  // Dark blue/black deep ocean gradient
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#000815');
+  bg.addColorStop(0.3, '#001025');
+  bg.addColorStop(0.7, '#000d1a');
+  bg.addColorStop(1, '#000510');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Mouse light source
+  const lightGrad = ctx.createRadialGradient(mx, my, 0, mx, my, 150);
+  lightGrad.addColorStop(0, 'rgba(50,120,180,0.08)');
+  lightGrad.addColorStop(0.5, 'rgba(30,80,140,0.03)');
+  lightGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = lightGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Gentle current lines
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    const baseY = h * (0.2 + i * 0.15);
+    for (let x = 0; x <= w; x += 4) {
+      const y = baseY + Math.sin(x * 0.01 + time * 0.5 + i) * 15 + Math.cos(x * 0.005 + time * 0.3) * 10;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = `rgba(20,60,100,${0.03 + 0.01 * Math.sin(time + i)})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // ── Glowing Plankton ──
+  for (const p of plankton) {
+    p.x += p.vx + Math.sin(time * 0.5 + p.y * 0.01) * 0.1;
+    p.y += p.vy;
+    p.life -= 0.001;
+
+    // Illuminate near mouse
+    const d = dist(p.x, p.y, mx, my);
+    const nearMouse = d < 120;
+
+    if (p.life <= 0 || p.x < -10 || p.x > w + 10 || p.y < -10 || p.y > h + 10) {
+      Object.assign(p, {
+        x: rand(0, w), y: rand(0, h),
+        vx: rand(-0.2, 0.2), vy: rand(-0.3, 0.1),
+        life: 1, size: rand(0.5, 2),
+        hue: rand(160, 200), light: rand(50, 80),
+      });
+    }
+
+    const glow = nearMouse ? 0.8 : 0.3 + 0.2 * Math.sin(time * 3 + p.x * 0.1);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * (nearMouse ? 1.5 : 1), 0, Math.PI * 2);
+    ctx.fillStyle = hsl(p.hue, 80, p.light, glow * p.life);
+    if (nearMouse) {
+      ctx.shadowColor = hsl(p.hue, 90, 70, 0.5);
+      ctx.shadowBlur = 8;
+    }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // ── Jellyfish ──
+  for (const jf of jellyfish) {
+    // Gentle current sway
+    jf.x += Math.sin(time * 0.3 + jf.phase) * 0.2;
+    jf.y = jf.baseY + Math.sin(time * jf.speed + jf.phase) * 20 - time * jf.speed * 2 % h;
+
+    // Wrap around
+    if (jf.y < -50) {
+      jf.y = h + 50;
+      jf.baseY = jf.y;
+      jf.x = rand(w * 0.05, w * 0.95);
+    }
+
+    // Mouse illumination
+    const mouseDist = dist(jf.x, jf.y, mx, my);
+    const illumination = mouseDist < 150 ? (1 - mouseDist / 150) : 0;
+    const brightness = 0.5 + illumination * 0.5;
+
+    // Pulse
+    const pulse = 1 + 0.15 * Math.sin(time * 2 + jf.pulsePhase);
+
+    ctx.save();
+    ctx.translate(jf.x, jf.y);
+
+    // Bioluminescent glow
+    const glowR = jf.size * 2.5;
+    const jfGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowR);
+    jfGlow.addColorStop(0, hsl(jf.hue, 80, 60, 0.1 * brightness));
+    jfGlow.addColorStop(0.5, hsl(jf.hue, 70, 40, 0.04 * brightness));
+    jfGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = jfGlow;
+    ctx.fillRect(-glowR, -glowR, glowR * 2, glowR * 2);
+
+    // Bell (dome)
+    ctx.beginPath();
+    ctx.ellipse(0, 0, jf.size * pulse, jf.size * 0.7 * pulse, 0, Math.PI, 0);
+    const bellGrad = ctx.createRadialGradient(0, -jf.size * 0.3, 0, 0, 0, jf.size);
+    bellGrad.addColorStop(0, hsl(jf.hue, 80, 70, 0.3 * brightness));
+    bellGrad.addColorStop(0.5, hsl(jf.hue, 70, 50, 0.15 * brightness));
+    bellGrad.addColorStop(1, hsl(jf.hue, 60, 30, 0.05));
+    ctx.fillStyle = bellGrad;
+    ctx.fill();
+
+    // Bell outline
+    ctx.beginPath();
+    ctx.ellipse(0, 0, jf.size * pulse, jf.size * 0.7 * pulse, 0, Math.PI, 0);
+    ctx.strokeStyle = hsl(jf.hue, 90, 70, 0.25 * brightness);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Tentacles
+    for (const tent of jf.tentacles) {
+      ctx.beginPath();
+      const tentBaseX = Math.sin(tent.angle) * jf.size * 0.5 * pulse;
+      ctx.moveTo(tentBaseX, jf.size * 0.1);
+      const segments = 8;
+      let tx = tentBaseX;
+      let ty = jf.size * 0.1;
+      for (let s = 1; s <= segments; s++) {
+        const t = s / segments;
+        tx = tentBaseX + Math.sin(time * 1.5 + tent.wavePhase + s * 0.5) * tent.waveAmp * t;
+        ty = jf.size * 0.1 + tent.length * t;
+        ctx.lineTo(tx, ty);
+      }
+      ctx.strokeStyle = hsl(jf.hue, 70, 60, (0.15 + 0.1 * illumination) * (1 - 0.3));
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // ── Bubble trails ──
+  for (const b of bubbles) {
+    b.y -= b.speed;
+    b.x += b.drift + Math.sin(time + b.x * 0.01) * 0.2;
+    if (b.y + b.r < 0) {
+      b.y = h + rand(5, 30);
+      b.x = rand(0, w);
+    }
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(80,150,200,${b.alpha})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    // Highlight
+    ctx.beginPath();
+    ctx.arc(b.x - b.r * 0.2, b.y - b.r * 0.2, b.r * 0.25, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(150,200,230,${b.alpha * 0.5})`;
+    ctx.fill();
+  }
+}
+
+// ─── 17. Crystal ────────────────────────────────────────────────────────────
+
+function drawCrystal(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.crystals = Array.from({ length: 12 }, () => ({
+      x: rand(w * 0.05, w * 0.95),
+      y: rand(h * 0.4, h * 0.95),
+      height: rand(30, 80),
+      width: rand(8, 20),
+      hue: rand(260, 320),
+      rot: rand(-0.2, 0.2),
+      rotSpeed: rand(-0.003, 0.003),
+      pulsePhase: rand(0, Math.PI * 2),
+      sides: Math.floor(rand(4, 7)),
+    }));
+    state.sparkles = Array.from({ length: 60 }, () =>
+      makeParticle({
+        x: rand(0, w), y: rand(0, h),
+        vx: rand(-0.1, 0.1), vy: rand(-0.2, 0),
+        size: rand(1, 3), maxLife: rand(3, 8), life: rand(0, 1),
+        hue: rand(260, 340), sat: 60, light: rand(60, 90),
+      })
+    );
+    state.refractions = [] as { x1: number; y1: number; x2: number; y2: number; hue: number; life: number }[];
+    state.refractTimer = 0;
+  }
+  const crystals = state.crystals as { x: number; y: number; height: number; width: number; hue: number; rot: number; rotSpeed: number; pulsePhase: number; sides: number }[];
+  const sparkles = state.sparkles as Particle[];
+  const refractions = (state.refractions || []) as { x1: number; y1: number; x2: number; y2: number; hue: number; life: number }[];
+
+  // Dark purple/black cave background
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#0a0015');
+  bg.addColorStop(0.5, '#0d0020');
+  bg.addColorStop(1, '#080012');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Cave walls texture (subtle rocky patterns)
+  for (let i = 0; i < 20; i++) {
+    const cx = (Math.sin(i * 2.3 + 7.1) * 0.5 + 0.5) * w;
+    const cy = (Math.cos(i * 3.7 + 1.3) * 0.5 + 0.5) * h;
+    const cr = rand(20, 50);
+    ctx.beginPath();
+    ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(20,5,35,${0.15 + 0.05 * Math.sin(i)})`;
+    ctx.fill();
+  }
+
+  // Mouse as light source — ambient glow
+  const lightGrad = ctx.createRadialGradient(mx, my, 0, mx, my, 200);
+  lightGrad.addColorStop(0, 'rgba(180,150,220,0.06)');
+  lightGrad.addColorStop(0.3, 'rgba(140,100,180,0.03)');
+  lightGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = lightGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // ── Crystal Formations ──
+  for (const c of crystals) {
+    c.rot += c.rotSpeed;
+    const pulse = 1 + 0.05 * Math.sin(time * 1.5 + c.pulsePhase);
+
+    // Mouse proximity increases glow
+    const d = dist(c.x, c.y, mx, my);
+    const nearMouse = d < 150;
+    const glowIntensity = nearMouse ? (1 - d / 150) * 0.5 : 0;
+
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(c.rot);
+
+    // Crystal glow
+    const crystalGlow = ctx.createRadialGradient(0, -c.height * 0.3, 0, 0, -c.height * 0.3, c.height);
+    crystalGlow.addColorStop(0, hsl(c.hue, 70, 60, 0.1 + glowIntensity * 0.15));
+    crystalGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = crystalGlow;
+    ctx.fillRect(-c.height, -c.height, c.height * 2, c.height * 2);
+
+    // Crystal body (geometric prism shape)
+    const hw = c.width * pulse;
+    const ch = c.height * pulse;
+    ctx.beginPath();
+    // Main crystal point
+    ctx.moveTo(0, -ch);       // top point
+    ctx.lineTo(hw * 0.6, -ch * 0.3);
+    ctx.lineTo(hw, ch * 0.2);
+    ctx.lineTo(hw * 0.3, ch * 0.6);
+    ctx.lineTo(0, ch);        // bottom
+    ctx.lineTo(-hw * 0.3, ch * 0.6);
+    ctx.lineTo(-hw, ch * 0.2);
+    ctx.lineTo(-hw * 0.6, -ch * 0.3);
+    ctx.closePath();
+
+    // Fill with gradient
+    const crystGrad = ctx.createLinearGradient(-hw, -ch, hw, ch);
+    crystGrad.addColorStop(0, hsl(c.hue, 50, 40, 0.25 + glowIntensity * 0.2));
+    crystGrad.addColorStop(0.3, hsl(c.hue + 20, 60, 55, 0.15 + glowIntensity * 0.15));
+    crystGrad.addColorStop(0.7, hsl(c.hue - 10, 40, 35, 0.2 + glowIntensity * 0.1));
+    crystGrad.addColorStop(1, hsl(c.hue + 10, 50, 30, 0.15));
+    ctx.fillStyle = crystGrad;
+    ctx.fill();
+
+    // Crystal edges
+    ctx.strokeStyle = hsl(c.hue, 70, 70, 0.3 + glowIntensity * 0.3);
+    ctx.lineWidth = 1;
+    ctx.shadowColor = hsl(c.hue, 80, 70, 0.5 + glowIntensity * 0.5);
+    ctx.shadowBlur = 8 + glowIntensity * 15;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Facet lines
+    ctx.beginPath();
+    ctx.moveTo(0, -ch);
+    ctx.lineTo(0, ch);
+    ctx.strokeStyle = hsl(c.hue, 40, 60, 0.1 + glowIntensity * 0.1);
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Create light refractions near mouse
+    if (nearMouse && Math.random() < 0.05) {
+      const refractAngle = Math.atan2(my - c.y, mx - c.x) + rand(-0.5, 0.5);
+      const refractLen = rand(60, 150);
+      refractions.push({
+        x1: c.x, y1: c.y - c.height * 0.3,
+        x2: c.x + Math.cos(refractAngle) * refractLen,
+        y2: c.y - c.height * 0.3 + Math.sin(refractAngle) * refractLen,
+        hue: rand(0, 360), life: 1,
+      });
+    }
+  }
+
+  // ── Light Refractions (rainbow prismatic beams) ──
+  // Periodic refractions
+  if (time - (state.refractTimer as number) > rand(1, 3)) {
+    state.refractTimer = time;
+    const srcX = rand(w * 0.2, w * 0.8);
+    const srcY = rand(0, h * 0.3);
+    const angle = rand(0.3, 1.2);
+    const len = rand(80, 200);
+    refractions.push({
+      x1: srcX, y1: srcY,
+      x2: srcX + Math.cos(angle) * len,
+      y2: srcY + Math.sin(angle) * len,
+      hue: rand(0, 360), life: 1,
+    });
+  }
+  for (let i = refractions.length - 1; i >= 0; i--) {
+    const ref = refractions[i];
+    ref.life -= 0.015;
+    if (ref.life <= 0) { refractions.splice(i, 1); continue; }
+
+    const refGrad = ctx.createLinearGradient(ref.x1, ref.y1, ref.x2, ref.y2);
+    const alpha = ref.life * 0.25;
+    refGrad.addColorStop(0, hsl(ref.hue, 100, 80, 0));
+    refGrad.addColorStop(0.2, hsl(ref.hue, 100, 70, alpha));
+    refGrad.addColorStop(0.5, hsl(ref.hue + 60, 100, 75, alpha * 0.8));
+    refGrad.addColorStop(0.8, hsl(ref.hue + 120, 100, 70, alpha * 0.5));
+    refGrad.addColorStop(1, hsl(ref.hue + 180, 100, 80, 0));
+
+    ctx.beginPath();
+    ctx.moveTo(ref.x1, ref.y1);
+    ctx.lineTo(ref.x2, ref.y2);
+    ctx.strokeStyle = refGrad;
+    ctx.lineWidth = 2 * ref.life;
+    ctx.shadowColor = hsl(ref.hue, 100, 70, alpha * 0.5);
+    ctx.shadowBlur = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  if (refractions.length > 15) refractions.splice(0, refractions.length - 15);
+  state.refractions = refractions;
+
+  // ── Sparkle Particles ──
+  for (const p of sparkles) {
+    p.x += p.vx + Math.sin(time + p.y * 0.01) * 0.1;
+    p.y += p.vy;
+    p.life -= 0.002;
+
+    if (p.life <= 0 || p.x < -10 || p.x > w + 10 || p.y < -10) {
+      Object.assign(p, {
+        x: rand(0, w), y: rand(0, h),
+        vx: rand(-0.1, 0.1), vy: rand(-0.2, 0),
+        life: 1, size: rand(1, 3),
+        hue: rand(260, 340), light: rand(60, 90),
+      });
+    }
+
+    const twinkle = 0.3 + 0.7 * Math.abs(Math.sin(time * 4 + p.x * 0.1 + p.y * 0.1));
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * twinkle, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(p.hue, p.sat, p.light, p.life * twinkle * 0.5);
+    ctx.shadowColor = hsl(p.hue, 80, 70, 0.3);
+    ctx.shadowBlur = 4;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ─── 18. Storm ──────────────────────────────────────────────────────────────
+
+function drawStorm(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.clouds = Array.from({ length: 12 }, () => ({
+      x: rand(-100, w + 100), y: rand(-20, h * 0.25),
+      w: rand(100, 250), h: rand(30, 60),
+      speed: rand(0.2, 0.8), alpha: rand(0.3, 0.6),
+    }));
+    state.raindrops = Array.from({ length: 200 }, () => ({
+      x: rand(0, w), y: rand(-h, h),
+      speed: rand(5, 12), length: rand(8, 20),
+      alpha: rand(0.1, 0.4),
+    }));
+    state.stormBolts = [] as { segments: { x: number; y: number }[]; life: number; hue: number }[];
+    state.thunderRipples = [] as { x: number; y: number; r: number; alpha: number }[];
+    state.lastStrike = 0;
+    state.flashAlpha = 0;
+  }
+  const clouds = state.clouds as { x: number; y: number; w: number; h: number; speed: number; alpha: number }[];
+  const raindrops = state.raindrops as { x: number; y: number; speed: number; length: number; alpha: number }[];
+  const stormBolts = (state.stormBolts || []) as { segments: { x: number; y: number }[]; life: number; hue: number }[];
+  const thunderRipples = (state.thunderRipples || []) as { x: number; y: number; r: number; alpha: number }[];
+
+  // Dark grey/charcoal sky
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, '#151520');
+  sky.addColorStop(0.3, '#1a1a2a');
+  sky.addColorStop(0.7, '#121220');
+  sky.addColorStop(1, '#0a0a15');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  // Flash illumination from lightning
+  const flashA = state.flashAlpha as number;
+  if (flashA > 0) {
+    ctx.fillStyle = `rgba(200,210,240,${flashA})`;
+    ctx.fillRect(0, 0, w, h);
+    state.flashAlpha = flashA * 0.85;
+    if (flashA < 0.01) state.flashAlpha = 0;
+  }
+
+  // ── Moving Clouds ──
+  for (const c of clouds) {
+    c.x += c.speed;
+    if (c.x > w + 200) c.x = -250;
+
+    const cloudGrad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.w * 0.5);
+    cloudGrad.addColorStop(0, `rgba(40,40,55,${c.alpha})`);
+    cloudGrad.addColorStop(0.5, `rgba(30,30,45,${c.alpha * 0.5})`);
+    cloudGrad.addColorStop(1, 'rgba(20,20,30,0)');
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, c.w * 0.5, c.h * 0.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = cloudGrad;
+    ctx.fill();
+    // Secondary cloud mass
+    ctx.beginPath();
+    ctx.ellipse(c.x + c.w * 0.2, c.y - c.h * 0.2, c.w * 0.35, c.h * 0.4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(35,35,50,${c.alpha * 0.4})`;
+    ctx.fill();
+  }
+
+  // ── Rain ──
+  const windAngle = (mx / w - 0.5) * 0.3; // Mouse influences rain angle
+  for (const r of raindrops) {
+    r.y += r.speed;
+    r.x += Math.sin(windAngle) * r.speed * 0.5 + 1; // Diagonal rain
+    if (r.y > h) {
+      r.y = rand(-20, -5);
+      r.x = rand(-20, w + 20);
+    }
+    if (r.x > w + 20) r.x = -10;
+
+    ctx.beginPath();
+    ctx.moveTo(r.x, r.y);
+    ctx.lineTo(r.x + Math.sin(windAngle) * r.length * 0.3, r.y + r.length);
+    ctx.strokeStyle = `rgba(150,170,200,${r.alpha})`;
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+
+  // ── Lightning Strikes ──
+  // Mouse position influences where lightning strikes
+  if (time - (state.lastStrike as number) > rand(2, 6)) {
+    state.lastStrike = time;
+    state.flashAlpha = 0.3 + Math.random() * 0.2; // Flash!
+
+    // Target influenced by mouse
+    const targetX = lerp(rand(w * 0.1, w * 0.9), mx, 0.4);
+    const targetY = h;
+    const startX = targetX + rand(-50, 50);
+    const startY = 0;
+
+    const segments: { x: number; y: number }[] = [{ x: startX, y: startY }];
+    const steps = 15;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      segments.push({
+        x: lerp(startX, targetX, t) + rand(-35, 35) * (1 - t * 0.5),
+        y: lerp(startY, targetY, t),
+      });
+    }
+    segments.push({ x: targetX, y: targetY });
+
+    stormBolts.push({ segments, life: 1, hue: rand(210, 250) });
+
+    // Branches
+    const branchCount = Math.floor(rand(2, 5));
+    for (let b = 0; b < branchCount; b++) {
+      const branchStart = Math.floor(rand(3, segments.length - 3));
+      const bp = segments[branchStart];
+      const branchSegs: { x: number; y: number }[] = [{ x: bp.x, y: bp.y }];
+      let bx = bp.x;
+      let by = bp.y;
+      const bSteps = Math.floor(rand(3, 8));
+      for (let i = 0; i < bSteps; i++) {
+        bx += rand(-25, 25);
+        by += rand(8, 25);
+        branchSegs.push({ x: bx, y: by });
+      }
+      stormBolts.push({ segments: branchSegs, life: 0.8, hue: rand(200, 260) });
+    }
+
+    // Thunder ripple at impact point
+    thunderRipples.push({ x: targetX, y: targetY, r: 0, alpha: 0.6 });
+  }
+
+  for (let i = stormBolts.length - 1; i >= 0; i--) {
+    const bolt = stormBolts[i];
+    bolt.life -= 0.04;
+    if (bolt.life <= 0) { stormBolts.splice(i, 1); continue; }
+
+    ctx.beginPath();
+    ctx.moveTo(bolt.segments[0].x, bolt.segments[0].y);
+    for (let j = 1; j < bolt.segments.length; j++) {
+      ctx.lineTo(bolt.segments[j].x, bolt.segments[j].y);
+    }
+    // Outer glow
+    ctx.strokeStyle = hsl(bolt.hue, 50, 80, bolt.life * 0.35);
+    ctx.lineWidth = 6 * bolt.life;
+    ctx.shadowColor = hsl(bolt.hue, 80, 90, 0.8);
+    ctx.shadowBlur = 20;
+    ctx.stroke();
+    // Core
+    ctx.strokeStyle = hsl(bolt.hue, 70, 95, bolt.life * 0.9);
+    ctx.lineWidth = 1.5 * bolt.life;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  state.stormBolts = stormBolts;
+
+  // ── Thunder Ripples ──
+  for (let i = thunderRipples.length - 1; i >= 0; i--) {
+    const rip = thunderRipples[i];
+    rip.r += 3;
+    rip.alpha -= 0.008;
+    if (rip.alpha <= 0) { thunderRipples.splice(i, 1); continue; }
+
+    ctx.beginPath();
+    ctx.arc(rip.x, rip.y, rip.r, 0, Math.PI * 2);
+    ctx.strokeStyle = hsl(220, 60, 70, rip.alpha * 0.5);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Second ring
+    if (rip.r > 20) {
+      ctx.beginPath();
+      ctx.arc(rip.x, rip.y, rip.r * 0.6, 0, Math.PI * 2);
+      ctx.strokeStyle = hsl(230, 50, 60, rip.alpha * 0.3);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+  if (thunderRipples.length > 10) thunderRipples.splice(0, thunderRipples.length - 10);
+  state.thunderRipples = thunderRipples;
+}
+
 // ─── Theme Animation Map ────────────────────────────────────────────────────
 
 const THEME_ANIMATIONS: Record<string, AnimationFn> = {
@@ -1351,6 +2525,12 @@ const THEME_ANIMATIONS: Record<string, AnimationFn> = {
   waterfall_live: drawWaterfall,
   autumn_live: drawAutumn,
   cyberpunk_live: drawCyberpunk,
+  snowfall_live: drawSnowfall,
+  bubbles_live: drawBubbles,
+  plasma_live: drawPlasma,
+  deep_sea_live: drawDeepSea,
+  crystal_live: drawCrystal,
+  storm_live: drawStorm,
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────
