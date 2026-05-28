@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LiveWallpaper } from '@/components/keyboard/live-wallpaper';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
   Delete, CornerDownLeft, Copy, Trash2, Plus,
@@ -1291,11 +1292,10 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                     theme === key ? `${t.accent} ${t.accentText} border-transparent shadow-md` : `${t.card} ${t.border} border`
                   }`}
                 >
-                  {/* Live theme 3D image preview */}
-                  {tData.isLive && tData.liveClass && (
+                  {/* Live theme canvas preview */}
+                  {tData.isLive && (
                     <>
-                      <div className={`absolute inset-0 ${tData.liveClass} pointer-events-none`} style={{ borderRadius: 'inherit' }} />
-                      <div className={`absolute inset-0 live-fx-${key.replace('_live', '')} pointer-events-none`} style={{ borderRadius: 'inherit' }} />
+                      <LiveWallpaper theme={key} className="absolute inset-0" />
                       <div className="absolute inset-0 pointer-events-none" style={{
                         background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%)',
                         borderRadius: 'inherit'
@@ -2069,16 +2069,13 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
   return (
     <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''}`}
       style={customBgStyle}>
-      {/* Live theme background overlay - 3D image with animation */}
-      {t.isLive && t.liveClass && (
+      {/* Live theme interactive canvas wallpaper */}
+      {t.isLive && (
         <>
-          {/* Base animated image */}
-          <div className={`absolute inset-0 ${t.liveClass}`} style={{ borderRadius: 'inherit', zIndex: 0 }} />
-          {/* Theme-specific animated effect layer */}
-          <div className={`absolute inset-0 live-fx-${theme.replace('_live', '')} pointer-events-none`} style={{ borderRadius: 'inherit', zIndex: 1 }} />
+          <LiveWallpaper theme={theme} className="absolute inset-0" />
           {/* Dark gradient overlay for readability */}
           <div className="absolute inset-0" style={{
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.45) 100%)',
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.4) 100%)',
             borderRadius: 'inherit',
             zIndex: 2
           }} />
