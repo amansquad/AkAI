@@ -361,12 +361,12 @@ function drawOcean(ctx: CanvasRenderingContext2D, w: number, h: number, time: nu
   state.ripples = ripples;
 }
 
-// ─── 4. Neon Pulse (Enhanced) ───────────────────────────────────────────────
+// ─── 4. Neon Pulse (Ultra Enhanced) ────────────────────────────────────────
 
 function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
   if (!state.init) {
     state.init = true;
-    state.sparks = Array.from({ length: 150 }, () =>
+    state.sparks = Array.from({ length: 200 }, () =>
       makeParticle({
         x: rand(0, w), y: rand(0, h),
         vx: rand(-2, 2), vy: rand(-2, 2),
@@ -374,9 +374,9 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
         hue: rand(270, 340), sat: 100, light: rand(60, 90),
       })
     );
-    state.shapes = Array.from({ length: 5 }, () => ({
-      x: rand(w * 0.2, w * 0.8), y: rand(h * 0.2, h * 0.8),
-      r: rand(20, 50), rot: rand(0, Math.PI * 2),
+    state.shapes = Array.from({ length: 6 }, () => ({
+      x: rand(w * 0.15, w * 0.85), y: rand(h * 0.15, h * 0.85),
+      r: rand(20, 55), rot: rand(0, Math.PI * 2),
       speed: rand(0.005, 0.02), sides: Math.floor(rand(3, 7)),
       hue: rand(270, 330),
     }));
@@ -388,22 +388,70 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     // Energy beams state
     state.energyBeams = [] as { x: number; y: number; horizontal: boolean; life: number; hue: number; width: number }[];
     state.lastBeam = 0;
-    // Mouse click flash state
-    state.clickFlash = 0;
-    state.clickX = 0;
-    state.clickY = 0;
+    // Neon rings from mouse
+    state.neonRings = [] as { x: number; y: number; r: number; maxR: number; life: number; hue: number }[];
+    state.lastRing = 0;
+    // Digital rain columns
+    const colW = 14;
+    const cols = Math.ceil(w / colW);
+    state.digitalColumns = Array.from({ length: cols }, () => ({
+      y: rand(-h, 0), speed: rand(0.5, 2), chars: [] as string[],
+    }));
+    const charSet = '01アイウエオカキクケコ⚡█▓▒░';
+    for (const col of (state.digitalColumns as { y: number; speed: number; chars: string[] }[])) {
+      col.chars = Array.from({ length: Math.ceil(h / 14) + 3 }, () => charSet[Math.floor(Math.random() * charSet.length)]);
+    }
+    state.charSet = charSet;
+    state.lastCharFlip = 0;
   }
   const sparks = state.sparks as Particle[];
   const shapes = state.shapes as { x: number; y: number; r: number; rot: number; speed: number; sides: number; hue: number }[];
   const lightningBolts = (state.lightningBolts || []) as { segments: { x: number; y: number }[]; life: number; hue: number }[];
   const shockwaves = (state.shockwaves || []) as { x: number; y: number; r: number; maxR: number; alpha: number; hue: number }[];
   const energyBeams = (state.energyBeams || []) as { x: number; y: number; horizontal: boolean; life: number; hue: number; width: number }[];
+  const neonRings = (state.neonRings || []) as { x: number; y: number; r: number; maxR: number; life: number; hue: number }[];
+  const digitalColumns = (state.digitalColumns || []) as { y: number; speed: number; chars: string[] }[];
+  const charSet = (state.charSet || '01アイウ') as string;
 
-  // Background
-  ctx.fillStyle = '#0a0010';
+  // ── Background with bass pulse ──
+  const bassPulse = 0.3 + 0.2 * Math.pow(Math.sin(time * 1.5), 2);
+  ctx.fillStyle = `rgba(10,0,16,${0.95 - bassPulse * 0.15})`;
   ctx.fillRect(0, 0, w, h);
 
-  // Grid
+  // ── Digital Rain Overlay (subtle) ──
+  if (time - (state.lastCharFlip as number) > 0.08) {
+    state.lastCharFlip = time;
+    for (const col of digitalColumns) {
+      if (Math.random() < 0.12) {
+        const idx = Math.floor(Math.random() * col.chars.length);
+        col.chars[idx] = charSet[Math.floor(Math.random() * charSet.length)];
+      }
+    }
+  }
+  const colW = 14;
+  for (let i = 0; i < digitalColumns.length; i++) {
+    const col = digitalColumns[i];
+    const colX = i * colW;
+    const d = Math.abs(colX - mx);
+    const speedMult = d < 80 ? 1 + (1 - d / 80) * 2 : 1;
+    col.y += col.speed * speedMult;
+    if (col.y > h + 80) { col.y = rand(-200, -50); col.speed = rand(0.5, 2); }
+
+    const startIdx = Math.floor(col.y / 14);
+    for (let j = 0; j < col.chars.length; j++) {
+      const charY = (startIdx + j) * 14;
+      if (charY < -14 || charY > h + 14) continue;
+      const isFirst = j === col.chars.length - 1;
+      if (!isFirst) {
+        const fade = clamp((charY - (col.y - col.chars.length * 14)) / (col.chars.length * 6), 0, 1);
+        ctx.fillStyle = `rgba(180,0,255,${fade * 0.08})`;
+        ctx.font = '12px monospace';
+        ctx.fillText(col.chars[j], colX, charY);
+      }
+    }
+  }
+
+  // ── Grid ──
   const gridSize = 40;
   const pulse = 0.4 + 0.3 * Math.sin(time * 2);
   ctx.strokeStyle = `rgba(180,0,255,${0.06 * pulse})`;
@@ -418,23 +466,40 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
   // Bright grid lines near mouse
   for (let x = 0; x < w; x += gridSize) {
     const d = Math.abs(x - mx);
-    if (d < 100) {
-      const a = (1 - d / 100) * 0.3 * pulse;
+    if (d < 120) {
+      const a = (1 - d / 120) * 0.35 * pulse;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h);
-      ctx.strokeStyle = `rgba(255,0,200,${a})`; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = `rgba(255,0,200,${a})`; ctx.lineWidth = 2; ctx.stroke();
     }
   }
   for (let y = 0; y < h; y += gridSize) {
     const d = Math.abs(y - my);
-    if (d < 100) {
-      const a = (1 - d / 100) * 0.3 * pulse;
+    if (d < 120) {
+      const a = (1 - d / 120) * 0.35 * pulse;
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y);
-      ctx.strokeStyle = `rgba(0,255,255,${a})`; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = `rgba(0,255,255,${a})`; ctx.lineWidth = 2; ctx.stroke();
+    }
+  }
+
+  // Grid intersection dots near mouse
+  for (let x = 0; x < w; x += gridSize) {
+    for (let y = 0; y < h; y += gridSize) {
+      const d = dist(x, y, mx, my);
+      if (d < 150) {
+        const a = (1 - d / 150) * 0.6 * pulse;
+        ctx.beginPath();
+        ctx.arc(x, y, 2 + a * 3, 0, Math.PI * 2);
+        ctx.fillStyle = hsl(290, 100, 80, a);
+        ctx.shadowColor = hsl(290, 100, 70, a);
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
     }
   }
 
   // ── Energy Beams ──
-  if (time - (state.lastBeam as number) > rand(1.5, 4)) {
+  if (time - (state.lastBeam as number) > rand(1, 3)) {
     state.lastBeam = time;
     const isHorizontal = Math.random() > 0.5;
     energyBeams.push({
@@ -448,7 +513,7 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
   }
   for (let i = energyBeams.length - 1; i >= 0; i--) {
     const beam = energyBeams[i];
-    beam.life -= 0.025;
+    beam.life -= 0.02;
     if (beam.life <= 0) { energyBeams.splice(i, 1); continue; }
 
     const sweepProgress = 1 - beam.life;
@@ -465,7 +530,6 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
       beamGrad.addColorStop(1, hsl(beam.hue, 100, 70, 0));
       ctx.fillStyle = beamGrad;
       ctx.fillRect(0, beamY - 20, w, 40);
-      // Core line
       ctx.beginPath();
       ctx.moveTo(0, beamY);
       ctx.lineTo(w, beamY);
@@ -485,7 +549,6 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
       beamGrad.addColorStop(1, hsl(beam.hue, 100, 70, 0));
       ctx.fillStyle = beamGrad;
       ctx.fillRect(beamX - 20, 0, 40, h);
-      // Core line
       ctx.beginPath();
       ctx.moveTo(beamX, 0);
       ctx.lineTo(beamX, h);
@@ -500,7 +563,7 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
   }
   state.energyBeams = energyBeams;
 
-  // Geometric shapes
+  // ── Geometric Shapes with electric arcs between nearby shapes ──
   for (const s of shapes) {
     s.rot += s.speed;
     ctx.save();
@@ -514,131 +577,171 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
       if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
     }
     ctx.closePath();
-    ctx.strokeStyle = hsl(s.hue, 100, 60, 0.5 + 0.2 * Math.sin(time * 3));
-    ctx.lineWidth = 2;
-    ctx.shadowColor = hsl(s.hue, 100, 60, 0.8);
-    ctx.shadowBlur = 20;
+    const shapeAlpha = 0.5 + 0.3 * Math.sin(time * 3);
+    ctx.strokeStyle = hsl(s.hue, 100, 60, shapeAlpha);
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = hsl(s.hue, 100, 60, 0.9);
+    ctx.shadowBlur = 25;
     ctx.stroke();
+    // Inner fill glow
+    ctx.fillStyle = hsl(s.hue, 100, 50, 0.03 + 0.02 * Math.sin(time * 4));
+    ctx.fill();
     ctx.shadowBlur = 0;
     ctx.restore();
   }
+  // Electric arcs between nearby shapes
+  for (let i = 0; i < shapes.length; i++) {
+    for (let j = i + 1; j < shapes.length; j++) {
+      const d = dist(shapes[i].x, shapes[i].y, shapes[j].x, shapes[j].y);
+      if (d < 250) {
+        const arcAlpha = (1 - d / 250) * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(shapes[i].x, shapes[i].y);
+        // Jagged arc
+        const midX = (shapes[i].x + shapes[j].x) / 2 + rand(-20, 20);
+        const midY = (shapes[i].y + shapes[j].y) / 2 + rand(-20, 20);
+        ctx.quadraticCurveTo(midX, midY, shapes[j].x, shapes[j].y);
+        ctx.strokeStyle = hsl(300, 100, 75, arcAlpha + 0.05 * Math.sin(time * 8));
+        ctx.lineWidth = 1;
+        ctx.shadowColor = hsl(300, 100, 70, 0.5);
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+    }
+  }
 
   // ── Lightning Bolts ──
-  if (time - (state.lastLightning as number) > rand(2, 5)) {
+  if (time - (state.lastLightning as number) > rand(1.5, 4)) {
     state.lastLightning = time;
-    // Generate jagged lightning path
     const startX = rand(w * 0.1, w * 0.9);
-    const startY = 0;
     const endX = rand(w * 0.1, w * 0.9);
-    const endY = h;
-    const segments: { x: number; y: number }[] = [{ x: startX, y: startY }];
-    const steps = 12;
+    const segments: { x: number; y: number }[] = [{ x: startX, y: 0 }];
+    const steps = 14;
     for (let i = 1; i < steps; i++) {
       const t = i / steps;
       segments.push({
-        x: lerp(startX, endX, t) + rand(-40, 40),
-        y: lerp(startY, endY, t),
+        x: lerp(startX, endX, t) + rand(-50, 50),
+        y: lerp(0, h, t),
       });
     }
-    segments.push({ x: endX, y: endY });
-    // Add branching bolts
-    const branchCount = Math.floor(rand(1, 4));
+    segments.push({ x: endX, y: h });
+    const branchCount = Math.floor(rand(1, 5));
     for (let b = 0; b < branchCount; b++) {
       const branchStart = Math.floor(rand(2, segments.length - 2));
       const branchSegs: { x: number; y: number }[] = [];
       const bp = segments[branchStart];
       let bx = bp.x;
       let by = bp.y;
-      const bSteps = Math.floor(rand(3, 7));
+      const bSteps = Math.floor(rand(3, 8));
       for (let i = 0; i <= bSteps; i++) {
         branchSegs.push({ x: bx, y: by });
-        bx += rand(-30, 30);
+        bx += rand(-35, 35);
         by += rand(10, 30);
       }
-      lightningBolts.push({ segments: branchSegs, life: 1, hue: rand(200, 300) });
+      lightningBolts.push({ segments: branchSegs, life: 1, hue: rand(200, 320) });
     }
-    lightningBolts.push({ segments, life: 1, hue: rand(260, 320) });
+    lightningBolts.push({ segments, life: 1, hue: rand(260, 330) });
+    // Screen flash on lightning
+    ctx.fillStyle = `rgba(200,100,255,0.04)`;
+    ctx.fillRect(0, 0, w, h);
   }
   for (let i = lightningBolts.length - 1; i >= 0; i--) {
     const bolt = lightningBolts[i];
-    bolt.life -= 0.05;
+    bolt.life -= 0.04;
     if (bolt.life <= 0) { lightningBolts.splice(i, 1); continue; }
 
-    // Draw main bolt
     ctx.beginPath();
     ctx.moveTo(bolt.segments[0].x, bolt.segments[0].y);
     for (let j = 1; j < bolt.segments.length; j++) {
       ctx.lineTo(bolt.segments[j].x, bolt.segments[j].y);
     }
-    // Outer glow
     ctx.strokeStyle = hsl(bolt.hue, 60, 80, bolt.life * 0.3);
-    ctx.lineWidth = 8 * bolt.life;
-    ctx.shadowColor = hsl(bolt.hue, 100, 80, 0.8);
-    ctx.shadowBlur = 25;
+    ctx.lineWidth = 10 * bolt.life;
+    ctx.shadowColor = hsl(bolt.hue, 100, 80, 0.9);
+    ctx.shadowBlur = 30;
     ctx.stroke();
-    // Core
     ctx.strokeStyle = hsl(bolt.hue, 80, 95, bolt.life * 0.9);
-    ctx.lineWidth = 2 * bolt.life;
+    ctx.lineWidth = 2.5 * bolt.life;
     ctx.stroke();
     ctx.shadowBlur = 0;
   }
   state.lightningBolts = lightningBolts;
 
   // ── Shockwave Rings ──
-  // Trigger shockwaves periodically
-  if (Math.random() < 0.01) {
+  if (Math.random() < 0.015) {
     shockwaves.push({
-      x: rand(w * 0.1, w * 0.9),
-      y: rand(h * 0.1, h * 0.9),
-      r: 0, maxR: rand(60, 150),
-      alpha: 0.6,
-      hue: rand(270, 340),
+      x: rand(w * 0.1, w * 0.9), y: rand(h * 0.1, h * 0.9),
+      r: 0, maxR: rand(60, 180), alpha: 0.7, hue: rand(270, 340),
     });
   }
-  // Also create shockwaves from lightning impacts
   for (const bolt of lightningBolts) {
-    if (bolt.life > 0.9 && bolt.segments.length > 2) {
+    if (bolt.life > 0.85 && bolt.segments.length > 2) {
       const lastSeg = bolt.segments[bolt.segments.length - 1];
-      if (Math.random() < 0.3) {
+      if (Math.random() < 0.4) {
         shockwaves.push({
           x: lastSeg.x, y: lastSeg.y,
-          r: 0, maxR: rand(40, 80),
-          alpha: 0.5, hue: bolt.hue,
+          r: 0, maxR: rand(50, 100), alpha: 0.6, hue: bolt.hue,
         });
       }
     }
   }
   for (let i = shockwaves.length - 1; i >= 0; i--) {
     const sw = shockwaves[i];
-    sw.r += 2.5;
-    sw.alpha = 0.6 * (1 - sw.r / sw.maxR);
+    sw.r += 3;
+    sw.alpha = 0.7 * (1 - sw.r / sw.maxR);
     if (sw.r >= sw.maxR || sw.alpha <= 0) { shockwaves.splice(i, 1); continue; }
 
     ctx.beginPath();
     ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
     ctx.strokeStyle = hsl(sw.hue, 100, 70, sw.alpha);
-    ctx.lineWidth = 2 + (1 - sw.r / sw.maxR) * 3;
+    ctx.lineWidth = 2 + (1 - sw.r / sw.maxR) * 4;
     ctx.shadowColor = hsl(sw.hue, 100, 60, sw.alpha * 0.5);
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 12;
     ctx.stroke();
     ctx.shadowBlur = 0;
   }
-  if (shockwaves.length > 15) shockwaves.splice(0, shockwaves.length - 15);
+  if (shockwaves.length > 20) shockwaves.splice(0, shockwaves.length - 20);
   state.shockwaves = shockwaves;
 
-  // Sparks
+  // ── Neon Rings from Mouse ──
+  if (mx > 0 && my > 0 && time - (state.lastRing as number) > 0.3) {
+    state.lastRing = time;
+    neonRings.push({
+      x: mx, y: my, r: 5, maxR: rand(40, 100),
+      life: 1, hue: rand(270, 340),
+    });
+  }
+  for (let i = neonRings.length - 1; i >= 0; i--) {
+    const nr = neonRings[i];
+    nr.r += 1.5;
+    nr.life -= 0.03;
+    if (nr.life <= 0 || nr.r >= nr.maxR) { neonRings.splice(i, 1); continue; }
+
+    ctx.beginPath();
+    ctx.arc(nr.x, nr.y, nr.r, 0, Math.PI * 2);
+    ctx.strokeStyle = hsl(nr.hue, 100, 80, nr.life * 0.5);
+    ctx.lineWidth = 1.5 + nr.life * 2;
+    ctx.shadowColor = hsl(nr.hue, 100, 70, nr.life * 0.4);
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  if (neonRings.length > 25) neonRings.splice(0, neonRings.length - 25);
+  state.neonRings = neonRings;
+
+  // ── Sparks with connection lines ──
   for (const p of sparks) {
-    // Attract toward mouse
     const dx = mx - p.x;
     const dy = my - p.y;
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
-    if (d < 150) {
-      p.vx += (dx / d) * 0.3;
-      p.vy += (dy / d) * 0.3;
+    if (d < 180) {
+      p.vx += (dx / d) * 0.35;
+      p.vy += (dy / d) * 0.35;
     }
     p.vx *= 0.98; p.vy *= 0.98;
     p.x += p.vx; p.y += p.vy;
-    p.life -= 0.005;
+    p.life -= 0.004;
 
     if (p.life <= 0 || p.x < -20 || p.x > w + 20 || p.y < -20 || p.y > h + 20) {
       Object.assign(p, {
@@ -659,16 +762,59 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     ctx.shadowBlur = 0;
   }
 
-  // ── Mouse Click Flash Effect ──
-  // Detect mouse presence and create radial flash
+  // Connection lines between nearby sparks
+  for (let i = 0; i < sparks.length; i++) {
+    for (let j = i + 1; j < Math.min(i + 8, sparks.length); j++) {
+      const d = dist(sparks[i].x, sparks[i].y, sparks[j].x, sparks[j].y);
+      if (d < 60) {
+        const lineAlpha = (1 - d / 60) * 0.15 * Math.min(sparks[i].life, sparks[j].life);
+        ctx.beginPath();
+        ctx.moveTo(sparks[i].x, sparks[i].y);
+        ctx.lineTo(sparks[j].x, sparks[j].y);
+        ctx.strokeStyle = hsl(sparks[i].hue, 100, 70, lineAlpha);
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+
+  // ── Mouse Aura Effect ──
   if (mx > 0 && my > 0) {
-    const flashIntensity = 0.03 + 0.02 * Math.sin(time * 8);
-    const flashGrad = ctx.createRadialGradient(mx, my, 0, mx, my, 120);
+    const flashIntensity = 0.04 + 0.03 * Math.sin(time * 8);
+    const flashGrad = ctx.createRadialGradient(mx, my, 0, mx, my, 150);
     flashGrad.addColorStop(0, hsl(300, 100, 90, flashIntensity));
-    flashGrad.addColorStop(0.3, hsl(280, 100, 70, flashIntensity * 0.5));
+    flashGrad.addColorStop(0.2, hsl(280, 100, 80, flashIntensity * 0.6));
+    flashGrad.addColorStop(0.5, hsl(260, 100, 70, flashIntensity * 0.2));
     flashGrad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = flashGrad;
     ctx.fillRect(0, 0, w, h);
+
+    // Orbiting dots around mouse
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2 + time * 2;
+      const orbitR = 30 + 10 * Math.sin(time * 3 + i);
+      const ox = mx + Math.cos(angle) * orbitR;
+      const oy = my + Math.sin(angle) * orbitR;
+      ctx.beginPath();
+      ctx.arc(ox, oy, 2, 0, Math.PI * 2);
+      ctx.fillStyle = hsl(270 + i * 15, 100, 80, 0.5);
+      ctx.shadowColor = hsl(270 + i * 15, 100, 70, 0.6);
+      ctx.shadowBlur = 6;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  // ── Pulsing corner accents ──
+  const cornerPulse = 0.3 + 0.2 * Math.sin(time * 4);
+  const corners = [[0, 0], [w, 0], [w, h], [0, h]];
+  for (let ci = 0; ci < corners.length; ci++) {
+    const [cx, cy] = corners[ci];
+    const cGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 80);
+    cGrad.addColorStop(0, hsl(270 + ci * 20, 100, 60, cornerPulse * 0.06));
+    cGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = cGrad;
+    ctx.fillRect(cx - 80, cy - 80, 160, 160);
   }
 }
 
@@ -2510,6 +2656,397 @@ function drawStorm(ctx: CanvasRenderingContext2D, w: number, h: number, time: nu
   state.thunderRipples = thunderRipples;
 }
 
+// ─── Cherry Blossom ──────────────────────────────────────────────────────────
+
+function drawCherryBlossom(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.petals = Array.from({ length: 60 }, () => ({
+      x: rand(-50, w + 50), y: rand(-h, 0),
+      size: rand(4, 12), speed: rand(0.5, 2),
+      drift: rand(-0.5, 0.5), rotation: rand(0, Math.PI * 2),
+      rotSpeed: rand(-0.02, 0.02), hue: rand(330, 360),
+      alpha: rand(0.4, 0.9),
+    }));
+    state.branches = Array.from({ length: 3 }, () => ({
+      x: rand(w * 0.1, w * 0.9), y: rand(0, h * 0.3),
+      length: rand(80, 200), angle: rand(-0.5, 0.5),
+    }));
+  }
+  const petals = state.petals as { x: number; y: number; size: number; speed: number; drift: number; rotation: number; rotSpeed: number; hue: number; alpha: number }[];
+  const branches = state.branches as { x: number; y: number; length: number; angle: number }[];
+
+  // Gradient sky
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#1a0010');
+  bg.addColorStop(0.4, '#2d0020');
+  bg.addColorStop(0.7, '#4a1030');
+  bg.addColorStop(1, '#3d1525');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Wind from mouse
+  const windX = (mx / w - 0.5) * 3;
+
+  // Draw tree branches
+  for (const b of branches) {
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.angle + Math.sin(time * 0.3) * 0.02);
+    ctx.strokeStyle = 'rgba(80,40,30,0.4)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(b.length * 0.3, -20, b.length, -10 + Math.sin(time) * 5);
+    ctx.stroke();
+    // Sub-branches
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(b.length * 0.5, -15);
+    ctx.quadraticCurveTo(b.length * 0.7, -35, b.length * 0.8, -30);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Draw petals
+  for (const p of petals) {
+    p.x += p.drift + windX * 0.5 + Math.sin(time * 2 + p.y * 0.01) * 0.8;
+    p.y += p.speed;
+    p.rotation += p.rotSpeed + windX * 0.01;
+
+    if (p.y > h + 20 || p.x < -60 || p.x > w + 60) {
+      Object.assign(p, {
+        x: rand(-50, w + 50), y: rand(-40, -10),
+        size: rand(4, 12), speed: rand(0.5, 2),
+        drift: rand(-0.5, 0.5), rotation: rand(0, Math.PI * 2),
+        hue: rand(330, 360), alpha: rand(0.4, 0.9),
+      });
+    }
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rotation);
+    ctx.globalAlpha = p.alpha;
+    // Petal shape (ellipse)
+    ctx.beginPath();
+    ctx.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(p.hue, 70, 80, 0.7);
+    ctx.fill();
+    // Second petal
+    ctx.beginPath();
+    ctx.ellipse(p.size * 0.3, 0, p.size * 0.7, p.size * 0.35, 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(p.hue, 60, 85, 0.5);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // Soft glow at mouse
+  if (mx > 0 && my > 0) {
+    const glow = ctx.createRadialGradient(mx, my, 0, mx, my, 80);
+    glow.addColorStop(0, 'rgba(255,150,200,0.06)');
+    glow.addColorStop(1, 'rgba(255,100,150,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+// ─── Stardust ────────────────────────────────────────────────────────────────
+
+function drawStardust(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.particles = Array.from({ length: 200 }, () =>
+      makeParticle({
+        x: rand(0, w), y: rand(0, h),
+        vx: rand(-0.3, 0.3), vy: rand(-0.3, 0.3),
+        size: rand(0.5, 2.5), maxLife: rand(3, 10), life: rand(0, 1),
+        hue: rand(30, 60), sat: rand(60, 100), light: rand(60, 95),
+      })
+    );
+    state.trails = Array.from({ length: 8 }, () => ({
+      x: rand(0, w), y: rand(0, h),
+      length: rand(50, 200), angle: rand(0, Math.PI * 2),
+      speed: rand(0.5, 2), hue: rand(30, 55),
+    }));
+  }
+  const particles = state.particles as Particle[];
+  const trails = state.trails as { x: number; y: number; length: number; angle: number; speed: number; hue: number }[];
+
+  // Dark cosmic background
+  const bg = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, w * 0.6);
+  bg.addColorStop(0, '#1a0f00');
+  bg.addColorStop(0.5, '#0d0800');
+  bg.addColorStop(1, '#050300');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Nebula glow
+  const offsetX = (mx / w - 0.5) * 20;
+  for (let i = 0; i < 3; i++) {
+    const nx = w * (0.3 + i * 0.2) + offsetX;
+    const ny = h * (0.3 + i * 0.15);
+    const neb = ctx.createRadialGradient(nx, ny, 0, nx, ny, 120);
+    neb.addColorStop(0, hsl(40 + i * 20, 80, 40, 0.06 + 0.02 * Math.sin(time * 0.5 + i)));
+    neb.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = neb;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // Golden trails
+  for (const t of trails) {
+    t.angle += t.speed * 0.005;
+    const endX = t.x + Math.cos(t.angle) * t.length;
+    const endY = t.y + Math.sin(t.angle) * t.length;
+    const grad = ctx.createLinearGradient(t.x, t.y, endX, endY);
+    grad.addColorStop(0, hsl(t.hue, 100, 80, 0));
+    grad.addColorStop(0.5, hsl(t.hue, 100, 70, 0.15 + 0.05 * Math.sin(time * 3 + t.hue)));
+    grad.addColorStop(1, hsl(t.hue, 100, 80, 0));
+    ctx.beginPath();
+    ctx.moveTo(t.x, t.y);
+    ctx.lineTo(endX, endY);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Particles
+  for (const p of particles) {
+    const dx = mx - p.x;
+    const dy = my - p.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    if (d < 120) {
+      p.vx += (dx / d) * 0.15;
+      p.vy += (dy / d) * 0.15;
+    }
+    p.vx *= 0.99;
+    p.vy *= 0.99;
+    p.x += p.vx + Math.sin(time + p.y * 0.005) * 0.2;
+    p.y += p.vy + Math.cos(time * 0.7 + p.x * 0.005) * 0.2;
+    p.life -= 0.003;
+
+    if (p.life <= 0) {
+      Object.assign(p, {
+        x: rand(0, w), y: rand(0, h),
+        vx: rand(-0.3, 0.3), vy: rand(-0.3, 0.3),
+        life: 1, size: rand(0.5, 2.5),
+        hue: rand(30, 60), light: rand(60, 95),
+      });
+    }
+
+    const twinkle = 0.5 + 0.5 * Math.sin(time * 5 + p.x * 0.1 + p.y * 0.1);
+    const a = p.life * 0.8 * twinkle;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(p.hue, 100, p.light, a);
+    ctx.shadowColor = hsl(p.hue, 100, 70, 0.5);
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ─── Vortex ──────────────────────────────────────────────────────────────────
+
+function drawVortex(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.particles = Array.from({ length: 180 }, () =>
+      makeParticle({
+        x: rand(0, w), y: rand(0, h),
+        vx: rand(-1, 1), vy: rand(-1, 1),
+        size: rand(1, 3), maxLife: rand(2, 6), life: rand(0, 1),
+        hue: rand(100, 170), sat: 100, light: rand(50, 80),
+      })
+    );
+    state.rings = Array.from({ length: 6 }, (_, i) => ({
+      r: 30 + i * 40, speed: 0.3 + i * 0.1, hue: 120 + i * 10,
+    }));
+  }
+  const particles = state.particles as Particle[];
+  const rings = state.rings as { r: number; speed: number; hue: number }[];
+
+  // Background
+  ctx.fillStyle = '#020d08';
+  ctx.fillRect(0, 0, w, h);
+
+  const cx = w * 0.5 + (mx - w * 0.5) * 0.1;
+  const cy = h * 0.5 + (my - h * 0.5) * 0.1;
+
+  // Spiral rings
+  for (const ring of rings) {
+    ring.r += Math.sin(time * 0.5) * 0.3;
+    const drawR = Math.max(1, ring.r);
+    ctx.beginPath();
+    ctx.arc(cx, cy, drawR, 0, Math.PI * 2);
+    ctx.strokeStyle = hsl(ring.hue, 80, 50, 0.1 + 0.05 * Math.sin(time * 2 + ring.hue));
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Spiral arm
+    ctx.beginPath();
+    for (let a = 0; a < Math.PI * 4; a += 0.1) {
+      const spiralR = drawR * (a / (Math.PI * 4));
+      const x = cx + Math.cos(a + time * ring.speed) * spiralR;
+      const y = cy + Math.sin(a + time * ring.speed) * spiralR;
+      if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = hsl(ring.hue, 100, 60, 0.08);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Center glow
+  const centerGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 80);
+  centerGlow.addColorStop(0, hsl(140, 100, 70, 0.15 + 0.05 * Math.sin(time * 3)));
+  centerGlow.addColorStop(0.5, hsl(120, 100, 50, 0.05));
+  centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = centerGlow;
+  ctx.fillRect(0, 0, w, h);
+
+  // Particles spiral toward center
+  for (const p of particles) {
+    const dx = cx - p.x;
+    const dy = cy - p.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    const pullStrength = Math.min(0.5, 30 / d);
+    // Tangential force (spiral)
+    p.vx += (-dy / d) * 0.15 + (dx / d) * pullStrength;
+    p.vy += (dx / d) * 0.15 + (dy / d) * pullStrength;
+    p.vx *= 0.97;
+    p.vy *= 0.97;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.004;
+
+    if (p.life <= 0 || d < 10) {
+      Object.assign(p, {
+        x: rand(0, w), y: rand(0, h),
+        vx: rand(-1, 1), vy: rand(-1, 1),
+        life: 1, size: rand(1, 3),
+        hue: rand(100, 170), light: rand(50, 80),
+      });
+    }
+
+    const a = p.life * 0.7;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(p.hue, 100, p.light, a);
+    ctx.shadowColor = hsl(p.hue, 100, 60, 0.4);
+    ctx.shadowBlur = 5;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ─── Northern Lights ─────────────────────────────────────────────────────────
+
+function drawNorthernLights(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.stars = Array.from({ length: 150 }, () => ({
+      x: rand(0, w), y: rand(0, h * 0.6),
+      size: rand(0.5, 2), brightness: rand(0.3, 1),
+      phase: rand(0, Math.PI * 2),
+    }));
+    state.particles = Array.from({ length: 80 }, () =>
+      makeParticle({
+        x: rand(0, w), y: rand(0, h * 0.5),
+        vx: rand(-0.3, 0.3), vy: rand(-0.2, 0.1),
+        size: rand(1, 3), maxLife: rand(3, 8), life: rand(0, 1),
+        hue: rand(100, 200), sat: rand(60, 100), light: rand(50, 80),
+      })
+    );
+  }
+  const stars = state.stars as { x: number; y: number; size: number; brightness: number; phase: number }[];
+  const particles = state.particles as Particle[];
+
+  // Night sky
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#020020');
+  bg.addColorStop(0.3, '#050840');
+  bg.addColorStop(0.6, '#081050');
+  bg.addColorStop(1, '#0a0820');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Vivid aurora curtains - more layers and brighter
+  const mouseInfluenceX = (mx / w - 0.5) * 80;
+  const mouseInfluenceY = (my / h - 0.5) * 40;
+  const auroraLayers = 6;
+  const hues = [100, 130, 160, 190, 220, 280];
+  const alphas = [0.18, 0.15, 0.13, 0.11, 0.09, 0.07];
+
+  for (let layer = 0; layer < auroraLayers; layer++) {
+    const baseY = h * (0.1 + layer * 0.08) + mouseInfluenceY * (layer * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let x = 0; x <= w; x += 3) {
+      const wave1 = Math.sin((x + time * 50 + mouseInfluenceX) * 0.007 + layer) * 70;
+      const wave2 = Math.sin((x - time * 30) * 0.011 + layer * 2) * 40;
+      const wave3 = Math.sin((x + time * 80) * 0.004) * 30;
+      const wave4 = Math.cos((x + time * 20) * 0.009 + layer * 0.5) * 20;
+      const y = baseY + wave1 + wave2 + wave3 + wave4;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+
+    const grad = ctx.createLinearGradient(0, baseY - 100, 0, baseY + 250);
+    grad.addColorStop(0, hsl(hues[layer], 95, 70, 0));
+    grad.addColorStop(0.2, hsl(hues[layer], 95, 65, alphas[layer]));
+    grad.addColorStop(0.5, hsl(hues[layer], 85, 55, alphas[layer] * 0.7));
+    grad.addColorStop(0.8, hsl(hues[layer], 75, 40, alphas[layer] * 0.3));
+    grad.addColorStop(1, hsl(hues[layer], 65, 25, 0));
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  // Vertical light rays
+  for (let i = 0; i < 12; i++) {
+    const rx = (Math.sin(i * 2.7 + time * 0.3) * 0.5 + 0.5) * w;
+    const rayAlpha = 0.03 + 0.02 * Math.sin(time * 2 + i * 1.5);
+    ctx.beginPath();
+    ctx.moveTo(rx, 0);
+    ctx.lineTo(rx + Math.sin(time + i) * 20, h);
+    ctx.strokeStyle = hsl(140 + i * 10, 100, 70, rayAlpha);
+    ctx.lineWidth = 4 + Math.sin(time + i) * 2;
+    ctx.stroke();
+  }
+
+  // Stars
+  for (const s of stars) {
+    const twinkle = 0.5 + 0.5 * Math.sin(time * 3 + s.phase);
+    const a = s.brightness * twinkle;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size * twinkle, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.fill();
+  }
+
+  // Shimmer particles
+  for (const p of particles) {
+    p.x += p.vx + Math.sin(time * 1.5 + p.y * 0.01) * 0.4;
+    p.y += p.vy + Math.cos(time * 0.8 + p.x * 0.005) * 0.3;
+    p.life -= 0.002;
+
+    if (p.life <= 0) {
+      Object.assign(p, {
+        x: rand(0, w), y: rand(0, h * 0.5),
+        vx: rand(-0.3, 0.3), vy: rand(-0.2, 0.1),
+        life: 1, size: rand(1, 3),
+        hue: rand(100, 200), light: rand(50, 80),
+      });
+    }
+
+    const a = p.life * 0.5 * (0.5 + 0.5 * Math.sin(time * 4 + p.x));
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(p.hue, p.sat, p.light, a);
+    ctx.fill();
+  }
+}
+
 // ─── Theme Animation Map ────────────────────────────────────────────────────
 
 const THEME_ANIMATIONS: Record<string, AnimationFn> = {
@@ -2531,6 +3068,33 @@ const THEME_ANIMATIONS: Record<string, AnimationFn> = {
   deep_sea_live: drawDeepSea,
   crystal_live: drawCrystal,
   storm_live: drawStorm,
+  cherry_blossom_live: drawCherryBlossom,
+  stardust_live: drawStardust,
+  vortex_live: drawVortex,
+  northern_lights_live: drawNorthernLights,
+  // Aliases for themes that use short keys (without _live suffix)
+  neon_pulse: drawNeonPulse,
+  aurora_live: drawAurora,
+  lava_live: drawLava,
+  ocean_live: drawOcean,
+  sunset_live: drawSunset,
+  matrix_live: drawMatrix,
+  rainbow_live: drawRainbow,
+  fire_live: drawFire,
+  galaxy_live: drawGalaxy,
+  waterfall_live: drawWaterfall,
+  autumn_live: drawAutumn,
+  cyberpunk_live: drawCyberpunk,
+  snowfall_live: drawSnowfall,
+  bubbles_live: drawBubbles,
+  plasma_live: drawPlasma,
+  deep_sea_live: drawDeepSea,
+  crystal_live: drawCrystal,
+  storm_live: drawStorm,
+  cherry_blossom_live: drawCherryBlossom,
+  stardust_live: drawStardust,
+  vortex_live: drawVortex,
+  northern_lights_live: drawNorthernLights,
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────

@@ -360,6 +360,66 @@
   animation: liveKenBurns2 16s ease infinite, liveCyberFlicker 3.5s ease infinite !important;
 }
 
+/* Snowfall - winter wonderland */
+.theme-snowfall-live {
+  background: linear-gradient(180deg, #0c1445 0%, #1a2766 40%, #2d3a7c 100%) !important;
+  animation: liveKenBurns1 22s ease infinite, liveImageShimmer 10s ease infinite !important;
+}
+
+/* Bubbles - underwater bubbles */
+.theme-bubbles-live {
+  background: linear-gradient(180deg, #042f2e 0%, #0f766e 50%, #134e4a 100%) !important;
+  animation: liveKenBurns2 18s ease infinite, liveImageShimmer 8s ease infinite !important;
+}
+
+/* Plasma - swirling plasma energy */
+.theme-plasma-live {
+  background: linear-gradient(135deg, #4a044e 0%, #86198f 50%, #701a75 100%) !important;
+  animation: liveKenBurns1 16s ease infinite, liveNeonFlicker 5s ease infinite !important;
+}
+
+/* Deep Sea - abyssal ocean */
+.theme-deep-sea-live {
+  background: linear-gradient(180deg, #0a0a2e 0%, #1e1b4b 40%, #312e81 100%) !important;
+  animation: liveKenBurns2 25s ease infinite, liveImageShimmer 12s ease infinite !important;
+}
+
+/* Crystal - prismatic crystal cave */
+.theme-crystal-live {
+  background: linear-gradient(135deg, #2e1065 0%, #4c1d95 40%, #5b21b6 100%) !important;
+  animation: liveKenBurns1 20s ease infinite, liveImageShimmer 7s ease infinite !important;
+}
+
+/* Storm - thunderstorm */
+.theme-storm-live {
+  background: linear-gradient(180deg, #09090b 0%, #18181b 40%, #27272a 100%) !important;
+  animation: liveKenBurns2 14s ease infinite, liveCyberFlicker 3s ease infinite !important;
+}
+
+/* Cherry Blossom - falling sakura petals */
+.theme-cherry-blossom-live {
+  background: linear-gradient(180deg, #500724 0%, #831843 40%, #9d174d 100%) !important;
+  animation: liveKenBurns1 20s ease infinite, liveImageShimmer 8s ease infinite !important;
+}
+
+/* Stardust - cosmic golden particles */
+.theme-stardust-live {
+  background: linear-gradient(135deg, #451a03 0%, #78350f 40%, #92400e 100%) !important;
+  animation: liveKenBurns2 24s ease infinite, liveImageShimmer 6s ease infinite !important;
+}
+
+/* Vortex - swirling energy */
+.theme-vortex-live {
+  background: linear-gradient(135deg, #022c22 0%, #064e3b 40%, #065f46 100%) !important;
+  animation: liveKenBurns1 18s ease infinite, liveNeonFlicker 6s ease infinite !important;
+}
+
+/* Northern Lights - vivid aurora */
+.theme-northern-lights-live {
+  background: linear-gradient(180deg, #082f49 0%, #0c4a6e 40%, #075985 100%) !important;
+  animation: liveKenBurns2 26s ease infinite, liveImageShimmer 10s ease infinite !important;
+}
+
 /* ─── Animated Effect Overlay Layers ──────────────────────────────────── */
 
 /* Aurora - shimmering light curtains */
@@ -547,6 +607,109 @@
   mix-blend-mode: screen;
 }
 
+/* Snowfall - drifting snow particles */
+.live-fx-snowfall {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(200,220,255,0.08) 0%, transparent 20%),
+    radial-gradient(circle at 70% 40%, rgba(180,200,255,0.06) 0%, transparent 15%),
+    linear-gradient(180deg, rgba(100,150,255,0.04) 0%, rgba(200,220,255,0.08) 100%);
+  animation: fxSnowfallDrift 8s ease infinite, fxSnowfallGlow 4s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Bubbles - rising bubble shimmer */
+.live-fx-bubbles {
+  background:
+    radial-gradient(circle at 20% 70%, rgba(0,255,200,0.1) 0%, transparent 25%),
+    radial-gradient(circle at 60% 30%, rgba(0,200,255,0.08) 0%, transparent 20%),
+    radial-gradient(circle at 80% 60%, rgba(100,255,200,0.06) 0%, transparent 15%);
+  animation: fxBubblesRise 6s ease infinite, fxBubblesShimmer 3s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Plasma - energy swirls */
+.live-fx-plasma {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(255,0,200,0.12) 0%, transparent 40%),
+    radial-gradient(ellipse at 30% 30%, rgba(0,200,255,0.08) 0%, transparent 30%);
+  background-size: 200% 200% !important;
+  animation: fxPlasmaSwirl 4s ease infinite, fxPlasmaPulse 2s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Deep Sea - bioluminescent glow */
+.live-fx-deep-sea, .live-fx-deep_sea {
+  background:
+    radial-gradient(circle at 25% 75%, rgba(0,255,180,0.08) 0%, transparent 20%),
+    radial-gradient(circle at 75% 50%, rgba(0,150,255,0.06) 0%, transparent 25%),
+    linear-gradient(180deg, rgba(0,50,100,0.05) 0%, rgba(0,100,150,0.08) 100%);
+  animation: fxDeepSeaGlow 6s ease infinite, fxDeepSeaPulse 4s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Crystal - prismatic refractions */
+.live-fx-crystal {
+  background:
+    linear-gradient(45deg, rgba(200,0,255,0.06) 0%, transparent 50%),
+    linear-gradient(-45deg, rgba(0,255,200,0.06) 0%, transparent 50%),
+    linear-gradient(90deg, rgba(255,200,0,0.04) 0%, transparent 50%);
+  animation: fxCrystalRefract 5s ease infinite, fxCrystalShimmer 2.5s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Storm - lightning flashes and rain */
+.live-fx-storm {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      rgba(150,180,255,0.02) 1px,
+      transparent 2px
+    ),
+    linear-gradient(180deg, rgba(100,120,200,0.04) 0%, rgba(60,70,100,0.06) 100%);
+  animation: fxStormRain 1s linear infinite, fxStormFlash 4s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Cherry Blossom - falling sakura petals */
+.live-fx-cherry-blossom, .live-fx-cherry_blossom {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,150,200,0.1) 0%, transparent 25%),
+    radial-gradient(circle at 70% 60%, rgba(255,100,150,0.08) 0%, transparent 20%),
+    linear-gradient(180deg, rgba(255,150,180,0.04) 0%, rgba(255,100,130,0.06) 100%);
+  animation: fxCherryBlossomDrift 10s ease infinite, fxCherryBlossomPulse 5s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Stardust - cosmic golden particles */
+.live-fx-stardust {
+  background:
+    radial-gradient(circle at 30% 40%, rgba(255,220,100,0.1) 0%, transparent 15%),
+    radial-gradient(circle at 60% 20%, rgba(255,200,50,0.08) 0%, transparent 12%),
+    radial-gradient(circle at 80% 70%, rgba(255,180,0,0.06) 0%, transparent 10%);
+  animation: fxStardustTwinkle 3s ease infinite, fxStardustDrift 15s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Vortex - swirling energy */
+.live-fx-vortex {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(0,255,100,0.1) 0%, transparent 35%),
+    radial-gradient(ellipse at 30% 30%, rgba(100,255,0,0.06) 0%, transparent 25%);
+  background-size: 200% 200% !important;
+  animation: fxVortexSpin 8s linear infinite, fxVortexPulse 3s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
+/* Northern Lights - vivid aurora */
+.live-fx-northern-lights, .live-fx-northern_lights {
+  background:
+    linear-gradient(135deg, rgba(0,255,100,0.08) 0%, rgba(0,200,255,0.1) 25%, rgba(100,0,255,0.06) 50%, rgba(0,255,200,0.08) 75%, rgba(0,150,255,0.06) 100%);
+  background-size: 400% 400% !important;
+  animation: fxAuroraCurtain 8s ease infinite, fxAuroraPulse 4s ease infinite !important;
+  mix-blend-mode: screen;
+}
+
 /* ─── Ken Burns Zoom-Pan Keyframes (more dramatic than simple pan) ─── */
 @keyframes liveKenBurns1 {
   0% { background-position: 20% 20%; background-size: 160% 160%; }
@@ -696,6 +859,104 @@
 @keyframes fxCyberSweep {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 0.9; }
+}
+
+@keyframes fxSnowfallDrift {
+  0% { background-position: 30% 20%, 70% 40%, 0% 0%; }
+  50% { background-position: 25% 30%, 75% 50%, 0% 100%; }
+  100% { background-position: 30% 20%, 70% 40%, 0% 0%; }
+}
+@keyframes fxSnowfallGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes fxBubblesRise {
+  0% { background-position: 20% 70%, 60% 30%, 0% 0%; }
+  50% { background-position: 25% 50%, 55% 20%, 0% 100%; }
+  100% { background-position: 20% 70%, 60% 30%, 0% 0%; }
+}
+@keyframes fxBubblesShimmer {
+  0%, 100% { opacity: 0.4; filter: brightness(1); }
+  50% { opacity: 0.8; filter: brightness(1.2); }
+}
+
+@keyframes fxPlasmaSwirl {
+  0% { background-position: 50% 50%, 30% 30%; }
+  33% { background-position: 30% 70%, 70% 50%; }
+  66% { background-position: 70% 30%, 50% 70%; }
+  100% { background-position: 50% 50%, 30% 30%; }
+}
+@keyframes fxPlasmaPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes fxDeepSeaGlow {
+  0% { background-position: 25% 75%, 75% 50%, 0% 0%; }
+  50% { background-position: 30% 65%, 70% 60%, 0% 100%; }
+  100% { background-position: 25% 75%, 75% 50%, 0% 0%; }
+}
+@keyframes fxDeepSeaPulse {
+  0%, 100% { opacity: 0.5; filter: brightness(1) hue-rotate(0deg); }
+  50% { opacity: 0.9; filter: brightness(1.3) hue-rotate(10deg); }
+}
+
+@keyframes fxCrystalRefract {
+  0% { background-position: 0% 0%, 100% 100%, 0% 50%; }
+  33% { background-position: 50% 50%, 50% 0%, 100% 50%; }
+  66% { background-position: 100% 0%, 0% 50%, 50% 100%; }
+  100% { background-position: 0% 0%, 100% 100%, 0% 50%; }
+}
+@keyframes fxCrystalShimmer {
+  0%, 100% { opacity: 0.4; }
+  30% { opacity: 1; }
+  60% { opacity: 0.5; }
+}
+
+@keyframes fxStormRain {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100%; }
+}
+@keyframes fxStormFlash {
+  0%, 90%, 100% { opacity: 0.3; }
+  92% { opacity: 1; }
+  94% { opacity: 0.3; }
+  96% { opacity: 0.8; }
+}
+
+@keyframes fxCherryBlossomDrift {
+  0% { background-position: 20% 30%, 70% 60%, 0% 0%; }
+  50% { background-position: 25% 40%, 65% 55%, 0% 100%; }
+  100% { background-position: 20% 30%, 70% 60%, 0% 0%; }
+}
+@keyframes fxCherryBlossomPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes fxStardustTwinkle {
+  0%, 100% { opacity: 0.4; }
+  30% { opacity: 1; }
+  60% { opacity: 0.5; }
+  80% { opacity: 0.9; }
+}
+@keyframes fxStardustDrift {
+  0% { background-position: 30% 40%, 60% 20%, 80% 70%; }
+  50% { background-position: 35% 50%, 55% 30%, 75% 60%; }
+  100% { background-position: 30% 40%, 60% 20%, 80% 70%; }
+}
+
+@keyframes fxVortexSpin {
+  0% { background-position: 50% 50%, 30% 30%; }
+  25% { background-position: 30% 70%, 70% 30%; }
+  50% { background-position: 70% 50%, 50% 70%; }
+  75% { background-position: 50% 30%, 30% 50%; }
+  100% { background-position: 50% 50%, 30% 30%; }
+}
+@keyframes fxVortexPulse {
+  0%, 100% { opacity: 0.4; filter: hue-rotate(0deg); }
+  50% { opacity: 1; filter: hue-rotate(30deg); }
 }
 
 /* ─── Live Theme Keyboard Element Overrides ─────────────────────────────── */
