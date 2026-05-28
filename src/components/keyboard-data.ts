@@ -1,0 +1,757 @@
+// ─── Interfaces ────────────────────────────────────────────────────────────
+
+export interface ThemeDef {
+  name: string; flag: string;
+  bg: string; card: string; key: string; keyHover: string; keyActive: string; keyText: string;
+  specialKey: string; accent: string; accentText: string; border: string;
+  tabBar: string; tabActive: string; tabActiveText: string; suggestion: string;
+  isLive?: boolean; liveClass?: string; category?: 'solid' | 'live' | 'custom';
+}
+
+export interface CustomThemeData {
+  id: string; name: string;
+  bgColor: string; keyColor: string; keyTextColor: string; accentColor: string; specialKeyColor: string;
+  bgImageUrl?: string; bgGifUrl?: string;
+}
+
+export interface GiphyGif {
+  id: string;
+  url: string;
+  title: string;
+  images: { fixed_height: { url: string } };
+  _fallback?: { emoji: string; label: string };
+}
+
+// ─── Theme Definitions ────────────────────────────────────────────────────
+export const THEMES: Record<string, ThemeDef> = {
+  default: {
+    name: 'Classic', flag: '⬜', category: 'solid',
+    bg: 'bg-background', card: 'bg-card', key: 'bg-card', keyHover: 'hover:bg-accent',
+    keyActive: 'bg-primary text-primary-foreground', keyText: 'text-foreground',
+    specialKey: 'bg-muted/80', accent: 'bg-primary', accentText: 'text-primary-foreground',
+    border: 'border-border/50', tabBar: 'bg-muted/20', tabActive: 'bg-primary', tabActiveText: 'text-primary-foreground',
+    suggestion: 'bg-muted/60',
+  },
+  midnight: {
+    name: 'Midnight', flag: '🌙', category: 'solid',
+    bg: 'bg-slate-950', card: 'bg-slate-900', key: 'bg-slate-800', keyHover: 'hover:bg-slate-700',
+    keyActive: 'bg-violet-600 text-white', keyText: 'text-slate-100',
+    specialKey: 'bg-slate-700', accent: 'bg-violet-600', accentText: 'text-white',
+    border: 'border-slate-700/50', tabBar: 'bg-slate-900', tabActive: 'bg-violet-600', tabActiveText: 'text-white',
+    suggestion: 'bg-slate-800',
+  },
+  ocean: {
+    name: 'Ocean', flag: '🌊', category: 'solid',
+    bg: 'bg-cyan-950', card: 'bg-cyan-900', key: 'bg-cyan-800', keyHover: 'hover:bg-cyan-700',
+    keyActive: 'bg-teal-500 text-white', keyText: 'text-cyan-50',
+    specialKey: 'bg-cyan-700', accent: 'bg-teal-500', accentText: 'text-white',
+    border: 'border-cyan-700/50', tabBar: 'bg-cyan-900', tabActive: 'bg-teal-500', tabActiveText: 'text-white',
+    suggestion: 'bg-cyan-800',
+  },
+  sunset: {
+    name: 'Sunset', flag: '🌅', category: 'solid',
+    bg: 'bg-orange-950', card: 'bg-orange-900', key: 'bg-orange-800', keyHover: 'hover:bg-orange-700',
+    keyActive: 'bg-amber-500 text-white', keyText: 'text-orange-50',
+    specialKey: 'bg-orange-700', accent: 'bg-amber-500', accentText: 'text-white',
+    border: 'border-orange-700/50', tabBar: 'bg-orange-900', tabActive: 'bg-amber-500', tabActiveText: 'text-white',
+    suggestion: 'bg-orange-800',
+  },
+  forest: {
+    name: 'Forest', flag: '🌿', category: 'solid',
+    bg: 'bg-green-950', card: 'bg-green-900', key: 'bg-green-800', keyHover: 'hover:bg-green-700',
+    keyActive: 'bg-emerald-500 text-white', keyText: 'text-green-50',
+    specialKey: 'bg-green-700', accent: 'bg-emerald-500', accentText: 'text-white',
+    border: 'border-green-700/50', tabBar: 'bg-green-900', tabActive: 'bg-emerald-500', tabActiveText: 'text-white',
+    suggestion: 'bg-green-800',
+  },
+  ethiopian: {
+    name: 'Ethiopian', flag: '🇪🇹', category: 'solid',
+    bg: 'bg-gradient-to-b from-green-900 to-yellow-900', card: 'bg-green-800/80', key: 'bg-green-700', keyHover: 'hover:bg-yellow-600',
+    keyActive: 'bg-yellow-500 text-green-900', keyText: 'text-green-50',
+    specialKey: 'bg-yellow-700', accent: 'bg-yellow-500', accentText: 'text-green-900',
+    border: 'border-yellow-600/50', tabBar: 'bg-green-900', tabActive: 'bg-yellow-500', tabActiveText: 'text-green-900',
+    suggestion: 'bg-green-700',
+  },
+  rose: {
+    name: 'Rose', flag: '🌹', category: 'solid',
+    bg: 'bg-rose-950', card: 'bg-rose-900', key: 'bg-rose-800', keyHover: 'hover:bg-rose-700',
+    keyActive: 'bg-pink-500 text-white', keyText: 'text-rose-50',
+    specialKey: 'bg-rose-700', accent: 'bg-pink-500', accentText: 'text-white',
+    border: 'border-rose-700/50', tabBar: 'bg-rose-900', tabActive: 'bg-pink-500', tabActiveText: 'text-white',
+    suggestion: 'bg-rose-800',
+  },
+  neon: {
+    name: 'Neon', flag: '💜', category: 'solid',
+    bg: 'bg-gray-950', card: 'bg-gray-900', key: 'bg-gray-800', keyHover: 'hover:bg-gray-700',
+    keyActive: 'bg-lime-400 text-gray-950', keyText: 'text-gray-100',
+    specialKey: 'bg-gray-700', accent: 'bg-lime-400', accentText: 'text-gray-950',
+    border: 'border-gray-700/50', tabBar: 'bg-gray-900', tabActive: 'bg-lime-400', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-gray-800',
+  },
+  candy: {
+    name: 'Candy', flag: '🍬', category: 'solid',
+    bg: 'bg-fuchsia-950', card: 'bg-fuchsia-900', key: 'bg-fuchsia-800', keyHover: 'hover:bg-fuchsia-700',
+    keyActive: 'bg-pink-400 text-white', keyText: 'text-fuchsia-50',
+    specialKey: 'bg-fuchsia-700', accent: 'bg-pink-400', accentText: 'text-white',
+    border: 'border-fuchsia-700/50', tabBar: 'bg-fuchsia-900', tabActive: 'bg-pink-400', tabActiveText: 'text-white',
+    suggestion: 'bg-fuchsia-800',
+  },
+  arctic: {
+    name: 'Arctic', flag: '❄️', category: 'solid',
+    bg: 'bg-sky-950', card: 'bg-sky-900', key: 'bg-sky-800', keyHover: 'hover:bg-sky-700',
+    keyActive: 'bg-sky-400 text-sky-950', keyText: 'text-sky-50',
+    specialKey: 'bg-sky-700', accent: 'bg-sky-400', accentText: 'text-sky-950',
+    border: 'border-sky-700/50', tabBar: 'bg-sky-900', tabActive: 'bg-sky-400', tabActiveText: 'text-sky-950',
+    suggestion: 'bg-sky-800',
+  },
+  cherry: {
+    name: 'Cherry', flag: '🍒', category: 'solid',
+    bg: 'bg-red-950', card: 'bg-red-900', key: 'bg-red-800', keyHover: 'hover:bg-red-700',
+    keyActive: 'bg-red-400 text-white', keyText: 'text-red-50',
+    specialKey: 'bg-red-700', accent: 'bg-red-400', accentText: 'text-white',
+    border: 'border-red-700/50', tabBar: 'bg-red-900', tabActive: 'bg-red-400', tabActiveText: 'text-white',
+    suggestion: 'bg-red-800',
+  },
+  sand: {
+    name: 'Sand', flag: '🏜️', category: 'solid',
+    bg: 'bg-amber-950', card: 'bg-amber-900', key: 'bg-amber-800', keyHover: 'hover:bg-amber-700',
+    keyActive: 'bg-amber-400 text-amber-950', keyText: 'text-amber-50',
+    specialKey: 'bg-amber-700', accent: 'bg-amber-400', accentText: 'text-amber-950',
+    border: 'border-amber-700/50', tabBar: 'bg-amber-900', tabActive: 'bg-amber-400', tabActiveText: 'text-amber-950',
+    suggestion: 'bg-amber-800',
+  },
+  lavender: {
+    name: 'Lavender', flag: '💐', category: 'solid',
+    bg: 'bg-purple-950', card: 'bg-purple-900', key: 'bg-purple-800', keyHover: 'hover:bg-purple-700',
+    keyActive: 'bg-purple-400 text-white', keyText: 'text-purple-50',
+    specialKey: 'bg-purple-700', accent: 'bg-purple-400', accentText: 'text-white',
+    border: 'border-purple-700/50', tabBar: 'bg-purple-900', tabActive: 'bg-purple-400', tabActiveText: 'text-white',
+    suggestion: 'bg-purple-800',
+  },
+  teal: {
+    name: 'Teal', flag: '🦚', category: 'solid',
+    bg: 'bg-teal-950', card: 'bg-teal-900', key: 'bg-teal-800', keyHover: 'hover:bg-teal-700',
+    keyActive: 'bg-teal-400 text-teal-950', keyText: 'text-teal-50',
+    specialKey: 'bg-teal-700', accent: 'bg-teal-400', accentText: 'text-teal-950',
+    border: 'border-teal-700/50', tabBar: 'bg-teal-900', tabActive: 'bg-teal-400', tabActiveText: 'text-teal-950',
+    suggestion: 'bg-teal-800',
+  },
+  crimson: {
+    name: 'Crimson', flag: '🔮', category: 'solid',
+    bg: 'bg-rose-950', card: 'bg-rose-900', key: 'bg-rose-800', keyHover: 'hover:bg-rose-700',
+    keyActive: 'bg-rose-400 text-white', keyText: 'text-rose-50',
+    specialKey: 'bg-rose-700', accent: 'bg-rose-400', accentText: 'text-white',
+    border: 'border-rose-700/50', tabBar: 'bg-rose-900', tabActive: 'bg-rose-400', tabActiveText: 'text-white',
+    suggestion: 'bg-rose-800',
+  },
+  moss: {
+    name: 'Moss', flag: '🌱', category: 'solid',
+    bg: 'bg-lime-950', card: 'bg-lime-900', key: 'bg-lime-800', keyHover: 'hover:bg-lime-700',
+    keyActive: 'bg-lime-400 text-lime-950', keyText: 'text-lime-50',
+    specialKey: 'bg-lime-700', accent: 'bg-lime-400', accentText: 'text-lime-950',
+    border: 'border-lime-700/50', tabBar: 'bg-lime-900', tabActive: 'bg-lime-400', tabActiveText: 'text-lime-950',
+    suggestion: 'bg-lime-800',
+  },
+  storm: {
+    name: 'Storm', flag: '⛈️', category: 'solid',
+    bg: 'bg-zinc-950', card: 'bg-zinc-900', key: 'bg-zinc-800', keyHover: 'hover:bg-zinc-700',
+    keyActive: 'bg-zinc-400 text-zinc-950', keyText: 'text-zinc-100',
+    specialKey: 'bg-zinc-700', accent: 'bg-zinc-400', accentText: 'text-zinc-950',
+    border: 'border-zinc-700/50', tabBar: 'bg-zinc-900', tabActive: 'bg-zinc-400', tabActiveText: 'text-zinc-950',
+    suggestion: 'bg-zinc-800',
+  },
+  peach: {
+    name: 'Peach', flag: '🍑', category: 'solid',
+    bg: 'bg-orange-950', card: 'bg-orange-900', key: 'bg-orange-800', keyHover: 'hover:bg-orange-700',
+    keyActive: 'bg-orange-300 text-orange-950', keyText: 'text-orange-50',
+    specialKey: 'bg-orange-700', accent: 'bg-orange-300', accentText: 'text-orange-950',
+    border: 'border-orange-700/50', tabBar: 'bg-orange-900', tabActive: 'bg-orange-300', tabActiveText: 'text-orange-950',
+    suggestion: 'bg-orange-800',
+  },
+  indigo: {
+    name: 'Indigo', flag: '🔵', category: 'solid',
+    bg: 'bg-blue-950', card: 'bg-blue-900', key: 'bg-blue-800', keyHover: 'hover:bg-blue-700',
+    keyActive: 'bg-blue-400 text-white', keyText: 'text-blue-50',
+    specialKey: 'bg-blue-700', accent: 'bg-blue-400', accentText: 'text-white',
+    border: 'border-blue-700/50', tabBar: 'bg-blue-900', tabActive: 'bg-blue-400', tabActiveText: 'text-white',
+    suggestion: 'bg-blue-800',
+  },
+  gold: {
+    name: 'Gold', flag: '👑', category: 'solid',
+    bg: 'bg-yellow-950', card: 'bg-yellow-900', key: 'bg-yellow-800', keyHover: 'hover:bg-yellow-700',
+    keyActive: 'bg-yellow-400 text-yellow-950', keyText: 'text-yellow-50',
+    specialKey: 'bg-yellow-700', accent: 'bg-yellow-400', accentText: 'text-yellow-950',
+    border: 'border-yellow-700/50', tabBar: 'bg-yellow-900', tabActive: 'bg-yellow-400', tabActiveText: 'text-yellow-950',
+    suggestion: 'bg-yellow-800',
+  },
+  // ─── NEW SOLID THEMES ──────────────────────────────────────────────────
+  volcano: {
+    name: 'Volcano', flag: '🌋', category: 'solid',
+    bg: 'bg-red-950', card: 'bg-red-900', key: 'bg-red-800', keyHover: 'hover:bg-orange-700',
+    keyActive: 'bg-orange-500 text-white', keyText: 'text-red-50',
+    specialKey: 'bg-red-700', accent: 'bg-orange-500', accentText: 'text-white',
+    border: 'border-red-700/50', tabBar: 'bg-red-900', tabActive: 'bg-orange-500', tabActiveText: 'text-white',
+    suggestion: 'bg-red-800',
+  },
+  carbon: {
+    name: 'Carbon', flag: '🖤', category: 'solid',
+    bg: 'bg-neutral-950', card: 'bg-neutral-900', key: 'bg-neutral-800', keyHover: 'hover:bg-neutral-700',
+    keyActive: 'bg-neutral-300 text-neutral-950', keyText: 'text-neutral-100',
+    specialKey: 'bg-neutral-700', accent: 'bg-neutral-300', accentText: 'text-neutral-950',
+    border: 'border-neutral-700/50', tabBar: 'bg-neutral-900', tabActive: 'bg-neutral-300', tabActiveText: 'text-neutral-950',
+    suggestion: 'bg-neutral-800',
+  },
+  sapphire: {
+    name: 'Sapphire', flag: '💎', category: 'solid',
+    bg: 'bg-blue-950', card: 'bg-blue-900', key: 'bg-blue-800', keyHover: 'hover:bg-blue-700',
+    keyActive: 'bg-blue-300 text-blue-950', keyText: 'text-blue-50',
+    specialKey: 'bg-blue-700', accent: 'bg-blue-300', accentText: 'text-blue-950',
+    border: 'border-blue-700/50', tabBar: 'bg-blue-900', tabActive: 'bg-blue-300', tabActiveText: 'text-blue-950',
+    suggestion: 'bg-blue-800',
+  },
+  coral: {
+    name: 'Coral', flag: '🪸', category: 'solid',
+    bg: 'bg-orange-950', card: 'bg-orange-900', key: 'bg-orange-800', keyHover: 'hover:bg-pink-700',
+    keyActive: 'bg-pink-400 text-white', keyText: 'text-orange-50',
+    specialKey: 'bg-orange-700', accent: 'bg-pink-400', accentText: 'text-white',
+    border: 'border-orange-700/50', tabBar: 'bg-orange-900', tabActive: 'bg-pink-400', tabActiveText: 'text-white',
+    suggestion: 'bg-orange-800',
+  },
+  jade: {
+    name: 'Jade', flag: '🟢', category: 'solid',
+    bg: 'bg-emerald-950', card: 'bg-emerald-900', key: 'bg-emerald-800', keyHover: 'hover:bg-emerald-700',
+    keyActive: 'bg-emerald-400 text-emerald-950', keyText: 'text-emerald-50',
+    specialKey: 'bg-emerald-700', accent: 'bg-emerald-400', accentText: 'text-emerald-950',
+    border: 'border-emerald-700/50', tabBar: 'bg-emerald-900', tabActive: 'bg-emerald-400', tabActiveText: 'text-emerald-950',
+    suggestion: 'bg-emerald-800',
+  },
+  ruby: {
+    name: 'Ruby', flag: '♦️', category: 'solid',
+    bg: 'bg-red-950', card: 'bg-red-900', key: 'bg-red-800', keyHover: 'hover:bg-red-600',
+    keyActive: 'bg-red-300 text-red-950', keyText: 'text-red-50',
+    specialKey: 'bg-red-700', accent: 'bg-red-300', accentText: 'text-red-950',
+    border: 'border-red-700/50', tabBar: 'bg-red-900', tabActive: 'bg-red-300', tabActiveText: 'text-red-950',
+    suggestion: 'bg-red-800',
+  },
+  platinum: {
+    name: 'Platinum', flag: '🪩', category: 'solid',
+    bg: 'bg-gray-100', card: 'bg-gray-200', key: 'bg-gray-300', keyHover: 'hover:bg-gray-400',
+    keyActive: 'bg-gray-600 text-white', keyText: 'text-gray-800',
+    specialKey: 'bg-gray-400', accent: 'bg-gray-600', accentText: 'text-white',
+    border: 'border-gray-400/50', tabBar: 'bg-gray-100', tabActive: 'bg-gray-600', tabActiveText: 'text-white',
+    suggestion: 'bg-gray-300',
+  },
+  copper: {
+    name: 'Copper', flag: '🟤', category: 'solid',
+    bg: 'bg-amber-950', card: 'bg-amber-900', key: 'bg-amber-800', keyHover: 'hover:bg-amber-600',
+    keyActive: 'bg-amber-300 text-amber-950', keyText: 'text-amber-50',
+    specialKey: 'bg-amber-700', accent: 'bg-amber-300', accentText: 'text-amber-950',
+    border: 'border-amber-700/50', tabBar: 'bg-amber-900', tabActive: 'bg-amber-300', tabActiveText: 'text-amber-950',
+    suggestion: 'bg-amber-800',
+  },
+  emerald: {
+    name: 'Emerald', flag: '💚', category: 'solid',
+    bg: 'bg-green-950', card: 'bg-green-900', key: 'bg-green-800', keyHover: 'hover:bg-green-600',
+    keyActive: 'bg-green-300 text-green-950', keyText: 'text-green-50',
+    specialKey: 'bg-green-700', accent: 'bg-green-300', accentText: 'text-green-950',
+    border: 'border-green-700/50', tabBar: 'bg-green-900', tabActive: 'bg-green-300', tabActiveText: 'text-green-950',
+    suggestion: 'bg-green-800',
+  },
+  marble: {
+    name: 'Marble', flag: '🏛️', category: 'solid',
+    bg: 'bg-stone-100', card: 'bg-stone-200', key: 'bg-stone-300', keyHover: 'hover:bg-stone-400',
+    keyActive: 'bg-stone-600 text-white', keyText: 'text-stone-800',
+    specialKey: 'bg-stone-400', accent: 'bg-stone-600', accentText: 'text-white',
+    border: 'border-stone-400/50', tabBar: 'bg-stone-100', tabActive: 'bg-stone-600', tabActiveText: 'text-white',
+    suggestion: 'bg-stone-300',
+  },
+  obsidian: {
+    name: 'Obsidian', flag: '⬛', category: 'solid',
+    bg: 'bg-black', card: 'bg-gray-950', key: 'bg-gray-900', keyHover: 'hover:bg-gray-800',
+    keyActive: 'bg-gray-500 text-white', keyText: 'text-gray-100',
+    specialKey: 'bg-gray-800', accent: 'bg-gray-500', accentText: 'text-white',
+    border: 'border-gray-800/50', tabBar: 'bg-black', tabActive: 'bg-gray-500', tabActiveText: 'text-white',
+    suggestion: 'bg-gray-900',
+  },
+  turquoise: {
+    name: 'Turquoise', flag: '💠', category: 'solid',
+    bg: 'bg-teal-950', card: 'bg-teal-900', key: 'bg-teal-800', keyHover: 'hover:bg-teal-600',
+    keyActive: 'bg-teal-300 text-teal-950', keyText: 'text-teal-50',
+    specialKey: 'bg-teal-700', accent: 'bg-teal-300', accentText: 'text-teal-950',
+    border: 'border-teal-700/50', tabBar: 'bg-teal-900', tabActive: 'bg-teal-300', tabActiveText: 'text-teal-950',
+    suggestion: 'bg-teal-800',
+  },
+  magenta: {
+    name: 'Magenta', flag: '🩷', category: 'solid',
+    bg: 'bg-pink-950', card: 'bg-pink-900', key: 'bg-pink-800', keyHover: 'hover:bg-pink-700',
+    keyActive: 'bg-pink-400 text-white', keyText: 'text-pink-50',
+    specialKey: 'bg-pink-700', accent: 'bg-pink-400', accentText: 'text-white',
+    border: 'border-pink-700/50', tabBar: 'bg-pink-900', tabActive: 'bg-pink-400', tabActiveText: 'text-white',
+    suggestion: 'bg-pink-800',
+  },
+  cinnamon: {
+    name: 'Cinnamon', flag: '🫎', category: 'solid',
+    bg: 'bg-stone-950', card: 'bg-stone-900', key: 'bg-stone-800', keyHover: 'hover:bg-stone-700',
+    keyActive: 'bg-amber-600 text-white', keyText: 'text-stone-100',
+    specialKey: 'bg-stone-700', accent: 'bg-amber-600', accentText: 'text-white',
+    border: 'border-stone-700/50', tabBar: 'bg-stone-900', tabActive: 'bg-amber-600', tabActiveText: 'text-white',
+    suggestion: 'bg-stone-800',
+  },
+  slate: {
+    name: 'Slate', flag: '🪨', category: 'solid',
+    bg: 'bg-slate-950', card: 'bg-slate-900', key: 'bg-slate-800', keyHover: 'hover:bg-slate-600',
+    keyActive: 'bg-slate-300 text-slate-950', keyText: 'text-slate-50',
+    specialKey: 'bg-slate-700', accent: 'bg-slate-300', accentText: 'text-slate-950',
+    border: 'border-slate-700/50', tabBar: 'bg-slate-900', tabActive: 'bg-slate-300', tabActiveText: 'text-slate-950',
+    suggestion: 'bg-slate-800',
+  },
+  honey: {
+    name: 'Honey', flag: '🍯', category: 'solid',
+    bg: 'bg-yellow-950', card: 'bg-yellow-900', key: 'bg-yellow-800', keyHover: 'hover:bg-yellow-600',
+    keyActive: 'bg-yellow-300 text-yellow-950', keyText: 'text-yellow-50',
+    specialKey: 'bg-yellow-700', accent: 'bg-yellow-300', accentText: 'text-yellow-950',
+    border: 'border-yellow-700/50', tabBar: 'bg-yellow-900', tabActive: 'bg-yellow-300', tabActiveText: 'text-yellow-950',
+    suggestion: 'bg-yellow-800',
+  },
+  abyss: {
+    name: 'Abyss', flag: '🕳️', category: 'solid',
+    bg: 'bg-gray-950', card: 'bg-gray-900', key: 'bg-gray-800', keyHover: 'hover:bg-blue-900',
+    keyActive: 'bg-blue-600 text-white', keyText: 'text-gray-100',
+    specialKey: 'bg-gray-800', accent: 'bg-blue-600', accentText: 'text-white',
+    border: 'border-gray-800/50', tabBar: 'bg-gray-950', tabActive: 'bg-blue-600', tabActiveText: 'text-white',
+    suggestion: 'bg-gray-800',
+  },
+  frost: {
+    name: 'Frost', flag: '🧊', category: 'solid',
+    bg: 'bg-sky-50', card: 'bg-sky-100', key: 'bg-sky-200', keyHover: 'hover:bg-sky-300',
+    keyActive: 'bg-sky-600 text-white', keyText: 'text-sky-900',
+    specialKey: 'bg-sky-300', accent: 'bg-sky-600', accentText: 'text-white',
+    border: 'border-sky-300/50', tabBar: 'bg-sky-50', tabActive: 'bg-sky-600', tabActiveText: 'text-white',
+    suggestion: 'bg-sky-200',
+  },
+  blossom: {
+    name: 'Blossom', flag: '🌸', category: 'solid',
+    bg: 'bg-pink-50', card: 'bg-pink-100', key: 'bg-pink-200', keyHover: 'hover:bg-pink-300',
+    keyActive: 'bg-pink-600 text-white', keyText: 'text-pink-900',
+    specialKey: 'bg-pink-300', accent: 'bg-pink-600', accentText: 'text-white',
+    border: 'border-pink-300/50', tabBar: 'bg-pink-50', tabActive: 'bg-pink-600', tabActiveText: 'text-white',
+    suggestion: 'bg-pink-200',
+  },
+  // ─── LIVE THEMES ──────────────────────────────────────────────────────
+  aurora_live: {
+    name: 'Aurora', flag: '🌌', category: 'live', isLive: true, liveClass: 'theme-aurora-live',
+    bg: 'bg-slate-950', card: 'bg-slate-900/80', key: 'bg-slate-800/90', keyHover: 'hover:bg-cyan-700',
+    keyActive: 'bg-cyan-400 text-gray-950', keyText: 'text-cyan-50',
+    specialKey: 'bg-slate-700', accent: 'bg-cyan-400', accentText: 'text-gray-950',
+    border: 'border-cyan-700/30', tabBar: 'bg-slate-900/80', tabActive: 'bg-cyan-400', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-slate-800/80',
+  },
+  lava_live: {
+    name: 'Lava', flag: '🌋', category: 'live', isLive: true, liveClass: 'theme-lava-live',
+    bg: 'bg-red-950', card: 'bg-red-900/80', key: 'bg-red-800/90', keyHover: 'hover:bg-orange-600',
+    keyActive: 'bg-orange-400 text-red-950', keyText: 'text-orange-50',
+    specialKey: 'bg-red-700', accent: 'bg-orange-400', accentText: 'text-red-950',
+    border: 'border-orange-700/30', tabBar: 'bg-red-900/80', tabActive: 'bg-orange-400', tabActiveText: 'text-red-950',
+    suggestion: 'bg-red-800/80',
+  },
+  ocean_live: {
+    name: 'Ocean Wave', flag: '🌊', category: 'live', isLive: true, liveClass: 'theme-ocean-live',
+    bg: 'bg-blue-950', card: 'bg-blue-900/80', key: 'bg-blue-800/90', keyHover: 'hover:bg-cyan-700',
+    keyActive: 'bg-cyan-400 text-blue-950', keyText: 'text-cyan-50',
+    specialKey: 'bg-blue-700', accent: 'bg-cyan-400', accentText: 'text-blue-950',
+    border: 'border-cyan-700/30', tabBar: 'bg-blue-900/80', tabActive: 'bg-cyan-400', tabActiveText: 'text-blue-950',
+    suggestion: 'bg-blue-800/80',
+  },
+  neon_pulse: {
+    name: 'Neon Pulse', flag: '⚡', category: 'live', isLive: true, liveClass: 'theme-neon-pulse-live',
+    bg: 'bg-gray-950', card: 'bg-gray-900/80', key: 'bg-gray-800/90', keyHover: 'hover:bg-violet-700',
+    keyActive: 'bg-violet-400 text-gray-950', keyText: 'text-violet-100',
+    specialKey: 'bg-gray-700', accent: 'bg-violet-400', accentText: 'text-gray-950',
+    border: 'border-violet-700/30', tabBar: 'bg-gray-900/80', tabActive: 'bg-violet-400', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-gray-800/80',
+  },
+  sunset_live: {
+    name: 'Sunset Glow', flag: '🌇', category: 'live', isLive: true, liveClass: 'theme-sunset-live',
+    bg: 'bg-orange-950', card: 'bg-orange-900/80', key: 'bg-orange-800/90', keyHover: 'hover:bg-pink-700',
+    keyActive: 'bg-pink-400 text-white', keyText: 'text-orange-50',
+    specialKey: 'bg-orange-700', accent: 'bg-pink-400', accentText: 'text-white',
+    border: 'border-pink-700/30', tabBar: 'bg-orange-900/80', tabActive: 'bg-pink-400', tabActiveText: 'text-white',
+    suggestion: 'bg-orange-800/80',
+  },
+  matrix_live: {
+    name: 'Matrix', flag: '🟩', category: 'live', isLive: true, liveClass: 'theme-matrix-live',
+    bg: 'bg-black', card: 'bg-green-950/80', key: 'bg-green-900/90', keyHover: 'hover:bg-green-700',
+    keyActive: 'bg-green-400 text-black', keyText: 'text-green-100',
+    specialKey: 'bg-green-900', accent: 'bg-green-400', accentText: 'text-black',
+    border: 'border-green-700/30', tabBar: 'bg-black/80', tabActive: 'bg-green-400', tabActiveText: 'text-black',
+    suggestion: 'bg-green-900/80',
+  },
+  rainbow_live: {
+    name: 'Rainbow', flag: '🌈', category: 'live', isLive: true, liveClass: 'theme-rainbow-live',
+    bg: 'bg-gray-950', card: 'bg-gray-900/80', key: 'bg-gray-800/90', keyHover: 'hover:bg-gray-700',
+    keyActive: 'bg-white text-gray-950', keyText: 'text-white',
+    specialKey: 'bg-gray-700', accent: 'bg-white', accentText: 'text-gray-950',
+    border: 'border-white/20', tabBar: 'bg-gray-900/80', tabActive: 'bg-white', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-gray-800/80',
+  },
+  fire_live: {
+    name: 'Fire', flag: '🔥', category: 'live', isLive: true, liveClass: 'theme-fire-live',
+    bg: 'bg-red-950', card: 'bg-red-900/80', key: 'bg-red-800/90', keyHover: 'hover:bg-yellow-700',
+    keyActive: 'bg-yellow-400 text-red-950', keyText: 'text-yellow-50',
+    specialKey: 'bg-red-700', accent: 'bg-yellow-400', accentText: 'text-red-950',
+    border: 'border-yellow-700/30', tabBar: 'bg-red-900/80', tabActive: 'bg-yellow-400', tabActiveText: 'text-red-950',
+    suggestion: 'bg-red-800/80',
+  },
+  galaxy_live: {
+    name: 'Galaxy', flag: '🪐', category: 'live', isLive: true, liveClass: 'theme-galaxy-live',
+    bg: 'bg-purple-950', card: 'bg-purple-900/80', key: 'bg-purple-800/90', keyHover: 'hover:bg-indigo-700',
+    keyActive: 'bg-indigo-400 text-white', keyText: 'text-purple-100',
+    specialKey: 'bg-purple-700', accent: 'bg-indigo-400', accentText: 'text-white',
+    border: 'border-indigo-700/30', tabBar: 'bg-purple-900/80', tabActive: 'bg-indigo-400', tabActiveText: 'text-white',
+    suggestion: 'bg-purple-800/80',
+  },
+  waterfall_live: {
+    name: 'Waterfall', flag: '💧', category: 'live', isLive: true, liveClass: 'theme-waterfall-live',
+    bg: 'bg-teal-950', card: 'bg-teal-900/80', key: 'bg-teal-800/90', keyHover: 'hover:bg-cyan-600',
+    keyActive: 'bg-cyan-300 text-teal-950', keyText: 'text-teal-50',
+    specialKey: 'bg-teal-700', accent: 'bg-cyan-300', accentText: 'text-teal-950',
+    border: 'border-cyan-600/30', tabBar: 'bg-teal-900/80', tabActive: 'bg-cyan-300', tabActiveText: 'text-teal-950',
+    suggestion: 'bg-teal-800/80',
+  },
+  autumn_live: {
+    name: 'Autumn', flag: '🍂', category: 'live', isLive: true, liveClass: 'theme-autumn-live',
+    bg: 'bg-orange-950', card: 'bg-orange-900/80', key: 'bg-orange-800/90', keyHover: 'hover:bg-amber-600',
+    keyActive: 'bg-amber-400 text-orange-950', keyText: 'text-orange-50',
+    specialKey: 'bg-orange-700', accent: 'bg-amber-400', accentText: 'text-orange-950',
+    border: 'border-amber-600/30', tabBar: 'bg-orange-900/80', tabActive: 'bg-amber-400', tabActiveText: 'text-orange-950',
+    suggestion: 'bg-orange-800/80',
+  },
+  cyberpunk_live: {
+    name: 'Cyberpunk', flag: '🤖', category: 'live', isLive: true, liveClass: 'theme-cyberpunk-live',
+    bg: 'bg-gray-950', card: 'bg-gray-900/80', key: 'bg-gray-800/90', keyHover: 'hover:bg-pink-700',
+    keyActive: 'bg-pink-400 text-gray-950', keyText: 'text-cyan-100',
+    specialKey: 'bg-gray-700', accent: 'bg-pink-400', accentText: 'text-gray-950',
+    border: 'border-cyan-500/30', tabBar: 'bg-gray-900/80', tabActive: 'bg-pink-400', tabActiveText: 'text-gray-950',
+    suggestion: 'bg-gray-800/80',
+  },
+};
+
+// ─── Long Press Alternates ────────────────────────────────────────────────
+export const LONG_PRESS_ALTERNATES: Record<string, string[]> = {
+  'a': ['@', 'á', 'à', 'ä', 'ã', 'â'],
+  'e': ['é', 'è', 'ë', 'ê', '3'],
+  'i': ['í', 'ì', 'ï', 'î', '8'],
+  'o': ['ó', 'ò', 'ö', 'õ', 'ô', '9'],
+  'u': ['ú', 'ù', 'ü', 'û', '7'],
+  'c': ['ç', 'ć', 'č'],
+  'n': ['ñ', 'ń', 'ň'],
+  's': ['ß', 'ś', 'š'],
+  '.': [',', ';', ':', '!', '?'],
+  ',': [';', ':', '!', '?', '.'],
+};
+
+// ─── Amharic Character Data ───────────────────────────────────────────────
+export const AMHARIC_ROWS: string[][] = [
+  ['ሀ', 'ለ', 'ሐ', 'መ', 'ሠ', 'ረ', 'ሰ', 'ሸ', 'ቀ', 'በ'],
+  ['ተ', 'ቸ', 'ኀ', 'ነ', 'ኘ', 'አ', 'ከ', 'ኸ', 'ወ', 'ዘ'],
+  ['ዠ', 'የ', 'ደ', 'ጀ', 'ገ', 'ጠ', 'ጨ', 'ጰ', 'ፀ', 'ፈ'],
+  ['ፐ', 'ቨ', 'ሟ', 'ኟ', 'ዟ', 'ጟ', '፟'],
+];
+
+export const AMHARIC_VOWELS: Record<string, string[]> = {
+  'ሀ': ['ሀ', 'ሁ', 'ሂ', 'ሃ', 'ሄ', 'ህ', 'ሆ'],
+  'ለ': ['ለ', 'ሉ', 'ሊ', 'ላ', 'ሌ', 'ል', 'ሎ', 'ሏ'],
+  'ሐ': ['ሐ', 'ሑ', 'ሒ', 'ሓ', 'ሔ', 'ሕ', 'ሖ', 'ሗ'],
+  'መ': ['መ', 'ሙ', 'ሚ', 'ማ', 'ሜ', 'ም', 'ሞ', 'ሟ'],
+  'ሠ': ['ሠ', 'ሡ', 'ሢ', 'ሣ', 'ሤ', 'ሥ', 'ሦ', 'ሧ'],
+  'ረ': ['ረ', 'ሩ', 'ሪ', 'ራ', 'ሬ', 'ር', 'ሮ', 'ሯ'],
+  'ሰ': ['ሰ', 'ሱ', 'ሲ', 'ሳ', 'ሴ', 'ስ', 'ሶ', 'ሷ'],
+  'ሸ': ['ሸ', 'ሹ', 'ሺ', 'ሻ', 'ሼ', 'ሽ', 'ሾ', 'ሿ'],
+  'ቀ': ['ቀ', 'ቁ', 'ቂ', 'ቃ', 'ቄ', 'ቅ', 'ቆ', 'ቋ'],
+  'በ': ['በ', 'ቡ', 'ቢ', 'ባ', 'ቤ', 'ብ', 'ቦ', 'ቧ'],
+  'ተ': ['ተ', 'ቱ', 'ቲ', 'ታ', 'ቴ', 'ት', 'ቶ', 'ቷ'],
+  'ቸ': ['ቸ', 'ቹ', 'ቺ', 'ቻ', 'ቼ', 'ች', 'ቾ', 'ቿ'],
+  'ኀ': ['ኀ', 'ኁ', 'ኂ', 'ኃ', 'ኄ', 'ኅ', 'ኆ', 'ኋ'],
+  'ነ': ['ነ', 'ኑ', 'ኒ', 'ና', 'ኔ', 'ን', 'ኖ', 'ኗ'],
+  'ኘ': ['ኘ', 'ኙ', 'ኚ', 'ኛ', 'ኜ', 'ኝ', 'ኞ', 'ኟ'],
+  'አ': ['አ', 'ኡ', 'ኢ', 'ኣ', 'ኤ', 'እ', 'ኦ'],
+  'ከ': ['ከ', 'ኩ', 'ኪ', 'ካ', 'ኬ', 'ክ', 'ኮ', 'ኳ'],
+  'ኸ': ['ኸ', 'ኹ', 'ኺ', 'ኻ', 'ኼ', 'ኽ', 'ኾ'],
+  'ወ': ['ወ', 'ዉ', 'ዊ', 'ዋ', 'ዌ', 'ው', 'ዎ', 'ዏ'],
+  'ዘ': ['ዘ', 'ዙ', 'ዚ', 'ዛ', 'ዜ', 'ዝ', 'ዞ', 'ዟ'],
+  'ዠ': ['ዠ', 'ዡ', 'ዢ', 'ዣ', 'ዤ', 'ዥ', 'ዦ', 'ዧ'],
+  'የ': ['የ', 'ዩ', 'ዪ', 'ያ', 'ዬ', 'ይ', 'ዮ'],
+  'ደ': ['ደ', 'ዱ', 'ዲ', 'ዳ', 'ዴ', 'ድ', 'ዶ', 'ዷ'],
+  'ጀ': ['ጀ', 'ጁ', 'ጂ', 'ጃ', 'ጄ', 'ጅ', 'ጆ', 'ጇ'],
+  'ገ': ['ገ', 'ጉ', 'ጊ', 'ጋ', 'ጌ', 'ግ', 'ጎ', 'ጓ'],
+  'ጠ': ['ጠ', 'ጡ', 'ጢ', 'ጣ', 'ጤ', 'ጥ', 'ጦ', 'ጧ'],
+  'ጨ': ['ጨ', 'ጩ', 'ጪ', 'ጫ', 'ጬ', 'ጭ', 'ጮ', 'ጯ'],
+  'ጰ': ['ጰ', 'ጱ', 'ጲ', 'ጳ', 'ጴ', 'ጵ', 'ጶ', 'ጷ'],
+  'ፀ': ['ፀ', 'ፁ', 'ፂ', 'ፃ', 'ፄ', 'ፅ', 'ፆ'],
+  'ፈ': ['ፈ', 'ፉ', 'ፊ', 'ፋ', 'ፌ', 'ፍ', 'ፎ', 'ፏ'],
+  'ፐ': ['ፐ', 'ፑ', 'ፒ', 'ፓ', 'ፔ', 'ፕ', 'ፖ', 'ፗ'],
+  'ቨ': ['ቨ', 'ቩ', 'ቪ', 'ቫ', 'ቬ', 'ቭ', 'ቮ'],
+  'ሟ': ['ሟ'],
+  'ኟ': ['ኟ'],
+  'ዟ': ['ዟ'],
+  'ጟ': ['ጟ'],
+  '፟': ['፟'],
+};
+
+// Ethiopian / Ge'ez numbers
+export const ETHIOPIAN_NUMBERS = ['፩','፪','፫','፬','፭','፮','፯','፰','፱','፲','፳','፴','፵','፶','፷','፸','፹','፺','፻','፼'];
+export const ETHIOPIAN_SYMBOLS = ['፣','።','፤','፡','፥','፦','፧','፨','—','«','»','′','″'];
+
+// ─── Sticker Data ─────────────────────────────────────────────────────────
+export const STICKER_CATEGORIES = [
+  { id: 'smileys', name: 'Smileys', icon: '😀', stickers: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫥','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥵','🥶','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','🫤','😟','🙁','😮','😯','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'] },
+  { id: 'hearts', name: 'Love', icon: '❤️', stickers: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️','🫶','🤝','💏','💑','🏩','💒','💍','💎','🌹','🌷','💐','🌸','🌺','🦋','✨','💫','🌟','⭐'] },
+  { id: 'hands', name: 'Gestures', icon: '👍', stickers: ['👍','👎','👊','✊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁️','👅','👄'] },
+  { id: 'animals', name: 'Animals', icon: '🐱', stickers: ['🐱','🐶','🐭','🐹','🐰','🦊','🐻','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤','🐣','🐥','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌','🐞','🐜','🪰','🪲','🪳','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐈','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️','🦔'] },
+  { id: 'food', name: 'Food', icon: '☕', stickers: ['☕','🍲','🫓','🍕','🍔','🍟','🌮','🍜','🍣','🍩','🍪','🎂','🍰','🧃','🍎','🍇','🍊','🍋','🍌','🍉','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🫛','🥦','🥬','🥒','🌶️','🫑','🌽','🥕','🫒','🧄','🧅','🥔','🍠','🥐','🥯','🍞','🥖','🥨','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🦴','🌭','🍔','🍟','🍕','🫓','🥪','🥙','🧆','🌮','🌯','🫔','🥗','🥘','🫕','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🦪','🍤','🍙','🍚','🍘','🍥','🥠','🥮','🍢','🍡','🍧','🍨','🍦','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯'] },
+  { id: 'nature', name: 'Nature', icon: '🌸', stickers: ['🌸','🌺','🌻','🌹','🌷','💐','🌳','🌴','🌵','🍀','🌈','⭐','🌙','☀️','❄️','🔥','🌦️','🌤️','⛅','🌥️','🌦️','🌧️','⛈️','🌩️','🌪️','🌫️','🌬️','🌀','🌊','💧','💦','☔','🏔️','⛰️','🌋','🗻','🏕️','🏖️','🏜️','🏝️','🏞️','🌍','🌎','🌏','🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘','🌙','🌚','🌛','🌜','☀️','🌝','🌞','⭐','🌟','🌠','🌌','☁️','⛅','⛈️','🌤️','🌥️','🌦️','🌧️','🌨️','🌩️','🌪️'] },
+  { id: 'travel', name: 'Travel', icon: '✈️', stickers: ['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🏍️','🛵','🚲','🛴','🛹','🛼','🚏','🛣️','🛤️','⛽','🛞','🚨','🚥','🚦','🛑','🚧','⚓','🛟','⛵','🛶','🚤','🛳️','⛴️','🛥️','🚢','✈️','🛩️','🛫','🛬','🪂','💺','🚁','🚟','🚠','🚡','🛰️','🚀','🛸','🗺️','🧭','🏔️','⛰️','🌋','🗻','🏕️','🏖️','🏜️','🏝️','🏟️','🏛️','🏗️','🧱','🪨','🪵','🛖','🏘️','🏚️','🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭','🏯','🏰','💒','🗼','🗽','⛪','🕌','🛕','🕍','⛩️','🕋'] },
+  { id: 'sports', name: 'Sports', icon: '⚽', stickers: ['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🏑','🥍','🏏','🪃','🥅','⛳','🪁','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','🥌','🎿','⛷️','🏂','🪂','🏋️','🤸','🤺','⛹️','🤾','🏌️','🏇','🧘','🛀','🛌','🤱','👩‍🍼','👨‍🍼','🧑‍🍼','🏆','🥇','🥈','🥉','🏅','🎖️','🏵️','🎗️','🎫','🎟️','🎪','🎭','🎨','🎬','🎤','🎧','🎼','🎹','🥁','🪘','🎷','🎺','🪗','🎸','🪕','🎻','🪈','🎲','♟️','🎯','🎳','🎮','🕹️','🧩','🪄','🎰'] },
+  { id: 'objects', name: 'Objects', icon: '💡', stickers: ['💡','🔦','🕯️','💎','🔑','🗝️','🪤','🧲','💰','💳','💴','💵','💶','💷','🪙','💸','🧾','💼','📁','📂','📅','📆','🗒️','🗓️','📇','📈','📉','📊','📋','📌','📍','📎','🖇️','📏','📐','✂️','🗃️','🗄️','🗑️','🔒','🔓','🔏','🔐','🔑','🗝️','🔨','🪓','⛏️','⚒️','🛠️','🗡️','⚔️','💣','🪃','🏹','🛡️','🪚','🔧','🪛','🔩','⚙️','🗜️','⚖️','🦯','🔗','⛓️','🪝','🧰','🧲','🪜','🧪','🧫','🧬','🔬','🔭','📡','💉','🩸','💊','🩹','🩺','🩻','🚪','🛗','🪞','🪟','🛏️','🛋️','🪑','🚽','🪠','🚿','🛁','🪤','🪒','🧴','🧷','🧹','🧺','🧻','🪣','🧼','🪥','🧽','🧯','🛒','🚬','⚰️','🪦','⚱️','🧿','🪬','🗿','🪧','🪪'] },
+  { id: 'symbols', name: 'Symbols', icon: '💫', stickers: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','🈲','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','❗','❕','❓','❔','‼️','⁉️','🔅','🔆','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯','💹','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🛗','🈳','🈂️','🛂','🛃','🛄','🛅','🚹','🚺','🚼','⚧️','🚻','🚮','🎦','📶','🈁','🔣','ℹ️','🔤','🔡','🔠','🆖','🆗','🆙','🆒','🆕','🆓','0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟','🔢','#️⃣','*️⃣','⏏️','▶️','⏸️','⏯️','⏹️','⏺️','⏭️','⏮️','⏩','⏪','⏫','⏬','◀️','🔼','🔽','➡️','⬅️','⬆️','⬇️','↗️','↘️','↙️','↖️','↕️','↔️','↪️','↩️','⤴️','⤵️','🔀','🔁','🔂','🔄','🔃','🎵','🎶','➕','➖','➗','✖️','🟰','♾️','💲','💱','™️','©️','®️','👁️‍🗨️','🔚','🔙','🔛','🔝','🔜','〰️','➰','➿','✔️','☑️','🔘','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🔺','🔻','🔸','🔹','🔶','🔷','🔳','🔲','▪️','▫️','◾','◽','◼️','◻️','🟥','🟧','🟨','🟩','🟦','🟪','⬛','⬜','🟫','🔈','🔇','🔉','🔊','🔔','🔕','📣','📢','💬','💭','🗯️','♠️','♣️','♥️','♦️','🃏','🎴','🀄','🕐','🕑','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕙','🕚','🕛'] },
+  { id: 'flags', name: 'Flags', icon: '🏁', stickers: ['🏁','🚩','🎌','🏴','🏳️','🏳️‍🌈','🏳️‍⚧️','🏴‍☠️','🇪🇹','🇺🇸','🇬🇧','🇫🇷','🇩🇪','🇮🇹','🇪🇸','🇵🇹','🇧🇷','🇷🇺','🇨🇳','🇯🇵','🇰🇷','🇮🇳','🇦🇺','🇨🇦','🇲🇽','🇦🇷','🇿🇦','🇳🇬','🇰🇪','🇪🇬','🇸🇦','🇦🇪','🇶🇦','🇮🇱','🇹🇷','🇬🇷','🇳🇱','🇧🇪','🇨🇭','🇦🇹','🇸🇪','🇳🇴','🇩🇰','🇫🇮','🇵🇱','🇺🇦','🇨🇿','🇮🇪','🇮🇸','🇳🇿','🇸🇬','🇹🇭','🇻🇳','🇲🇾','🇵🇭','🇮🇩','🇵🇰','🇧🇩','🇱🇰','🇲🇲','🇰🇭','🇱🇦'] },
+  { id: 'ethiopian', name: 'Ethiopia', icon: '🇪🇹', stickers: ['🇪🇹','☕','🎶','🥁','🏔️','🌍','🦁','🦅','☀️','🌿','🍲','🫓','🎭','💃','🕺','🎪','💪','🔥','👑','💎','✨','💫','🌟','🙏','❤️','🫶','🎊','🥳','🎉','⭐','🌈','🦋','🌸','🌺','🎵','🎤','🪘','🪇','🎺','🎶','🎵','🎼','🏙️','🕌','⛪','🗺️','📖','🪡','🧵','🧶','🪆','🏺','🌍','🌎','🌏'] },
+];
+
+export const GIF_CATEGORIES = [
+  { id: 'hello', name: 'Hello', emoji: '👋' },
+  { id: 'thanks', name: 'Thanks', emoji: '🙏' },
+  { id: 'love', name: 'Love', emoji: '❤️' },
+  { id: 'laugh', name: 'Laugh', emoji: '😂' },
+  { id: 'celebrate', name: 'Celebrate', emoji: '🎉' },
+  { id: 'sad', name: 'Sad', emoji: '😢' },
+  { id: 'cool', name: 'Cool', emoji: '😎' },
+  { id: 'fire', name: 'Fire', emoji: '🔥' },
+  { id: 'angry', name: 'Angry', emoji: '😡' },
+  { id: 'sleepy', name: 'Sleepy', emoji: '😴' },
+  { id: 'thinking', name: 'Think', emoji: '🤔' },
+  { id: 'shocked', name: 'Shocked', emoji: '😱' },
+  { id: 'peace', name: 'Peace', emoji: '✌️' },
+  { id: 'hug', name: 'Hug', emoji: '🤗' },
+];
+
+export const GIF_ITEMS: Record<string, { emoji: string; label: string; animation: string }[]> = {
+  hello: [
+    { emoji: '👋', label: 'Hey!', animation: 'wave' },
+    { emoji: '🤗', label: 'Hi there!', animation: 'bounce' },
+    { emoji: '✨', label: 'Hello!', animation: 'sparkle' },
+    { emoji: '🙌', label: 'Yo!', animation: 'pulse' },
+    { emoji: '🫶', label: 'Hi love!', animation: 'heartbeat' },
+    { emoji: '😊', label: 'Hi!', animation: 'bounce' },
+  ],
+  thanks: [
+    { emoji: '🙏', label: 'Thank you!', animation: 'pulse' },
+    { emoji: '💕', label: 'Thanks!', animation: 'heartbeat' },
+    { emoji: '✨', label: 'Appreciate it!', animation: 'sparkle' },
+    { emoji: '🤝', label: 'Much obliged!', animation: 'wave' },
+    { emoji: '💝', label: 'So kind!', animation: 'heartbeat' },
+    { emoji: '🌟', label: 'You rock!', animation: 'sparkle' },
+  ],
+  love: [
+    { emoji: '❤️', label: 'Love you!', animation: 'heartbeat' },
+    { emoji: '😘', label: 'Muah!', animation: 'bounce' },
+    { emoji: '💕', label: 'So much!', animation: 'heartbeat' },
+    { emoji: '🥰', label: 'My love!', animation: 'pulse' },
+    { emoji: '💗', label: 'Forever!', animation: 'heartbeat' },
+    { emoji: '💑', label: 'Together!', animation: 'pulse' },
+  ],
+  laugh: [
+    { emoji: '😂', label: 'LMAO!', animation: 'bounce' },
+    { emoji: '🤣', label: 'Haha!', animation: 'shake' },
+    { emoji: '😆', label: 'LOL!', animation: 'bounce' },
+    { emoji: '😹', label: 'Too funny!', animation: 'shake' },
+    { emoji: '🤭', label: 'Hehe!', animation: 'pulse' },
+    { emoji: '😜', label: 'Silly!', animation: 'bounce' },
+  ],
+  celebrate: [
+    { emoji: '🎉', label: 'Party!', animation: 'bounce' },
+    { emoji: '🎊', label: 'Yay!', animation: 'shake' },
+    { emoji: '🥳', label: 'Woohoo!', animation: 'bounce' },
+    { emoji: '🍾', label: 'Cheers!', animation: 'sparkle' },
+    { emoji: '🏆', label: 'Champion!', animation: 'pulse' },
+    { emoji: '✨', label: 'Amazing!', animation: 'sparkle' },
+  ],
+  sad: [
+    { emoji: '😢', label: 'So sad', animation: 'pulse' },
+    { emoji: '😭', label: 'Crying!', animation: 'shake' },
+    { emoji: '💔', label: 'Heartbroken', animation: 'heartbeat' },
+    { emoji: '🥺', label: 'Please!', animation: 'pulse' },
+    { emoji: '😞', label: 'Disappointed', animation: 'wave' },
+    { emoji: '😔', label: 'Down', animation: 'pulse' },
+  ],
+  cool: [
+    { emoji: '😎', label: 'Cool!', animation: 'bounce' },
+    { emoji: '🔥', label: 'Fire!', animation: 'sparkle' },
+    { emoji: '💪', label: 'Strong!', animation: 'pulse' },
+    { emoji: '✌️', label: 'Peace!', animation: 'wave' },
+    { emoji: '🤩', label: 'Awesome!', animation: 'sparkle' },
+    { emoji: '💯', label: '100!', animation: 'bounce' },
+  ],
+  fire: [
+    { emoji: '🔥', label: 'Lit!', animation: 'sparkle' },
+    { emoji: '💥', label: 'Boom!', animation: 'shake' },
+    { emoji: '⚡', label: 'Electric!', animation: 'sparkle' },
+    { emoji: '🌟', label: 'Star!', animation: 'pulse' },
+    { emoji: '☄️', label: 'Comet!', animation: 'shake' },
+    { emoji: '🌪️', label: 'Storm!', animation: 'shake' },
+  ],
+  angry: [
+    { emoji: '😡', label: 'Angry!', animation: 'shake' },
+    { emoji: '🤬', label: 'Furious!', animation: 'shake' },
+    { emoji: '😤', label: 'Huff!', animation: 'pulse' },
+    { emoji: '💢', label: 'Mad!', animation: 'shake' },
+    { emoji: '👊', label: 'Fight!', animation: 'bounce' },
+    { emoji: '👹', label: 'Demon!', animation: 'pulse' },
+  ],
+  sleepy: [
+    { emoji: '😴', label: 'Sleeping!', animation: 'pulse' },
+    { emoji: '🥱', label: 'Yawn!', animation: 'bounce' },
+    { emoji: '😪', label: 'Tired!', animation: 'pulse' },
+    { emoji: '🛌', label: 'Bed time!', animation: 'wave' },
+    { emoji: '💤', label: 'Zzz!', animation: 'bounce' },
+    { emoji: '🌙', label: 'Night!', animation: 'sparkle' },
+  ],
+  thinking: [
+    { emoji: '🤔', label: 'Hmm...', animation: 'pulse' },
+    { emoji: '🧐', label: 'Inspect!', animation: 'wave' },
+    { emoji: '🤨', label: 'Really?', animation: 'pulse' },
+    { emoji: '💡', label: 'Idea!', animation: 'sparkle' },
+    { emoji: '💭', label: 'Thinking...', animation: 'pulse' },
+    { emoji: '🫤', label: 'Not sure', animation: 'wave' },
+  ],
+  shocked: [
+    { emoji: '😱', label: 'OMG!', animation: 'shake' },
+    { emoji: '😲', label: 'What?!', animation: 'bounce' },
+    { emoji: '😨', label: 'Scared!', animation: 'shake' },
+    { emoji: '🫢', label: 'Gasp!', animation: 'pulse' },
+    { emoji: '😯', label: 'Wow!', animation: 'bounce' },
+    { emoji: '🙀', label: 'Shocked!', animation: 'shake' },
+  ],
+  peace: [
+    { emoji: '✌️', label: 'Peace!', animation: 'wave' },
+    { emoji: '🕊️', label: 'Dove!', animation: 'bounce' },
+    { emoji: '☮️', label: 'Harmony!', animation: 'sparkle' },
+    { emoji: '🤞', label: 'Fingers!', animation: 'pulse' },
+    { emoji: '🌍', label: 'World!', animation: 'sparkle' },
+    { emoji: '🌸', label: 'Calm!', animation: 'pulse' },
+  ],
+  hug: [
+    { emoji: '🤗', label: 'Hug!', animation: 'heartbeat' },
+    { emoji: '🫂', label: 'Cuddle!', animation: 'pulse' },
+    { emoji: '🤗', label: 'Comfort!', animation: 'bounce' },
+    { emoji: '💕', label: 'Care!', animation: 'heartbeat' },
+    { emoji: '🥰', label: 'Sweet!', animation: 'pulse' },
+    { emoji: '💝', label: 'Warmth!', animation: 'heartbeat' },
+  ],
+};
+
+// ─── Suggestions Data ─────────────────────────────────────────────────────
+export const ENGLISH_SUGGESTIONS: Record<string, string[]> = {
+  '': ['the','be','to','of','and'],
+  't': ['the','to','that','this','they'],
+  'th': ['the','this','that','there','them'],
+  'the': ['there','their','them','then','these'],
+  'i': ['is','it','in','if','I'],
+  'a': ['and','are','as','at','all'],
+  'an': ['and','another','any','answer'],
+  's': ['so','some','she','said','should'],
+  'w': ['was','with','will','we','what'],
+  'h': ['have','he','had','his','how'],
+  'b': ['but','by','been','be','but'],
+  'no': ['not','now','know','nothing'],
+  'wh': ['what','when','where','which','who'],
+  'ho': ['how','home','hope','house'],
+  'go': ['going','good','got','great'],
+  'lo': ['love','like','long','look'],
+  'he': ['hello','here','help','her'],
+  'ha': ['have','has','had','happy'],
+  'thi': ['this','think','thing','things'],
+  'goo': ['good','going','got','great'],
+  'than': ['that','thank','thanks','than'],
+  'ple': ['please','place','people','plan'],
+};
+
+export const AMHARIC_SUGGESTIONS: Record<string, string[]> = {
+  '': ['እኔ','አንቺ','እሱ','ይህ','ያ'],
+  'እ': ['እኔ','እሱ','እሷ','እንዴት','እሺ'],
+  'አ': ['አንቺ','አዎ','አሁን','አለ','አማርኛ'],
+  'ሰ': ['ሰላም','ሰው','ሰዓት'],
+  'መ': ['መሆን','መጥፎ','መልካም'],
+  'ከ': ['ከዚህ','ከትናንት'],
+  'ወ': ['ወደ','ወጣ','ወደፊት'],
+  'እን': ['እንዴት','እንደ','እንደዚህ'],
+  'ሰላ': ['ሰላም','ሰላምና','ሰላምደህ'],
+  'አማ': ['አማርኛ','አማራ','አማረን'],
+  'መል': ['መልካም','መልዕትት','መልስ'],
+  'ጥሩ': ['ጥሩ','ጥሩነት'],
+  'ስለ': ['ስለዚህ','ስለው'],
+  'ያ': ['ያ','ያም','ያህል'],
+};
+
+export const NEXT_WORD_EN: Record<string, string[]> = {
+  'the': ['world','people','way','day','first'],
+  'i': ['am','was','have','will','can'],
+  'to': ['the','be','do','make','have'],
+  'and': ['then','also','more','now','that'],
+  'hello': ['there','friend','world','how','everyone'],
+  'good': ['morning','night','luck','job','bye'],
+  'thank': ['you','your','for','so','very'],
+  'how': ['are','to','do','about','much'],
+  'please': ['help','come','call','wait','tell'],
+  'we': ['are','will','can','have','should'],
+  'they': ['are','were','will','can','have'],
+  'it': ['is','was','will','can','has'],
+  'is': ['a','the','not','very','so'],
+  'love': ['you','it','this','that','her'],
+};
+
+export const NEXT_WORD_AM: Record<string, string[]> = {
+  'ሰላም': ['አለም','ስላሴ','መልካም','ደህና','ሰላምና'],
+  'እኔ': ['ነኝ','ነበርኩ','ማለት','እፈልጋለሁ'],
+  'መልካም': ['ቀን','ሰዓት','እድል','ሰው'],
+  'እንዴት': ['ነህ','ነሽ','ነው','አለ'],
+  'ጥሩ': ['ቀን','ሰው','ስራ','ነገር'],
+  'አመሰግናለሁ': ['ወድዴህ','በጣም','ሁሉ'],
+  'ደህና': ['ሆን','መሆን','ኑር'],
+};
+
+// ─── Keyboard Row Data ────────────────────────────────────────────────────
+export const ENGLISH_ROWS = [
+  ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+  ['shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace'],
+  ['symbols', 'language', 'space', '.', 'enter'],
+];
+
+export const SYMBOL_ROWS = [
+  ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+  ['@', '#', '$', '%', '&', '-', '+', '(', ')', '/'],
+  ['shift', '*', '"', "'", ':', ';', '!', '?', '~', 'backspace'],
+  ['symbols', 'language', 'space', '\\', 'enter'],
+];
+
+export const ETHIOPIAN_NUM_ROW_1 = ['፩','፪','፫','፬','፭','፮','፯','፰','፱','፲'];
+export const ETHIOPIAN_NUM_ROW_2 = ['፳','፴','፵','፶','፷','፸','፹','፺','፻','፼'];
+export const ETHIOPIAN_SYM_ROW = ['፣','።','፤','፡','፥','፦','፧','፨','«','»'];
+
+// ─── Desktop Keyboard Data ────────────────────────────────────────────────
+export const NUMBER_SHIFT_CHARS: Record<string, string> = {
+  '1': '!', '2': '@', '3': '#', '4': '$', '5': '%',
+  '6': '^', '7': '&', '8': '*', '9': '(', '0': ')',
+};
+
+export const DESKTOP_QWERTY_ROWS = [
+  ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+  ['z', 'x', 'c', 'v', 'b', 'n', 'm'],
+];
+
+export const DESKTOP_SYMBOL_ROWS = [
+  ['@', '#', '$', '%', '&', '-', '+', '(', ')', '/'],
+  ['*', '"', "'", ':', ';', '!', '?', '~'],
+];

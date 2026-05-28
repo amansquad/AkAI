@@ -460,3 +460,74 @@ Stage Summary:
 - Ken Burns zoom-pan replaces simple panning for more dynamic image movement
 - Theme-specific overlay effects add movement unique to each theme
 - Lint passes, dev server compiles successfully (HTTP 200)
+
+---
+Task ID: data-extraction
+Agent: sub
+Task: Extract large data arrays from keyboard-app.tsx into keyboard-data.ts to reduce component size and prevent OOM crashes during Turbopack compilation
+
+Work Log:
+
+### 1. Created /home/z/my-project/src/components/keyboard-data.ts (757 lines)
+Extracted all data constants and interfaces into a separate module:
+
+**Interfaces exported:**
+- `ThemeDef` - theme definition interface
+- `CustomThemeData` - custom theme data interface
+- `GiphyGif` - Giphy GIF data interface
+
+**Data constants exported:**
+- `THEMES` (Record<string, ThemeDef>) - 44 theme definitions (solid + live)
+- `LONG_PRESS_ALTERNATES` (Record<string, string[]>) - long press character alternates
+- `AMHARIC_ROWS` (string[][]) - Amharic consonant keyboard rows
+- `AMHARIC_VOWELS` (Record<string, string[]>) - Amharic vowel forms per consonant
+- `ETHIOPIAN_NUMBERS` (string[]) - Ge'ez numeral characters
+- `ETHIOPIAN_SYMBOLS` (string[]) - Ethiopian punctuation symbols
+- `STICKER_CATEGORIES` - 12 sticker category objects with emoji arrays
+- `GIF_CATEGORIES` - 14 GIF category objects
+- `GIF_ITEMS` (Record<string, {emoji, label, animation}[]>) - GIF items per category
+- `ENGLISH_SUGGESTIONS` (Record<string, string[]>) - English word suggestions
+- `AMHARIC_SUGGESTIONS` (Record<string, string[]>) - Amharic word suggestions
+- `NEXT_WORD_EN` (Record<string, string[]>) - English next-word predictions
+- `NEXT_WORD_AM` (Record<string, string[]>) - Amharic next-word predictions
+- `ENGLISH_ROWS` (string[][]) - English QWERTY keyboard rows
+- `SYMBOL_ROWS` (string[][]) - Symbol keyboard rows
+- `ETHIOPIAN_NUM_ROW_1`, `ETHIOPIAN_NUM_ROW_2` - Ethiopian number rows
+- `ETHIOPIAN_SYM_ROW` - Ethiopian symbol row
+- `NUMBER_SHIFT_CHARS` (Record<string, string>) - Desktop number shift characters
+- `DESKTOP_QWERTY_ROWS` (string[][]) - Desktop QWERTY rows (character keys only)
+- `DESKTOP_SYMBOL_ROWS` (string[][]) - Desktop symbol rows
+
+### 2. Updated /home/z/my-project/src/components/keyboard-app.tsx (3157 → 2416 lines)
+- Added import statement for all data and types from `@/components/keyboard-data`
+- Removed inline interface definitions (ThemeDef, CustomThemeData, GiphyGif)
+- Removed all inline data constant definitions (725 lines removed)
+- Component logic, rendering, and state management completely unchanged
+
+### 3. Verification
+- `bun run lint` passes with no errors
+- Pre-existing TypeScript error at line 2283 (language comparison) confirmed not introduced by this change
+- Total reduction: keyboard-app.tsx went from 3157 to 2416 lines (741 lines / ~23% reduction)
+- All data preserved exactly as-is in keyboard-data.ts
+
+---
+Task ID: 5
+Agent: main
+Task: Fix "shows nothing" issue - dev server was crashing, extract data to reduce component size, fix TS errors
+
+Work Log:
+- User reported "Now it shows nothing" - the Turbopack error from previous session had crashed the dev server
+- Diagnosed that the dev server process was repeatedly dying (OOM or process management issue)
+- Extracted all data arrays from keyboard-app.tsx into keyboard-data.ts (via subagent) - reduced from 3157 to 2416 lines
+- Fixed TS2367 type error: `language === 'english'` inside an `if (language === 'amharic')` block - changed to static "Switch to English" title
+- Verified no more TypeScript errors in keyboard-app.tsx
+- Confirmed page renders correctly: 112KB HTML, 71 interactive buttons, no console errors
+- Server stability improved after data extraction (reduced compilation memory)
+- Restarted dev server with `nohup node node_modules/.bin/next dev -p 3000` for persistence
+
+Stage Summary:
+- Root cause: dev server had crashed from previous session's Turbopack error
+- Data extraction reduced component size by 23% (3157→2416 lines)
+- TS2367 type error fixed
+- App renders correctly with no errors
+- Dev server running and stable
