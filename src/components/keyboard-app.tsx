@@ -545,15 +545,18 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 ${t.card} ${t.border} border rounded-xl shadow-2xl p-1.5 z-50 flex gap-1 min-w-max`}
           >
             {LONG_PRESS_ALTERNATES[key].map((alt, i) => (
-              <motion.button
+              <motion.div
                 key={i}
+                role="button"
+                tabIndex={0}
                 whileHover={{ scale: 1.15, y: -2 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={(e) => { e.stopPropagation(); handleAlternateSelect(alt); }}
-                className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm`}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleAlternateSelect(alt); } }}
+                className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm cursor-pointer`}
               >
                 {alt}
-              </motion.button>
+              </motion.div>
             ))}
           </motion.div>
         )}
@@ -1318,10 +1321,13 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
                   )}
                   {/* Delete button for custom themes */}
                   {key.startsWith('custom_') && (
-                    <button
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={e => { e.stopPropagation(); setCustomThemes(prev => prev.filter(ct => `custom_${ct.id}` !== key)); if (theme === key) setTheme('default'); }}
-                      className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center bg-red-500/70 text-white rounded-full text-[8px] z-20 hover:bg-red-500"
-                    >×</button>
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); setCustomThemes(prev => prev.filter(ct => `custom_${ct.id}` !== key)); if (theme === key) setTheme('default'); } }}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center bg-red-500/70 text-white rounded-full text-[8px] z-20 hover:bg-red-500 cursor-pointer"
+                    >×</div>
                   )}
                 </motion.button>
               ))}
@@ -1741,14 +1747,17 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
             exit={{ opacity: 0, y: 5, scale: 0.9 }}
             className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 ${t.card} ${t.border} border rounded-xl shadow-2xl p-1.5 z-50 flex gap-1 min-w-max`}>
             {LONG_PRESS_ALTERNATES[key].map((alt, i) => (
-              <motion.button
+              <motion.div
                 key={i}
+                role="button"
+                tabIndex={0}
                 whileHover={{ scale: 1.15, y: -2 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={(e) => { e.stopPropagation(); handleAlternateSelect(alt); }}
-                className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm`}>
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleAlternateSelect(alt); } }}
+                className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm cursor-pointer`}>
                 {alt}
-              </motion.button>
+              </motion.div>
             ))}
           </motion.div>
         )}
