@@ -2,23 +2,25 @@ package com.example.akai_app
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.inputmethodservice.InputMethodService
+import android.util.DisplayMetrics
 import android.view.View
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
+import android.widget.ProgressBar
 
 /**
- * AkaiImeService
+ * AkaiImeService – WebView-based IME
  *
- * Android IME that hosts a WebView loading the Next.js keyboard at
- * https://ak-ai-opal.vercel.app/keyboard-ime
- *
- * The web keyboard calls methods on the "AkaiKeyboard" JavaScript interface
- * (injected by addJavascriptInterface) which this service bridges through
- * to the active InputConnection.
+ * Hosts a FrameLayout of fixed keyboard height that contains a WebView loading
+ * https://ak-ai-opal.vercel.app/keyboard-ime.
+ * Keys call window.AkaiKeyboard.* → JavascriptInterface → InputConnection.
  */
 class AkaiImeService : InputMethodService() {
 
@@ -27,6 +29,23 @@ class AkaiImeService : InputMethodService() {
     }
 
     private var webView: WebView? = null
+    private var container: FrameLayout? = null
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    private fun keyboardHeightPx(): Int {
+        val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val dm = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        wm.defaultDisplay.getMetrics(dm)
+        // Use ~40% of screen height, clamped to 280-380dp
+        val pct = (dm.heightPixels * 0.40).toInt()
+        val minDp = (280 * dm.density).toInt()
+        val maxDp = (380 * dm.density).toInt()
+        return pct.coerceIn(minDp, maxDp)
+    }
 
     // -----------------------------------------------------------------------
     // View lifecycle
@@ -34,56 +53,95 @@ class AkaiImeService : InputMethodService() {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreateInputView(): View {
+        val height = keyboardHeightPx()
+
+        // Root container – fixed height so Android knows how tall the keyboard is
+        val frame = FrameLayout(this).also { container = it }
+        frame.setBackgroundColor(Color.BLACK)
+        frame.layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, height
+        )
+
+        // Loading spinner shown while the page loads
+        val spinner = ProgressBar(this).also { pb ->
+            pb.layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = android.view.Gravity.CENTER
+            }
+            pb.isIndeterminate = true
+        }
+        frame.addView(spinner)
+
+        // WebView that fills the container
         val wv = WebView(this).also { webView = it }
+        wv.layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            height
+        )
+        wv.setBackgroundColor(Color.TRANSPARENT)
 
         wv.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            databaseEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             mediaPlaybackRequiresUserGesture = false
-            allowFileAccess = false
-            databaseEnabled = true
             setSupportZoom(false)
             builtInZoomControls = false
             displayZoomControls = false
+            allowContentAccess = true
+            allowFileAccess = false
+            // Tell the web page the available viewport
+            useWideViewPort = true
+            loadWithOverviewMode = true
         }
 
-        wv.setBackgroundColor(0x00000000) // transparent
         wv.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
-                // Nothing extra needed – the page is self-contained
+                // Hide spinner once page loaded
+                spinner.visibility = View.GONE
+                wv.visibility = View.VISIBLE
+                // Pass keyboard height so page can clip correctly
+                view?.evaluateJavascript(
+                    "document.documentElement.style.setProperty('--ime-height','${height}px');",
+                    null
+                )
             }
         }
 
-        // Inject the native bridge so the web keyboard can call us
         wv.addJavascriptInterface(KeyboardBridge(this), "AkaiKeyboard")
+        wv.visibility = View.INVISIBLE  // hidden until page loads
         wv.loadUrl(KEYBOARD_URL)
-        return wv
-    }
 
-    override fun onFinishInputView(finishingInput: Boolean) {
-        super.onFinishInputView(finishingInput)
-        // Notify the web page (optional)
-        webView?.evaluateJavascript("if(window.__onInputFinish)window.__onInputFinish();", null)
+        frame.addView(wv)
+        return frame
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        // Notify the web page (optional)
-        val pkg = info?.packageName ?: ""
-        val hint = info?.hintText?.toString() ?: ""
+        val hint = info?.hintText?.toString()?.replace("'", "\\'") ?: ""
         webView?.evaluateJavascript(
-            "if(window.__onInputStart)window.__onInputStart('${pkg}','${hint}');", null
+            "if(window.__onInputStart)window.__onInputStart('$hint');", null
+        )
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        webView?.evaluateJavascript(
+            "if(window.__onInputFinish)window.__onInputFinish();", null
         )
     }
 
     override fun onDestroy() {
-        webView?.let {
-            it.removeAllViews()
-            it.destroy()
+        webView?.let { wv ->
+            wv.removeAllViews()
+            wv.destroy()
         }
         webView = null
+        container = null
         super.onDestroy()
     }
 
@@ -93,19 +151,16 @@ class AkaiImeService : InputMethodService() {
 
     inner class KeyboardBridge(private val ctx: Context) {
 
-        /** Commit a text string (e.g. a letter, emoji, or word) */
         @JavascriptInterface
         fun commitText(text: String) {
             currentInputConnection?.commitText(text, 1)
         }
 
-        /** Delete `count` characters before the cursor */
         @JavascriptInterface
         fun deleteSurroundingText(count: Int) {
             currentInputConnection?.deleteSurroundingText(count, 0)
         }
 
-        /** Fire the IME action (search, send, done, etc.) */
         @JavascriptInterface
         fun performEnter() {
             val action = currentInputEditorInfo?.imeOptions
@@ -117,34 +172,28 @@ class AkaiImeService : InputMethodService() {
             }
         }
 
-        /** Insert a space */
         @JavascriptInterface
         fun performSpace() {
             currentInputConnection?.commitText(" ", 1)
         }
 
-        /** Vibrate / haptic (handled on web side, but kept for compatibility) */
         @JavascriptInterface
         fun playHaptic() {
             webView?.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
         }
 
-        /** Hide this keyboard */
         @JavascriptInterface
         fun hideKeyboard() {
             requestHideSelf(0)
         }
 
-        /** Switch to the next keyboard */
         @JavascriptInterface
         fun switchKeyboard() {
             switchToNextInputMethod(false)
         }
 
-        /** Returns the current hint text so the web page can show a placeholder */
         @JavascriptInterface
-        fun getHintText(): String {
-            return currentInputEditorInfo?.hintText?.toString() ?: ""
-        }
+        fun getHintText(): String =
+            currentInputEditorInfo?.hintText?.toString() ?: ""
     }
 }
