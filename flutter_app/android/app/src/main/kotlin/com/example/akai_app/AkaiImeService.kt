@@ -1,173 +1,150 @@
 package com.example.akai_app
 
-import android.content.Intent
+import android.annotation.SuppressLint
+import android.content.Context
 import android.inputmethodservice.InputMethodService
 import android.view.View
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
-import io.flutter.embedding.android.FlutterView
-import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.embedding.engine.FlutterEngineCache
-import io.flutter.embedding.engine.dart.DartExecutor
-import io.flutter.plugin.common.MethodChannel
+import android.webkit.JavascriptInterface
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 
+/**
+ * AkaiImeService
+ *
+ * Android IME that hosts a WebView loading the Next.js keyboard at
+ * https://ak-ai-opal.vercel.app/keyboard-ime
+ *
+ * The web keyboard calls methods on the "AkaiKeyboard" JavaScript interface
+ * (injected by addJavascriptInterface) which this service bridges through
+ * to the active InputConnection.
+ */
 class AkaiImeService : InputMethodService() {
 
     companion object {
-        private const val ENGINE_ID = "akai_keyboard_engine"
-        private const val CHANNEL_NAME = "com.akai.keyboard/control"
+        private const val KEYBOARD_URL = "https://ak-ai-opal.vercel.app/keyboard-ime"
     }
 
-    private var flutterEngine: FlutterEngine? = null
-    private var flutterView: FlutterView? = null
-    private var methodChannel: MethodChannel? = null
+    private var webView: WebView? = null
 
-    override fun onCreate() {
-        super.onCreate()
-        ensureFlutterEngine()
-    }
+    // -----------------------------------------------------------------------
+    // View lifecycle
+    // -----------------------------------------------------------------------
 
-    private fun ensureFlutterEngine() {
-        if (flutterEngine != null) return
-
-        val engine = FlutterEngineCache.getInstance().get(ENGINE_ID)
-            ?: FlutterEngine(this).also { newEngine ->
-                newEngine.dartExecutor.executeDartEntrypoint(
-                    DartExecutor.DartEntrypoint.createDefault()
-                )
-                FlutterEngineCache.getInstance().put(ENGINE_ID, newEngine)
-            }
-        flutterEngine = engine
-    }
-
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreateInputView(): View {
-        val engine = flutterEngine ?: return View(this)
+        val wv = WebView(this).also { webView = it }
 
-        val view = FlutterView(this)
-        view.attachToFlutterEngine(engine)
+        wv.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            cacheMode = WebSettings.LOAD_DEFAULT
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            mediaPlaybackRequiresUserGesture = false
+            allowFileAccess = false
+            databaseEnabled = true
+            setSupportZoom(false)
+            builtInZoomControls = false
+            displayZoomControls = false
+        }
 
-        methodChannel = MethodChannel(engine.dartExecutor.binaryMessenger, CHANNEL_NAME).apply {
-            setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "commitText" -> {
-                        val text = call.argument<String>("text") ?: ""
-                        currentInputConnection?.commitText(text, 1)
-                        result.success(null)
-                    }
-                    "deleteText" -> {
-                        val count = call.argument<Int>("count") ?: 1
-                        currentInputConnection?.deleteSurroundingText(count, 0)
-                        result.success(null)
-                    }
-                    "deleteWord" -> {
-                        currentInputConnection?.let { ic ->
-                            ic.deleteSurroundingText(1, 0)
-                            val textBefore = ic.getTextBeforeCursor(50, 0)?.toString() ?: ""
-                            val toDelete = textBefore.takeLastWhile { !it.isLetterOrDigit() || it == ' ' }
-                            for (i in toDelete.indices) {
-                                ic.deleteSurroundingText(1, 0)
-                            }
-                        }
-                        result.success(null)
-                    }
-                    "performAction" -> {
-                        val action = call.argument<String>("action") ?: "done"
-                        val imeAction = when (action) {
-                            "search" -> EditorInfo.IME_ACTION_SEARCH
-                            "go" -> EditorInfo.IME_ACTION_GO
-                            "send" -> EditorInfo.IME_ACTION_SEND
-                            "next" -> EditorInfo.IME_ACTION_NEXT
-                            "done" -> EditorInfo.IME_ACTION_DONE
-                            "previous" -> EditorInfo.IME_ACTION_PREVIOUS
-                            else -> EditorInfo.IME_ACTION_DONE
-                        }
-                        currentInputConnection?.performEditorAction(imeAction)
-                        result.success(null)
-                    }
-                    "switchKeyboard" -> {
-                        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-                        imm.showInputMethodPicker()
-                        result.success(null)
-                    }
-                    "hideKeyboard" -> {
-                        requestHideSelf(0)
-                        result.success(null)
-                    }
-                    "getEditorState" -> {
-                        val info = currentInputEditorInfo
-                        result.success(mapOf(
-                            "inputType" to info?.inputType,
-                            "imeOptions" to info?.imeOptions,
-                            "imeActionLabel" to info?.actionLabel?.toString(),
-                            "packageName" to info?.packageName,
-                            "fieldName" to info?.fieldName,
-                            "hintText" to info?.hintText?.toString()
-                        ))
-                    }
-                    "getCursorInfo" -> {
-                        val ic = currentInputConnection
-                        val textBefore = ic?.getTextBeforeCursor(1000, 0)?.toString() ?: ""
-                        val textAfter = ic?.getTextAfterCursor(1000, 0)?.toString() ?: ""
-                        result.success(mapOf(
-                            "textBefore" to textBefore,
-                            "textAfter" to textAfter
-                        ))
-                    }
-                    "sendKey" -> {
-                        val keyCode = call.argument<Int>("keyCode") ?: 0
-                        sendDownUpKeyEvents(keyCode)
-                        result.success(null)
-                    }
-                    "playHaptic" -> {
-                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-                        result.success(null)
-                    }
-                    else -> result.notImplemented()
-                }
+        wv.setBackgroundColor(0x00000000) // transparent
+        wv.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                // Nothing extra needed – the page is self-contained
             }
         }
 
-        flutterView = view
-        return view
+        // Inject the native bridge so the web keyboard can call us
+        wv.addJavascriptInterface(KeyboardBridge(this), "AkaiKeyboard")
+        wv.loadUrl(KEYBOARD_URL)
+        return wv
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        methodChannel?.invokeMethod("onInputFinish", null)
+        // Notify the web page (optional)
+        webView?.evaluateJavascript("if(window.__onInputFinish)window.__onInputFinish();", null)
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        flutterView?.let { view ->
-            methodChannel?.invokeMethod("onInputStart", mapOf(
-                "inputType" to info?.inputType,
-                "imeOptions" to info?.imeOptions,
-                "actionLabel" to info?.actionLabel?.toString(),
-                "packageName" to info?.packageName,
-                "hintText" to info?.hintText?.toString()
-            ))
-        }
-    }
-
-    override fun onUpdateSelection(
-        oldSelStart: Int,
-        oldSelEnd: Int,
-        newSelStart: Int,
-        newSelEnd: Int,
-        candidatesStart: Int,
-        candidatesEnd: Int
-    ) {
-        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
-        methodChannel?.invokeMethod("onSelectionUpdate", mapOf(
-            "selectionStart" to newSelStart,
-            "selectionEnd" to newSelEnd
-        ))
+        // Notify the web page (optional)
+        val pkg = info?.packageName ?: ""
+        val hint = info?.hintText?.toString() ?: ""
+        webView?.evaluateJavascript(
+            "if(window.__onInputStart)window.__onInputStart('${pkg}','${hint}');", null
+        )
     }
 
     override fun onDestroy() {
+        webView?.let {
+            it.removeAllViews()
+            it.destroy()
+        }
+        webView = null
         super.onDestroy()
-        flutterView?.detachFromFlutterEngine()
-        flutterView = null
-        methodChannel = null
+    }
+
+    // -----------------------------------------------------------------------
+    // JavaScript ↔ InputConnection bridge
+    // -----------------------------------------------------------------------
+
+    inner class KeyboardBridge(private val ctx: Context) {
+
+        /** Commit a text string (e.g. a letter, emoji, or word) */
+        @JavascriptInterface
+        fun commitText(text: String) {
+            currentInputConnection?.commitText(text, 1)
+        }
+
+        /** Delete `count` characters before the cursor */
+        @JavascriptInterface
+        fun deleteSurroundingText(count: Int) {
+            currentInputConnection?.deleteSurroundingText(count, 0)
+        }
+
+        /** Fire the IME action (search, send, done, etc.) */
+        @JavascriptInterface
+        fun performEnter() {
+            val action = currentInputEditorInfo?.imeOptions
+                ?.and(EditorInfo.IME_MASK_ACTION) ?: EditorInfo.IME_ACTION_NONE
+            if (action != EditorInfo.IME_ACTION_NONE) {
+                currentInputConnection?.performEditorAction(action)
+            } else {
+                currentInputConnection?.commitText("\n", 1)
+            }
+        }
+
+        /** Insert a space */
+        @JavascriptInterface
+        fun performSpace() {
+            currentInputConnection?.commitText(" ", 1)
+        }
+
+        /** Vibrate / haptic (handled on web side, but kept for compatibility) */
+        @JavascriptInterface
+        fun playHaptic() {
+            webView?.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+        }
+
+        /** Hide this keyboard */
+        @JavascriptInterface
+        fun hideKeyboard() {
+            requestHideSelf(0)
+        }
+
+        /** Switch to the next keyboard */
+        @JavascriptInterface
+        fun switchKeyboard() {
+            switchToNextInputMethod(false)
+        }
+
+        /** Returns the current hint text so the web page can show a placeholder */
+        @JavascriptInterface
+        fun getHintText(): String {
+            return currentInputEditorInfo?.hintText?.toString() ?: ""
+        }
     }
 }
