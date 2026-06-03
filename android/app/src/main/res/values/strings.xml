@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Akai Keyboard</string>
+    <string name="title_activity_main">Akai Keyboard</string>
+    <string name="package_name">com.akai.keyboard</string>
+    <string name="custom_url_scheme">com.akai.keyboard</string>
+    
+    <!-- Keyboard Settings -->
+    <string name="keyboard_name">Akai Keyboard</string>
+    <string name="keyboard_description">A beautiful and modern keyboard app</string>
+    <string name="settings_title">Akai Keyboard Settings</string>
+    <string name="enable_keyboard">Enable Akai Keyboard</string>
+    <string name="select_keyboard">Select Akai Keyboard</string>
+    
+    <!-- Settings Labels -->
+    <string name="keyboard_status">Keyboard Status</string>
+    <string name="keyboard_preferences">Keyboard Preferences</string>
+    <string name="theme_settings">Theme</string>
+    
+    <!-- Settings Options -->
+    <string name="haptic_feedback">Haptic Feedback</string>
+    <string name="key_sound">Key Sound</string>
+    <string name="auto_capitalize">Auto Capitalize</string>
+    <string name="dark_theme">Dark theme is currently active</string>
+    
+    <!-- Status Messages -->
+    <string name="keyboard_enabled">Keyboard Enabled</string>
+    <string name="keyboard_disabled">Enable Akai Keyboard</string>
+    
+    <!-- Subtypes -->
+    <string name="subtype_english">English (US)</string>
+    
+    <!-- Notification -->
+    <string name="keyboard_notification_title">Akai Keyboard Active</string>
+    <string name="keyboard_notification_text">Tap to change keyboard settings</string>
+</resources>

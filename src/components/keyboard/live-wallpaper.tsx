@@ -173,18 +173,19 @@ function drawLava(ctx: CanvasRenderingContext2D, w: number, h: number, time: num
   ctx.fillRect(0, 0, w, h);
 
   // Glowing veins/cracks
-  for (const vein of veins) {
+  const lavaVeins = veins as { points: { x: number; y: number; ox: number; oy: number }[]; hue: number }[];
+  for (const vein of lavaVeins) {
     ctx.beginPath();
-    const pts = vein.points as { x: number; y: number; ox: number; oy: number }[];
+    const pts = vein.points;
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) {
       const wobbleX = Math.sin(time * 0.5 + i) * 10;
       const wobbleY = Math.cos(time * 0.3 + i * 0.7) * 8;
       ctx.lineTo(pts[i].x + wobbleX, pts[i].y + wobbleY);
     }
-    ctx.strokeStyle = hsl(vein.hue as number, 100, 55, 0.3 + 0.15 * Math.sin(time * 2 + (vein.hue as number)));
+    ctx.strokeStyle = hsl(vein.hue, 100, 55, 0.3 + 0.15 * Math.sin(time * 2 + vein.hue));
     ctx.lineWidth = 2 + Math.sin(time * 3) * 1;
-    ctx.shadowColor = hsl(vein.hue as number, 100, 60, 0.8);
+    ctx.shadowColor = hsl(vein.hue, 100, 60, 0.8);
     ctx.shadowBlur = 15;
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -2085,6 +2086,23 @@ function drawPlasma(ctx: CanvasRenderingContext2D, w: number, h: number, time: n
       ctx.stroke();
     }
   }
+
+  // Energy field lines between nearby blobs
+  for (let i = 0; i < blobs.length; i++) {
+    for (let j = i + 1; j < blobs.length; j++) {
+      const d = dist(blobs[i].x, blobs[i].y, blobs[j].x, blobs[j].y);
+      if (d < 180) {
+        ctx.beginPath();
+        const midX = (blobs[i].x + blobs[j].x) / 2 + Math.sin(time * 3 + i) * 15;
+        const midY = (blobs[i].y + blobs[j].y) / 2 + Math.cos(time * 2 + j) * 15;
+        ctx.moveTo(blobs[i].x, blobs[i].y);
+        ctx.quadraticCurveTo(midX, midY, blobs[j].x, blobs[j].y);
+        ctx.strokeStyle = hsl((blobs[i].hue + blobs[j].hue) / 2, 100, 70, (1 - d / 180) * 0.15);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  }
 }
 
 // ─── 16. Deep Sea ───────────────────────────────────────────────────────────
@@ -2488,10 +2506,10 @@ function drawStorm(ctx: CanvasRenderingContext2D, w: number, h: number, time: nu
       w: rand(100, 250), h: rand(30, 60),
       speed: rand(0.2, 0.8), alpha: rand(0.3, 0.6),
     }));
-    state.raindrops = Array.from({ length: 200 }, () => ({
+    state.raindrops = Array.from({ length: 400 }, () => ({
       x: rand(0, w), y: rand(-h, h),
-      speed: rand(5, 12), length: rand(8, 20),
-      alpha: rand(0.1, 0.4),
+      speed: rand(5, 15), length: rand(10, 25),
+      alpha: rand(0.1, 0.5),
     }));
     state.stormBolts = [] as { segments: { x: number; y: number }[]; life: number; hue: number }[];
     state.thunderRipples = [] as { x: number; y: number; r: number; alpha: number }[];
@@ -2661,9 +2679,9 @@ function drawStorm(ctx: CanvasRenderingContext2D, w: number, h: number, time: nu
 function drawCherryBlossom(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
   if (!state.init) {
     state.init = true;
-    state.petals = Array.from({ length: 60 }, () => ({
+    state.petals = Array.from({ length: 120 }, () => ({
       x: rand(-50, w + 50), y: rand(-h, 0),
-      size: rand(4, 12), speed: rand(0.5, 2),
+      size: rand(4, 12), speed: rand(0.5, 2.5),
       drift: rand(-0.5, 0.5), rotation: rand(0, Math.PI * 2),
       rotSpeed: rand(-0.02, 0.02), hue: rand(330, 360),
       alpha: rand(0.4, 0.9),
@@ -3047,54 +3065,1694 @@ function drawNorthernLights(ctx: CanvasRenderingContext2D, w: number, h: number,
   }
 }
 
+function drawFireflies(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.flies = Array.from({ length: 50 }, () => ({
+      x: rand(0, w), y: rand(0, h),
+      vx: rand(-0.5, 0.5), vy: rand(-0.5, 0.5),
+      size: rand(1.5, 3), hue: 60,
+      phase: rand(0, Math.PI * 2),
+    }));
+  }
+  const flies = state.flies as { x: number; y: number; vx: number; vy: number; size: number; hue: number; phase: number }[];
+  ctx.fillStyle = '#050a05';
+  ctx.fillRect(0, 0, w, h);
+
+  for (const f of flies) {
+    f.x += f.vx + Math.sin(time + f.phase) * 0.2;
+    f.y += f.vy + Math.cos(time + f.phase) * 0.2;
+    if (f.x < 0) f.x = w; if (f.x > w) f.x = 0;
+    if (f.y < 0) f.y = h; if (f.y > h) f.y = 0;
+
+    const flicker = 0.4 + 0.6 * Math.abs(Math.sin(time * 2 + f.phase));
+    const grad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.size * 4 * flicker);
+    grad.addColorStop(0, hsl(f.hue, 100, 70, 0.8 * flicker));
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(f.x, f.y, f.size * 4 * flicker, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath(); ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(f.hue, 100, 90, 1);
+    ctx.fill();
+  }
+}
+
+function drawBinaryRain(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    const colW = 18;
+    const cols = Math.ceil(w / colW);
+    state.columns = Array.from({ length: cols }, () => ({
+      y: rand(-h, 0), speed: rand(2, 6),
+    }));
+  }
+  const columns = state.columns as { y: number; speed: number }[];
+  ctx.fillStyle = 'rgba(0,5,15,0.2)';
+  ctx.fillRect(0, 0, w, h);
+
+  const colW = 18;
+  ctx.font = 'bold 16px monospace';
+  for (let i = 0; i < columns.length; i++) {
+    const col = columns[i];
+    col.y += col.speed;
+    if (col.y > h + 100) col.y = -100;
+
+    const char = Math.random() > 0.5 ? '1' : '0';
+    const alpha = 0.5 + 0.5 * Math.sin(time * 5 + i);
+    ctx.fillStyle = `rgba(0,255,255,${alpha})`;
+    ctx.fillText(char, i * colW, col.y);
+
+    if (Math.random() < 0.1) {
+      ctx.shadowColor = 'cyan';
+      ctx.shadowBlur = 10;
+      ctx.fillText(char, i * colW, col.y);
+      ctx.shadowBlur = 0;
+    }
+  }
+}
+
+function drawGeometricFlow(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.nodes = Array.from({ length: 40 }, () => ({
+      x: rand(0, w), y: rand(0, h),
+      vx: rand(-0.5, 0.5), vy: rand(-0.5, 0.5),
+    }));
+  }
+  const nodes = state.nodes as { x: number; y: number; vx: number; vy: number }[];
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, w, h);
+
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    n.x += n.vx; n.y += n.vy;
+    if (n.x < 0 || n.x > w) n.vx *= -1;
+    if (n.y < 0 || n.y > h) n.vy *= -1;
+
+    for (let j = i + 1; j < nodes.length; j++) {
+      const n2 = nodes[j];
+      const d = dist(n.x, n.y, n2.x, n2.y);
+      if (d < 120) {
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(n2.x, n2.y);
+        ctx.strokeStyle = `rgba(100,100,255,${(1 - d / 120) * 0.4})`;
+        ctx.stroke();
+      }
+    }
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'white';
+    ctx.fill();
+  }
+}
+
+// ─── Phase 4: Premium Live Themes ────────────────────────────────────────────
+
+/**
+ * Nebula: Twinkling starfield with drifting nebula gas clouds and shooting stars
+ */
+function drawNebula(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.stars) {
+    state.stars = Array.from({ length: 120 }, () => ({
+      x: rand(0, w), y: rand(0, h),
+      size: rand(0.5, 2.5), twinkle: rand(0.5, 3), drift: rand(0.02, 0.1),
+    }));
+    state.clouds = Array.from({ length: 5 }, () => ({
+      x: rand(0, w), y: rand(0.1 * h, 0.9 * h),
+      r: rand(w * 0.25, w * 0.5), hue: rand(230, 310),
+      dx: rand(-0.1, 0.1), dy: rand(-0.05, 0.05),
+    }));
+    state.shootingStars = [] as { x: number; y: number; vx: number; vy: number; life: number; maxLife: number }[];
+    state.nextShoot = 0;
+  }
+  const typedState = state as { stars: any[]; clouds: any[]; shootingStars: any[]; nextShoot: number };
+  const { stars, clouds } = typedState;
+
+  // Deep space background
+  ctx.fillStyle = '#050510';
+  ctx.fillRect(0, 0, w, h);
+
+  // Nebula gas clouds
+  for (const c of clouds) {
+    const grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
+    grad.addColorStop(0, hsl(c.hue, 70, 25, 0.18));
+    grad.addColorStop(0.5, hsl(c.hue + 20, 60, 15, 0.08));
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    c.x += c.dx; c.y += c.dy;
+    if (c.x < -c.r) c.x = w + c.r;
+    if (c.x > w + c.r) c.x = -c.r;
+    if (c.y < -c.r) c.y = h + c.r;
+    if (c.y > h + c.r) c.y = -c.r;
+  }
+
+  // Twinkling stars
+  for (const s of stars) {
+    const alpha = 0.2 + 0.8 * Math.abs(Math.sin(time * s.twinkle + s.x * 0.01));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size * (0.7 + 0.3 * alpha), 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 245, 220, ${alpha})`;
+    ctx.shadowColor = 'rgba(200,200,255,0.8)';
+    ctx.shadowBlur = s.size * 3;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    s.x += s.drift * Math.cos(time * 0.1 + s.y);
+    if (s.x > w) s.x = 0; if (s.x < 0) s.x = w;
+  }
+
+  // Shooting stars
+  if (time > typedState.nextShoot) {
+    typedState.shootingStars.push({ x: rand(0, w * 0.8), y: rand(0, h * 0.4), vx: rand(3, 6), vy: rand(1, 3), life: 0, maxLife: rand(0.5, 1.2) });
+    typedState.nextShoot = time + rand(2, 5);
+  }
+  for (let i = typedState.shootingStars.length - 1; i >= 0; i--) {
+    const ss = typedState.shootingStars[i];
+    ss.life += 0.016;
+    ss.x += ss.vx; ss.y += ss.vy;
+    const alpha = 1 - ss.life / ss.maxLife;
+    ctx.beginPath();
+    ctx.moveTo(ss.x, ss.y);
+    ctx.lineTo(ss.x - ss.vx * 8, ss.y - ss.vy * 8);
+    ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.8})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    if (ss.life >= ss.maxLife) typedState.shootingStars.splice(i, 1);
+  }
+}
+
+/**
+ * Ocean Waves: Rolling gradient waves with foam and particle reflections
+ */
+function drawOceanWaves(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.foam) {
+    state.foam = Array.from({ length: 30 }, () => ({
+      x: rand(0, w), y: rand(h * 0.5, h), size: rand(1, 4), alpha: rand(0.3, 1),
+    }));
+  }
+  const { foam } = state as { foam: any[] };
+
+  // Deep ocean gradient
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#000d1a');
+  bg.addColorStop(0.5, '#001f3f');
+  bg.addColorStop(1, '#003366');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Surface light refraction shimmer
+  for (let i = 0; i < 8; i++) {
+    const shimX = (w * 0.1 * i + time * 30 * (i % 2 === 0 ? 1 : -1)) % w;
+    const shimY = h * 0.3 + Math.sin(time + i) * 20;
+    const shimGrad = ctx.createRadialGradient(shimX, shimY, 0, shimX, shimY, 60);
+    shimGrad.addColorStop(0, 'rgba(100,200,255,0.08)');
+    shimGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = shimGrad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // Wave layers (back to front)
+  const waveLayers = [
+    { yBase: 0.45, amp: 15, speed: 0.4, color: 'rgba(0,80,160,0.5)', width: 2 },
+    { yBase: 0.55, amp: 12, speed: 0.6, color: 'rgba(0,100,200,0.55)', width: 2 },
+    { yBase: 0.62, amp: 10, speed: 0.8, color: 'rgba(0,130,220,0.6)', width: 1.5 },
+    { yBase: 0.7, amp: 8, speed: 1.2, color: 'rgba(0,160,230,0.7)', width: 1.5 },
+    { yBase: 0.78, amp: 6, speed: 1.6, color: 'rgba(50,180,240,0.8)', width: 1 },
+  ];
+
+  for (const layer of waveLayers) {
+    ctx.beginPath();
+    for (let x = 0; x <= w; x += 5) {
+      const y = h * layer.yBase + Math.sin(x * 0.015 + time * layer.speed) * layer.amp
+        + Math.sin(x * 0.008 - time * layer.speed * 0.7) * (layer.amp * 0.5);
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+    ctx.fillStyle = layer.color;
+    ctx.fill();
+    ctx.strokeStyle = layer.color.replace(/[\d.]+\)$/, '0.9)');
+    ctx.lineWidth = layer.width;
+    ctx.stroke();
+  }
+
+  // Foam particles
+  for (const f of foam) {
+    f.x += Math.sin(time * 0.8 + f.y * 0.05) * 0.4;
+    f.alpha = 0.2 + 0.6 * Math.abs(Math.sin(time * 0.5 + f.x * 0.05));
+    ctx.beginPath();
+    ctx.arc(f.x, f.y + Math.sin(time + f.x * 0.1) * 4, f.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200,240,255,${f.alpha * 0.5})`;
+    ctx.fill();
+    if (f.x > w) f.x = 0; if (f.x < 0) f.x = w;
+  }
+}
+
+/**
+ * Lava Lamp: Rising metaball-like blobs with warm glow
+ */
+function drawLavaLamp(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.blobs) {
+    state.blobs = Array.from({ length: 7 }, () => ({
+      x: rand(w * 0.15, w * 0.85),
+      y: rand(0, h),
+      r: rand(35, 75),
+      vy: rand(0.4, 1.2) * (Math.random() > 0.5 ? 1 : -1),
+      phase: rand(0, Math.PI * 2),
+      hue: rand(0, 40),
+    }));
+  }
+  const { blobs } = state as { blobs: any[] };
+
+  // Dark warm background
+  ctx.fillStyle = '#100400';
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle ambient glow
+  const ambient = ctx.createRadialGradient(w / 2, h, 0, w / 2, h, h * 0.8);
+  ambient.addColorStop(0, 'rgba(180,40,0,0.2)');
+  ambient.addColorStop(1, 'transparent');
+  ctx.fillStyle = ambient;
+  ctx.fillRect(0, 0, w, h);
+
+  // Move and draw blobs
+  for (const b of blobs) {
+    b.y += b.vy * 0.4;
+    b.x += Math.sin(time * 0.3 + b.phase) * 0.8;
+    // Bounce within container
+    if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy); }
+    if (b.y + b.r > h) { b.y = h - b.r; b.vy = -Math.abs(b.vy); }
+    if (b.x - b.r < 0) b.x = b.r + 5;
+    if (b.x + b.r > w) b.x = w - b.r - 5;
+
+    // Soft metaball glow
+    const xOff = Math.sin(time * 0.7 + b.phase) * 15;
+    const yOff = Math.cos(time * 0.5 + b.phase) * 10;
+    const grad = ctx.createRadialGradient(b.x + xOff, b.y + yOff, 0, b.x + xOff, b.y + yOff, b.r * 1.4);
+    grad.addColorStop(0, hsl(b.hue, 100, 60, 0.9));
+    grad.addColorStop(0.6, hsl(b.hue + 10, 100, 45, 0.5));
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(b.x + xOff, b.y + yOff, b.r * 1.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Top and bottom caps (glass effect)
+  const capGrad = ctx.createLinearGradient(0, 0, 0, h * 0.12);
+  capGrad.addColorStop(0, 'rgba(0,0,0,0.8)');
+  capGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = capGrad;
+  ctx.fillRect(0, 0, w, h * 0.12);
+
+  const capGrad2 = ctx.createLinearGradient(0, h * 0.88, 0, h);
+  capGrad2.addColorStop(0, 'transparent');
+  capGrad2.addColorStop(1, 'rgba(0,0,0,0.8)');
+  ctx.fillStyle = capGrad2;
+  ctx.fillRect(0, h * 0.88, w, h * 0.12);
+}
+
+/**
+ * Circuit Board: Animated digital traces pulsing with data signals
+ */
+function drawCircuitBoard(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  const GRID = 40;
+  if (!state.traces) {
+    const nodes: { x: number; y: number; connected: { x: number; y: number }[] }[] = [];
+    for (let gx = GRID; gx < w; gx += GRID) {
+      for (let gy = GRID; gy < h; gy += GRID) {
+        if (Math.random() > 0.55) {
+          nodes.push({ x: gx, y: gy, connected: [] });
+        }
+      }
+    }
+    // Connect nearby nodes
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = Math.abs(nodes[i].x - nodes[j].x);
+        const dy = Math.abs(nodes[i].y - nodes[j].y);
+        if ((dx === GRID && dy === 0) || (dx === 0 && dy === GRID)) {
+          nodes[i].connected.push(nodes[j]);
+        }
+      }
+    }
+    state.traces = nodes;
+    state.signals = Array.from({ length: 8 }, (_, i) => ({
+      nodeIdx: Math.floor(rand(0, nodes.length)),
+      progress: rand(0, 1),
+      speed: rand(0.4, 1.2),
+      hue: i % 2 === 0 ? 120 : 160,
+    }));
+  }
+
+  const { traces, signals } = state as { traces: any[]; signals: any[] };
+
+  ctx.fillStyle = '#030a03';
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid lines (faint)
+  ctx.strokeStyle = 'rgba(0,60,0,0.4)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < w; x += GRID) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y < h; y += GRID) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  // Draw traces
+  for (const node of traces) {
+    for (const conn of node.connected) {
+      ctx.beginPath();
+      ctx.moveTo(node.x, node.y);
+      ctx.lineTo(conn.x, conn.y);
+      ctx.strokeStyle = 'rgba(0,180,0,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  // Draw nodes
+  for (const node of traces) {
+    const pulse = 0.4 + 0.6 * Math.abs(Math.sin(time * 1.5 + node.x * 0.05 + node.y * 0.05));
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(120, 100, 50, pulse);
+    ctx.shadowColor = '#00ff00';
+    ctx.shadowBlur = 8 * pulse;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // Animate signals along traces
+  for (const sig of signals) {
+    if (sig.nodeIdx >= traces.length) { sig.nodeIdx = 0; continue; }
+    const node = traces[sig.nodeIdx];
+    if (!node.connected.length) { sig.nodeIdx = Math.floor(rand(0, traces.length)); continue; }
+    const connIdx = Math.floor(sig.progress * node.connected.length) % node.connected.length;
+    const conn = node.connected[connIdx];
+    const t = (sig.progress * node.connected.length) % 1;
+    const sx = node.x + (conn.x - node.x) * t;
+    const sy = node.y + (conn.y - node.y) * t;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(sig.hue, 100, 70, 0.95);
+    ctx.shadowColor = hsl(sig.hue, 100, 60, 1);
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    sig.progress += sig.speed * 0.016;
+    if (sig.progress >= 1) {
+      sig.progress = 0;
+      if (node.connected.length > 0) {
+        const next = node.connected[Math.floor(rand(0, node.connected.length))];
+        sig.nodeIdx = traces.indexOf(next);
+        if (sig.nodeIdx < 0) sig.nodeIdx = Math.floor(rand(0, traces.length));
+      }
+    }
+  }
+}
+
+// ─── 31. Unified Waving Flag Logic ──────────────────────────────────────────
+
+function drawWavingLayer(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, colors: string[], bands = 3, type: 'h' | 'v' = 'h') {
+  for (let i = 0; i < bands; i++) {
+    ctx.beginPath();
+    if (type === 'h') {
+      const startY = (h / bands) * i;
+      ctx.moveTo(0, h);
+      for (let x = 0; x <= w; x += 5) {
+        const wave = Math.sin(x * 0.005 + time * 1.5 + i) * 15;
+        ctx.lineTo(x, (h / bands) * (i + 1) + wave);
+      }
+      ctx.lineTo(w, h);
+    }
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+  }
+}
+
+function drawFlagTriangle(ctx: CanvasRenderingContext2D, h: number, color: string, time: number) {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    const wave = Math.sin(time * 1.5) * 10;
+    ctx.lineTo(h * 0.4 + wave, h / 2);
+    ctx.lineTo(0, h);
+    ctx.fillStyle = color;
+    ctx.fill();
+}
+
+// Star helper
+function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, spikes: number, outerRadius: number, innerRadius: number, color: string) {
+  let rot = Math.PI / 2 * 3;
+  const step = Math.PI / spikes;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outerRadius);
+  for (let i = 0; i < spikes; i++) {
+    ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius);
+    rot += step;
+    ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius);
+    rot += step;
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawEthFlag(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_Ethiopia.svg', 'rgba(0, 155, 72, 1)');
+}
+
+function drawAdey(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  const bg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w);
+  bg.addColorStop(0, '#15803d'); bg.addColorStop(1, '#14532d');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,w,h);
+  
+  // Interactive Glow
+  if (mx > -500) {
+    const spot = ctx.createRadialGradient(mx, my, 0, mx, my, w * 0.5);
+    spot.addColorStop(0, 'rgba(250, 204, 21, 0.15)');
+    spot.addColorStop(1, 'transparent');
+    ctx.fillStyle = spot; ctx.fillRect(0,0,w,h);
+  }
+
+  ctx.save();
+  const ox = mx > -500 ? (mx - w/2) * 0.05 : 0;
+  const oy = my > -500 ? (my - h/2) * 0.05 : 0;
+  ctx.translate(w/2 + ox, h/2 + oy);
+  const rot = time * 0.5; ctx.rotate(rot);
+  for(let i=0; i<12; i++) {
+    ctx.rotate(Math.PI/6);
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath(); ctx.ellipse(0, 40, 15, 45, 0, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle = '#78350f';
+  ctx.beginPath(); ctx.arc(0,0, 25, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawCoffee(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  const bg = ctx.createLinearGradient(0,0,0,h);
+  bg.addColorStop(0, '#2d1a12'); bg.addColorStop(1, '#1a0d01');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,w,h);
+  
+  if (mx > -500) {
+    const spot = ctx.createRadialGradient(mx, my, 0, mx, my, w * 0.4);
+    spot.addColorStop(0, 'rgba(146, 64, 14, 0.2)');
+    spot.addColorStop(1, 'transparent');
+    ctx.fillStyle = spot; ctx.fillRect(0,0,w,h);
+  }
+
+  for(let i=0; i<15; i++) {
+    const x = (i*137)%w, y = h - ((time*50 + i*80)%h);
+    // Mouse interaction for bubbles
+    const dx = mx - x, dy = my - y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const scale = mx > -500 && dist < 100 ? 1.5 : 1;
+    
+    ctx.fillStyle = mx > -500 && dist < 100 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)';
+    ctx.beginPath(); ctx.arc(x,y, 40 * scale, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+let imgCache: Record<string, HTMLImageElement> = {};
+
+function drawImageTheme(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, src: string, auraColor: string) {
+  if (!imgCache[src]) {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => { imgCache[src] = img; };
+    return;
+  }
+  const img = imgCache[src];
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+  
+  // Interactive Ambient Aura
+  const pulse = 0.5 + 0.5 * Math.sin(time * 0.8);
+  const glow = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w * (0.7 + pulse * 0.2));
+  glow.addColorStop(0, auraColor.replace('1)', `${0.15 + pulse*0.1})`));
+  glow.addColorStop(1, 'transparent');
+  ctx.fillStyle = glow; ctx.fillRect(0,0,w,h);
+
+  // Interactive Cursor Spotlight
+  if (mx > -500) {
+    const spot = ctx.createRadialGradient(mx, my, 0, mx, my, w * 0.4);
+    spot.addColorStop(0, auraColor.replace('1)', '0.12)'));
+    spot.addColorStop(1, 'transparent');
+    ctx.fillStyle = spot; ctx.fillRect(0,0,w,h);
+  }
+
+  // Soft-Cover Fitting + Interactive Parallax
+  const iw = img.width, ih = img.height;
+  const drift = 0.025;
+  const px = mx > -500 ? (mx - w/2) / (w/2) * -15 : 0;
+  const py = my > -500 ? (my - h/2) / (h/2) * -10 : 0;
+  
+  const scale = 1.05 + 0.05 * Math.sin(time * 0.4);
+  const ratio = Math.max(w / iw, h / ih) * scale;
+  const nw = iw * ratio, nh = ih * ratio;
+  const ox = Math.sin(time * 0.2) * w * drift + px;
+  const oy = Math.cos(time * 0.15) * h * drift + py;
+  
+  ctx.save();
+  ctx.translate(w/2 + ox, h/2 + oy);
+  // Subtle rotation for "floating" feel
+  ctx.rotate(Math.sin(time * 0.1) * 0.015);
+  ctx.drawImage(img, -nw/2, -nh/2, nw, nh);
+  ctx.restore();
+
+  // Interactive Floating Particles
+  for(let i=0; i<20; i++) {
+    const baseX = (i * 137 + time * 20) % w;
+    const baseY = (i * 91 + time * 15) % h;
+    
+    // Proximity to cursor
+    const dx = mx - baseX;
+    const dy = my - baseY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const attract = mx > -500 && dist < 150 ? (150 - dist) / 150 : 0;
+    
+    const px = baseX + (dx * attract * 0.2);
+    const py = baseY + (dy * attract * 0.2);
+    
+    const pa = (0.05 + 0.1 * Math.sin(time + i)) * (1 + attract * 2);
+    ctx.fillStyle = `rgba(255,255,255,${pa})`;
+    ctx.beginPath(); ctx.arc(px, py, 1.2 + attract, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Light Sweep/Shimmer (Responsive to hover)
+  const sweepX = (time * 0.15 % 1.5) * w - w * 0.25;
+  const shimmer = ctx.createLinearGradient(sweepX, 0, sweepX + w*0.3, 0);
+  shimmer.addColorStop(0, 'transparent');
+  shimmer.addColorStop(0.5, mx > -500 ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.08)');
+  shimmer.addColorStop(1, 'transparent');
+  ctx.fillStyle = shimmer;
+  ctx.fillRect(0,0,w,h);
+
+  // Premium Vignette (Shifts with cursor)
+  const vx = w/2 + (mx > -500 ? (mx - w/2) * 0.1 : 0);
+  const vy = h/2 + (my > -500 ? (my - h/2) * 0.1 : 0);
+  const vig = ctx.createRadialGradient(vx, vy, w*0.4, vx, vy, w*1.0);
+  vig.addColorStop(0, 'transparent'); vig.addColorStop(1, 'rgba(0,0,0,0.8)');
+  ctx.fillStyle = vig; ctx.fillRect(0,0,w,h);
+}
+
+function drawJudahLion(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/judah_lion.png', 'rgba(251, 191, 36, 1)');
+}
+
+function drawAddis(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/themes/addis_ababa.png', 'rgba(59, 130, 246, 1)');
+}
+
+function drawCentralEthiopia(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawAddis(ctx, w, h, time, mx, my);
+}
+
+// ─── Regional Flags (High Fidelity Image Based) ──────────────────────────────
+
+function drawAfar(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_the_Afar_Region.svg', 'rgba(29, 78, 216, 1)');
+}
+
+function drawAmhara(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_the_Amhara_Region.svg', 'rgba(250, 204, 21, 1)');
+}
+
+function drawOromia(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_the_Oromia_Region.svg', 'rgba(220, 38, 38, 1)');
+}
+
+function drawSomali(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_the_Somali_Region_(1994-2008,_2018-).svg', 'rgba(22, 163, 74, 1)');
+}
+
+function drawTigray(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_the_Tigray_Region.svg', 'rgba(239, 51, 64, 1)');
+}
+
+function drawSidama(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_Sidama.svg', 'rgba(10, 61, 145, 1)');
+}
+
+function drawBenishangul(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_the_Benishangul-Gumuz_Region.svg', 'rgba(10, 10, 10, 1)');
+}
+
+function drawGambella(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_the_Gambella_Region.svg', 'rgba(29, 78, 216, 1)');
+}
+
+function drawHarari(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Harari_Flag.svg', 'rgba(22, 163, 74, 1)');
+}
+
+function drawSouthEthiopia(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_Southern_Ethiopia.png', 'rgba(10, 61, 145, 1)');
+}
+
+function drawSouthWestEthiopia(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawImageTheme(ctx, w, h, time, mx, my, '/flags/Flag_of_South_West_Ethiopia.svg', 'rgba(10, 61, 145, 1)');
+}
+
+// ─── Heritage Restoration ────────────────────────────────────────────────────────
+
+function drawLalibela(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Warm stone + subtle cross glow
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#0b0a09');
+  bg.addColorStop(1, '#1c1917');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+  const pulse = 0.55 + 0.45 * Math.sin(time * 1.3);
+
+  // Cross silhouette
+  const crossW = Math.min(w, h) * 0.14;
+  const crossH = Math.min(w, h) * 0.36;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(Math.sin(time * 0.35) * 0.02);
+  ctx.shadowColor = `rgba(251, 191, 36, ${0.12 + pulse * 0.12})`;
+  ctx.shadowBlur = 28 + pulse * 22;
+  ctx.fillStyle = '#d6a65a';
+  ctx.fillRect(-crossW / 2, -crossH / 2, crossW, crossH);
+  ctx.fillRect(-crossH / 2, -crossW / 2, crossH, crossW);
+  ctx.restore();
+
+  // Floating dust
+  for (let i = 0; i < 26; i++) {
+    const x = (i * 97) % w;
+    const y = (i * 53 + time * 18) % h;
+    const a = 0.04 + 0.05 * (0.5 + 0.5 * Math.sin(time + i));
+    ctx.fillStyle = `rgba(255, 255, 255, ${a})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawMeskel(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Ember field + central flame
+  ctx.fillStyle = '#240707';
+  ctx.fillRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const baseY = h * 0.72;
+  const flicker = 0.85 + 0.15 * Math.sin(time * 9);
+
+  // Flame gradient
+  const g = ctx.createRadialGradient(cx, baseY, 10, cx, baseY, Math.min(w, h) * 0.55);
+  g.addColorStop(0, `rgba(251, 191, 36, ${0.35 * flicker})`);
+  g.addColorStop(0.35, `rgba(249, 115, 22, ${0.22 * flicker})`);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+
+  // Ember sparks
+  for (let i = 0; i < 40; i++) {
+    const x = ((i * 83) % w) + Math.sin(time * 1.2 + i) * 12;
+    const y = baseY - ((time * 55 + i * 28) % (h * 0.7));
+    ctx.fillStyle = `rgba(251, 191, 36, ${0.03 + 0.08 * (0.5 + 0.5 * Math.sin(time * 2 + i))})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawNajashi(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Emerald night + mosque silhouette
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#052e16');
+  bg.addColorStop(1, '#020617');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const float = Math.sin(time * 1.2) * 6;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  // Base
+  ctx.fillRect(cx - w * 0.18, h * 0.58, w * 0.36, h * 0.26);
+  // Dome
+  ctx.beginPath();
+  ctx.arc(cx, h * 0.58 + float, w * 0.12, Math.PI, 0);
+  ctx.fill();
+  // Minaret
+  ctx.fillRect(cx + w * 0.22, h * 0.42, w * 0.05, h * 0.42);
+  ctx.beginPath();
+  ctx.arc(cx + w * 0.245, h * 0.42, w * 0.035, Math.PI, 0);
+  ctx.fill();
+
+  // Star glow
+  const starPulse = 0.6 + 0.4 * Math.sin(time * 2.2);
+  ctx.shadowColor = `rgba(34, 197, 94, ${0.25 + 0.2 * starPulse})`;
+  ctx.shadowBlur = 18 + 10 * starPulse;
+  drawStar(ctx, cx - w * 0.18, h * 0.22, 5, 18, 8, `rgba(255, 255, 255, ${0.75})`);
+  ctx.shadowBlur = 0;
+}
+
+function drawHarar(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Harar wall / gate vibe
+  const bg = ctx.createLinearGradient(0, 0, w, h);
+  bg.addColorStop(0, '#0f766e');
+  bg.addColorStop(1, '#1e293b');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Brick pattern
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = '#000';
+  const bw = 38;
+  const bh = 18;
+  const offset = (Math.sin(time * 0.6) * 8);
+  for (let y = 0; y < h + bh; y += bh) {
+    for (let x = -bw; x < w + bh; x += bw) {
+      const ox = (Math.floor(y / bh) % 2) * (bw / 2) + offset;
+      ctx.fillRect(x + ox, y, bw - 2, bh - 2);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Gate arch
+  const cx = w / 2;
+  const archW = Math.min(w, h) * 0.55;
+  const archH = Math.min(w, h) * 0.7;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(cx - archW / 2, h * 0.92);
+  ctx.lineTo(cx - archW / 2, h * 0.92 - archH * 0.55);
+  ctx.quadraticCurveTo(cx, h * 0.92 - archH, cx + archW / 2, h * 0.92 - archH * 0.55);
+  ctx.lineTo(cx + archW / 2, h * 0.92);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawLantern(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Indigo night + lantern glow
+  ctx.fillStyle = '#0b1027';
+  ctx.fillRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h * 0.42 + Math.sin(time * 1.1) * 6;
+  const r = Math.min(w, h) * 0.12;
+  const pulse = 0.6 + 0.4 * Math.sin(time * 2.6);
+
+  // Glow
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(w, h) * 0.65);
+  g.addColorStop(0, `rgba(251, 191, 36, ${0.22 + pulse * 0.12})`);
+  g.addColorStop(0.45, `rgba(245, 158, 11, ${0.12 + pulse * 0.06})`);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+
+  // Lantern body
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(cx - r * 0.9, cy - r * 1.1, r * 1.8, r * 2.2);
+
+  // Stars
+  for (let i = 0; i < 30; i++) {
+    const x = (i * 97) % w;
+    const y = (i * 41 + time * 6) % h;
+    const a = 0.03 + 0.06 * (0.5 + 0.5 * Math.sin(time + i));
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.fillRect(x, y, 2, 2);
+  }
+}
+
+
+
+// ─── 33. New Heritage Collections (Premium) ────────────────────────────────
+
+function drawAxumStela(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Cosmic night background
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, '#020617'); bgGrad.addColorStop(1, '#1e1b4b');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, w, h);
+  
+  // Distant stars
+  for (let i = 0; i < 40; i++) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + 0.3 * Math.sin(time + i)})`;
+    ctx.beginPath(); ctx.arc((i * 77) % w, (i * 123) % h, 1, 0, Math.PI*2); ctx.fill();
+  }
+  
+  // Stela Silhouette (The Great Stele)
+  const pulse = 0.8 + 0.2 * Math.sin(time * 0.5);
+  ctx.save(); ctx.translate(w/2, h);
+  
+  // Main body
+  ctx.fillStyle = '#0a0a0a';
+  ctx.beginPath();
+  ctx.moveTo(-45, 0); ctx.lineTo(-40, -h * 0.85);
+  ctx.quadraticCurveTo(0, -h * 0.95, 40, -h * 0.85); ctx.lineTo(45, 0);
+  ctx.fill();
+  
+  // Glowing markings (Ge'ez symbols)
+  ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 20 * pulse;
+  ctx.fillStyle = `rgba(96, 165, 250, ${0.1 + 0.2 * pulse})`;
+  const markers = 10;
+  for (let i = 0; i < markers; i++) {
+    const y = -h * 0.1 - (i * (h * 0.07));
+    ctx.fillRect(-15, y, 30, 2);
+    ctx.beginPath(); ctx.arc(0, y - 5, 3, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawDebreDamo(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Morning Mist / Highland Blue
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+  skyGrad.addColorStop(0, '#171717'); skyGrad.addColorStop(1, '#404040');
+  ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, w, h);
+  
+  // Distant peaks
+  ctx.fillStyle = '#262626';
+  ctx.beginPath(); ctx.moveTo(0, h); ctx.lineTo(w*0.3, h*0.6); ctx.lineTo(w*0.6, h); ctx.fill();
+  
+  // Main Cliff (Amba)
+  ctx.fillStyle = '#0c0c0c';
+  ctx.beginPath();
+  ctx.moveTo(w * 0.4, h); ctx.lineTo(w * 0.45, h * 0.3);
+  ctx.lineTo(w * 0.85, h * 0.3); ctx.lineTo(w * 0.9, h);
+  ctx.fill();
+  
+  // The Rope (Life line)
+  const swing = Math.sin(time * 1.2) * 5;
+  ctx.strokeStyle = '#525252'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.5, h * 0.3);
+  ctx.quadraticCurveTo(w * 0.5 + swing, h * 0.5, w * 0.5, h * 0.7);
+  ctx.stroke();
+  
+  // Morning Mist particles
+  for (let i = 0; i < 20; i++) {
+    const drift = time * 20 + i * 50;
+    ctx.fillStyle = `rgba(255, 255, 255, 0.03)`;
+    ctx.beginPath(); ctx.arc((drift % (w + 200)) - 100, h * 0.7 + Math.sin(time + i) * 20, 40, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawDireDawa(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Sunset over the railway city
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+  skyGrad.addColorStop(0, '#fb923c'); skyGrad.addColorStop(0.5, '#db2777'); skyGrad.addColorStop(1, '#4c0519');
+  ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, w, h);
+  
+  // Minaret silhouette
+  ctx.save(); ctx.translate(w * 0.5, h);
+  ctx.fillStyle = '#1a0d11';
+  // Base
+  ctx.fillRect(-30, -h * 0.4, 60, h * 0.4);
+  // Balcony
+  ctx.fillRect(-40, -h * 0.4, 80, 10);
+  // Tower
+  ctx.fillRect(-15, -h * 0.65, 30, h * 0.25);
+  // Dome
+  ctx.beginPath(); ctx.arc(0, -h * 0.65, 20, Math.PI, 0); ctx.fill();
+  // Spire
+  ctx.fillRect(-2, -h * 0.75, 4, h * 0.1);
+  ctx.restore();
+  
+  // Animated "Prayer Beads" border
+  const beadCount = 33;
+  for (let i = 0; i < beadCount; i++) {
+    const angle = (i / beadCount) * Math.PI * 2 + time * 0.2;
+    const x = w/2 + Math.cos(angle) * (w * 0.45);
+    const y = h/2 + Math.sin(angle) * (h * 0.35);
+    const pulse = 0.5 + 0.5 * Math.sin(time * 2 + i);
+    ctx.fillStyle = `rgba(251, 191, 36, ${0.1 + pulse * 0.2})`;
+    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawTeff(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Highland Sky
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+  skyGrad.addColorStop(0, '#0ea5e9'); skyGrad.addColorStop(1, '#bae6fd');
+  ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, w, h);
+  
+  // Distant blue mountains
+  ctx.fillStyle = '#0369a1'; ctx.globalAlpha = 0.3;
+  ctx.beginPath(); ctx.moveTo(0, h); ctx.lineTo(w*0.2, h*0.6); ctx.lineTo(w*0.4, h*0.7); ctx.lineTo(w*0.7, h*0.5); ctx.lineTo(w, h); ctx.fill();
+  ctx.globalAlpha = 1;
+  
+  // Waving Teff (Physics-based stalks)
+  const stalkCount = 100;
+  for (let i = 0; i < stalkCount; i++) {
+    const x = (w / stalkCount) * i;
+    const hStalk = h * 0.3 + Math.sin(i * 0.5) * 20;
+    const wave = Math.sin(time * 2 + i * 0.2) * 15;
+    
+    ctx.strokeStyle = '#a16207'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, h);
+    ctx.quadraticCurveTo(x + wave * 0.5, h - hStalk * 0.5, x + wave, h - hStalk);
+    ctx.stroke();
+    
+    // The grain head
+    ctx.fillStyle = '#ca8a04';
+    ctx.beginPath(); ctx.ellipse(x + wave, h - hStalk, 4, 8, Math.PI/4 + wave*0.01, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawDanakil(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Surreal Acid Colors
+  const bgGrad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w);
+  bgGrad.addColorStop(0, '#facc15'); bgGrad.addColorStop(0.7, '#65a30d'); bgGrad.addColorStop(1, '#1a2e05');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, w, h);
+  
+  // Heat distortion bubbles
+  for (let i = 0; i < 40; i++) {
+    const pX = (i * 137) % w;
+    const pY = (i * 91 + time * 50) % (h + 100) - 50;
+    const size = Math.max(0.1, 10 + 20 * Math.sin(time + i));
+    
+    ctx.beginPath(); ctx.arc(pX, pY, size, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255, 255, 255, 0.1)`;
+    ctx.strokeStyle = `rgba(255, 255, 255, 0.2)`;
+    ctx.stroke();
+  }
+  
+  // Sulfur crystalline patterns
+  ctx.lineWidth = 0.5;
+  ctx.strokeStyle = 'rgba(255, 255, 0, 0.1)';
+  for (let i = 0; i < 10; i++) {
+    const r = 50 + i * 40 + Math.sin(time * 0.5) * 20;
+    ctx.beginPath();
+    for (let a = 0; a < Math.PI * 2; a += 0.2) {
+      const x = w/2 + Math.cos(a) * r;
+      const y = h/2 + Math.sin(a) * r;
+      ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.stroke();
+  }
+}
+
+function drawOmo(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Body paint / Tribal Pattern
+  ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, w, h);
+  const size = 120;
+  const t = time * 0.8;
+  for (let x = 0; x < w + size; x += size) {
+    for (let y = 0; y < h + size; y += size) {
+        ctx.save(); ctx.translate(x, y);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.globalAlpha = 0.3;
+        const shift = Math.sin(t + (x+y)*0.01) * 30;
+        ctx.beginPath(); ctx.arc(shift, 0, 40, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = '#ef4444'; ctx.globalAlpha = 0.2;
+        if ((Math.floor(x/size) + Math.floor(y/size)) % 5 === 0) {
+            ctx.beginPath(); ctx.rect(-20 + shift, -20, 40, 40); ctx.fill();
+        }
+        ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.5;
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath(); ctx.arc(-30 + i*20 + shift, 50, 3, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+    }
+  }
+}
+
+
+// ─── Faith / Orthodox / Religion Themes ─────────────────────────────────────
+
+function drawMaryamIcon(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Use drawCrestTheme with the Maryam Amalaj Noch icon
+  drawCrestTheme(ctx, w, h, time, mx, my, '/faith/maryam.png', '#0f172a', 'rgba(250,204,21,1)', 'ማርያም አማላጅ ናት');
+}
+
+function drawEthCross(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Deep indigo / night sky
+  const bg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w * 0.8);
+  bg.addColorStop(0, '#1e1b4b'); bg.addColorStop(1, '#0f0a1a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  // Rotating halo of gold particles
+  for (let i = 0; i < 48; i++) {
+    const angle = (i / 48) * Math.PI * 2 + time * 0.3;
+    const r = Math.min(w, h) * 0.36 + Math.sin(time * 2 + i) * 5;
+    const x = w/2 + Math.cos(angle) * r;
+    const y = h/2 + Math.sin(angle) * r;
+    const a = 0.3 + 0.5 * Math.abs(Math.sin(time + i * 0.3));
+    ctx.fillStyle = `rgba(251,191,36,${a})`;
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Radiant glow behind cross
+  const glowSize = Math.min(w, h) * 0.35 + Math.sin(time) * 10;
+  const glow = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, glowSize);
+  glow.addColorStop(0, 'rgba(251,191,36,0.25)'); glow.addColorStop(1, 'rgba(251,191,36,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, w, h);
+
+  // Ethiopian Orthodox Cross (Lalibela-style)
+  ctx.save(); ctx.translate(w/2, h/2);
+  const pulse = 1 + 0.04 * Math.sin(time * 1.5);
+  ctx.scale(pulse, pulse);
+  const cw = Math.min(w, h) * 0.14;
+  const ch = Math.min(w, h) * 0.38;
+  // Shadow
+  ctx.shadowColor = 'rgba(251,191,36,0.7)'; ctx.shadowBlur = 30;
+  // Vertical bar
+  ctx.fillStyle = '#f59e0b';
+  ctx.fillRect(-cw * 0.3, -ch * 0.5, cw * 0.6, ch);
+  // Horizontal bar
+  ctx.fillRect(-cw * 0.5, -ch * 0.12, cw, ch * 0.25);
+  // Crown/loops at top (decorative)
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.arc(i * cw * 0.5, -ch * 0.5 - cw * 0.15, cw * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Bottom root
+  ctx.fillRect(-cw * 0.2, ch * 0.4, cw * 0.4, cw * 0.4);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  // Stars in the background
+  for (let i = 0; i < 30; i++) {
+    const sx = ((i * 137) % w), sy = ((i * 211) % h);
+    const sa = 0.2 + 0.6 * Math.abs(Math.sin(time * 0.5 + i));
+    ctx.fillStyle = `rgba(255,255,255,${sa})`;
+    ctx.beginPath(); ctx.arc(sx, sy, 1.2, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawTimkat(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Blue water + white sky — Ethiopian Epiphany (Timkat)
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.5);
+  sky.addColorStop(0, '#bae6fd'); sky.addColorStop(1, '#e0f2fe');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h * 0.5);
+
+  const water = ctx.createLinearGradient(0, h * 0.5, 0, h);
+  water.addColorStop(0, '#0369a1'); water.addColorStop(1, '#0c4a6e');
+  ctx.fillStyle = water; ctx.fillRect(0, h * 0.5, w, h * 0.5);
+
+  // Water shimmer
+  for (let i = 0; i < 20; i++) {
+    const wx = (i / 20) * w;
+    const wy = h * 0.5 + Math.sin(time * 2 + i) * 8;
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(wx - 20, wy); ctx.lineTo(wx + 20, wy); ctx.stroke();
+  }
+
+  // Floating candles on water
+  for (let i = 0; i < 7; i++) {
+    const cx = (w * 0.1) + i * (w * 0.12) + Math.sin(time + i) * 10;
+    const cy = h * 0.62 + Math.cos(time * 0.7 + i) * 8;
+    // Candle body
+    ctx.fillStyle = '#fef3c7'; ctx.fillRect(cx - 6, cy - 20, 12, 24);
+    // Flame
+    const flicker = Math.sin(time * 8 + i) * 3;
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath(); ctx.ellipse(cx + flicker * 0.3, cy - 26, 5, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath(); ctx.ellipse(cx + flicker * 0.2, cy - 27, 2, 4, 0, 0, Math.PI * 2); ctx.fill();
+    // Glow
+    const cGlow = ctx.createRadialGradient(cx, cy - 26, 0, cx, cy - 26, 20);
+    cGlow.addColorStop(0, 'rgba(251,191,36,0.25)'); cGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = cGlow; ctx.fillRect(cx - 25, cy - 50, 50, 50);
+  }
+
+  // Cross in the sky
+  const cx = w/2, cy = h * 0.22;
+  ctx.save(); ctx.translate(cx, cy);
+  const scale = 0.8 + 0.1 * Math.sin(time * 0.8);
+  ctx.scale(scale, scale);
+  ctx.shadowColor = 'rgba(251,191,36,0.7)'; ctx.shadowBlur = 20;
+  ctx.fillStyle = '#b45309';
+  ctx.fillRect(-5, -30, 10, 60); ctx.fillRect(-20, -5, 40, 10);
+  ctx.restore();
+}
+
+function drawEidCelebration(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Midnight teal sky
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#042f2e'); bg.addColorStop(1, '#0f172a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  // Crescent moon
+  const moonX = w * 0.75, moonY = h * 0.18;
+  ctx.fillStyle = '#fde68a';
+  ctx.shadowColor = '#fde68a'; ctx.shadowBlur = 30;
+  ctx.beginPath(); ctx.arc(moonX, moonY, 35, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#042f2e';
+  ctx.beginPath(); ctx.arc(moonX + 18, moonY - 10, 28, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Star inside crescent
+  ctx.fillStyle = '#fde68a';
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 - Math.PI/2;
+    const sr = 8, lr = 18;
+    const sx = moonX + 50 + Math.cos(angle) * lr;
+    const sy = moonY - 5 + Math.sin(angle) * lr;
+    const ia = angle + Math.PI / 5;
+    const sx2 = moonX + 50 + Math.cos(ia) * sr;
+    const sy2 = moonY - 5 + Math.sin(ia) * sr;
+    if (i === 0) ctx.beginPath();
+    ctx.lineTo(sx, sy); ctx.lineTo(sx2, sy2);
+  }
+  ctx.closePath(); ctx.fill();
+
+  // Hanging lanterns
+  const lanternCount = 6;
+  for (let i = 0; i < lanternCount; i++) {
+    const lx = (w / (lanternCount + 1)) * (i + 1);
+    const sway = Math.sin(time * 0.8 + i) * 12;
+    const ly = h * 0.2 + Math.sin(time * 0.5 + i * 0.7) * 15;
+    // Rope
+    ctx.strokeStyle = '#a16207'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx + sway, ly - 25); ctx.stroke();
+    // Lantern body
+    ctx.save(); ctx.translate(lx + sway, ly);
+    const hue = (i * 60 + time * 20) % 360;
+    ctx.fillStyle = `hsl(${hue}, 90%, 55%)`;
+    ctx.shadowColor = `hsl(${hue}, 90%, 55%)`; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.ellipse(0, 0, 14, 22, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,200,0.6)';
+    ctx.beginPath(); ctx.ellipse(0, 0, 7, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  // Stars
+  for (let i = 0; i < 40; i++) {
+    const sx = (i * 97 + 23) % w, sy = (i * 137) % (h * 0.5);
+    const a = 0.3 + 0.5 * Math.abs(Math.sin(time + i));
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.beginPath(); ctx.arc(sx, sy, 1, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawGena(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Ethiopian Christmas (Gena) — Holy fire / golden incense
+  const bg = ctx.createRadialGradient(w/2, h * 0.4, 0, w/2, h/2, w * 0.7);
+  bg.addColorStop(0, '#451a03'); bg.addColorStop(0.5, '#1c0a00'); bg.addColorStop(1, '#0c0500');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  // Incense smoke wisps
+  for (let i = 0; i < 5; i++) {
+    const ix = w * 0.2 + i * w * 0.15;
+    const iy = h;
+    const wiggle = Math.sin(time * 1.2 + i * 1.5) * 20;
+    ctx.strokeStyle = `rgba(255,255,200,${0.04 + 0.03 * i})`;
+    ctx.lineWidth = 10 - i;
+    ctx.beginPath();
+    ctx.moveTo(ix, iy);
+    ctx.bezierCurveTo(ix + wiggle, iy - h * 0.3, ix - wiggle, iy - h * 0.6, ix + wiggle * 0.5, iy - h * 0.9);
+    ctx.stroke();
+  }
+
+  // Flame cluster (campfire style) center
+  const flames = [[-15, 0, 18, '#ef4444'], [0, -10, 22, '#f97316'], [15, 5, 16, '#ef4444'],
+                  [0, -15, 14, '#fbbf24'], [0, -25, 8, '#fef08a']];
+  ctx.save(); ctx.translate(w/2, h * 0.65);
+  for (const [fx, fy, fh, fc] of flames) {
+    const f = fx as number, fyr = fy as number, fhr = fh as number, color = fc as string;
+    const flicker = Math.sin(time * 7 + f) * 4;
+    ctx.fillStyle = color;
+    ctx.shadowColor = '#f97316'; ctx.shadowBlur = 25;
+    ctx.beginPath();
+    ctx.ellipse(f + flicker * 0.3, fyr - flicker, fhr * 0.4, fhr * 0.7, flicker * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Cross silhouette
+  ctx.save(); ctx.translate(w/2, h * 0.28);
+  ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 25;
+  ctx.fillStyle = '#fbbf24';
+  const scale = 0.8 + 0.08 * Math.sin(time);
+  ctx.scale(scale, scale);
+  ctx.fillRect(-6, -40, 12, 80); ctx.fillRect(-25, -10, 50, 12);
+  ctx.restore();
+
+  // Flying ember sparks
+  for (let i = 0; i < 30; i++) {
+    const t = (time * 0.5 + i * 0.13) % 1;
+    const ex = w/2 + Math.sin(i * 2.5) * 60 - 30 + (Math.random() - 0.5) * 20;
+    const ey = h * 0.65 - t * h * 0.6;
+    const ea = 1 - t;
+    ctx.fillStyle = `rgba(251,191,36,${ea * 0.9})`;
+    ctx.beginPath(); ctx.arc(ex, ey, 2 * (1 - t * 0.5), 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawSabbath(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
+  // Warm Jewish Sabbath candle ambiance
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#1a0a00'); bg.addColorStop(1, '#0d0500');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  // Two candles
+  const candles = [w * 0.35, w * 0.65];
+  for (const cx of candles) {
+    const cy = h * 0.65;
+    const flicker = Math.sin(time * 6 + cx) * 3;
+
+    // Candle body
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillRect(cx - 10, cy - 60, 20, 80);
+    ctx.fillStyle = '#fde68a';
+    ctx.fillRect(cx - 10, cy - 60, 20, 8);
+
+    // Flame
+    const fGlow = ctx.createRadialGradient(cx + flicker * 0.2, cy - 75, 0, cx, cy - 65, 35);
+    fGlow.addColorStop(0, 'rgba(255,255,200,0.5)'); fGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = fGlow; ctx.fillRect(cx - 40, cy - 110, 80, 80);
+
+    ctx.fillStyle = '#f97316';
+    ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.ellipse(cx + flicker * 0.3, cy - 78, 7, 16, flicker * 0.04, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fef08a';
+    ctx.beginPath(); ctx.ellipse(cx + flicker * 0.1, cy - 80, 3, 8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // Star of David in the center (glowing gold)
+  const sx = w/2, sy = h * 0.35;
+  ctx.save(); ctx.translate(sx, sy);
+  const starPulse = 1 + 0.06 * Math.sin(time * 1.5);
+  ctx.scale(starPulse, starPulse);
+  ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3;
+  ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 15;
+  const r = 30;
+  for (let spin = 0; spin < 2; spin++) {
+    ctx.beginPath();
+    for (let v = 0; v < 3; v++) {
+      const a = ((v / 3) * Math.PI * 2) - Math.PI/2 + spin * Math.PI/3;
+      if (v === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Floating motes
+  for (let i = 0; i < 20; i++) {
+    const mx = (i * 71) % w;
+    const my = h - ((time * 25 + i * 60) % h);
+    ctx.fillStyle = `rgba(251,191,36,${0.05 + 0.1 * Math.abs(Math.sin(time + i))})`;
+    ctx.beginPath(); ctx.arc(mx, my, 2, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawAngelCloud(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Heavenly cloud theme for Orthodox theotokos (Maryam) concept — painted golden hour
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#1a103a'); bg.addColorStop(0.5, '#2d1b69'); bg.addColorStop(1, '#0f0a1a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  // Drifting cloud puffs
+  for (let i = 0; i < 8; i++) {
+    const drift = (time * 18 + i * 110) % (w + 200) - 100;
+    const cy = h * (0.1 + (i % 3) * 0.2) + Math.sin(time * 0.3 + i) * 15;
+    const opa = 0.05 + 0.08 * Math.abs(Math.sin(time * 0.2 + i));
+    ctx.fillStyle = `rgba(167,139,250,${opa})`;
+    ctx.beginPath(); ctx.arc(drift, cy, 60, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(drift + 40, cy + 15, 45, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(drift - 35, cy + 10, 50, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Central divine glow
+  const parallaxX = (mx / w - 0.5) * 20;
+  const parallaxY = (my / h - 0.5) * 20;
+  const radGlow = ctx.createRadialGradient(w/2 + parallaxX, h/2 + parallaxY, 0, w/2, h/2, Math.min(w,h) * 0.45);
+  radGlow.addColorStop(0, `rgba(251,191,36,${0.18 + 0.05 * Math.sin(time)})`);
+  radGlow.addColorStop(1, 'transparent');
+  ctx.fillStyle = radGlow; ctx.fillRect(0, 0, w, h);
+
+  // Rotating golden rays
+  ctx.save(); ctx.translate(w/2 + parallaxX, h/2 + parallaxY);
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2 + time * 0.15;
+    const len = Math.min(w, h) * 0.35 + Math.sin(time + i) * 15;
+    ctx.strokeStyle = `rgba(251,191,36,${0.05 + 0.04 * Math.abs(Math.sin(time * 0.5 + i))})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(angle) * len, Math.sin(angle) * len); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Twinkling stars
+  for (let i = 0; i < 35; i++) {
+    const tx = (i * 137 + 11) % w;
+    const ty = (i * 211 + 7) % h;
+    const ta = 0.2 + 0.6 * Math.abs(Math.sin(time * 0.8 + i));
+    ctx.fillStyle = `rgba(255,255,255,${ta})`;
+    ctx.beginPath(); ctx.arc(tx, ty, 1.3, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ─── Football Club Crest Helper ──────────────────────────────────────────────
+function drawShield(ctx: CanvasRenderingContext2D, cx: number, cy: number, sw: number, sh: number, topColor: string, bottomColor: string) {
+  const x = cx - sw / 2, y = cy - sh / 2;
+  ctx.beginPath();
+  ctx.moveTo(x + sw * 0.15, y);
+  ctx.lineTo(x + sw * 0.85, y);
+  ctx.lineTo(x + sw, y + sh * 0.35);
+  ctx.quadraticCurveTo(x + sw, y + sh * 0.75, cx, y + sh);
+  ctx.quadraticCurveTo(x, y + sh * 0.75, x, y + sh * 0.35);
+  ctx.lineTo(x + sw * 0.15, y);
+  ctx.closePath();
+  // Gradient fill
+  const grad = ctx.createLinearGradient(cx, y, cx, y + sh);
+  grad.addColorStop(0, topColor); grad.addColorStop(1, bottomColor);
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+}
+
+function drawClubText(ctx: CanvasRenderingContext2D, cx: number, cy: number, text: string, size: number, color: string) {
+  ctx.save();
+  ctx.font = `900 ${size}px 'Arial Black', Arial, sans-serif`;
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 6;
+  ctx.fillText(text, cx, cy);
+  ctx.restore();
+}
+
+function drawCrestCircle(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string, border: string) {
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = border; ctx.lineWidth = 4; ctx.stroke();
+}
+
+function drawGlowBurst(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string, time: number) {
+  ctx.save();
+  const layers = 3;
+  for (let i = 0; i < layers; i++) {
+    const pulse = 0.5 + 0.5 * Math.sin(time * (1 + i * 0.5));
+    const size = r * (1.2 + i * 0.4 + pulse * 0.2);
+    const grad = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, size);
+    grad.addColorStop(0, color.replace('1)', `${0.15 / (i + 1)})`));
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
+  }
+  ctx.restore();
+}
+
+function drawCrestTheme(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, src: string, clubColor: string, glowColor: string, text: string) {
+  if (!imgCache[src]) {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => { imgCache[src] = img; };
+    return;
+  }
+  const img = imgCache[src];
+  
+  // Background Gradient
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, clubColor);
+  bg.addColorStop(1, '#000');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  const cx = w/2, cy = h*0.42;
+
+  // Interactive Aura Glow
+  const pulse = 1 + Math.sin(time * 2.5) * 0.04;
+  drawGlowBurst(ctx, cx, cy, Math.min(w, h) * 0.25, glowColor, time);
+  
+  if (mx > -500) {
+    const spot = ctx.createRadialGradient(mx, my, 0, mx, my, w * 0.4);
+    spot.addColorStop(0, glowColor.replace('1)', '0.12)'));
+    spot.addColorStop(1, 'transparent');
+    ctx.fillStyle = spot; ctx.fillRect(0, 0, w, h);
+  }
+
+  // Interactive Parallax for Crest
+  const px = mx > -500 ? (mx - w/2) / (w/2) * -10 : 0;
+  const py = my > -500 ? (my - h/2) / (h/2) * -8 : 0;
+
+  // Render crest – strip near-white background via off-screen canvas
+  const cw = Math.min(w, h) * 0.6;
+  const ratio = Math.min(cw / img.width, cw / img.height);
+  const nw = Math.round(img.width * ratio * pulse);
+  const nh = Math.round(img.height * ratio * pulse);
+
+  // Build (and cache) a white-free version of the image
+  const cacheKey = `${src}_clean`;
+  const anyCache = imgCache as Record<string, unknown>;
+  if (!anyCache[cacheKey] && nw > 0 && nh > 0) {
+    const off = document.createElement('canvas');
+    off.width = nw; off.height = nh;
+    const offCtx = off.getContext('2d');
+    if (offCtx) {
+      offCtx.drawImage(img, 0, 0, nw, nh);
+      const imgData = offCtx.getImageData(0, 0, nw, nh);
+      const d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        if (r > 238 && g > 238 && b > 238) {
+          d[i + 3] = 0; // fully transparent
+        } else if (r > 215 && g > 215 && b > 215) {
+          const brightness = (r + g + b) / 3;
+          d[i + 3] = Math.round(((255 - brightness) / 40) * 255);
+        }
+      }
+      offCtx.putImageData(imgData, 0, 0);
+      anyCache[cacheKey] = off;
+    }
+  }
+  const cleanCanvas = anyCache[cacheKey] as HTMLCanvasElement | undefined;
+
+  ctx.save();
+  ctx.translate(cx + px, cy + py);
+  ctx.rotate(Math.sin(time * 0.6) * 0.015);
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 22;
+  if (cleanCanvas) {
+    ctx.drawImage(cleanCanvas, -nw/2, -nh/2, nw, nh);
+  } else {
+    ctx.drawImage(img, -nw/2, -nh/2, nw, nh);
+  }
+  
+  // Interactive Gloss/Shine over crest
+  if (mx > -500) {
+    const dx = mx - (cx + px);
+    const dy = my - (cy + py);
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < nw/2) {
+      const shine = ctx.createRadialGradient(dx, dy, 0, dx, dy, nw*0.5);
+      shine.addColorStop(0, 'rgba(255,255,255,0.2)');
+      shine.addColorStop(1, 'transparent');
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.fillStyle = shine;
+      ctx.beginPath(); ctx.arc(0, 0, nw/2, 0, Math.PI*2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  ctx.restore();
+
+  // Floating Dust
+  for(let i=0; i<15; i++) {
+    const x = (i * 137 + time * 15) % w;
+    const y = (i * 91 + time * 10) % h;
+    const a = 0.05 + 0.05 * Math.sin(time + i);
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI*2); ctx.fill();
+  }
+
+  drawClubText(ctx, cx, h*0.85, text, Math.min(w,h)*0.07, glowColor);
+}
+
+// ─── Ethiopian Clubs ────────────────────────────────────────────────────────
+
+function drawFbStGeorge(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Saint George FC.webp', '#7f1d1d', 'rgba(234, 179, 8, 1)', 'St. George');
+}
+
+function drawFbCoffee(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Ethiopian_Coffee_S.C.svg', '#1c0a01', 'rgba(251, 191, 36, 1)', 'Coffee');
+}
+
+function drawFbMekelle(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Mekelle 70 Enderta.webp', '#dc2626', 'rgba(251, 191, 36, 1)', 'Mekelle 70');
+}
+
+function drawFbDiredawa(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Dire Dawa City SC.webp', '#1d4ed8', 'rgba(251, 146, 60, 1)', 'Dire Dawa City');
+}
+
+function drawFbArbaMinch(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Arba Minch City FC.webp', '#15803d', 'rgba(255, 255, 255, 1)', 'Arba Minch');
+}
+
+function drawFbElectric(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Ethiopian Electric Power Corporation FC.webp', '#1e3a8a', 'rgba(250, 204, 21, 1)', 'Electric');
+}
+
+function drawFbInsurance(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Ethiopian Insurance Corporation SC.webp', '#b91c1c', 'rgba(255, 255, 255, 1)', 'Insurance');
+}
+
+function drawFbShire(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Suhul Shire FC.webp', '#991b1b', 'rgba(29, 78, 216, 1)', 'Suhul Shire');
+}
+
+function drawFbWelwalo(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Welwalo Adigrat University FC.webp', '#1e3a8a', 'rgba(251, 191, 36, 1)', 'Welwalo');
+}
+
+function drawFbWoldia(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Use a fallback or generic crest if image missing, but try to use what's likely
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Defence SC.webp', '#1e3a8a', 'rgba(255, 255, 255, 1)', 'Woldia SC');
+}
+
+function drawFbMekelakeya(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Defence SC.webp', '#064e3b', 'rgba(251, 191, 36, 1)', 'Mekelakeya');
+}
+
+function drawFbHawassa(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Hawassa City SC.webp', '#0c4a6e', 'rgba(56, 189, 248, 1)', 'Hawassa City');
+}
+
+function drawFbBahirDar(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Bahir Dar Kenema FC.webp', '#1d4ed8', 'rgba(251, 191, 36, 1)', 'Bahir Dar');
+}
+
+function drawFbFasil(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Fasil Kenema FC.webp', '#991b1b', 'rgba(255, 255, 255, 1)', 'Fasil Kenema');
+}
+
+function drawFbAdama(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Adama City FC.webp', '#0c4a6e', 'rgba(255, 255, 255, 1)', 'Adama City');
+}
+
+function drawFbSidama(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Sidaama Bunna FC.webp', '#b91c1c', 'rgba(5, 150, 105, 1)', 'Sidama Coffee');
+}
+
+function drawFbWolaita(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Wolaitta Dicha SC.webp', '#f59e0b', 'rgba(0,0,0,1)', 'Wolaita Dicha');
+}
+
+function drawFbCBE(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Ethiopia Nigd Bank SA.webp', '#2563eb', 'rgba(255, 255, 255, 1)', 'Nigd Bank');
+}
+
+function drawFbHadiya(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Hadiya Hossana FC.webp', '#1e40af', 'rgba(96, 165, 250, 1)', 'Hadiya Hossana');
+}
+
+function drawFbNegeleArsi(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/Ethiopian/Negele Arsii Town FC.webp', '#991b1b', 'rgba(250, 204, 21, 1)', 'Negele Arsi');
+}
+
+// ─── European Clubs ─────────────────────────────────────────────────────────
+
+function drawFbRealMadrid(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/real-madrid-footballlogos-org.png', '#0f172a', 'rgba(253, 224, 71, 1)', 'Real Madrid');
+}
+
+function drawFbBarcelona(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/fc-barcelona-footballlogos-org.png', '#172554', 'rgba(250,204,21,1)', 'FC Barcelona');
+}
+
+function drawFbManUtd(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/manchester-united-footballlogos-org.png', '#7f1d1d', 'rgba(245,158,11,1)', 'Man United');
+}
+
+function drawFbArsenal(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/arsenal-footballlogos-org.png', '#7f1d1d', 'rgba(220,38,38,1)', 'Arsenal FC');
+}
+
+function drawFbManCity(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/manchester-city-footballlogos-org.png', '#0c4a6e', 'rgba(56,189,248,1)', 'Man City');
+}
+
+function drawFbChelsea(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/chelsea-footballlogos-org.png', '#1e3a8a', 'rgba(250,204,21,1)', 'Chelsea FC');
+}
+
+function drawFbLiverpool(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/liverpool-fc-footballlogos-org.png', '#7f1d1d', 'rgba(13,148,136,1)', 'Liverpool FC');
+}
+
+function drawFbPSG(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/paris-saint-germain-footballlogos-org.png', '#172554', 'rgba(220,38,38,1)', 'Paris SG');
+}
+
+function drawFbBayern(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/bayern-munich-footballlogos-org.png', '#7f1d1d', 'rgba(255,255,255,1)', 'Bayern Munich');
+}
+
+function drawFbDortmund(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/borussia-dortmund-footballlogos-org.png', '#422006', 'rgba(234,179,8,1)', 'Borussia Dortmund');
+}
+
+function drawFbJuventus(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/juventus-footballlogos-org.png', '#18181b', 'rgba(255,255,255,1)', 'Juventus');
+}
+
+function drawFbInter(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/inter-milan-footballlogos-org.png', '#1e3a8a', 'rgba(251,191,36,1)', 'Inter Milan');
+}
+
+function drawFbACMilan(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/ac-milan-footballlogos-org.png', '#7f1d1d', 'rgba(255,255,255,1)', 'AC Milan');
+}
+
+function drawFbSpurs(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/tottenham-hotspur-footballlogos-org.png', '#1e3a8a', 'rgba(30,58,138,1)', 'Tottenham');
+}
+
 // ─── Theme Animation Map ────────────────────────────────────────────────────
 
+
+
 const THEME_ANIMATIONS: Record<string, AnimationFn> = {
-  aurora_live: drawAurora,
-  lava_live: drawLava,
-  ocean_live: drawOcean,
-  neon_pulse_live: drawNeonPulse,
-  sunset_live: drawSunset,
-  matrix_live: drawMatrix,
-  rainbow_live: drawRainbow,
-  fire_live: drawFire,
-  galaxy_live: drawGalaxy,
-  waterfall_live: drawWaterfall,
-  autumn_live: drawAutumn,
-  cyberpunk_live: drawCyberpunk,
-  snowfall_live: drawSnowfall,
-  bubbles_live: drawBubbles,
-  plasma_live: drawPlasma,
-  deep_sea_live: drawDeepSea,
-  crystal_live: drawCrystal,
-  storm_live: drawStorm,
-  cherry_blossom_live: drawCherryBlossom,
-  stardust_live: drawStardust,
-  vortex_live: drawVortex,
-  northern_lights_live: drawNorthernLights,
-  // Aliases for themes that use short keys (without _live suffix)
-  neon_pulse: drawNeonPulse,
-  aurora_live: drawAurora,
-  lava_live: drawLava,
-  ocean_live: drawOcean,
-  sunset_live: drawSunset,
-  matrix_live: drawMatrix,
-  rainbow_live: drawRainbow,
-  fire_live: drawFire,
-  galaxy_live: drawGalaxy,
-  waterfall_live: drawWaterfall,
-  autumn_live: drawAutumn,
-  cyberpunk_live: drawCyberpunk,
-  snowfall_live: drawSnowfall,
-  bubbles_live: drawBubbles,
-  plasma_live: drawPlasma,
-  deep_sea_live: drawDeepSea,
-  crystal_live: drawCrystal,
-  storm_live: drawStorm,
-  cherry_blossom_live: drawCherryBlossom,
-  stardust_live: drawStardust,
-  vortex_live: drawVortex,
-  northern_lights_live: drawNorthernLights,
+  aurora_live: drawAurora, lava_live: drawLava, ocean_live: drawOcean,
+  neon_pulse_live: drawNeonPulse, sunset_live: drawSunset, matrix_live: drawMatrix,
+  rainbow_live: drawRainbow, fire_live: drawFire, galaxy_live: drawGalaxy,
+  waterfall_live: drawWaterfall, autumn_live: drawAutumn, cyberpunk_live: drawCyberpunk,
+  snowfall_live: drawSnowfall, bubbles_live: drawBubbles, plasma_live: drawPlasma,
+  deep_sea_live: drawDeepSea, crystal_live: drawCrystal, storm_live: drawStorm,
+  cherry_blossom_live: drawCherryBlossom, stardust_live: drawStardust, vortex_live: drawVortex,
+  northern_lights_live: drawNorthernLights, fireflies_live: drawFireflies,
+  binary_rain_live: drawBinaryRain, geometric_flow_live: drawGeometricFlow,
+  nebula_live: drawNebula, ocean_waves_live: drawOceanWaves, lava_lamp_live: drawLavaLamp,
+  circuit_board_live: drawCircuitBoard, eth_flag_live: drawEthFlag, adey_live: drawAdey,
+  coffee_live: drawCoffee, lion_live: drawJudahLion, reg_addis_live: drawCentralEthiopia,
+  reg_afar_live: drawAfar, reg_amhara_live: drawAmhara, reg_benishangul_live: drawBenishangul,
+  reg_gambella_live: drawGambella, reg_harari_live: drawHarari, reg_oromia_live: drawOromia,
+  judah_lion: drawJudahLion, adey: drawAdey, coffee: drawCoffee, lion: drawJudahLion, 
+  eth_flag: drawEthFlag, reg_addis: drawCentralEthiopia, reg_afar: drawAfar, 
+  reg_amhara: drawAmhara, reg_benishangul: drawBenishangul, 
+  reg_gambella: drawGambella, reg_harari: drawHarari, reg_oromia: drawOromia,
+  reg_sidama: drawSidama, reg_somali: drawSomali, reg_tigray: drawTigray,
+  reg_south: drawSouthEthiopia, reg_sw_eth: drawSouthWestEthiopia,
+  ortho_lalibela: drawLalibela, ortho_meskel: drawMeskel, islam_najashi: drawNajashi,
+  islam_harar: drawHarar, islam_lantern: drawLantern, ortho_axum: drawAxumStela,
+  ortho_damo: drawDebreDamo, islam_dawa: drawDireDawa, cult_teff: drawTeff,
+  cult_danakil: drawDanakil, cult_omo: drawOmo,
+  // Faith / Orthodox / Religion themes
+  ortho_maryam: drawMaryamIcon, ortho_cross: drawEthCross, ortho_timkat: drawTimkat,
+  faith_gena: drawGena, faith_eid: drawEidCelebration, faith_sabbath: drawSabbath,
+  ortho_angel: drawAngelCloud,
+  fb_stgeorge: drawFbStGeorge, fb_coffee: drawFbCoffee, fb_mekelle: drawFbMekelle, 
+  fb_diredawa: drawFbDiredawa, fb_arbaminch: drawFbArbaMinch, fb_electric: drawFbElectric,
+  fb_insurance: drawFbInsurance, fb_shire: drawFbShire, fb_welwalo: drawFbWelwalo,
+  fb_woldia: drawFbWoldia, fb_mekelakeya: drawFbMekelakeya, fb_hawassa: drawFbHawassa, 
+  fb_bahirdar: drawFbBahirDar, fb_fasil: drawFbFasil, fb_adama: drawFbAdama,
+  fb_sidama: drawFbSidama, fb_wolaita: drawFbWolaita, fb_cbe: drawFbCBE, 
+  fb_hadiya: drawFbHadiya, fb_negele_arsi: drawFbNegeleArsi,
+  fb_realmadrid: drawFbRealMadrid, fb_barca: drawFbBarcelona,
+  fb_manutd: drawFbManUtd, fb_arsenal: drawFbArsenal, fb_mancity: drawFbManCity, 
+  fb_chelsea: drawFbChelsea, fb_liverpool: drawFbLiverpool, fb_psg: drawFbPSG,
+  fb_bayern: drawFbBayern, fb_dortmund: drawFbDortmund, fb_juventus: drawFbJuventus, 
+  fb_inter: drawFbInter, fb_milan: drawFbACMilan, fb_spurs: drawFbSpurs,
+  // Animation specific aliases
+  fb_stgeorge_live: drawFbStGeorge, fb_coffee_live: drawFbCoffee,
+  fb_negele_arsi_live: drawFbNegeleArsi,
+  neon_pulse: drawNeonPulse, fireflies: drawFireflies, binary_rain: drawBinaryRain,
+  geometric_flow: drawGeometricFlow, nebula: drawNebula, ocean_waves: drawOceanWaves,
+  lava_lamp: drawLavaLamp, circuit_board: drawCircuitBoard,
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────

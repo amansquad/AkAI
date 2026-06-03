@@ -1,0 +1,23 @@
+{
+  "id": "rose",
+  "name": "Rose",
+  "emoji": "🌸",
+  "description": "Elegant rose gold with pink accents",
+  "isPremium": false,
+  "colors": {
+    "background": 4278209306,
+    "surface": 4278213669,
+    "surfaceVariant": 4278218032,
+    "key": 4278225983,
+    "keyPressed": 4278233423,
+    "keySecondary": 4278215466,
+    "keySecondaryPressed": 4278220053,
+    "keyAccent": 4278247481,
+    "keyAccentPressed": 4278250166,
+    "keyText": 4278254067,
+    "keySecondaryText": 4278236616,
+    "accent": 4278250166,
+    "accentMuted": 4278245112,
+    "glow": 4278253399
+  }
+}

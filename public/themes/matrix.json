@@ -1,0 +1,23 @@
+{
+  "id": "matrix",
+  "name": "Matrix",
+  "emoji": "🔢",
+  "description": "Classic Matrix green on black",
+  "isPremium": true,
+  "colors": {
+    "background": 4278190080,
+    "surface": 4278193408,
+    "surfaceVariant": 4278196736,
+    "key": 4278200576,
+    "keyPressed": 4278203904,
+    "keySecondary": 4278194176,
+    "keySecondaryPressed": 4278197760,
+    "keyAccent": 4278206464,
+    "keyAccentPressed": 4278209792,
+    "keyText": 4278248442,
+    "keySecondaryText": 4278235914,
+    "accent": 4278206464,
+    "accentMuted": 4278202368,
+    "glow": 4278209792
+  }
+}

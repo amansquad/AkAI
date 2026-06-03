@@ -1,0 +1,6 @@
+﻿examples/websocket/frontend.tsx(4,20): error TS2307: Cannot find module 'socket.io-client' or its corresponding type declarations.
+examples/websocket/server.ts(2,24): error TS2307: Cannot find module 'socket.io' or its corresponding type declarations.
+src/api_routes/handwriting-recognize/route.ts(45,64): error TS2345: Argument of type '{ messages: ({ role: "assistant"; content: string; } | { role: "user"; content: ({ type: "text"; text: string; } | { type: "image_url"; image_url: { url: any; }; })[]; })[]; thinking: { type: "disabled"; }; }' is not assignable to parameter of type 'CreateChatCompletionVisionBody'.
+  Property 'model' is missing in type '{ messages: ({ role: "assistant"; content: string; } | { role: "user"; content: ({ type: "text"; text: string; } | { type: "image_url"; image_url: { url: any; }; })[]; })[]; thinking: { type: "disabled"; }; }' but required in type 'CreateChatCompletionVisionBody'.
+src/components/keyboard-app.tsx(1917,21): error TS2304: Cannot find name 'toggleLanguage'.
+src/components/keyboard-app.tsx(2505,34): error TS2552: Cannot find name 'renderDesktopKeypad'. Did you mean 'renderDesktopKey'?

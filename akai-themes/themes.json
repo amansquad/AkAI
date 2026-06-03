@@ -1,0 +1,116 @@
+{
+  "themes": [
+    {
+      "id": "sunset",
+      "name": "Sunset",
+      "emoji": "🌅",
+      "description": "Warm sunset colors with orange and pink accents",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/sunset.json"
+    },
+    {
+      "id": "forest",
+      "name": "Forest",
+      "emoji": "🌿",
+      "description": "Deep forest green with natural tones",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/forest.json"
+    },
+    {
+      "id": "rose",
+      "name": "Rose",
+      "emoji": "🌸",
+      "description": "Elegant rose gold with pink accents",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/rose.json"
+    },
+    {
+      "id": "solar",
+      "name": "Solar",
+      "emoji": "☀️",
+      "description": "Golden solar theme with warm amber tones",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/solar.json"
+    },
+    {
+      "id": "aurora",
+      "name": "Aurora",
+      "emoji": "🌌",
+      "description": "Northern lights inspired with teal and purple",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/aurora.json"
+    },
+    {
+      "id": "cyberpunk",
+      "name": "Cyberpunk",
+      "emoji": "🤖",
+      "description": "Neon cyberpunk style with electric blue and pink",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/cyberpunk.json"
+    },
+    {
+      "id": "neon-pulse",
+      "name": "Neon Pulse",
+      "emoji": "💜",
+      "description": "Dark theme with vibrant neon purple pulse",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/neon-pulse.json"
+    },
+    {
+      "id": "matrix",
+      "name": "Matrix",
+      "emoji": "🔢",
+      "description": "Classic Matrix green on black",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/matrix.json"
+    },
+    {
+      "id": "rainbow",
+      "name": "Rainbow",
+      "emoji": "🌈",
+      "description": "Colorful rainbow gradient theme",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/rainbow.json"
+    },
+    {
+      "id": "fire",
+      "name": "Fire",
+      "emoji": "🔥",
+      "description": "Intense fire theme with red and orange",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/fire.json"
+    },
+    {
+      "id": "lava",
+      "name": "Lava",
+      "emoji": "🌋",
+      "description": "Volcanic lava theme with deep reds",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/lava.json"
+    },
+    {
+      "id": "waterfall",
+      "name": "Waterfall",
+      "emoji": "💧",
+      "description": "Cascading waterfall with blue gradients",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/waterfall.json"
+    },
+    {
+      "id": "galaxy",
+      "name": "Galaxy",
+      "emoji": "🌌",
+      "description": "Deep space galaxy with purple nebulas",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/galaxy.json"
+    },
+    {
+      "id": "autumn",
+      "name": "Autumn",
+      "emoji": "🍂",
+      "description": "Cozy autumn colors with orange and brown",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/autumn.json"
+    }
+  ]
+}

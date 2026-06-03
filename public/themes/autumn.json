@@ -1,0 +1,23 @@
+{
+  "id": "autumn",
+  "name": "Autumn",
+  "emoji": "🍂",
+  "description": "Cozy autumn colors with orange and brown",
+  "isPremium": true,
+  "colors": {
+    "background": 4278194976,
+    "surface": 4278199072,
+    "surfaceVariant": 4278202400,
+    "key": 4278206496,
+    "keyPressed": 4278210080,
+    "keySecondary": 4278199808,
+    "keySecondaryPressed": 4278203648,
+    "keyAccent": 4278199039,
+    "keyAccentPressed": 4278203135,
+    "keyText": 4278248442,
+    "keySecondaryText": 4278235914,
+    "accent": 4278199039,
+    "accentMuted": 4278194943,
+    "glow": 4278203135
+  }
+}

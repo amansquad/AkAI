@@ -1,0 +1,23 @@
+{
+  "id": "sunset",
+  "name": "Sunset",
+  "emoji": "🌅",
+  "description": "Warm sunset colors with orange and pink accents",
+  "isPremium": false,
+  "colors": {
+    "background": 4278190090,
+    "surface": 4278224165,
+    "surfaceVariant": 4278252335,
+    "key": 4278279485,
+    "keyPressed": 4278284877,
+    "keySecondary": 4278224426,
+    "keySecondaryPressed": 4278278456,
+    "keyAccent": 4278267755,
+    "keyAccentPressed": 4278275726,
+    "keyText": 4278243070,
+    "keySecondaryText": 4278235200,
+    "accent": 4278275726,
+    "accentMuted": 4278242122,
+    "glow": 4278283440
+  }
+}

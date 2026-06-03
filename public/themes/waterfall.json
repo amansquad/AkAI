@@ -1,0 +1,23 @@
+{
+  "id": "waterfall",
+  "name": "Waterfall",
+  "emoji": "💧",
+  "description": "Cascading waterfall with blue gradients",
+  "isPremium": true,
+  "colors": {
+    "background": 4278195488,
+    "surface": 4278199312,
+    "surfaceVariant": 4278202896,
+    "key": 4278207008,
+    "keyPressed": 4278210592,
+    "keySecondary": 4278199808,
+    "keySecondaryPressed": 4278203648,
+    "keyAccent": 4278219135,
+    "keyAccentPressed": 4278223231,
+    "keyText": 4278248442,
+    "keySecondaryText": 4278235914,
+    "accent": 4278219135,
+    "accentMuted": 4278215039,
+    "glow": 4278223231
+  }
+}

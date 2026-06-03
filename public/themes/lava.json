@@ -1,0 +1,23 @@
+{
+  "id": "lava",
+  "name": "Lava",
+  "emoji": "🌋",
+  "description": "Volcanic lava theme with deep reds",
+  "isPremium": true,
+  "colors": {
+    "background": 4278190080,
+    "surface": 4278193408,
+    "surfaceVariant": 4278196736,
+    "key": 4278200576,
+    "keyPressed": 4278203904,
+    "keySecondary": 4278194176,
+    "keySecondaryPressed": 4278197760,
+    "keyAccent": 4278194559,
+    "keyAccentPressed": 4278198655,
+    "keyText": 4278248442,
+    "keySecondaryText": 4278235914,
+    "accent": 4278194559,
+    "accentMuted": 4278190463,
+    "glow": 4278198655
+  }
+}

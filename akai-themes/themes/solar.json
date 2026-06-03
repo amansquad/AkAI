@@ -1,0 +1,23 @@
+{
+  "id": "solar",
+  "name": "Solar",
+  "emoji": "☀️",
+  "description": "Golden solar theme with warm amber tones",
+  "isPremium": true,
+  "colors": {
+    "background": 4278208773,
+    "surface": 4278212362,
+    "surfaceVariant": 4278215696,
+    "key": 4278220565,
+    "keyPressed": 4278225312,
+    "keySecondary": 4278213136,
+    "keySecondaryPressed": 4278217272,
+    "keyAccent": 4278256644,
+    "keyAccentPressed": 4278257357,
+    "keyText": 4278257607,
+    "keySecondaryText": 4278236192,
+    "accent": 4278256644,
+    "accentMuted": 4278246916,
+    "glow": 4278257962
+  }
+}

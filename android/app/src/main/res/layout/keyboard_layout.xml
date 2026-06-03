@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/akai_background">
+
+    <!-- Top bar with emoji and settings -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:background="@color/akai_emoji_bar"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
+
+        <!-- Emoji Button -->
+        <TextView
+            android:id="@+id/emojiButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="😀"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:background="@drawable/key_background"
+            android:layout_margin="4dp" />
+
+        <!-- Space for other controls -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Settings Button -->
+        <TextView
+            android:id="@+id/settingsButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="⚙️"
+            android:textSize="24sp"
+            android:gravity="center"
+            android:background="@drawable/key_background"
+            android:layout_margin="4dp" />
+    </LinearLayout>
+
+    <!-- Main keyboard area -->
+    <com.akai.keyboard.AkaiKeyboardService$AkaiKeyboardView
+        android:id="@+id/keyboardView"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:background="@color/akai_background" />
+
+</LinearLayout>

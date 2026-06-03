@@ -8,7 +8,7 @@ import {
   Languages, Shield, Zap, Star,
   ArrowRight, Check, Pen, Palette, Sun, Moon,
   Download, MessageCircle, Type, Wand2, Layers, MousePointer2,
-  ChevronRight, Play
+  ChevronRight, Play, X, Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import KeyboardApp from '@/components/keyboard-app';
@@ -110,6 +110,12 @@ const LIVE_THEMES = [
   { name: 'Cyberpunk', image: '/themes/cyberpunk.png' },
   { name: 'Sunset', image: '/themes/sunset.png' },
   { name: 'Fire', image: '/themes/fire.png' },
+  { name: 'Matrix', image: '/themes/matrix.png' },
+  { name: 'Rainbow', image: '/themes/rainbow.png' },
+  { name: 'Waterfall', image: '/themes/waterfall.png' },
+  { name: 'Autumn', image: '/themes/autumn.png' },
+  { name: 'Addis Ababa', image: '/themes/addis_ababa.png' },
+  { name: 'Judah Lion', image: '/judah_lion.png' },
 ];
 
 const CLASSIC_THEMES = [
@@ -380,9 +386,22 @@ export default function Home() {
             className="overflow-hidden"
           >
             <div className="max-w-3xl mx-auto px-4 py-10">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold mb-2">Interactive Demo</h2>
-                <p className="text-sm text-muted-foreground">Try the AkAI keyboard right here in your browser</p>
+              <div className="flex items-center justify-between mb-6">
+                <div className="text-left">
+                  <h2 className="text-2xl font-bold mb-1">Interactive Demo</h2>
+                  <p className="text-sm text-muted-foreground">Try the AkAI keyboard right here in your browser</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDemo(false)}
+                    className="gap-1.5 text-muted-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                    Close
+                  </Button>
+                </div>
               </div>
               <div className="bg-card rounded-3xl border border-border/50 shadow-xl overflow-hidden">
                 <div className="h-[560px]">

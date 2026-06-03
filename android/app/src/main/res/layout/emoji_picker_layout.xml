@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/akai_emoji_bar"
+    android:padding="8dp">
+
+    <!-- Emoji Grid -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/emojiRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:scrollbars="vertical" />
+
+    <!-- Bottom Controls -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="8dp">
+
+        <!-- Search Button -->
+        <ImageButton
+            android:id="@+id/searchButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/emoji_button_background"
+            android:src="@android:drawable/ic_menu_search"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/emoji_search" />
+
+        <!-- Category Buttons -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/smileysButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/emoji_button_background"
+                android:src="@android:drawable/btn_star"
+                android:scaleType="centerInside"
+                android:layout_margin="4dp"
+                android:contentDescription="@string/smileys_category" />
+
+            <ImageButton
+                android:id="@+id/gesturesButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/emoji_button_background"
+                android:src="@android:drawable/ic_menu_send"
+                android:scaleType="centerInside"
+                android:layout_margin="4dp"
+                android:contentDescription="@string/gestures_category" />
+
+            <ImageButton
+                android:id="@+id/objectsButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/emoji_button_background"
+                android:src="@android:drawable/ic_menu_info_details"
+                android:scaleType="centerInside"
+                android:layout_margin="4dp"
+                android:contentDescription="@string/objects_category" />
+        </LinearLayout>
+
+        <!-- Close Button -->
+        <ImageButton
+            android:id="@+id/closeButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/emoji_button_background"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/close_emoji_picker" />
+    </LinearLayout>
+</LinearLayout>

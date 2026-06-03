@@ -1,0 +1,23 @@
+{
+  "id": "neon-pulse",
+  "name": "Neon Pulse",
+  "emoji": "💜",
+  "description": "Dark theme with vibrant neon purple pulse",
+  "isPremium": true,
+  "colors": {
+    "background": 4278190080,
+    "surface": 4278193664,
+    "surfaceVariant": 4278197248,
+    "key": 4278202368,
+    "keyPressed": 4278205952,
+    "keySecondary": 4278194432,
+    "keySecondaryPressed": 4278198528,
+    "keyAccent": 4278204928,
+    "keyAccentPressed": 4278209024,
+    "keyText": 4278248442,
+    "keySecondaryText": 4278235914,
+    "accent": 4278204928,
+    "accentMuted": 4278200832,
+    "glow": 4278209024
+  }
+}

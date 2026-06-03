@@ -1,0 +1,116 @@
+{
+  "themes": [
+    {
+      "id": "sunset",
+      "name": "Sunset",
+      "emoji": "\ud83c\udf05",
+      "description": "Warm sunset colors with orange and pink accents",
+      "isPremium": false,
+      "downloadUrl": "/themes/sunset.json"
+    },
+    {
+      "id": "forest",
+      "name": "Forest",
+      "emoji": "\ud83c\udf3f",
+      "description": "Deep forest green with natural tones",
+      "isPremium": false,
+      "downloadUrl": "/themes/forest.json"
+    },
+    {
+      "id": "rose",
+      "name": "Rose",
+      "emoji": "\ud83c\udf38",
+      "description": "Elegant rose gold with pink accents",
+      "isPremium": false,
+      "downloadUrl": "/themes/rose.json"
+    },
+    {
+      "id": "solar",
+      "name": "Solar",
+      "emoji": "\u2600\ufe0f",
+      "description": "Golden solar theme with warm amber tones",
+      "isPremium": true,
+      "downloadUrl": "/themes/solar.json"
+    },
+    {
+      "id": "aurora",
+      "name": "Aurora",
+      "emoji": "\ud83c\udf0c",
+      "description": "Northern lights inspired with teal and purple",
+      "isPremium": true,
+      "downloadUrl": "/themes/aurora.json"
+    },
+    {
+      "id": "cyberpunk",
+      "name": "Cyberpunk",
+      "emoji": "\ud83e\udd16",
+      "description": "Neon cyberpunk style with electric blue and pink",
+      "isPremium": true,
+      "downloadUrl": "/themes/cyberpunk.json"
+    },
+    {
+      "id": "neon-pulse",
+      "name": "Neon Pulse",
+      "emoji": "\ud83d\udc9c",
+      "description": "Dark theme with vibrant neon purple pulse",
+      "isPremium": true,
+      "downloadUrl": "/themes/neon-pulse.json"
+    },
+    {
+      "id": "matrix",
+      "name": "Matrix",
+      "emoji": "\ud83d\udd22",
+      "description": "Classic Matrix green on black",
+      "isPremium": true,
+      "downloadUrl": "/themes/matrix.json"
+    },
+    {
+      "id": "rainbow",
+      "name": "Rainbow",
+      "emoji": "\ud83c\udf08",
+      "description": "Colorful rainbow gradient theme",
+      "isPremium": true,
+      "downloadUrl": "/themes/rainbow.json"
+    },
+    {
+      "id": "fire",
+      "name": "Fire",
+      "emoji": "\ud83d\udd25",
+      "description": "Intense fire theme with red and orange",
+      "isPremium": true,
+      "downloadUrl": "/themes/fire.json"
+    },
+    {
+      "id": "lava",
+      "name": "Lava",
+      "emoji": "\ud83c\udf0b",
+      "description": "Volcanic lava theme with deep reds",
+      "isPremium": true,
+      "downloadUrl": "/themes/lava.json"
+    },
+    {
+      "id": "waterfall",
+      "name": "Waterfall",
+      "emoji": "\ud83d\udca7",
+      "description": "Cascading waterfall with blue gradients",
+      "isPremium": true,
+      "downloadUrl": "/themes/waterfall.json"
+    },
+    {
+      "id": "galaxy",
+      "name": "Galaxy",
+      "emoji": "\ud83c\udf0c",
+      "description": "Deep space galaxy with purple nebulas",
+      "isPremium": true,
+      "downloadUrl": "/themes/galaxy.json"
+    },
+    {
+      "id": "autumn",
+      "name": "Autumn",
+      "emoji": "\ud83c\udf42",
+      "description": "Cozy autumn colors with orange and brown",
+      "isPremium": true,
+      "downloadUrl": "/themes/autumn.json"
+    }
+  ]
+}

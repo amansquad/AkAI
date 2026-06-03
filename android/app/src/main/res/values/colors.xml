@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Theme Colors -->
+    <color name="akai_background">#1A1A2E</color>
+    <color name="akai_key_background">#16213E</color>
+    <color name="akai_key_text">#EAEAEA</color>
+    <color name="akai_accent">#0F3460</color>
+    <color name="akai_special_key">#533483</color>
+    <color name="akai_emoji_bar">#0D1117</color>
+    <color name="akai_shadow">#000000</color>
+    
+    <!-- Material Dark Theme Colors -->
+    <color name="colorPrimary">#1A1A2E</color>
+    <color name="colorPrimaryDark">#0F3460</color>
+    <color name="colorAccent">#533483</color>
+    <color name="colorOnPrimary">#EAEAEA</color>
+    <color name="colorOnAccent">#FFFFFF</color>
+    
+    <!-- Status Colors -->
+    <color name="status_enabled">#4CAF50</color>
+    <color name="status_disabled">#F44336</color>
+    
+    <!-- Gradient Colors for enhanced UI -->
+    <color name="gradient_start">#1A1A2E</color>
+    <color name="gradient_middle">#16213E</color>
+    <color name="gradient_end">#0F3460</color>
+    
+    <!-- App Theme Colors -->
+    <color name="app_background">#1A1A2E</color>
+    <color name="app_surface">#16213E</color>
+    <color name="app_surface_variant">#1E2A45</color>
+    
+    <!-- Button Colors -->
+    <color name="button_primary">#0F3460</color>
+    <color name="button_secondary">#533483</color>
+    <color name="button_disabled">#333333</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#EAEAEA</color>
+    <color name="text_secondary">#AAAAAA</color>
+    <color name="text_hint">#666666</color>
+    
+    <!-- Divider Colors -->
+    <color name="divider">#333333</color>
+    
+    <!-- Ripple Effect Color -->
+    <color name="ripple_color">#33FFFFFF</color>
+</resources>

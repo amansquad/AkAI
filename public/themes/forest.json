@@ -1,0 +1,23 @@
+{
+  "id": "forest",
+  "name": "Forest",
+  "emoji": "🌿",
+  "description": "Deep forest green with natural tones",
+  "isPremium": false,
+  "colors": {
+    "background": 4278195216,
+    "surface": 4278199320,
+    "surfaceVariant": 4278202402,
+    "key": 4278208560,
+    "keyPressed": 4278212672,
+    "keySecondary": 4278200863,
+    "keySecondaryPressed": 4278205480,
+    "keyAccent": 4278244992,
+    "keyAccentPressed": 4278246556,
+    "keyText": 4278249708,
+    "keySecondaryText": 4278239957,
+    "accent": 4278244992,
+    "accentMuted": 4278238299,
+    "glow": 4278249648
+  }
+}

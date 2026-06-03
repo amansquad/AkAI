@@ -1,0 +1,23 @@
+{
+  "id": "galaxy",
+  "name": "Galaxy",
+  "emoji": "🌌",
+  "description": "Deep space galaxy with purple nebulas",
+  "isPremium": true,
+  "colors": {
+    "background": 4278190336,
+    "surface": 4278193920,
+    "surfaceVariant": 4278197504,
+    "key": 4278201856,
+    "keyPressed": 4278205440,
+    "keySecondary": 4278194688,
+    "keySecondaryPressed": 4278198784,
+    "keyAccent": 4278208383,
+    "keyAccentPressed": 4278212479,
+    "keyText": 4278248442,
+    "keySecondaryText": 4278235914,
+    "accent": 4278208383,
+    "accentMuted": 4278204287,
+    "glow": 4278212479
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "aurora",
+  "name": "Aurora",
+  "emoji": "🌌",
+  "description": "Northern lights inspired with teal and purple",
+  "isPremium": true,
+  "colors": {
+    "background": 4278195226,
+    "surface": 4278199050,
+    "surfaceVariant": 4278202394,
+    "key": 4278207258,
+    "keyPressed": 4278211082,
+    "keySecondary": 4278199834,
+    "keySecondaryPressed": 4278203930,
+    "keyAccent": 4278241642,
+    "keyAccentPressed": 4278244714,
+    "keyText": 4278248442,
+    "keySecondaryText": 4278235914,
+    "accent": 4278241642,
+    "accentMuted": 4278234490,
+    "glow": 4278246010
+  }
+}
