@@ -94,6 +94,6 @@ function AndroidImeKeyboard() {
   }, []);
 
   return (
-    <KeyboardApp onTextChange={handleTextChange} />
+    <KeyboardApp onTextChange={handleTextChange} isIme={true} />
   );
 }

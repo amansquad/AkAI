@@ -29,6 +29,7 @@ export type ThemeName = string;
 
 interface KeyboardAppProps {
   onTextChange?: (text: string) => void;
+  isIme?: boolean;
 }
 
 // ─── Data imported from keyboard-data.ts ──────────────────────────────────
@@ -41,7 +42,7 @@ interface KeyboardAppProps {
 
 
 // ─── Main Component ───────────────────────────────────────────────────────
-export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
+export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardAppProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<KeyboardMode>('keyboard');
   const [prevMode, setPrevMode] = useState<KeyboardMode>('keyboard');
@@ -2621,25 +2622,27 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
       ) : (
         <>
           {/* Text Display Area */}
-          <div className={`kb-text-area ${desktopView ? 'flex-1 min-h-[80px]' : 'flex-1 min-h-[60px]'} p-2 relative z-10`}>
-            <div className={`h-full rounded-xl ${t.isLive ? 'border-white/10' : t.border} border p-2.5 overflow-y-auto`}
-              style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '40' } : t.isLive ? { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' } : {}}>
-              {text ? (
-                <motion.p
-                  key={text.slice(-1)}
-                  initial={textBounce ? { scale: 1.02 } : {}}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                  className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${t.keyText}`}
-                  style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
-                >{text}</motion.p>
-              ) : (
-                <p className={`text-sm italic opacity-40 ${t.keyText}`}
-                  style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
-                >{language === 'english' ? 'Tap the keyboard to start typing...' : 'ቁልፉን መታ በማድረግ ይጻፉ...'}</p>
-              )}
+          {!isIme && (
+            <div className={`kb-text-area ${desktopView ? 'flex-1 min-h-[80px]' : 'flex-1 min-h-[60px]'} p-2 relative z-10`}>
+              <div className={`h-full rounded-xl ${t.isLive ? 'border-white/10' : t.border} border p-2.5 overflow-y-auto`}
+                style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '40' } : t.isLive ? { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' } : {}}>
+                {text ? (
+                  <motion.p
+                    key={text.slice(-1)}
+                    initial={textBounce ? { scale: 1.02 } : {}}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${t.keyText}`}
+                    style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
+                  >{text}</motion.p>
+                ) : (
+                  <p className={`text-sm italic opacity-40 ${t.keyText}`}
+                    style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
+                  >{language === 'english' ? 'Tap the keyboard to start typing...' : 'ቁልፉን መታ በማድረግ ይጻፉ...'}</p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Suggestions Bar */}
           {mode === 'keyboard' && (
@@ -2697,27 +2700,31 @@ export default function KeyboardApp({ onTextChange }: KeyboardAppProps) {
               <Palette className="w-3.5 h-3.5" />
             </motion.button>
             {/* Dark Mode Toggle */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              whileHover={{ scale: 1.08 }}
-              onClick={() => setAppTheme(appTheme === 'dark' ? 'light' : 'dark')}
-              className={`flex items-center justify-center w-8 h-8 rounded-xl ${t.suggestion} ${t.keyText}`}
-              style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
-              title="Toggle dark mode"
-            >
-              {mounted && appTheme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            </motion.button>
+            {!isIme && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.08 }}
+                onClick={() => setAppTheme(appTheme === 'dark' ? 'light' : 'dark')}
+                className={`flex items-center justify-center w-8 h-8 rounded-xl ${t.suggestion} ${t.keyText}`}
+                style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
+                title="Toggle dark mode"
+              >
+                {mounted && appTheme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              </motion.button>
+            )}
             {/* Desktop View Toggle */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              whileHover={{ scale: 1.08 }}
-              onClick={() => setDesktopView(!desktopView)}
-              className={`flex items-center justify-center w-8 h-8 rounded-xl ${t.suggestion} ${t.keyText}`}
-              style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
-              title="Toggle desktop view"
-            >
-              <Monitor className="w-3.5 h-3.5" />
-            </motion.button>
+            {!isIme && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.08 }}
+                onClick={() => setDesktopView(!desktopView)}
+                className={`flex items-center justify-center w-8 h-8 rounded-xl ${t.suggestion} ${t.keyText}`}
+                style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
+                title="Toggle desktop view"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+              </motion.button>
+            )}
           </div>
 
           {/* Keyboard Content */}
