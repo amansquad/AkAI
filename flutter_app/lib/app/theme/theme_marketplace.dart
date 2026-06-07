@@ -294,7 +294,7 @@ class _DownloadedThemeCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: theme.accent.withOpacity(0.2),
+              color: theme.accent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -322,7 +322,7 @@ class _DownloadedThemeCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: palette.accent.withOpacity(0.15),
+                    color: palette.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -377,7 +377,7 @@ class _AvailableThemeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: theme.isPremium
-              ? palette.accent.withOpacity(0.5)
+              ? palette.accent.withValues(alpha: 0.5)
               : palette.surfaceVariant,
           width: theme.isPremium ? 1.5 : 1,
         ),

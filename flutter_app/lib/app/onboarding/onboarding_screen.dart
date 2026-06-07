@@ -83,7 +83,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             center: Alignment.topRight,
             radius: 1.4,
             colors: [
-              palette.accent.withOpacity(0.18),
+              palette.accent.withValues(alpha: 0.18),
               palette.background,
             ],
           ),
@@ -433,14 +433,14 @@ class _StatusCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: active
-                ? palette.accent.withOpacity(0.5)
+                ? palette.accent.withValues(alpha: 0.5)
                 : palette.surfaceVariant,
             width: active ? 1.5 : 1,
           ),
           boxShadow: active
               ? [
                   BoxShadow(
-                      color: palette.glow.withOpacity(0.2),
+                      color: palette.glow.withValues(alpha: 0.2),
                       blurRadius: 24,
                       spreadRadius: -4)
                 ]
@@ -531,7 +531,7 @@ class _AkaiLogoState extends State<_AkaiLogo>
             ),
             boxShadow: [
               BoxShadow(
-                color: widget.palette.glow.withOpacity(0.4),
+                color: widget.palette.glow.withValues(alpha: 0.4),
                 blurRadius: 32,
                 spreadRadius: 2,
               ),

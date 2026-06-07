@@ -188,8 +188,8 @@ public class AkaiKeyboardService extends InputMethodService implements AkaiKeybo
     @Override
     public void onPress(int primaryCode) {
         // Add haptic feedback on key press
-        if (themeManager.isHapticFeedbackEnabled()) {
-            performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+        if (themeManager.isHapticFeedbackEnabled() && customKeyboardView != null) {
+            customKeyboardView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
         }
     }
 

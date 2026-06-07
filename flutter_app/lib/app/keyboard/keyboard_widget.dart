@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../settings/settings_provider.dart';
 import '../theme/app_theme.dart';
 import 'key_widget.dart';
 import 'keyboard_controller.dart';
 import 'keyboard_layout.dart';
-import 'keyboard_service.dart';
-import 'emoji_picker.dart';
+import 'emoji_gif_keyboard_bar.dart';
 
 class AkaiKeyboard extends StatefulWidget {
   final AkaiKeyboardController controller;
@@ -18,7 +16,6 @@ class AkaiKeyboard extends StatefulWidget {
 }
 
 class _AkaiKeyboardState extends State<AkaiKeyboard> {
-  bool _showEmojiPicker = false;
 
   @override
   Widget build(BuildContext context) {
@@ -28,41 +25,37 @@ class _AkaiKeyboardState extends State<AkaiKeyboard> {
         builder: (context, ctrl, _) {
           final settings = context.watch<AkaiSettingsProvider>();
           final palette = settings.palette;
+          final hasLive = palette.liveTheme != null;
+
           return Container(
             decoration: BoxDecoration(
-              color: palette.background,
+              color: hasLive ? Colors.transparent : palette.background,
               border: Border(
                 top: BorderSide(color: palette.surfaceVariant, width: 0.5),
               ),
             ),
-            padding: EdgeInsets.only(
-              left: 4,
-              right: 4,
+            padding: const EdgeInsets.only(
+              left: 2,
+              right: 2,
               top: 4,
-              bottom: MediaQuery.of(context).viewPadding.bottom + 4,
+              bottom: 4,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _SuggestionBar(
+                EmojiGifKeyboardBar(
                   palette: palette,
                   settings: settings,
-                  onEmojiToggle: () {
-                    setState(() {
-                      _showEmojiPicker = !_showEmojiPicker;
-                    });
-                  },
+                  controller: ctrl,
+                  // Optional: pass onOpenSettings here if needed,
+                  // but host doesn't pass it yet.
                 ),
                 const SizedBox(height: 4),
-                if (_showEmojiPicker)
-                  EmojiPicker(
-                    palette: palette,
-                    onEmojiSelected: (emoji) async {
-                      await ctrl.service.commitText(emoji);
-                    },
-                  )
-                else
-                  _KeyboardRows(palette: palette, controller: ctrl),
+                if (settings.showNumberRow && ctrl.mode == KeyboardMode.letters) ...[
+                  _NumberRow(palette: palette, controller: ctrl),
+                  const SizedBox(height: 4),
+                ],
+                _KeyboardRows(palette: palette, controller: ctrl),
               ],
             ),
           );
@@ -72,126 +65,24 @@ class _AkaiKeyboardState extends State<AkaiKeyboard> {
   }
 }
 
-class _SuggestionBar extends StatefulWidget {
+class _NumberRow extends StatelessWidget {
   final AkaiPalette palette;
-  final AkaiSettingsProvider settings;
-  final VoidCallback onEmojiToggle;
-  const _SuggestionBar({
-    required this.palette,
-    required this.settings,
-    required this.onEmojiToggle,
-  });
-
-  @override
-  State<_SuggestionBar> createState() => _SuggestionBarState();
-}
-
-class _SuggestionBarState extends State<_SuggestionBar> {
-  final _service = AkaiKeyboardService();
-
-  @override
-  void initState() {
-    super.initState();
-  }
+  final AkaiKeyboardController controller;
+  const _NumberRow({required this.palette, required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.settings.showSuggestions) {
-      return const SizedBox(height: 4);
-    }
-    return Container(
-      height: 42,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        children: [
-          if (widget.settings.showClipboard)
-            _CircleIconButton(
-              palette: widget.palette,
-              icon: Icons.emoji_emotions_rounded,
-              onTap: widget.onEmojiToggle,
-            ),
-          if (widget.settings.showClipboard) const SizedBox(width: 6),
+    return Row(
+      children: [
+        for (final def in KeyboardLayout.numberRow)
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: widget.palette.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                    color: widget.palette.surfaceVariant, width: 0.6),
-              ),
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    size: 14,
-                    color: widget.palette.accent,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.settings.showSuggestions ? 'Akai AI' : '',
-                    style: TextStyle(
-                      color: widget.palette.keySecondaryText,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: widget.palette.accent.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'Tap to enable',
-                      style: TextStyle(
-                        color: widget.palette.accent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            child: _KeySlot(
+              def: def,
+              palette: palette,
+              controller: controller,
             ),
           ),
-          const SizedBox(width: 6),
-          _CircleIconButton(
-            palette: widget.palette,
-            icon: Icons.keyboard_hide_rounded,
-            onTap: () => _service.hideKeyboard(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  final AkaiPalette palette;
-  final IconData icon;
-  final VoidCallback onTap;
-  const _CircleIconButton(
-      {required this.palette, required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: palette.surface,
-          shape: BoxShape.circle,
-          border: Border.all(color: palette.surfaceVariant, width: 0.6),
-        ),
-        child: Icon(icon, size: 18, color: palette.keySecondaryText),
-      ),
+      ],
     );
   }
 }
@@ -227,7 +118,7 @@ class _KeyboardRows extends StatelessWidget {
               children: [
                 for (final def in rows[i])
                   Expanded(
-                    flex: def.flex.toInt(),
+                    flex: (def.flex * 100).round(),
                     child: _KeySlot(
                       def: def,
                       palette: palette,

@@ -75,11 +75,10 @@ function AndroidImeKeyboard() {
 
   const handleTextChange = useCallback((newText: string) => {
     const kb = window.AkaiKeyboard;
-    if (!kb) return; // Not inside Android IME — let normal state flow
+    if (!kb) return;
 
     const prev = textRef.current;
-    textRef.current = newText;
-
+    
     if (newText.length > prev.length) {
       // Characters were added
       const added = newText.slice(prev.length);
@@ -89,8 +88,10 @@ function AndroidImeKeyboard() {
       const deletedCount = prev.length - newText.length;
       kb.deleteSurroundingText(deletedCount);
     }
-    // Reset local text to empty so the keyboard stays clean
-    textRef.current = '';
+    
+    // Update the ref to track current state WITHOUT resetting it to ''
+    // This ensures the next update calculates the correct delta
+    textRef.current = newText;
   }, []);
 
   return (

@@ -267,12 +267,14 @@ export default function Home() {
                 <ArrowRight className={`w-3.5 h-3.5 transition-transform ${showDemo ? 'rotate-90' : ''}`} />
               </Button>
               <Button
+                asChild
                 size="sm"
-                onClick={() => setShowDemo(true)}
                 className="gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/20"
               >
-                <Play className="w-3.5 h-3.5" />
-                Live Demo
+                <a href="/AkAI-keyboard.apk" download>
+                  <Download className="w-3.5 h-3.5" />
+                  Download App
+                </a>
               </Button>
             </div>
           </nav>
@@ -758,12 +760,15 @@ export default function Home() {
                   Try the Demo Now
                 </Button>
                 <Button
+                  asChild
                   size="lg"
                   variant="outline"
                   className="gap-2 border-white/30 text-white hover:bg-white/10 h-12 px-8"
                 >
-                  <Download className="w-4 h-4" />
-                  Download App
+                  <a href="/AkAI-keyboard.apk" download>
+                    <Download className="w-4 h-4" />
+                    Download App
+                  </a>
                 </Button>
               </div>
             </div>

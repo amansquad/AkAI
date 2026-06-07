@@ -50,7 +50,7 @@ class DownloadableTheme {
 class ThemeDownloadService {
   // Next.js hosting URL - UPDATE THIS with your Vercel URL or local dev server
   static const String _themesBaseUrl =
-      'https://akai-keyboard.vercel.app';
+      'https://ak-ai-opal.vercel.app';
   static const String _manifestUrl = '$_themesBaseUrl/themes.json';
   static const String _downloadedThemesKey = 'downloaded_themes';
 
@@ -94,10 +94,18 @@ class ThemeDownloadService {
 
   // Fallback: load themes from known list
   Future<List<DownloadableTheme>> _loadThemesFromFallback() async {
+    // Expanded fallback list (used only when remote themes.json is unavailable).
+    // Keep this in sync with akai-themes/themes/*.json.
     final themeIds = [
       'sunset',
       'forest',
       'rose',
+      'mint',
+      'candy',
+      'sakura',
+      'retro',
+      'pastel',
+      'monochrome',
       'solar',
       'aurora',
       'cyberpunk',
@@ -108,12 +116,28 @@ class ThemeDownloadService {
       'lava',
       'waterfall',
       'galaxy',
-      'autumn'
+      'autumn',
+      'royal',
+      'midnight',
+      'nordic',
+      'ember',
+      'jade',
+      'cosmic',
+      'neon-green',
+      'ocean-deep',
+      'sunset-blaze',
     ];
+
     final themeNames = [
       'Sunset',
       'Forest',
       'Rose',
+      'Mint',
+      'Candy',
+      'Sakura',
+      'Retro',
+      'Pastel',
+      'Monochrome',
       'Solar',
       'Aurora',
       'Cyberpunk',
@@ -124,12 +148,28 @@ class ThemeDownloadService {
       'Lava',
       'Waterfall',
       'Galaxy',
-      'Autumn'
+      'Autumn',
+      'Royal',
+      'Midnight',
+      'Nordic',
+      'Ember',
+      'Jade',
+      'Cosmic',
+      'Neon Green',
+      'Ocean Deep',
+      'Sunset Blaze',
     ];
+
     final themeEmojis = [
       '🌅',
       '🌿',
       '🌸',
+      '🍃',
+      '🍬',
+      '🌸',
+      '📺',
+      '🎨',
+      '⚫',
       '☀️',
       '🌌',
       '🤖',
@@ -140,12 +180,28 @@ class ThemeDownloadService {
       '🌋',
       '💧',
       '🌌',
-      '🍂'
+      '🍂',
+      '👑',
+      '🌙',
+      '❄️',
+      '🔥',
+      '💎',
+      '🚀',
+      '💚',
+      '🐋',
+      '🌄',
     ];
+
     final themeDescriptions = [
       'Warm sunset colors with orange and pink accents',
       'Deep forest green with natural tones',
       'Elegant rose gold with pink accents',
+      'Fresh mint green with cool tones',
+      'Sweet candy pink with playful vibes',
+      'Delicate cherry blossom pink',
+      'Vintage retro with warm CRT tones',
+      'Soft pastel colors for a gentle feel',
+      'Pure black and white minimalist',
       'Golden solar theme with warm amber tones',
       'Northern lights inspired with teal and purple',
       'Neon cyberpunk style with electric blue and pink',
@@ -157,22 +213,47 @@ class ThemeDownloadService {
       'Cascading waterfall with blue gradients',
       'Deep space galaxy with purple nebulas',
       'Cozy autumn colors with orange and brown',
+      'Majestic royal purple with gold accents',
+      'Deep midnight blue with silver stars',
+      'Scandinavian inspired icy blue',
+      'Glowing ember orange with warmth',
+      'Precious jade green with elegance',
+      'Deep space cosmic with nebula colors',
+      'Electric neon green on dark',
+      'Deep ocean abyss with bioluminescent glow',
+      'Intense sunset with blazing oranges',
     ];
+
     final isPremium = [
-      false,
-      false,
-      false,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true
+      false, // sunset
+      false, // forest
+      false, // rose
+      false, // mint
+      false, // candy
+      false, // sakura
+      false, // retro
+      false, // pastel
+      false, // monochrome
+      true, // solar
+      true, // aurora
+      true, // cyberpunk
+      true, // neon-pulse
+      true, // matrix
+      true, // rainbow
+      true, // fire
+      true, // lava
+      true, // waterfall
+      true, // galaxy
+      true, // autumn
+      true, // royal
+      true, // midnight
+      true, // nordic
+      true, // ember
+      true, // jade
+      true, // cosmic
+      true, // neon-green
+      true, // ocean-deep
+      true, // sunset-blaze
     ];
 
     final List<DownloadableTheme> themes = [];
@@ -295,11 +376,6 @@ class ThemeDownloadService {
     final downloadedIds = _getDownloadedThemeIds();
     downloadedIds.remove(themeId);
     _prefs.setStringList(_downloadedThemesKey, downloadedIds);
-  }
-
-  String _getGitHubUsername() {
-    // Left for backwards compatibility if needed, but no longer used
-    return 'YOUR_USERNAME';
   }
 
   AkaiPalette _paletteFromJson(Map<String, dynamic> json) {

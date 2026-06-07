@@ -6,6 +6,8 @@ import '../keyboard/keyboard_service.dart';
 import '../keyboard/keyboard_widget.dart';
 import '../settings/settings_provider.dart';
 
+import '../theme/live_theme_background.dart';
+
 class AkaiKeyboardHost extends StatefulWidget {
   const AkaiKeyboardHost({super.key});
 
@@ -45,11 +47,26 @@ class _AkaiKeyboardHostState extends State<AkaiKeyboardHost> {
         value: _settings,
         builder: (context, _) {
           final palette = _settings.palette;
-          return Container(
-            color: palette.background,
-            child: SafeArea(
-              top: false,
-              child: AkaiKeyboard(controller: _controller),
+          return Scaffold(
+            backgroundColor: Colors.transparent,
+            resizeToAvoidBottomInset: false,
+            body: Stack(
+              children: [
+                if (palette.liveTheme != null)
+                  Positioned.fill(
+                    child: LiveThemeBackground(palette: palette),
+                  ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    width: double.infinity,
+                    color: palette.liveTheme != null
+                        ? Colors.transparent
+                        : palette.background,
+                    child: AkaiKeyboard(controller: _controller),
+                  ),
+                ),
+              ],
             ),
           );
         },

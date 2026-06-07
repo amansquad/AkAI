@@ -25,6 +25,54 @@
       "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/rose.json"
     },
     {
+      "id": "mint",
+      "name": "Mint",
+      "emoji": "🍃",
+      "description": "Fresh mint green with cool tones",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/mint.json"
+    },
+    {
+      "id": "candy",
+      "name": "Candy",
+      "emoji": "🍬",
+      "description": "Sweet candy pink with playful vibes",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/candy.json"
+    },
+    {
+      "id": "sakura",
+      "name": "Sakura",
+      "emoji": "🌸",
+      "description": "Delicate cherry blossom pink",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/sakura.json"
+    },
+    {
+      "id": "retro",
+      "name": "Retro",
+      "emoji": "📺",
+      "description": "Vintage retro with warm CRT tones",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/retro.json"
+    },
+    {
+      "id": "pastel",
+      "name": "Pastel",
+      "emoji": "🎨",
+      "description": "Soft pastel colors for a gentle feel",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/pastel.json"
+    },
+    {
+      "id": "monochrome",
+      "name": "Monochrome",
+      "emoji": "⚫",
+      "description": "Pure black and white minimalist",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/monochrome.json"
+    },
+    {
       "id": "solar",
       "name": "Solar",
       "emoji": "☀️",
@@ -111,6 +159,78 @@
       "description": "Cozy autumn colors with orange and brown",
       "isPremium": true,
       "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/autumn.json"
+    },
+    {
+      "id": "royal",
+      "name": "Royal",
+      "emoji": "👑",
+      "description": "Majestic royal purple with gold accents",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/royal.json"
+    },
+    {
+      "id": "midnight",
+      "name": "Midnight",
+      "emoji": "🌙",
+      "description": "Deep midnight blue with silver stars",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/midnight.json"
+    },
+    {
+      "id": "nordic",
+      "name": "Nordic",
+      "emoji": "❄️",
+      "description": "Scandinavian inspired icy blue",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/nordic.json"
+    },
+    {
+      "id": "ember",
+      "name": "Ember",
+      "emoji": "🔥",
+      "description": "Glowing ember orange with warmth",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/ember.json"
+    },
+    {
+      "id": "jade",
+      "name": "Jade",
+      "emoji": "💎",
+      "description": "Precious jade green with elegance",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/jade.json"
+    },
+    {
+      "id": "cosmic",
+      "name": "Cosmic",
+      "emoji": "🚀",
+      "description": "Deep space cosmic with nebula colors",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/cosmic.json"
+    },
+    {
+      "id": "neon-green",
+      "name": "Neon Green",
+      "emoji": "💚",
+      "description": "Electric neon green on dark",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/neon-green.json"
+    },
+    {
+      "id": "ocean-deep",
+      "name": "Ocean Deep",
+      "emoji": "🐋",
+      "description": "Deep ocean abyss with bioluminescent glow",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/ocean-deep.json"
+    },
+    {
+      "id": "sunset-blaze",
+      "name": "Sunset Blaze",
+      "emoji": "🌄",
+      "description": "Intense sunset with blazing oranges",
+      "isPremium": true,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/sunset-blaze.json"
     }
   ]
 }

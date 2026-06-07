@@ -37,9 +37,6 @@ class _AkaiKeyState extends State<AkaiKey> with SingleTickerProviderStateMixin {
   late Animation<double> _scale;
   late Animation<double> _glow;
 
-  bool _pressed = false;
-  bool _isLongPress = false;
-
   @override
   void initState() {
     super.initState();
@@ -66,18 +63,15 @@ class _AkaiKeyState extends State<AkaiKey> with SingleTickerProviderStateMixin {
   }
 
   void _onTapDown(TapDownDetails _) {
-    setState(() => _pressed = true);
     _controller.forward();
   }
 
   void _onTapUp(TapUpDetails _) {
-    setState(() => _pressed = false);
     _controller.reverse();
     widget.onTap();
   }
 
   void _onTapCancel() {
-    setState(() => _pressed = false);
     _controller.reverse();
   }
 
@@ -95,7 +89,7 @@ class _AkaiKeyState extends State<AkaiKey> with SingleTickerProviderStateMixin {
       bg =
           Color.lerp(palette.keyAccent, palette.keyAccentPressed, _glow.value)!;
       textColor = Colors.white;
-      borderColor = palette.glow.withOpacity(0.4);
+      borderColor = palette.glow.withValues(alpha: 0.4);
     } else if (isSecondary) {
       bg = Color.lerp(
           palette.keySecondary, palette.keySecondaryPressed, _glow.value)!;
@@ -117,14 +111,12 @@ class _AkaiKeyState extends State<AkaiKey> with SingleTickerProviderStateMixin {
       onTapCancel: _onTapCancel,
       onLongPressStart: widget.onLongPressStart != null
           ? (_) {
-              setState(() => _pressed = true);
               _controller.forward();
               widget.onLongPressStart!();
             }
           : null,
       onLongPressEnd: widget.onLongPressEnd != null
           ? (_) {
-              setState(() => _pressed = false);
               _controller.reverse();
               widget.onLongPressEnd!();
             }
@@ -138,20 +130,20 @@ class _AkaiKeyState extends State<AkaiKey> with SingleTickerProviderStateMixin {
           );
         },
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+          margin: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 3),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(color: borderColor, width: 0.6),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: borderColor, width: 0.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.18),
+                color: Colors.black.withValues(alpha: 0.18),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
               if (isAccent)
                 BoxShadow(
-                  color: palette.glow.withOpacity(0.45 * _glow.value),
+                  color: palette.glow.withValues(alpha: 0.45 * _glow.value),
                   blurRadius: 18 * _glow.value,
                   spreadRadius: 1 * _glow.value,
                 ),

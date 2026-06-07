@@ -4081,8 +4081,65 @@ function drawOmo(ctx: CanvasRenderingContext2D, w: number, h: number, time: numb
 // ─── Faith / Orthodox / Religion Themes ─────────────────────────────────────
 
 function drawMaryamIcon(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  // Use drawCrestTheme with the Maryam Amalaj Noch icon
-  drawCrestTheme(ctx, w, h, time, mx, my, '/faith/maryam.png', '#0f172a', 'rgba(250,204,21,1)', 'ማርያም አማላጅ ናት');
+  const src = '/faith/maryam.png';
+  if (!imgCache[src]) {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => { imgCache[src] = img; };
+    return;
+  }
+  const img = imgCache[src];
+
+  // Subtle slow zoom animation
+  const zoom = 1.05 + 0.05 * Math.sin(time * 0.2);
+  
+  // Interactive parallax
+  const px = mx > -500 ? (mx - w/2) / (w/2) * -15 : 0;
+  const py = my > -500 ? (my - h/2) / (h/2) * -12 : 0;
+
+  // Background cover logic
+  const scale = Math.max(w / img.width, h / img.height) * zoom;
+  const nw = img.width * scale;
+  const nh = img.height * scale;
+  const ox = (w - nw) / 2 + px;
+  const oy = (h - nh) / 2 + py;
+
+  ctx.save();
+  // Divine background glow
+  const bgGrad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w);
+  bgGrad.addColorStop(0, '#1e1b4b'); bgGrad.addColorStop(1, '#020617');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, w, h);
+
+  // Draw background image
+  ctx.globalAlpha = 0.85;
+  ctx.drawImage(img, ox, oy, nw, nh);
+  ctx.globalAlpha = 1;
+
+  // Heavenly rays overlay
+  ctx.translate(w/2 + px * 0.5, h/2 + py * 0.5);
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + time * 0.1;
+    const grad = ctx.createLinearGradient(0, 0, Math.cos(angle) * w, Math.sin(angle) * h);
+    grad.addColorStop(0, 'rgba(251, 191, 36, 0.08)');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, w, angle - 0.2, angle + 0.2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Floating dust/light motes
+  for (let i = 0; i < 20; i++) {
+    const tx = (i * 137 + time * 20) % w;
+    const ty = (i * 211 + time * 15) % h;
+    const ta = 0.1 + 0.2 * Math.abs(Math.sin(time + i));
+    ctx.fillStyle = `rgba(251, 191, 36, ${ta})`;
+    ctx.beginPath(); ctx.arc(tx, ty, 1.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  drawClubText(ctx, w/2, h*0.88, 'ማርያም አማላጅ ናት', Math.min(w,h)*0.08, 'rgba(250,204,21,1)');
 }
 
 function drawEthCross(ctx: CanvasRenderingContext2D, w: number, h: number, time: number) {
@@ -4457,6 +4514,47 @@ function drawGlowBurst(ctx: CanvasRenderingContext2D, cx: number, cy: number, r:
   ctx.restore();
 }
 
+function drawEnergyRings(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string, time: number) {
+  ctx.save();
+  for (let i = 0; i < 2; i++) {
+    const ringT = (time * 0.8 + i * 0.5) % 1;
+    const ringR = r * (0.8 + ringT * 0.6);
+    const alpha = (1 - ringT) * 0.3;
+    ctx.strokeStyle = color.replace('1)', `${alpha})`);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawEnergyParticles(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string, time: number) {
+  ctx.save();
+  const particleCount = 12;
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (i / particleCount) * Math.PI * 2 + time * 0.5;
+    const dist = r * (0.9 + 0.3 * Math.sin(time * 2 + i));
+    const x = cx + Math.cos(angle) * dist;
+    const y = cy + Math.sin(angle) * dist;
+    const size = 1.5 + Math.sin(time * 3 + i);
+    
+    ctx.fillStyle = color.replace('1)', '0.6)');
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Tiny trail
+    ctx.strokeStyle = color.replace('1)', '0.2)');
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(cx + Math.cos(angle) * (dist - 15), cy + Math.sin(angle) * (dist - 15));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawCrestTheme(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, src: string, clubColor: string, glowColor: string, text: string) {
   if (!imgCache[src]) {
     const img = new Image();
@@ -4469,15 +4567,27 @@ function drawCrestTheme(ctx: CanvasRenderingContext2D, w: number, h: number, tim
   // Background Gradient
   const bg = ctx.createLinearGradient(0, 0, 0, h);
   bg.addColorStop(0, clubColor);
+  bg.addColorStop(0.5, clubColor); // Deeper primary color area
   bg.addColorStop(1, '#000');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
 
+  // Subtle Vignette
+  const vignette = ctx.createRadialGradient(w/2, h/2, Math.min(w,h) * 0.2, w/2, h/2, Math.max(w,h) * 0.8);
+  vignette.addColorStop(0, 'transparent');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.4)');
+  ctx.fillStyle = vignette; ctx.fillRect(0, 0, w, h);
+
   const cx = w/2, cy = h*0.42;
+  const baseR = Math.min(w, h) * 0.3;
 
   // Interactive Aura Glow
   const pulse = 1 + Math.sin(time * 2.5) * 0.04;
-  drawGlowBurst(ctx, cx, cy, Math.min(w, h) * 0.25, glowColor, time);
+  drawGlowBurst(ctx, cx, cy, baseR * 0.8, glowColor, time);
   
+  // Fun Animations: Rings and Particles
+  drawEnergyRings(ctx, cx, cy, baseR, glowColor, time);
+  drawEnergyParticles(ctx, cx, cy, baseR, glowColor, time);
+
   if (mx > -500) {
     const spot = ctx.createRadialGradient(mx, my, 0, mx, my, w * 0.4);
     spot.addColorStop(0, glowColor.replace('1)', '0.12)'));
@@ -4557,8 +4667,8 @@ function drawCrestTheme(ctx: CanvasRenderingContext2D, w: number, h: number, tim
     ctx.fillStyle = `rgba(255,255,255,${a})`;
     ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI*2); ctx.fill();
   }
-
-  drawClubText(ctx, cx, h*0.85, text, Math.min(w,h)*0.07, glowColor);
+  // User requested to remove the team text (outside logo)
+  // drawClubText(ctx, cx, h*0.85, text, Math.min(w,h)*0.07, glowColor);
 }
 
 // ─── Ethiopian Clubs ────────────────────────────────────────────────────────
@@ -4698,11 +4808,139 @@ function drawFbACMilan(ctx: CanvasRenderingContext2D, w: number, h: number, time
   drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/ac-milan-footballlogos-org.png', '#7f1d1d', 'rgba(255,255,255,1)', 'AC Milan');
 }
 
-function drawFbSpurs(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/tottenham-hotspur-footballlogos-org.png', '#1e3a8a', 'rgba(30,58,138,1)', 'Tottenham');
+// ─── Religious & Cultural Themes ────────────────────────────────────────────
+
+const imgCache: Record<string, HTMLImageElement> = {};
+
+function drawMaryamIcon(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+   // Use the provided Maryam image with a spiritual aura
+   drawCrestTheme(ctx, w, h, time, mx, my, '/faith/maryam.png', '#0f172a', 'rgba(251, 191, 36, 1)', 'Holy Maryam');
+   
+   // Add divine light rays
+   ctx.save();
+   ctx.translate(w/2, h*0.42);
+   const rayCount = 8;
+   for (let i = 0; i < rayCount; i++) {
+     const angle = (i / rayCount) * Math.PI * 2 + time * 0.2;
+     const length = Math.min(w, h) * 0.8;
+     const grad = ctx.createLinearGradient(0, 0, Math.cos(angle) * length, Math.sin(angle) * length);
+     grad.addColorStop(0, 'rgba(255, 255, 200, 0.2)');
+     grad.addColorStop(1, 'transparent');
+     ctx.strokeStyle = grad;
+     ctx.lineWidth = 15;
+     ctx.beginPath();
+     ctx.moveTo(0, 0);
+     ctx.lineTo(Math.cos(angle) * length, Math.sin(angle) * length);
+     ctx.stroke();
+   }
+   ctx.restore();
 }
 
-// ─── Theme Animation Map ────────────────────────────────────────────────────
+function drawLalibela(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/lalibela.png', '#422006', 'rgba(245, 158, 11, 1)', 'Lalibela');
+}
+
+function drawMeskel(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Procedural Meskel fire theme
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#450a0a'); bg.addColorStop(1, '#000');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  drawFire(ctx, w, h, time, mx, my, {});
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🌼 Meskel 🌼', w/2, h * 0.8);
+}
+
+function drawNajashi(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/najashi.png', '#064e3b', 'rgba(52, 211, 153, 1)', 'Al-Najashi');
+}
+
+function drawHarar(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/harar.png', '#1e3a8a', 'rgba(251, 191, 36, 1)', 'Harar Jegol');
+}
+
+function drawLantern(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Procedural glowing lanterns
+  const bg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w);
+  bg.addColorStop(0, '#020617'); bg.addColorStop(1, '#000');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  for(let i=0; i<8; i++) {
+    const tx = (i * 150 + time * 30) % w;
+    const ty = h * 0.3 + Math.sin(time + i) * 40;
+    drawGlowBurst(ctx, tx, ty, 30, 'rgba(251, 191, 36, 1)', time);
+  }
+}
+
+function drawAxumStela(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/axum.png', '#1e293b', 'rgba(148, 163, 184, 1)', 'Axum Stela');
+}
+
+function drawDebreDamo(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/damo.png', '#451a03', 'rgba(251, 191, 36, 1)', 'Debre Damo');
+}
+
+function drawDireDawa(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/diredawa.png', '#0c4a6e', 'rgba(56, 189, 248, 1)', 'Dire Dawa');
+}
+
+function drawTeff(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Golden teff field
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#78350f'); bg.addColorStop(1, '#1c1917');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  for(let i=0; i<50; i++) {
+    const x = (i * 17) % w;
+    const bh = 40 + Math.sin(time + i) * 20;
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)';
+    ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x + Math.sin(time) * 10, h - bh); ctx.stroke();
+  }
+}
+
+function drawDanakil(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/danakil.png', '#7c2d12', 'rgba(234, 179, 8, 1)', 'Danakil');
+}
+
+function drawOmo(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/omo.png', '#1e3a8a', 'rgba(147, 197, 253, 1)', 'Omo Valley');
+}
+
+function drawEthCross(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/cross.png', '#431407', 'rgba(251, 191, 36, 1)', 'Holy Cross');
+}
+
+function drawTimkat(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/timkat.png', '#1e3a8a', 'rgba(253, 224, 71, 1)', 'Timkat');
+}
+
+function drawGena(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/gena.png', '#064e3b', 'rgba(220, 38, 38, 1)', 'Gena');
+}
+
+function drawEidCelebration(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/eid.png', '#14532d', 'rgba(253, 224, 71, 1)', 'Eid Mubarak');
+}
+
+function drawSabbath(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Peaceful purple theme
+  const bg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w);
+  bg.addColorStop(0, '#1e1b4b'); bg.addColorStop(1, '#020617');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  drawStardust(ctx, w, h, time, mx, my, {});
+}
+
+function drawAngelCloud(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Heavenly clouds
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#e0f2fe'); bg.addColorStop(1, '#7dd3fc');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  for(let i=0; i<5; i++) {
+    const x = (i * 200 + time * 20) % (w + 200) - 100;
+    const y = h * 0.2 + i * 50;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath(); ctx.arc(x, y, 60, 0, Math.PI * 2); ctx.fill();
+  }
+}
 
 
 

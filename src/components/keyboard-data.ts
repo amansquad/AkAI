@@ -1105,35 +1105,35 @@ export const THEMES: Record<string, ThemeDef> = {
   },
   fb_juventus: {
     name: 'Juventus', flag: '🏁', category: 'football', isLive: true,
-    bg: 'bg-zinc-900', card: 'bg-black', key: 'bg-zinc-100', keyHover: 'hover:bg-zinc-200',
+    bg: 'bg-[#1a1a1a]', card: 'bg-black', key: 'bg-[#f5f5f5]', keyHover: 'hover:bg-white',
     keyActive: 'bg-black text-white', keyText: 'text-black',
-    specialKey: 'bg-black text-white', accent: 'bg-zinc-100', accentText: 'text-black',
-    border: 'border-white/10', tabBar: 'bg-black', tabActive: 'bg-zinc-100', tabActiveText: 'text-black',
-    suggestion: 'bg-zinc-800',
+    specialKey: 'bg-black text-white', accent: 'bg-[#f5f5f5]', accentText: 'text-black',
+    border: 'border-white/20', tabBar: 'bg-black', tabActive: 'bg-white', tabActiveText: 'text-black',
+    suggestion: 'bg-[#222]',
   },
   fb_inter: {
     name: 'Inter Milan', flag: '🐍', category: 'football', isLive: true,
-    bg: 'bg-blue-900', card: 'bg-black', key: 'bg-blue-700', keyHover: 'hover:bg-blue-600',
-    keyActive: 'bg-yellow-500 text-black', keyText: 'text-white',
-    specialKey: 'bg-black text-white', accent: 'bg-yellow-500', accentText: 'text-black',
-    border: 'border-blue-500/20', tabBar: 'bg-black', tabActive: 'bg-blue-700', tabActiveText: 'text-white',
-    suggestion: 'bg-black',
+    bg: 'bg-[#001c43]', card: 'bg-black', key: 'bg-[#002e6d]', keyHover: 'hover:bg-[#004099]',
+    keyActive: 'bg-[#b8951d] text-black', keyText: 'text-white',
+    specialKey: 'bg-black text-white', accent: 'bg-[#b8951d]', accentText: 'text-black',
+    border: 'border-blue-500/30', tabBar: 'bg-black', tabActive: 'bg-[#002e6d]', tabActiveText: 'text-white',
+    suggestion: 'bg-[#001c43]',
   },
   fb_milan: {
     name: 'AC Milan', flag: '👹', category: 'football', isLive: true,
-    bg: 'bg-red-700', card: 'bg-black', key: 'bg-red-600', keyHover: 'hover:bg-red-500',
+    bg: 'bg-[#fb090b]', card: 'bg-black', key: 'bg-[#db080a]', keyHover: 'hover:bg-[#ff1a1c]',
     keyActive: 'bg-white text-black', keyText: 'text-white',
     specialKey: 'bg-black text-white', accent: 'bg-white', accentText: 'text-black',
-    border: 'border-red-500/20', tabBar: 'bg-black', tabActive: 'bg-red-600', tabActiveText: 'text-white',
+    border: 'border-red-900/50', tabBar: 'bg-black', tabActive: 'bg-[#db080a]', tabActiveText: 'text-white',
     suggestion: 'bg-black',
   },
   fb_spurs: {
     name: 'Tottenham', flag: '🐓', category: 'football', isLive: true,
-    bg: 'bg-slate-100', card: 'bg-white', key: 'bg-slate-50', keyHover: 'hover:bg-blue-100 hover:text-blue-900',
-    keyActive: 'bg-blue-900 text-white', keyText: 'text-blue-900',
-    specialKey: 'bg-blue-950 text-white', accent: 'bg-blue-900', accentText: 'text-white',
-    border: 'border-slate-300', tabBar: 'bg-blue-950', tabActive: 'bg-white', tabActiveText: 'text-blue-900',
-    suggestion: 'bg-slate-200',
+    bg: 'bg-[#132257]', card: 'bg-white', key: 'bg-[#f5f5f5]', keyHover: 'hover:bg-white hover:text-[#132257]',
+    keyActive: 'bg-[#132257] text-white', keyText: 'text-[#132257]',
+    specialKey: 'bg-[#0b1432] text-white', accent: 'bg-[#132257]', accentText: 'text-white',
+    border: 'border-slate-300', tabBar: 'bg-[#0b1432]', tabActive: 'bg-white', tabActiveText: 'text-[#132257]',
+    suggestion: 'bg-slate-100',
   },
 };
 
@@ -1439,14 +1439,14 @@ export const ENGLISH_ROWS = [
   ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
   ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
   ['shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace'],
-  ['symbols', 'language', 'voice', 'space', '.', 'enter'],
+  ['symbols', 'language', 'voice', 'space', 'enter'],
 ];
 
 export const SYMBOL_ROWS = [
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
   ['@', '#', '$', '%', '&', '-', '+', '(', ')', '/'],
   ['shift', '*', '"', "'", ':', ';', '!', '?', '~', 'backspace'],
-  ['symbols', 'language', 'voice', 'space', '\\', 'enter'],
+  ['symbols', 'language', 'voice', 'space', 'enter'],
 ];
 
 export const ETHIOPIAN_NUM_ROW_1 = ['፩','፪','፫','፬','፭','፮','፯','፰','፱','፲'];

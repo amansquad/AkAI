@@ -31,12 +31,10 @@ class SwipeKeyboard extends StatefulWidget {
 class _SwipeKeyboardState extends State<SwipeKeyboard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
 
   List<Offset> _currentPath = [];
   List<String> _detectedChars = [];
   bool _isSwiping = false;
-  Offset? _startPosition;
 
   final GlobalKey _keyboardKey = GlobalKey();
 
@@ -46,9 +44,6 @@ class _SwipeKeyboardState extends State<SwipeKeyboard>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
   }
 
@@ -113,7 +108,6 @@ class _SwipeKeyboardState extends State<SwipeKeyboard>
     if (localPosition != null) {
       setState(() {
         _isSwiping = true;
-        _startPosition = localPosition;
         _currentPath = [localPosition];
         _detectedChars = [];
       });
@@ -160,7 +154,6 @@ class _SwipeKeyboardState extends State<SwipeKeyboard>
       _isSwiping = false;
       _currentPath = [];
       _detectedChars = [];
-      _startPosition = null;
     });
     _controller.reverse();
   }
@@ -205,13 +198,13 @@ class _SwipeTrailPainter extends CustomPainter {
     if (path.isEmpty) return;
 
     final paint = Paint()
-      ..color = color.withOpacity(0.6)
+      ..color = color.withValues(alpha: 0.6)
       ..strokeWidth = 4.0
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
     final glowPaint = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..strokeWidth = 12.0
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke

@@ -35,6 +35,19 @@ class KeyDef {
 }
 
 class KeyboardLayout {
+  static const numberRow = [
+    KeyDef(kind: KeyKind.char, primary: '1'),
+    KeyDef(kind: KeyKind.char, primary: '2'),
+    KeyDef(kind: KeyKind.char, primary: '3'),
+    KeyDef(kind: KeyKind.char, primary: '4'),
+    KeyDef(kind: KeyKind.char, primary: '5'),
+    KeyDef(kind: KeyKind.char, primary: '6'),
+    KeyDef(kind: KeyKind.char, primary: '7'),
+    KeyDef(kind: KeyKind.char, primary: '8'),
+    KeyDef(kind: KeyKind.char, primary: '9'),
+    KeyDef(kind: KeyKind.char, primary: '0'),
+  ];
+
   static const letters = [
     [
       KeyDef(kind: KeyKind.char, primary: 'q'),
@@ -71,13 +84,11 @@ class KeyboardLayout {
       KeyDef(kind: KeyKind.backspace, flex: 1.4),
     ],
     [
-      KeyDef(kind: KeyKind.symbols, flex: 1.3),
-      KeyDef(kind: KeyKind.globe, flex: 1.0),
+      KeyDef(kind: KeyKind.symbols, flex: 1.5),
       KeyDef(kind: KeyKind.comma, primary: ','),
-      KeyDef(kind: KeyKind.space, primary: 'space', flex: 4.0),
+      KeyDef(kind: KeyKind.space, primary: 'space', flex: 5.0),
       KeyDef(kind: KeyKind.period, primary: '.'),
-      KeyDef(kind: KeyKind.mic, flex: 1.0),
-      KeyDef(kind: KeyKind.enter, flex: 1.7),
+      KeyDef(kind: KeyKind.enter, flex: 1.8),
     ],
   ];
 
@@ -117,13 +128,11 @@ class KeyboardLayout {
       KeyDef(kind: KeyKind.backspace, flex: 1.4),
     ],
     [
-      KeyDef(kind: KeyKind.symbols, flex: 1.3),
-      KeyDef(kind: KeyKind.globe, flex: 1.0),
+      KeyDef(kind: KeyKind.symbols, flex: 1.5),
       KeyDef(kind: KeyKind.comma, primary: ','),
-      KeyDef(kind: KeyKind.space, primary: 'space', flex: 4.0),
+      KeyDef(kind: KeyKind.space, primary: 'space', flex: 5.0),
       KeyDef(kind: KeyKind.period, primary: '.'),
-      KeyDef(kind: KeyKind.mic, flex: 1.0),
-      KeyDef(kind: KeyKind.enter, flex: 1.7),
+      KeyDef(kind: KeyKind.enter, flex: 1.8),
     ],
   ];
 
@@ -163,13 +172,11 @@ class KeyboardLayout {
       KeyDef(kind: KeyKind.backspace, flex: 1.4),
     ],
     [
-      KeyDef(kind: KeyKind.alphabet, flex: 1.3),
-      KeyDef(kind: KeyKind.globe, flex: 1.0),
+      KeyDef(kind: KeyKind.alphabet, flex: 1.5),
       KeyDef(kind: KeyKind.comma, primary: ','),
-      KeyDef(kind: KeyKind.space, primary: 'space', flex: 4.0),
+      KeyDef(kind: KeyKind.space, primary: 'space', flex: 5.0),
       KeyDef(kind: KeyKind.period, primary: '.'),
-      KeyDef(kind: KeyKind.mic, flex: 1.0),
-      KeyDef(kind: KeyKind.enter, flex: 1.7),
+      KeyDef(kind: KeyKind.enter, flex: 1.8),
     ],
   ];
 
@@ -209,13 +216,11 @@ class KeyboardLayout {
       KeyDef(kind: KeyKind.backspace, flex: 1.4),
     ],
     [
-      KeyDef(kind: KeyKind.alphabet, flex: 1.3),
-      KeyDef(kind: KeyKind.globe, flex: 1.0),
+      KeyDef(kind: KeyKind.alphabet, flex: 1.5),
       KeyDef(kind: KeyKind.comma, primary: ','),
-      KeyDef(kind: KeyKind.space, primary: 'space', flex: 4.0),
+      KeyDef(kind: KeyKind.space, primary: 'space', flex: 5.0),
       KeyDef(kind: KeyKind.period, primary: '.'),
-      KeyDef(kind: KeyKind.mic, flex: 1.0),
-      KeyDef(kind: KeyKind.enter, flex: 1.7),
+      KeyDef(kind: KeyKind.enter, flex: 1.8),
     ],
   ];
 }
