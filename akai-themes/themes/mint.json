@@ -1,0 +1,23 @@
+{
+  "id": "mint",
+  "name": "Mint",
+  "emoji": "🍃",
+  "description": "Fresh mint green with cool tones",
+  "isPremium": false,
+  "colors": {
+    "background": 4278222848,
+    "surface": 4278226176,
+    "surfaceVariant": 4278229504,
+    "key": 4278233600,
+    "keyPressed": 4278236928,
+    "keySecondary": 4278226944,
+    "keySecondaryPressed": 4278230784,
+    "keyAccent": 4278239871,
+    "keyAccentPressed": 4278243967,
+    "keyText": 4278248442,
+    "keySecondaryText": 4278235914,
+    "accent": 4278239871,
+    "accentMuted": 4278235775,
+    "glow": 4278243967
+  }
+}

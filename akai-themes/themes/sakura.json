@@ -1,0 +1,23 @@
+{
+  "id": "sakura",
+  "name": "Sakura",
+  "emoji": "🌸",
+  "description": "Delicate cherry blossom pink",
+  "isPremium": false,
+  "colors": {
+    "background": 4278213657,
+    "surface": 4278217241,
+    "surfaceVariant": 4278220825,
+    "key": 4278224409,
+    "keyPressed": 4278227993,
+    "keySecondary": 4278218009,
+    "keySecondaryPressed": 4278221593,
+    "keyAccent": 4278252262,
+    "keyAccentPressed": 4278255846,
+    "keyText": 4278256358,
+    "keySecondaryText": 4278239670,
+    "accent": 4278252262,
+    "accentMuted": 4278248166,
+    "glow": 4278255846
+  }
+}

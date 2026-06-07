@@ -1,0 +1,23 @@
+{
+  "id": "midnight",
+  "name": "Midnight",
+  "emoji": "🌙",
+  "description": "Deep midnight blue with silver stars",
+  "isPremium": true,
+  "colors": {
+    "background": 4278190080,
+    "surface": 4278193920,
+    "surfaceVariant": 4278197504,
+    "key": 4278201600,
+    "keyPressed": 4278205184,
+    "keySecondary": 4278194688,
+    "keySecondaryPressed": 4278198784,
+    "keyAccent": 4278215551,
+    "keyAccentPressed": 4278219647,
+    "keyText": 4278223743,
+    "keySecondaryText": 4278209535,
+    "accent": 4278215551,
+    "accentMuted": 4278211455,
+    "glow": 4278219647
+  }
+}

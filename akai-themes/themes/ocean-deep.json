@@ -1,0 +1,23 @@
+{
+  "id": "ocean-deep",
+  "name": "Ocean Deep",
+  "emoji": "🐋",
+  "description": "Deep ocean abyss with bioluminescent glow",
+  "isPremium": true,
+  "colors": {
+    "background": 4278195200,
+    "surface": 4278199040,
+    "surfaceVariant": 4278202880,
+    "key": 4278207232,
+    "keyPressed": 4278211072,
+    "keySecondary": 4278199808,
+    "keySecondaryPressed": 4278203648,
+    "keyAccent": 4278220927,
+    "keyAccentPressed": 4278225023,
+    "keyText": 4278229119,
+    "keySecondaryText": 4278214911,
+    "accent": 4278220927,
+    "accentMuted": 4278216831,
+    "glow": 4278225023
+  }
+}

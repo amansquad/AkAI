@@ -1,0 +1,23 @@
+{
+  "id": "jade",
+  "name": "Jade",
+  "emoji": "💎",
+  "description": "Precious jade green with elegance",
+  "isPremium": true,
+  "colors": {
+    "background": 4278210816,
+    "surface": 4278214400,
+    "surfaceVariant": 4278217984,
+    "key": 4278222080,
+    "keyPressed": 4278225664,
+    "keySecondary": 4278215168,
+    "keySecondaryPressed": 4278218752,
+    "keyAccent": 4278232959,
+    "keyAccentPressed": 4278237055,
+    "keyText": 4278241151,
+    "keySecondaryText": 4278226943,
+    "accent": 4278232959,
+    "accentMuted": 4278228863,
+    "glow": 4278237055
+  }
+}

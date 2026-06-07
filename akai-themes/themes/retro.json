@@ -1,0 +1,23 @@
+{
+  "id": "retro",
+  "name": "Retro",
+  "emoji": "📺",
+  "description": "Vintage retro with warm CRT tones",
+  "isPremium": false,
+  "colors": {
+    "background": 4278195200,
+    "surface": 4278198784,
+    "surfaceVariant": 4278202368,
+    "key": 4278206464,
+    "keyPressed": 4278210048,
+    "keySecondary": 4278199552,
+    "keySecondaryPressed": 4278203136,
+    "keyAccent": 4278209919,
+    "keyAccentPressed": 4278214015,
+    "keyText": 4278218111,
+    "keySecondaryText": 4278203899,
+    "accent": 4278209919,
+    "accentMuted": 4278205823,
+    "glow": 4278214015
+  }
+}

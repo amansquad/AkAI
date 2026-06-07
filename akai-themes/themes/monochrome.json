@@ -1,0 +1,23 @@
+{
+  "id": "monochrome",
+  "name": "Monochrome",
+  "emoji": "⚫",
+  "description": "Pure black and white minimalist",
+  "isPremium": false,
+  "colors": {
+    "background": 4278190080,
+    "surface": 4278195199,
+    "surfaceVariant": 4278200319,
+    "key": 4278205439,
+    "keyPressed": 4278210559,
+    "keySecondary": 4278196223,
+    "keySecondaryPressed": 4278201343,
+    "keyAccent": 4278216063,
+    "keyAccentPressed": 4278221183,
+    "keyText": 4278226303,
+    "keySecondaryText": 4278207871,
+    "accent": 4278216063,
+    "accentMuted": 4278210943,
+    "glow": 4278221183
+  }
+}

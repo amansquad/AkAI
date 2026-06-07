@@ -1,0 +1,23 @@
+{
+  "id": "neon-green",
+  "name": "Neon Green",
+  "emoji": "💚",
+  "description": "Electric neon green on dark",
+  "isPremium": true,
+  "colors": {
+    "background": 4278190080,
+    "surface": 4278193664,
+    "surfaceVariant": 4278197248,
+    "key": 4278201344,
+    "keyPressed": 4278204928,
+    "keySecondary": 4278194432,
+    "keySecondaryPressed": 4278198528,
+    "keyAccent": 4278206591,
+    "keyAccentPressed": 4278210687,
+    "keyText": 4278214783,
+    "keySecondaryText": 4278200575,
+    "accent": 4278206591,
+    "accentMuted": 4278202495,
+    "glow": 4278210687
+  }
+}

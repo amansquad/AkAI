@@ -1,0 +1,23 @@
+{
+  "id": "candy",
+  "name": "Candy",
+  "emoji": "🍬",
+  "description": "Sweet candy pink with playful vibes",
+  "isPremium": false,
+  "colors": {
+    "background": 4278209312,
+    "surface": 4278213408,
+    "surfaceVariant": 4278216992,
+    "key": 4278221088,
+    "keyPressed": 4278224672,
+    "keySecondary": 4278214176,
+    "keySecondaryPressed": 4278217760,
+    "keyAccent": 4278247615,
+    "keyAccentPressed": 4278251711,
+    "keyText": 4278254067,
+    "keySecondaryText": 4278236616,
+    "accent": 4278247615,
+    "accentMuted": 4278243519,
+    "glow": 4278251711
+  }
+}
