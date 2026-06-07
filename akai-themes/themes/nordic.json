@@ -1,0 +1,23 @@
+{
+  "id": "nordic",
+  "name": "Nordic",
+  "emoji": "❄️",
+  "description": "Scandinavian inspired icy blue",
+  "isPremium": true,
+  "colors": {
+    "background": 4278209248,
+    "surface": 4278212832,
+    "surfaceVariant": 4278216416,
+    "key": 4278220512,
+    "keyPressed": 4278224096,
+    "keySecondary": 4278213600,
+    "keySecondaryPressed": 4278217184,
+    "keyAccent": 4278222463,
+    "keyAccentPressed": 4278226559,
+    "keyText": 4278230655,
+    "keySecondaryText": 4278216447,
+    "accent": 4278222463,
+    "accentMuted": 4278218367,
+    "glow": 4278226559
+  }
+}

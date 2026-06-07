@@ -1,0 +1,23 @@
+{
+  "id": "ember",
+  "name": "Ember",
+  "emoji": "🔥",
+  "description": "Glowing ember orange with warmth",
+  "isPremium": true,
+  "colors": {
+    "background": 4278194688,
+    "surface": 4278198272,
+    "surfaceVariant": 4278201856,
+    "key": 4278205952,
+    "keyPressed": 4278209536,
+    "keySecondary": 4278199040,
+    "keySecondaryPressed": 4278202624,
+    "keyAccent": 4278199167,
+    "keyAccentPressed": 4278203263,
+    "keyText": 4278207359,
+    "keySecondaryText": 4278197247,
+    "accent": 4278199167,
+    "accentMuted": 4278195071,
+    "glow": 4278203263
+  }
+}

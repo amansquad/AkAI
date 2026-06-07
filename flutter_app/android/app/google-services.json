@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "187820402931",
+    "project_id": "akai-cfb0f",
+    "storage_bucket": "akai-cfb0f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:187820402931:android:c37503e910ee6d82936f86",
+        "android_client_info": {
+          "package_name": "com.nitu.demoakai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoqmOmCRizVgyrEh36fAql9yTrVT-aEXU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

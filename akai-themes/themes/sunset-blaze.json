@@ -1,0 +1,23 @@
+{
+  "id": "sunset-blaze",
+  "name": "Sunset Blaze",
+  "emoji": "🌄",
+  "description": "Intense sunset with blazing oranges",
+  "isPremium": true,
+  "colors": {
+    "background": 4278194944,
+    "surface": 4278198784,
+    "surfaceVariant": 4278202624,
+    "key": 4278206976,
+    "keyPressed": 4278210816,
+    "keySecondary": 4278199552,
+    "keySecondaryPressed": 4278203392,
+    "keyAccent": 4278203775,
+    "keyAccentPressed": 4278207871,
+    "keyText": 4278211967,
+    "keySecondaryText": 4278199679,
+    "accent": 4278203775,
+    "accentMuted": 4278199679,
+    "glow": 4278207871
+  }
+}

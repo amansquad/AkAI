@@ -1,0 +1,23 @@
+{
+  "id": "pastel",
+  "name": "Pastel",
+  "emoji": "🎨",
+  "description": "Soft pastel colors for a gentle feel",
+  "isPremium": false,
+  "colors": {
+    "background": 4278248959,
+    "surface": 4278253055,
+    "surfaceVariant": 4278256639,
+    "key": 4278260735,
+    "keyPressed": 4278264319,
+    "keySecondary": 4278253823,
+    "keySecondaryPressed": 4278257407,
+    "keyAccent": 4278252241,
+    "keyAccentPressed": 4278256337,
+    "keyText": 4278220159,
+    "keySecondaryText": 4278211967,
+    "accent": 4278252241,
+    "accentMuted": 4278248145,
+    "glow": 4278256337
+  }
+}

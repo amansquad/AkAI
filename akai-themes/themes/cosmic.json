@@ -1,0 +1,23 @@
+{
+  "id": "cosmic",
+  "name": "Cosmic",
+  "emoji": "🚀",
+  "description": "Deep space cosmic with nebula colors",
+  "isPremium": true,
+  "colors": {
+    "background": 4278190080,
+    "surface": 4278193664,
+    "surfaceVariant": 4278197248,
+    "key": 4278201344,
+    "keyPressed": 4278204928,
+    "keySecondary": 4278194432,
+    "keySecondaryPressed": 4278198528,
+    "keyAccent": 4278235007,
+    "keyAccentPressed": 4278239103,
+    "keyText": 4278243199,
+    "keySecondaryText": 4278224895,
+    "accent": 4278235007,
+    "accentMuted": 4278230911,
+    "glow": 4278239103
+  }
+}
