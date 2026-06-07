@@ -89,7 +89,7 @@ class _AkaiKeyState extends State<AkaiKey> with SingleTickerProviderStateMixin {
       bg =
           Color.lerp(palette.keyAccent, palette.keyAccentPressed, _glow.value)!;
       textColor = Colors.white;
-      borderColor = palette.glow.withValues(alpha: 0.4);
+      borderColor = palette.glow.withOpacity(0.4);
     } else if (isSecondary) {
       bg = Color.lerp(
           palette.keySecondary, palette.keySecondaryPressed, _glow.value)!;
@@ -137,13 +137,13 @@ class _AkaiKeyState extends State<AkaiKey> with SingleTickerProviderStateMixin {
             border: Border.all(color: borderColor, width: 0.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
+                color: Colors.black.withOpacity(0.18),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
               if (isAccent)
                 BoxShadow(
-                  color: palette.glow.withValues(alpha: 0.45 * _glow.value),
+                  color: palette.glow.withOpacity(0.45 * _glow.value),
                   blurRadius: 18 * _glow.value,
                   spreadRadius: 1 * _glow.value,
                 ),

@@ -512,7 +512,7 @@ class _EmojiPickerState extends State<EmojiPicker> {
                   onTap: () => widget.onEmojiSelected(emoji),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: widget.palette.surfaceVariant.withValues(alpha: 0.5),
+                      color: widget.palette.surfaceVariant.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
@@ -562,10 +562,10 @@ class _CategoryTab extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         decoration: BoxDecoration(
           color:
-              isSelected ? palette.accent.withValues(alpha: 0.2) : Colors.transparent,
+              isSelected ? palette.accent.withOpacity(0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: isSelected
-              ? Border.all(color: palette.accent.withValues(alpha: 0.5))
+              ? Border.all(color: palette.accent.withOpacity(0.5))
               : null,
         ),
         child: Center(

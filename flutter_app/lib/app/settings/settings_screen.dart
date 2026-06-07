@@ -187,7 +187,7 @@ class _ThemeGallery extends StatelessWidget {
               boxShadow: selected
                   ? [
                       BoxShadow(
-                          color: p.glow.withValues(alpha: 0.3),
+                          color: p.glow.withOpacity(0.3),
                           blurRadius: 20,
                           spreadRadius: -2)
                     ]
@@ -242,7 +242,7 @@ class _Dot extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 0.5),
+        border: Border.all(color: Colors.white.withOpacity(0.08), width: 0.5),
       ),
     );
   }
@@ -280,7 +280,7 @@ class _SettingTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: palette.accent.withValues(alpha: 0.15),
+              color: palette.accent.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: palette.accent, size: 20),
@@ -305,7 +305,7 @@ class _SettingTile extends StatelessWidget {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeTrackColor: palette.accent.withValues(alpha: 0.5),
+            activeTrackColor: palette.accent.withOpacity(0.5),
             activeThumbColor: palette.accent,
           ),
         ],

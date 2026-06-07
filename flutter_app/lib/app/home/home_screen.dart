@@ -159,7 +159,7 @@ class _DemoCard extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'Type something beautiful\u2026',
               hintStyle:
-                  TextStyle(color: palette.keySecondaryText.withValues(alpha: 0.6)),
+                  TextStyle(color: palette.keySecondaryText.withOpacity(0.6)),
               filled: true,
               fillColor: palette.surfaceVariant,
               border: OutlineInputBorder(
@@ -207,7 +207,7 @@ class _FeatureGrid extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: palette.accent.withValues(alpha: 0.15),
+                  color: palette.accent.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(f.$1, color: palette.accent, size: 22),
