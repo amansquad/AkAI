@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'keyboard_service.dart';
 
-enum KeyboardMode { letters, numbers, symbols }
+enum KeyboardMode { letters, numbers, symbols, gif, emoji, stickers, ai, themes }
 
 class AkaiKeyboardController extends ChangeNotifier {
   final AkaiKeyboardService service;
@@ -29,6 +29,9 @@ class AkaiKeyboardController extends ChangeNotifier {
     _activeEditorHint = state.hintText ?? '';
     _imeAction = state.action;
     _inputType = state.inputType;
+    // Always reset to letters (or numbers) when a new input field is focused.
+    // This ensures the keyboard doesn't stay stuck in emoji/gif/sticker panels
+    // after returning from Settings or switching apps.
     if (state.isNumeric) {
       _mode = KeyboardMode.numbers;
     } else {
@@ -43,14 +46,18 @@ class AkaiKeyboardController extends ChangeNotifier {
   }
 
   void toggleShift() {
-    if (_shifted && !_capsLock) {
-      _shifted = false;
-    } else if (!_shifted) {
+    if (!_shifted && !_capsLock) {
       _shifted = true;
+      _isShiftOneShot = true;
+    } else if (_shifted && !_capsLock) {
+      _capsLock = true;
+      _isShiftOneShot = false;
     } else {
-      _capsLock = !_capsLock;
+      _shifted = false;
+      _capsLock = false;
+      _isShiftOneShot = false;
     }
-    _isShiftOneShot = _shifted && !_capsLock;
+    unawaited(service.playHaptic());
     notifyListeners();
   }
 
@@ -58,14 +65,17 @@ class AkaiKeyboardController extends ChangeNotifier {
     _mode = mode;
     if (mode != KeyboardMode.letters) {
       _shifted = false;
+      _capsLock = false;
+      _isShiftOneShot = false;
     }
+    unawaited(service.playHaptic());
     notifyListeners();
   }
 
   Future<void> pressChar(String char) async {
-    final text = _shifted ? char.toUpperCase() : char;
+    final text = (_capsLock || _shifted) ? char.toUpperCase() : char;
     await service.commitText(text);
-    HapticFeedback.selectionClick();
+    unawaited(service.playHaptic());
     if (_isShiftOneShot) {
       _shifted = false;
       _isShiftOneShot = false;
@@ -75,7 +85,7 @@ class AkaiKeyboardController extends ChangeNotifier {
 
   Future<void> backspace() async {
     await service.deleteText(1);
-    HapticFeedback.selectionClick();
+    unawaited(service.playHaptic());
     if (_isShiftOneShot) {
       _shifted = false;
       _isShiftOneShot = false;
@@ -85,11 +95,12 @@ class AkaiKeyboardController extends ChangeNotifier {
 
   Future<void> backspaceLongPress() async {
     await service.deleteWord();
-    HapticFeedback.mediumImpact();
+    unawaited(service.playHaptic());
   }
 
   Future<void> space() async {
     await service.commitText(' ');
+    unawaited(service.playHaptic());
     if (_isShiftOneShot) {
       _shifted = false;
       _isShiftOneShot = false;
@@ -99,6 +110,7 @@ class AkaiKeyboardController extends ChangeNotifier {
 
   Future<void> comma() async {
     await service.commitText(',');
+    unawaited(service.playHaptic());
     if (_isShiftOneShot) {
       _shifted = false;
       _isShiftOneShot = false;
@@ -108,6 +120,7 @@ class AkaiKeyboardController extends ChangeNotifier {
 
   Future<void> period() async {
     await service.commitText('.');
+    unawaited(service.playHaptic());
     if (_isShiftOneShot) {
       _shifted = false;
       _isShiftOneShot = false;
@@ -130,11 +143,15 @@ class AkaiKeyboardController extends ChangeNotifier {
     } else if (action == ImeAction.done || action == ImeAction.unknown) {
       await service.commitText('\n');
     }
-    HapticFeedback.lightImpact();
+    unawaited(service.playHaptic());
   }
 
   Future<void> switchKeyboard() async {
     await service.switchKeyboard();
+  }
+
+  Future<void> mic() async {
+    await service.performAction('mic');
   }
 
   Future<void> hide() async {
@@ -143,7 +160,7 @@ class AkaiKeyboardController extends ChangeNotifier {
 
   Future<void> commitSwipeWord(String word) async {
     await service.commitText(word);
-    HapticFeedback.selectionClick();
+    unawaited(service.playHaptic());
   }
 
   String get enterLabel {

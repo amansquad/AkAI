@@ -6,6 +6,7 @@ class AkaiKey extends StatefulWidget {
   final KeyDef def;
   final AkaiPalette palette;
   final bool shifted;
+  final bool isCapsLock;
   final bool isActionKey;
   final bool isAccent;
   final String enterLabel;
@@ -13,12 +14,14 @@ class AkaiKey extends StatefulWidget {
   final VoidCallback? onLongPressStart;
   final VoidCallback? onLongPressEnd;
   final VoidCallback? onSecondaryTap;
+  final double keyHeight;
 
   const AkaiKey({
     super.key,
     required this.def,
     required this.palette,
     required this.shifted,
+    required this.isCapsLock,
     required this.isActionKey,
     required this.isAccent,
     required this.enterLabel,
@@ -26,33 +29,32 @@ class AkaiKey extends StatefulWidget {
     this.onLongPressStart,
     this.onLongPressEnd,
     this.onSecondaryTap,
+    this.keyHeight = 52,
   });
 
   @override
   State<AkaiKey> createState() => _AkaiKeyState();
 }
 
-class _AkaiKeyState extends State<AkaiKey> with SingleTickerProviderStateMixin {
+class _AkaiKeyState extends State<AkaiKey>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scale;
-  late Animation<double> _glow;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 140),
-      reverseDuration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 100),
+      reverseDuration: const Duration(milliseconds: 180),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.92).animate(
+    _scale = Tween<double>(begin: 1.0, end: 0.93).animate(
       CurvedAnimation(
-          parent: _controller,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeOutBack),
-    );
-    _glow = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeOutBack,
+      ),
     );
   }
 
@@ -82,160 +84,213 @@ class _AkaiKeyState extends State<AkaiKey> with SingleTickerProviderStateMixin {
     final isAccent = widget.isAccent;
     final isSecondary = widget.isActionKey;
 
+    // Samsung-style: action keys get the secondary color treatment
     Color bg;
     Color textColor;
-    Color borderColor;
     if (isAccent) {
-      bg =
-          Color.lerp(palette.keyAccent, palette.keyAccentPressed, _glow.value)!;
+      bg = palette.keyAccent;
       textColor = Colors.white;
-      borderColor = palette.glow.withOpacity(0.4);
     } else if (isSecondary) {
-      bg = Color.lerp(
-          palette.keySecondary, palette.keySecondaryPressed, _glow.value)!;
+      bg = palette.keySecondary;
       textColor = palette.keySecondaryText;
-      borderColor = palette.surfaceVariant;
     } else {
-      bg = Color.lerp(palette.key, palette.keyPressed, _glow.value)!;
+      bg = palette.key;
       textColor = palette.keyText;
-      borderColor = palette.surfaceVariant;
     }
 
-    final showAsUpper = widget.shifted && isChar && widget.def.primary != null;
+    final showAsUpper = (widget.shifted || widget.isCapsLock) && isChar && widget.def.primary != null;
     final displayText = _getDisplayText();
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: _onTapDown,
+      onTapDown: (details) => _onTapDown(details),
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
       onLongPressStart: widget.onLongPressStart != null
-          ? (_) {
-              _controller.forward();
-              widget.onLongPressStart!();
+            ? (_) {
+                _controller.forward();
+                widget.onLongPressStart!();
+              }
+            : null,
+        onLongPressEnd: widget.onLongPressEnd != null
+            ? (_) {
+                _controller.reverse();
+                widget.onLongPressEnd!();
+              }
+            : null,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            // When pressed, interpolate to the pressed variant
+            final t = _scale.value;
+            final lerpFactor = (1.0 - t) /
+                0.07; // 0.07 = 1.0 - 0.93 (the scale range)
+
+            Color resolvedBg;
+            Color resolvedText;
+            if (isAccent) {
+              resolvedBg = Color.lerp(
+                  palette.keyAccent, palette.keyAccentPressed, lerpFactor)!;
+              resolvedText = Colors.white;
+            } else if (isSecondary) {
+              resolvedBg = Color.lerp(
+                  palette.keySecondary,
+                  palette.keySecondaryPressed,
+                  lerpFactor)!;
+              resolvedText = palette.keySecondaryText;
+            } else {
+              resolvedBg =
+                  Color.lerp(palette.key, palette.keyPressed, lerpFactor)!;
+              resolvedText = palette.keyText;
             }
-          : null,
-      onLongPressEnd: widget.onLongPressEnd != null
-          ? (_) {
-              _controller.reverse();
-              widget.onLongPressEnd!();
-            }
-          : null,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scale.value,
-            child: child,
-          );
-        },
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 3),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: borderColor, width: 0.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.18),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-              if (isAccent)
-                BoxShadow(
-                  color: palette.glow.withOpacity(0.45 * _glow.value),
-                  blurRadius: 18 * _glow.value,
-                  spreadRadius: 1 * _glow.value,
+
+            return Transform.scale(
+              scale: t,
+              child: Container(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 2.0, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: resolvedBg,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: palette.surfaceVariant.withOpacity(0.15),
+                    width: 0.35,
+                  ),
+                  // Samsung-style: subtle shadow and soft key depth
+                  boxShadow: palette.liveTheme == null
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.10),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1.8),
+                          ),
+                        ]
+                      : null,
                 ),
-            ],
-            gradient: isAccent
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color.lerp(palette.keyAccent, palette.keyAccentPressed,
-                          _glow.value)!,
-                      Color.lerp(
-                          palette.accentMuted, palette.keyAccent, _glow.value)!,
-                    ],
-                  )
-                : null,
-          ),
-          child: Center(
-            child: _buildKeyContent(textColor, showAsUpper, displayText),
-          ),
+                child: Stack(
+                  children: [
+                    // Main content (centered)
+                    Center(
+                      child: _buildKeyContent(
+                          resolvedText, showAsUpper, displayText),
+                    ),
+                    // Secondary character hint (top-right, Samsung-style)
+                    if (widget.def.secondary != null &&
+                        (widget.def.kind == KeyKind.char ||
+                            widget.def.kind == KeyKind.comma ||
+                            widget.def.kind == KeyKind.period))
+                      Positioned(
+                        top: 3,
+                        right: 6,
+                        child: Text(
+                          widget.def.secondary!,
+                          style: TextStyle(
+                            color: resolvedText.withOpacity(0.45),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    if (widget.def.kind == KeyKind.space)
+                      Positioned(
+                        top: 8,
+                        right: 12,
+                        child: Icon(
+                          Icons.mic_none_outlined,
+                          color: resolvedText.withOpacity(0.8),
+                          size: 16,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildKeyContent(Color textColor, bool upper, String text) {
     final palette = widget.palette;
     switch (widget.def.kind) {
       case KeyKind.shift:
+        // Samsung-style: show arrow for one-shot shift, caps-lock icon only when caps lock is active
+        final isCaps = widget.isCapsLock;
+        final highlight = widget.shifted || widget.isCapsLock;
         return Icon(
-          widget.shifted
-              ? Icons.keyboard_capslock_rounded
-              : Icons.keyboard_capslock_outlined,
-          color: widget.shifted ? palette.glow : textColor,
-          size: 22,
+          isCaps ? Icons.keyboard_capslock_rounded : Icons.keyboard_arrow_up_rounded,
+          color: highlight ? palette.glow : textColor,
+          size: 20,
         );
       case KeyKind.backspace:
         return Icon(
           Icons.backspace_outlined,
           color: textColor,
-          size: 22,
+          size: 20,
         );
       case KeyKind.enter:
+        final label = widget.enterLabel.toLowerCase();
+        if (label != 'return') {
+          return Text(
+            widget.enterLabel.toUpperCase(),
+            style: TextStyle(
+              color: textColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          );
+        }
+        return Icon(
+          Icons.keyboard_return_rounded,
+          color: textColor,
+          size: 20,
+        );
+      case KeyKind.globe:
+        return Icon(Icons.language_rounded, color: textColor, size: 20);
+      case KeyKind.mic:
+        return Icon(Icons.mic_none_rounded, color: textColor, size: 20);
+      case KeyKind.comma:
+      case KeyKind.period:
+        // Samsung-style: slightly smaller than letters, with secondary char shown via Stack
         return Text(
-          widget.enterLabel,
+          widget.def.primary ?? '',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 19,
+            fontWeight: FontWeight.w500,
+          ),
+        );
+      case KeyKind.space:
+        // Samsung shows nothing on space bar
+        return const SizedBox.shrink();
+      case KeyKind.symbols:
+        return Text(
+          widget.def.primary ?? widget.def.secondary ?? '!#1',
           style: TextStyle(
             color: textColor,
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.3,
+            letterSpacing: -0.1,
           ),
-        );
-      case KeyKind.globe:
-        return Icon(Icons.language_rounded, color: textColor, size: 22);
-      case KeyKind.mic:
-        return Icon(Icons.mic_none_rounded, color: textColor, size: 22);
-      case KeyKind.comma:
-      case KeyKind.period:
-        return Text(
-          widget.def.primary ?? '',
-          style: TextStyle(
-              color: textColor, fontSize: 22, fontWeight: FontWeight.w600),
-        );
-      case KeyKind.space:
-        return Text(
-          'space',
-          style: TextStyle(
-              color: textColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5),
-        );
-      case KeyKind.symbols:
-        return Text(
-          widget.def.secondary ?? '?123',
-          style: TextStyle(
-              color: textColor, fontSize: 14, fontWeight: FontWeight.w700),
         );
       case KeyKind.alphabet:
         return Text(
           'ABC',
           style: TextStyle(
-              color: textColor, fontSize: 14, fontWeight: FontWeight.w700),
+            color: textColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
         );
       case KeyKind.char:
+        // Samsung-style: center the primary character
         return Text(
           upper ? text.toUpperCase() : text,
           style: TextStyle(
             color: textColor,
-            fontSize: 23,
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.2,
+            fontSize: 19,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.12,
           ),
         );
     }

@@ -74,6 +74,18 @@ class SettingsScreen extends StatelessWidget {
             onChanged: settings.setShowClipboard,
           ),
           const SizedBox(height: 28),
+          _SectionLabel(palette: palette, label: 'Keyboard Size'),
+          const SizedBox(height: 12),
+          _KeyHeightSlider(palette: palette, settings: settings),
+          _SettingTile(
+            palette: palette,
+            icon: Icons.dialpad_rounded,
+            title: 'Number row',
+            subtitle: 'Always visible in text mode',
+            value: settings.showNumberRow,
+            onChanged: settings.setShowNumberRow,
+          ),
+          const SizedBox(height: 28),
           _SectionLabel(palette: palette, label: 'About'),
           const SizedBox(height: 12),
           _AboutCard(palette: palette),
@@ -370,3 +382,90 @@ class _AboutCard extends StatelessWidget {
     );
   }
 }
+
+class _KeyHeightSlider extends StatefulWidget {
+  final AkaiPalette palette;
+  final AkaiSettingsProvider settings;
+  const _KeyHeightSlider({required this.palette, required this.settings});
+
+  @override
+  State<_KeyHeightSlider> createState() => _KeyHeightSliderState();
+}
+
+class _KeyHeightSliderState extends State<_KeyHeightSlider> {
+  late double _tempHeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _tempHeight = widget.settings.keyHeight;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: widget.palette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: widget.palette.surfaceVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Key Height',
+                style: TextStyle(
+                  color: widget.palette.keyText,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${_tempHeight.toStringAsFixed(0)}pt',
+                style: TextStyle(
+                  color: widget.palette.accent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SliderTheme(
+            data: SliderThemeData(
+              trackHeight: 4,
+              thumbShape: RoundSliderThumbShape(
+                elevation: 4,
+                enabledThumbRadius: 10,
+              ),
+              activeTrackColor: widget.palette.accent,
+              inactiveTrackColor: widget.palette.surfaceVariant,
+              thumbColor: widget.palette.accent,
+              overlayColor: widget.palette.accent.withOpacity(0.2),
+            ),
+            child: Slider(
+              value: _tempHeight,
+              min: 40,
+              max: 70,
+              divisions: 30,
+              onChanged: (value) {
+                setState(() {
+                  _tempHeight = value;
+                });
+              },
+              onChangeEnd: (value) {
+                widget.settings.setKeyHeight(value);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

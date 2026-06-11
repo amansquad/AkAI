@@ -74,7 +74,7 @@ class _LiveThemePainter extends CustomPainter {
     if (theme == 'aurora') {
       _drawAurora(canvas, size, paint);
     } else if (theme == 'matrix') {
-      _drawMatrix(canvas, size, paint);
+      _drawMatrix(canvas, size);
     } else if (theme == 'ocean') {
       _drawOcean(canvas, size, paint);
     } else if (theme == 'fire') {
@@ -116,24 +116,141 @@ class _LiveThemePainter extends CustomPainter {
     }
   }
 
-  void _drawMatrix(Canvas canvas, Size size, Paint paint) {
+  void _drawMatrix(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    const charSize = 14.0;
-    final cols = (w / charSize).ceil();
 
-    final random = math.Random(42);
-    for (int i = 0; i < cols; i++) {
-      final speed = 1.0 + random.nextDouble() * 2.0;
-      double y = ((time * 100 * speed) + (i * 37)) % (h + 100);
+    // ── Step 1: Dark background with subtle radial green vignette ──
+    final bgPaint = Paint()
+      ..shader = RadialGradient(
+        center: Alignment.center,
+        radius: 1.0,
+        colors: const [
+          Color(0xFF001800),
+          Color(0xFF000500),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), bgPaint);
 
-      final alpha = (math.sin(time * 5 + i) + 1.0) / 2.0;
-      paint.color = palette.accent.withOpacity(0.1 * alpha);
+    // ── Step 2: Animated glowing dot grid overlay ──
+    final dotPaint = Paint()..style = PaintingStyle.fill;
+    const gridSpacing = 20.0;
+    const dotRadius = 1.2;
 
-      for (int j = 0; j < 5; j++) {
-        canvas.drawCircle(Offset(i * charSize, y - j * 15), 1.5, paint);
+    for (double x = gridSpacing / 2; x < w; x += gridSpacing) {
+      for (double y = gridSpacing / 2; y < h; y += gridSpacing) {
+        final pulseSeed =
+            (x * 0.1 + y * 0.13 + time * 80) % (math.pi * 2);
+        final pulse = 0.5 + 0.5 * math.sin(pulseSeed);
+        final opacity = (0.06 + 0.06 * pulse).clamp(0.0, 1.0);
+        dotPaint.color = Color.fromARGB(
+          (opacity * 255).round().clamp(0, 255),
+          0,
+          255,
+          50,
+        );
+        canvas.drawCircle(Offset(x, y), dotRadius, dotPaint);
       }
     }
+
+    // ── Step 3: Falling Ethiopic / Matrix characters ──
+    const charSize = 18.0;
+    final cols = (w / charSize).ceil();
+
+    const characters = [
+      'ሀ', 'ሁ', 'ሂ', 'ሃ', 'ሄ', 'ህ', 'ሆ',
+      'ለ', 'ሉ', 'ሊ', 'ላ', 'ሌ', 'ል', 'ሎ',
+      'ሐ', 'ሑ', 'ሒ', 'ሓ', 'ሔ', 'ሕ', 'ሖ',
+      'መ', 'ሙ', 'ሚ', 'ማ', 'ሜ', 'ም', 'ሞ',
+      'ረ', 'ሩ', 'ሪ', 'ራ', 'ሬ', 'ር', 'ሮ',
+      'ሰ', 'ሱ', 'ሲ', 'ሳ', 'ሴ', 'ስ', 'ሶ',
+      'ሸ', 'ሹ', 'ሺ', 'ሻ', 'ሼ', 'ሽ', 'ሾ',
+      'ቀ', 'ቁ', 'ቂ', 'ቃ', 'ቄ', 'ቅ', 'ቆ',
+      'በ', 'ቡ', 'ቢ', 'ባ', 'ቤ', 'ብ', 'ቦ',
+      'ተ', 'ቱ', 'ቲ', 'ታ', 'ቴ', 'ት', 'ቶ',
+      'ነ', 'ኑ', 'ኒ', 'ና', 'ኔ', 'ን', 'ኖ',
+      'አ', 'ኡ', 'ኢ', 'ኣ', 'ኤ', 'እ', 'ኦ',
+      'ከ', 'ኩ', 'ኪ', 'ካ', 'ኬ', 'ክ', 'ኮ',
+      'ወ', 'ዉ', 'ዊ', 'ዋ', 'ዌ', 'ው', 'ዎ',
+      'ዘ', 'ዙ', 'ዚ', 'ዛ', 'ዜ', 'ዝ', 'ዞ',
+      'የ', 'ዩ', 'ዪ', 'ያ', 'ዬ', 'ይ', 'ዮ',
+      'ደ', 'ዱ', 'ዲ', 'ዳ', 'ዴ', 'ድ', 'ዶ',
+      'ገ', 'ጉ', 'ጊ', 'ጋ', 'ጌ', 'ግ', 'ጎ',
+      'ፈ', 'ፉ', 'ፊ', 'ፋ', 'ፌ', 'ፍ', 'ፎ',
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    ];
+
+    const trailLength = 18;
+    const charFontSize = 14.0;
+    const headFontSize = 16.0;
+
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
+
+    for (int i = 0; i < cols; i++) {
+      final speed = 1.2 + ((i * 7 + 3) % 12) / 5.0;
+      final phaseOffset = ((i * 53) % 1000).toDouble();
+      final totalY = (time * 500 * speed + phaseOffset) %
+          (h + trailLength * charSize + 200);
+      final headY = totalY - (trailLength * charSize);
+
+      for (int j = 0; j < trailLength; j++) {
+        final charY = headY + (j * charSize);
+        if (charY < -charSize || charY > h + charSize) continue;
+
+        final isHead = j == 0;
+        Color charColor;
+        double opacity;
+
+        if (isHead) {
+          // White-hot leading character
+          opacity = 1.0;
+          charColor = const Color(0xFFCCFFCC);
+        } else {
+          final fade = 1.0 - (j / trailLength.toDouble());
+          opacity = (fade * fade * 0.9).clamp(0.0, 1.0);
+          final gLevel = (fade * 255).round().clamp(50, 255);
+          charColor = Color.fromARGB(
+            (opacity * 255).round().clamp(0, 255),
+            0,
+            gLevel,
+            (gLevel * 0.25).round(),
+          );
+        }
+
+        final charIndex =
+            (i * 3 + j + (time * 40).toInt()) % characters.length;
+
+        textPainter.text = TextSpan(
+          text: characters[charIndex],
+          style: TextStyle(
+            color: charColor.withOpacity(opacity),
+            fontSize: isHead ? headFontSize : charFontSize,
+            fontWeight:
+                isHead ? FontWeight.bold : FontWeight.w400,
+          ),
+        );
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(
+            i * charSize + (charSize - textPainter.width) / 2,
+            charY,
+          ),
+        );
+      }
+    }
+
+    // ── Step 4: Subtle top-glow green gradient overlay ──
+    final scanPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [
+          Color(0x1200FF41),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, w, h * 0.4));
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h * 0.4), scanPaint);
   }
 
   void _drawOcean(Canvas canvas, Size size, Paint paint) {
@@ -173,5 +290,6 @@ class _LiveThemePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _LiveThemePainter oldDelegate) => true;
+  bool shouldRepaint(covariant _LiveThemePainter oldDelegate) =>
+      oldDelegate.time != time || oldDelegate.theme != theme;
 }

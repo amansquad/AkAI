@@ -180,62 +180,251 @@ class _FeatureGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final features = [
-      (Icons.palette_rounded, 'Themes', '7 beautiful palettes'),
-      (Icons.vibration_rounded, 'Haptics', 'Feel every key'),
-      (Icons.swipe_rounded, 'Swipe', 'Glide through words'),
-      (Icons.auto_awesome_rounded, 'Akai AI', 'Coming soon'),
-    ];
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 2.0,
-      children: features.map((f) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: palette.surfaceVariant),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Features',
+            style: TextStyle(
+                color: palette.keyText,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5)),
+        const SizedBox(height: 12),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.0,
+          children: [
+            _FeatureCard(
+              palette: palette,
+              emoji: '🎨',
+              title: 'Live Themes',
+              description: '30+ stunning themes to choose from',
+              color: palette.accent,
+            ),
+            _FeatureCard(
+              palette: palette,
+              emoji: '😊',
+              title: 'Emojis',
+              description: 'Rich emoji picker & search',
+              color: const Color(0xFFFFD93D),
+            ),
+            _FeatureCard(
+              palette: palette,
+              emoji: '🎬',
+              title: 'GIFs',
+              description: 'Animated GIF integration',
+              color: const Color(0xFF6BCB77),
+            ),
+            _FeatureCard(
+              palette: palette,
+              emoji: '✨',
+              title: 'Stickers',
+              description: 'Fun sticker categories',
+              color: const Color(0xFF4D96FF),
+            ),
+            _FeatureCard(
+              palette: palette,
+              emoji: '🤖',
+              title: 'AI Tools',
+              description: 'English-Amharic translation',
+              color: const Color(0xFFFF6B6B),
+            ),
+            _FeatureCard(
+              palette: palette,
+              emoji: '⚙️',
+              title: 'Customization',
+              description: 'Adjust size, haptics, sounds',
+              color: const Color(0xFFA78BFA),
+            ),
+          ],
+        ),
+        const SizedBox(height: 28),
+        _KeyboardFeatures(palette: palette),
+      ],
+    );
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  final AkaiPalette palette;
+  final String emoji;
+  final String title;
+  final String description;
+  final Color color;
+
+  const _FeatureCard({
+    required this.palette,
+    required this.emoji,
+    required this.title,
+    required this.description,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: palette.surfaceVariant),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Row(
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 28)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: palette.accent.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
+              Text(
+                title,
+                style: TextStyle(
+                  color: palette.keyText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                 ),
-                child: Icon(f.$1, color: palette.accent, size: 22),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(f.$2,
-                        style: TextStyle(
-                            color: palette.keyText,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text(f.$3,
-                        style: TextStyle(
-                            color: palette.keySecondaryText, fontSize: 12),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                  ],
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: TextStyle(
+                  color: palette.keySecondaryText,
+                  fontSize: 11,
+                  height: 1.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KeyboardFeatures extends StatelessWidget {
+  final AkaiPalette palette;
+  const _KeyboardFeatures({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: palette.surfaceVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Samsung Keyboard',
+            style: TextStyle(
+              color: palette.keyText,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _FeatureRow(
+            palette: palette,
+            icon: Icons.dialpad_rounded,
+            title: 'Number Row',
+            description: 'Always visible for quick digit access',
+          ),
+          const SizedBox(height: 10),
+          _FeatureRow(
+            palette: palette,
+            icon: Icons.touch_app_rounded,
+            title: 'Long-Press',
+            description: 'Hold keys for alternate characters',
+          ),
+          const SizedBox(height: 10),
+          _FeatureRow(
+            palette: palette,
+            icon: Icons.swipe_rounded,
+            title: 'Smooth Transitions',
+            description: 'Fluid mode switching with animations',
+          ),
+          const SizedBox(height: 10),
+          _FeatureRow(
+            palette: palette,
+            icon: Icons.height_rounded,
+            title: 'Adjustable Size',
+            description: 'Customize keyboard height (40-70pt)',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeatureRow extends StatelessWidget {
+  final AkaiPalette palette;
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _FeatureRow({
+    required this.palette,
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: palette.accent.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: palette.accent, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: palette.keyText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: TextStyle(
+                  color: palette.keySecondaryText,
+                  fontSize: 11,
                 ),
               ),
             ],
           ),
-        );
-      }).toList(),
+        ),
+      ],
     );
   }
 }

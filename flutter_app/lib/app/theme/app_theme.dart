@@ -23,6 +23,7 @@ class AkaiPalette {
   final String name;
   final String emoji;
   final String? liveTheme;
+  final String category;
 
   const AkaiPalette({
     required this.background,
@@ -42,6 +43,7 @@ class AkaiPalette {
     required this.name,
     required this.emoji,
     this.liveTheme,
+    this.category = 'solid',
   });
 }
 
@@ -51,8 +53,9 @@ class AkaiThemes {
   // Core themes (built-in)
   static const akaiObsidian = AkaiPalette(
     name: 'Obsidian',
-    emoji: '🌌',
+    emoji: '⬛',
     liveTheme: 'aurora',
+    category: 'live',
     background: Color(0xFF141026),
     surface: Color(0xFF1F1A33),
     surfaceVariant: Color(0xFF2B2247),
@@ -89,9 +92,10 @@ class AkaiThemes {
   );
 
   static const akaiOcean = AkaiPalette(
-    name: 'Ocean',
+    name: 'Ocean Wave',
     emoji: '🌊',
     liveTheme: 'ocean',
+    category: 'live',
     background: Color(0xFF051428),
     surface: Color(0xFF0A1F3A),
     surfaceVariant: Color(0xFF102A4A),
@@ -147,9 +151,10 @@ class AkaiThemes {
   );
 
   static const akaiSunset = AkaiPalette(
-    name: 'Sunset',
-    emoji: '🌅',
+    name: 'Sunset Glow',
+    emoji: '🌇',
     liveTheme: 'fire',
+    category: 'live',
     background: Color(0xFF1A0E1A),
     surface: Color(0xFF251525),
     surfaceVariant: Color(0xFF2F1F2F),
@@ -164,6 +169,90 @@ class AkaiThemes {
     accent: Color(0xFFFF8E8E),
     accentMuted: Color(0xFFCC4A4A),
     glow: Color(0xFFFFB0B0),
+  );
+
+  static const akaiMatrix = AkaiPalette(
+    name: 'Matrix',
+    emoji: '🟩',
+    liveTheme: 'matrix',
+    category: 'live',
+    background: Color(0xFF000500),    // Near-black with green tint
+    surface: Color(0xFF001200),       // Very dark green surface
+    surfaceVariant: Color(0xFF001F00), // Dark green variant
+    key: Color(0xFF0A2800),           // Dark green key background
+    keyPressed: Color(0xFF1A4D00),    // Lighter green when pressed
+    keySecondary: Color(0xFF051500),  // Slightly darker for secondary keys
+    keySecondaryPressed: Color(0xFF0E2800), // Pressed secondary
+    keyAccent: Color(0xFF00FF41),     // Classic Matrix bright green accent
+    keyAccentPressed: Color(0xFF39FF14), // Neon green when pressed
+    keyText: Color(0xFF00FF41),       // Classic Matrix bright green text
+    keySecondaryText: Color(0xFF00C030), // Softer green for secondary text
+    accent: Color(0xFF00FF41),        // Vivid Matrix green
+    accentMuted: Color(0xFF00B028),   // Muted green
+    glow: Color(0xFF39FF14),          // Neon green glow
+  );
+
+  static const akaiAurora = AkaiPalette(
+    name: 'Aurora',
+    emoji: '🌌',
+    liveTheme: 'aurora',
+    category: 'live',
+    background: Color(0xFF020617),
+    surface: Color(0xFF0F172A),
+    surfaceVariant: Color(0xFF1E293B),
+    key: Color(0xFF334155),
+    keyPressed: Color(0xFF475569),
+    keySecondary: Color(0xFF1E293B),
+    keySecondaryPressed: Color(0xFF334155),
+    keyAccent: Color(0xFF22D3EE),
+    keyAccentPressed: Color(0xFF67E8F9),
+    keyText: Color(0xFFECFEFF),
+    keySecondaryText: Color(0xFFA5F3FC),
+    accent: Color(0xFF22D3EE),
+    accentMuted: Color(0xFF0891B2),
+    glow: Color(0xFF67E8F9),
+  );
+
+  static const akaiLava = AkaiPalette(
+    name: 'Lava',
+    emoji: '🌋',
+    liveTheme: 'fire',
+    category: 'live',
+    background: Color(0xFF7F1D1D),
+    surface: Color(0xFF991B1B),
+    surfaceVariant: Color(0xFFB91C1C),
+    key: Color(0xFFDC2626),
+    keyPressed: Color(0xFFEF4444),
+    keySecondary: Color(0xFFB91C1C),
+    keySecondaryPressed: Color(0xFFDC2626),
+    keyAccent: Color(0xFFFB923C),
+    keyAccentPressed: Color(0xFFFBBF24),
+    keyText: Color(0xFFFFF7ED),
+    keySecondaryText: Color(0xFFFED7AA),
+    accent: Color(0xFFFB923C),
+    accentMuted: Color(0xFFEA580C),
+    glow: Color(0xFFFBBF24),
+  );
+
+  static const akaiNeonPulse = AkaiPalette(
+    name: 'Neon Pulse',
+    emoji: '⚡',
+    liveTheme: 'aurora',
+    category: 'live',
+    background: Color(0xFF030712),
+    surface: Color(0xFF111827),
+    surfaceVariant: Color(0xFF1F2937),
+    key: Color(0xFF374151),
+    keyPressed: Color(0xFF4B5563),
+    keySecondary: Color(0xFF1F2937),
+    keySecondaryPressed: Color(0xFF374151),
+    keyAccent: Color(0xFFA78BFA),
+    keyAccentPressed: Color(0xFFC4B5FD),
+    keyText: Color(0xFFDDD6FE),
+    keySecondaryText: Color(0xFFA78BFA),
+    accent: Color(0xFFA78BFA),
+    accentMuted: Color(0xFF7C3AED),
+    glow: Color(0xFFC4B5FD),
   );
 
   static const akaiForest = AkaiPalette(
@@ -204,19 +293,228 @@ class AkaiThemes {
     glow: Color(0xFFFBB6D9),
   );
 
-  // 8 built-in themes (minimal size)
+  static const akaiRainbow = AkaiPalette(
+    name: 'Rainbow',
+    emoji: '🌈',
+    liveTheme: 'rainbow',
+    category: 'live',
+    background: Color(0xFF030712), // gray-950
+    surface: Color(0xFF111827), // gray-900/80 approximate
+    surfaceVariant: Color(0xFF1F2937),
+    key: Color(0xFF1F2937), // gray-800
+    keyPressed: Color(0xFF374151), // gray-700
+    keySecondary: Color(0xFF111827),
+    keySecondaryPressed: Color(0xFF1F2937),
+    keyAccent: Color(0xFFFFFFFF),
+    keyAccentPressed: Color(0xFFE5E7EB),
+    keyText: Color(0xFFF9FAFB),
+    keySecondaryText: Color(0xFFD1D5DB),
+    accent: Color(0xFFFFFFFF),
+    accentMuted: Color(0xFFD1D5DB),
+    glow: Color(0xFFFFFFFF),
+  );
+
+  static const akaiFire = AkaiPalette(
+    name: 'Fire',
+    emoji: '🔥',
+    liveTheme: 'fire',
+    category: 'live',
+    background: Color(0xFF450A0A), // red-950
+    surface: Color(0xFF7F1D1D),
+    surfaceVariant: Color(0xFF991B1B),
+    key: Color(0xFF991B1B),
+    keyPressed: Color(0xFFB45309), // yellow-700
+    keySecondary: Color(0xFFB91C1C),
+    keySecondaryPressed: Color(0xFF991B1B),
+    keyAccent: Color(0xFFFACC15), // yellow-400
+    keyAccentPressed: Color(0xFFFDE047),
+    keyText: Color(0xFFFEFCE8),
+    keySecondaryText: Color(0xFFFEF08A),
+    accent: Color(0xFFFACC15),
+    accentMuted: Color(0xFFEAB308),
+    glow: Color(0xFFFDE047),
+  );
+
+  static const akaiGalaxy = AkaiPalette(
+    name: 'Galaxy',
+    emoji: '🪐',
+    liveTheme: 'aurora',
+    category: 'live',
+    background: Color(0xFF3B0764), // purple-950
+    surface: Color(0xFF581C87),
+    surfaceVariant: Color(0xFF7E22CE),
+    key: Color(0xFF6B21A8),
+    keyPressed: Color(0xFF4338CA), // indigo-700
+    keySecondary: Color(0xFF7E22CE),
+    keySecondaryPressed: Color(0xFF6B21A8),
+    keyAccent: Color(0xFF818CF8), // indigo-400
+    keyAccentPressed: Color(0xFFA5B4FC),
+    keyText: Color(0xFFF3E8FF),
+    keySecondaryText: Color(0xFFE0E7FF),
+    accent: Color(0xFF818CF8),
+    accentMuted: Color(0xFF6366F1),
+    glow: Color(0xFFA5B4FC),
+  );
+
+  static const akaiWaterfall = AkaiPalette(
+    name: 'Waterfall',
+    emoji: '💧',
+    liveTheme: 'ocean',
+    category: 'live',
+    background: Color(0xFF042F2E), // teal-950
+    surface: Color(0xFF134E4A),
+    surfaceVariant: Color(0xFF115E59),
+    key: Color(0xFF115E59),
+    keyPressed: Color(0xFF0891B2), // cyan-600
+    keySecondary: Color(0xFF0F766E),
+    keySecondaryPressed: Color(0xFF115E59),
+    keyAccent: Color(0xFF67E8F9), // cyan-300
+    keyAccentPressed: Color(0xFF22D3EE),
+    keyText: Color(0xFFF0FDFA),
+    keySecondaryText: Color(0xFFCFFAFE),
+    accent: Color(0xFF67E8F9),
+    accentMuted: Color(0xFF06B6D4),
+    glow: Color(0xFF22D3EE),
+  );
+
+  static const akaiAutumn = AkaiPalette(
+    name: 'Autumn',
+    emoji: '🍂',
+    liveTheme: 'fire',
+    category: 'live',
+    background: Color(0xFF431407), // orange-950
+    surface: Color(0xFF7C2D12),
+    surfaceVariant: Color(0xFF9A3412),
+    key: Color(0xFF9A3412),
+    keyPressed: Color(0xFFD97706), // amber-600
+    keySecondary: Color(0xFFC2410C),
+    keySecondaryPressed: Color(0xFF9A3412),
+    keyAccent: Color(0xFFFBBF24), // amber-400
+    keyAccentPressed: Color(0xFFFCD34D),
+    keyText: Color(0xFFFFF7ED),
+    keySecondaryText: Color(0xFFFEF3C7),
+    accent: Color(0xFFFBBF24),
+    accentMuted: Color(0xFFF59E0B),
+    glow: Color(0xFFFCD34D),
+  );
+
+  static const akaiCyberpunk = AkaiPalette(
+    name: 'Cyberpunk',
+    emoji: '🤖',
+    liveTheme: 'matrix',
+    category: 'live',
+    background: Color(0xFF030712), // gray-950
+    surface: Color(0xFF111827),
+    surfaceVariant: Color(0xFF1F2937),
+    key: Color(0xFF1F2937), // gray-800
+    keyPressed: Color(0xFFBE185D), // pink-700
+    keySecondary: Color(0xFF374151),
+    keySecondaryPressed: Color(0xFF1F2937),
+    keyAccent: Color(0xFFF472B6), // pink-400
+    keyAccentPressed: Color(0xFFF9A8D4),
+    keyText: Color(0xFFCCFBF1), // cyan-100
+    keySecondaryText: Color(0xFFFBCFE8),
+    accent: Color(0xFFF472B6),
+    accentMuted: Color(0xFFEC4899),
+    glow: Color(0xFFF9A8D4),
+  );
+
+  static const akaiSnowfall = AkaiPalette(
+    name: 'Snowfall',
+    emoji: '❄️',
+    liveTheme: 'aurora',
+    category: 'live',
+    background: Color(0xFF020617), // slate-950
+    surface: Color(0xFF0F172A),
+    surfaceVariant: Color(0xFF1E293B),
+    key: Color(0xFF1E293B), // slate-800
+    keyPressed: Color(0xFF2563EB), // blue-600
+    keySecondary: Color(0xFF334155), // slate-700
+    keySecondaryPressed: Color(0xFF1E293B),
+    keyAccent: Color(0xFF93C5FD), // blue-300
+    keyAccentPressed: Color(0xFFBFDBFE),
+    keyText: Color(0xFFF0F9FF),
+    keySecondaryText: Color(0xFFDBEAFE),
+    accent: Color(0xFF93C5FD),
+    accentMuted: Color(0xFF3B82F6),
+    glow: Color(0xFFBFDBFE),
+  );
+
+  static const akaiBubbles = AkaiPalette(
+    name: 'Bubbles',
+    emoji: '🫧',
+    liveTheme: 'ocean',
+    category: 'live',
+    background: Color(0xFF042F2E), // teal-950
+    surface: Color(0xFF134E4A),
+    surfaceVariant: Color(0xFF115E59),
+    key: Color(0xFF115E59), // teal-800
+    keyPressed: Color(0xFF06B6D4), // cyan-500
+    keySecondary: Color(0xFF0F766E),
+    keySecondaryPressed: Color(0xFF115E59),
+    keyAccent: Color(0xFF67E8F9), // cyan-300
+    keyAccentPressed: Color(0xFF22D3EE),
+    keyText: Color(0xFFF0FDFA),
+    keySecondaryText: Color(0xFFCFFAFE),
+    accent: Color(0xFF67E8F9),
+    accentMuted: Color(0xFF0891B2),
+    glow: Color(0xFF22D3EE),
+  );
+
+  static const akaiPlasma = AkaiPalette(
+    name: 'Plasma',
+    emoji: '🧪',
+    liveTheme: 'fire',
+    category: 'live',
+    background: Color(0xFF4A044E), // fuchsia-950
+    surface: Color(0xFF701A75),
+    surfaceVariant: Color(0xFF86198F),
+    key: Color(0xFF86198F), // fuchsia-800
+    keyPressed: Color(0xFFEC4899), // pink-500
+    keySecondary: Color(0xFFA21CAF),
+    keySecondaryPressed: Color(0xFF86198F),
+    keyAccent: Color(0xFFF472B6), // pink-400
+    keyAccentPressed: Color(0xFFF9A8D4),
+    keyText: Color(0xFFFDF2F8),
+    keySecondaryText: Color(0xFFFBCFE8),
+    accent: Color(0xFFF472B6),
+    accentMuted: Color(0xFFDB2777),
+    glow: Color(0xFFF9A8D4),
+  );
+
+  static const akaiDeepSea = AkaiPalette(
+    name: 'Deep Sea',
+    emoji: '🦑',
+    liveTheme: 'ocean',
+    category: 'live',
+    background: Color(0xFF1E1B4B), // indigo-950
+    surface: Color(0xFF312E81),
+    surfaceVariant: Color(0xFF3730A3),
+    key: Color(0xFF3730A3), // indigo-800
+    keyPressed: Color(0xFF14B8A6), // teal-500
+    keySecondary: Color(0xFF4338CA),
+    keySecondaryPressed: Color(0xFF3730A3),
+    keyAccent: Color(0xFF5EEAD4), // teal-300
+    keyAccentPressed: Color(0xFF99F6E4),
+    keyText: Color(0xFFF0FDFA),
+    keySecondaryText: Color(0xFFCCFBF1),
+    accent: Color(0xFF5EEAD4),
+    accentMuted: Color(0xFF0D9488),
+    glow: Color(0xFF99F6E4),
+  );
+
+  // 12 built-in themes with live animations
   // 20+ more themes available for download from Theme Marketplace
   static const all = [
     ...FaithPalettes.all,
     akaiObsidian,
-
     akaiLight,
-    akaiOcean,
     akaiMint,
-    akaiCandy,
-    akaiSunset,
-    akaiForest,
-    akaiRose,
+    akaiAurora,
+    akaiMatrix,
+    akaiOcean,
+    akaiLava,
+    akaiNeonPulse,
   ];
 }
 
