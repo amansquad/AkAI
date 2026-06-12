@@ -1135,6 +1135,22 @@ export const THEMES: Record<string, ThemeDef> = {
     border: 'border-slate-300', tabBar: 'bg-[#0b1432]', tabActive: 'bg-white', tabActiveText: 'text-[#132257]',
     suggestion: 'bg-slate-100',
   },
+  fb_monaco: {
+    name: 'AS Monaco', flag: '🇲🇨', category: 'football', isLive: true,
+    bg: 'bg-red-600', card: 'bg-red-700', key: 'bg-white', keyHover: 'hover:bg-red-100',
+    keyActive: 'bg-red-800 text-white', keyText: 'text-red-900',
+    specialKey: 'bg-red-900 text-white', accent: 'bg-white', accentText: 'text-red-900',
+    border: 'border-white/20', tabBar: 'bg-red-950', tabActive: 'bg-white', tabActiveText: 'text-red-900',
+    suggestion: 'bg-red-100',
+  },
+  fb_leipzig: {
+    name: 'RB Leipzig', flag: '🐂', category: 'football', isLive: true,
+    bg: 'bg-white', card: 'bg-slate-50', key: 'bg-red-600', keyHover: 'hover:bg-red-500',
+    keyActive: 'bg-blue-900 text-white', keyText: 'text-white',
+    specialKey: 'bg-blue-950 text-white', accent: 'bg-red-600', accentText: 'text-white',
+    border: 'border-slate-200', tabBar: 'bg-blue-950', tabActive: 'bg-red-600', tabActiveText: 'text-white',
+    suggestion: 'bg-slate-100',
+  },
 };
 
 export const LONG_PRESS_ALTERNATES: Record<string, string[]> = {

@@ -147,6 +147,15 @@ class _AkaiKeyboardState extends State<AkaiKeyboard>
                   ),
                 )
               else ...[
+                // Amharic Vowel Row
+                if (ctrl.isAmharic && ctrl.activeAmharicBase != null) ...[
+                  _VowelRow(
+                    palette: palette,
+                    controller: ctrl,
+                    keyHeight: settings.keyHeight,
+                  ),
+                  const SizedBox(height: 5),
+                ],
                 // Samsung-style: number row always visible in all text modes
                 if ((ctrl.mode == KeyboardMode.letters ||
                         ctrl.mode == KeyboardMode.numbers ||
@@ -202,6 +211,66 @@ class _NumberRow extends StatelessWidget {
   }
 }
 
+class _VowelRow extends StatelessWidget {
+  final AkaiPalette palette;
+  final AkaiKeyboardController controller;
+  final double keyHeight;
+  const _VowelRow({
+    required this.palette,
+    required this.controller,
+    this.keyHeight = 52,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final baseChar = controller.activeAmharicBase;
+    if (baseChar == null) return const SizedBox();
+    
+    final vowels = KeyboardLayout.amharicVowels[baseChar] ?? [];
+    if (vowels.isEmpty) return const SizedBox();
+
+    return SizedBox(
+      height: keyHeight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (final v in vowels)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: GestureDetector(
+                  onTap: () => controller.commitVowel(v),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: palette.accent,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      v,
+                      style: TextStyle(
+                        fontSize: 22,
+                        color: palette.background,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _KeyboardRows extends StatelessWidget {
   final AkaiPalette palette;
   final AkaiKeyboardController controller;
@@ -215,6 +284,9 @@ class _KeyboardRows extends StatelessWidget {
   List<List<KeyDef>> _getRows() {
     switch (controller.mode) {
       case KeyboardMode.letters:
+        if (controller.isAmharic) {
+          return KeyboardLayout.amharicLetters;
+        }
         return controller.shifted
             ? KeyboardLayout.lettersShifted
             : KeyboardLayout.letters;
@@ -824,7 +896,7 @@ class _KeySlot extends StatelessWidget {
         break;
     }
 
-    return AkaiKey(
+    Widget keyWidget = AkaiKey(
       def: def,
       palette: palette,
       shifted: controller.shifted,
@@ -837,5 +909,19 @@ class _KeySlot extends StatelessWidget {
       onLongPressEnd: onLongEnd,
       keyHeight: keyHeight,
     );
+
+    if (def.kind == KeyKind.space) {
+      return GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity != null && details.primaryVelocity!.abs() > 300) {
+            controller.toggleLanguage();
+          }
+        },
+        child: keyWidget,
+      );
+    }
+
+    return keyWidget;
   }
 }

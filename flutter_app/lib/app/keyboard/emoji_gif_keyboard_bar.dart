@@ -229,10 +229,10 @@ class _GBoardToolbar extends StatelessWidget {
               children: [
                 _ToolbarIconButton(
                   palette: palette,
-                  icon: Icons.emoji_emotions_outlined,
-                  label: 'Emoji',
-                  active: controller.mode == KeyboardMode.emoji,
-                  onTap: onEmojiToggle ?? () {},
+                  icon: Icons.sticky_note_2_outlined,
+                  label: 'Stickers',
+                  active: controller.mode == KeyboardMode.stickers,
+                  onTap: onStickerToggle ?? () {},
                 ),
                 _ToolbarIconButton(
                   palette: palette,
@@ -243,17 +243,31 @@ class _GBoardToolbar extends StatelessWidget {
                 ),
                 _ToolbarIconButton(
                   palette: palette,
-                  icon: Icons.sticky_note_2_outlined,
-                  label: 'Stickers',
-                  active: controller.mode == KeyboardMode.stickers,
-                  onTap: onStickerToggle ?? () {},
+                  icon: Icons.content_paste,
+                  label: 'Clip',
+                  active: false,
+                  onTap: () {}, // Clipboard functionality not implemented
                 ),
                 _ToolbarIconButton(
                   palette: palette,
-                  icon: Icons.translate_outlined,
-                  label: 'Translate',
+                  icon: Icons.auto_awesome,
+                  label: 'AI',
                   active: controller.mode == KeyboardMode.ai,
                   onTap: onAiToggle ?? () {},
+                ),
+                _ToolbarIconButton(
+                  palette: palette,
+                  icon: Icons.gesture,
+                  label: 'Draw',
+                  active: false,
+                  onTap: () {}, // Draw functionality not implemented
+                ),
+                _ToolbarIconButton(
+                  palette: palette,
+                  icon: Icons.settings,
+                  label: 'Set',
+                  active: false,
+                  onTap: () => onOpenSettings?.call(),
                 ),
                 _ToolbarIconButton(
                   palette: palette,
@@ -261,13 +275,6 @@ class _GBoardToolbar extends StatelessWidget {
                   label: 'Themes',
                   active: controller.mode == KeyboardMode.themes,
                   onTap: onThemeToggle ?? () {},
-                ),
-                _ToolbarIconButton(
-                  palette: palette,
-                  icon: Icons.settings_rounded,
-                  label: 'Settings',
-                  active: false,
-                  onTap: () => onOpenSettings?.call(),
                 ),
               ],
             ),
@@ -312,13 +319,17 @@ class _ToolbarIconButton extends StatelessWidget {
               height: 34,
               decoration: BoxDecoration(
                 color: active
-                    ? palette.accent.withOpacity(0.18)
-                    : palette.surface.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
+                    ? palette.accent
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: active ? palette.accent : palette.keySecondaryText.withOpacity(0.3),
+                  width: 1,
+                ),
               ),
               child: Icon(icon,
                   size: 20,
-                  color: active ? palette.accent : palette.keySecondaryText),
+                  color: active ? Colors.black : palette.keyText),
             ),
             if (label.isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -329,15 +340,17 @@ class _ToolbarIconButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   color: active ? palette.accent : palette.keySecondaryText,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
             ],
           ],
         ),
-      ),    );
+      ),
+    );
   }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Circular right-side action icon (with translucent ring background)

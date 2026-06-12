@@ -11,7 +11,6 @@ enum KeyKind {
   period,
   mic
 }
-
 class KeyDef {
   final KeyKind kind;
   final String? primary;
@@ -227,4 +226,100 @@ class KeyboardLayout {
       KeyDef(kind: KeyKind.enter, flex: 2.0),
     ],
   ];
+
+  static const amharicLetters = [
+    [
+      KeyDef(kind: KeyKind.char, primary: 'ሀ'),
+      KeyDef(kind: KeyKind.char, primary: 'ለ'),
+      KeyDef(kind: KeyKind.char, primary: 'ሐ'),
+      KeyDef(kind: KeyKind.char, primary: 'መ'),
+      KeyDef(kind: KeyKind.char, primary: 'ሠ'),
+      KeyDef(kind: KeyKind.char, primary: 'ረ'),
+      KeyDef(kind: KeyKind.char, primary: 'ሰ'),
+      KeyDef(kind: KeyKind.char, primary: 'ሸ'),
+      KeyDef(kind: KeyKind.char, primary: 'ቀ'),
+      KeyDef(kind: KeyKind.char, primary: 'በ'),
+    ],
+    [
+      KeyDef(kind: KeyKind.char, primary: 'ተ'),
+      KeyDef(kind: KeyKind.char, primary: 'ቸ'),
+      KeyDef(kind: KeyKind.char, primary: 'ኀ'),
+      KeyDef(kind: KeyKind.char, primary: 'ነ'),
+      KeyDef(kind: KeyKind.char, primary: 'ኘ'),
+      KeyDef(kind: KeyKind.char, primary: 'አ'),
+      KeyDef(kind: KeyKind.char, primary: 'ዐ'),
+      KeyDef(kind: KeyKind.char, primary: 'ከ'),
+      KeyDef(kind: KeyKind.char, primary: 'ኸ'),
+      KeyDef(kind: KeyKind.char, primary: 'ወ'),
+    ],
+    [
+      KeyDef(kind: KeyKind.char, primary: 'ዘ'),
+      KeyDef(kind: KeyKind.char, primary: 'ዠ'),
+      KeyDef(kind: KeyKind.char, primary: 'የ'),
+      KeyDef(kind: KeyKind.char, primary: 'ደ'),
+      KeyDef(kind: KeyKind.char, primary: 'ጀ'),
+      KeyDef(kind: KeyKind.char, primary: 'ገ'),
+      KeyDef(kind: KeyKind.char, primary: 'ጘ'),
+      KeyDef(kind: KeyKind.char, primary: 'ጠ'),
+      KeyDef(kind: KeyKind.char, primary: 'ጨ'),
+      KeyDef(kind: KeyKind.char, primary: 'ጰ'),
+    ],
+    [
+      KeyDef(kind: KeyKind.shift, flex: 1.3),
+      KeyDef(kind: KeyKind.char, primary: 'ፀ'),
+      KeyDef(kind: KeyKind.char, primary: 'ፈ'),
+      KeyDef(kind: KeyKind.char, primary: 'ፐ'),
+      KeyDef(kind: KeyKind.char, primary: 'ቨ'),
+      KeyDef(kind: KeyKind.char, primary: 'ሟ'),
+      KeyDef(kind: KeyKind.char, primary: 'ኟ'),
+      KeyDef(kind: KeyKind.char, primary: 'ዟ'),
+      KeyDef(kind: KeyKind.char, primary: 'ጟ'),
+      KeyDef(kind: KeyKind.char, primary: '፟'),
+      KeyDef(kind: KeyKind.backspace, flex: 1.3),
+    ],
+    [
+      KeyDef(kind: KeyKind.symbols, primary: '?123', flex: 1.2),
+      KeyDef(kind: KeyKind.comma, primary: ',', secondary: '\''),
+      KeyDef(kind: KeyKind.space, primary: 'en / አማ', flex: 7.2),
+      KeyDef(kind: KeyKind.period, primary: '.', secondary: '?', flex: 1.2),
+      KeyDef(kind: KeyKind.enter, flex: 2.0),
+    ],
+  ];
+
+  static const Map<String, List<String>> amharicVowels = {
+    'ሀ': ['ሀ', 'ሁ', 'ሂ', 'ሃ', 'ሄ', 'ህ', 'ሆ'],
+    'ለ': ['ለ', 'ሉ', 'ሊ', 'ላ', 'ሌ', 'ል', 'ሎ', 'ሏ'],
+    'ሐ': ['ሐ', 'ሑ', 'ሒ', 'ሓ', 'ሔ', 'ሕ', 'ሖ', 'ሗ'],
+    'መ': ['መ', 'ሙ', 'ሚ', 'ማ', 'ሜ', 'ም', 'ሞ', 'ሟ'],
+    'ሠ': ['ሠ', 'ሡ', 'ሢ', 'ሣ', 'ሤ', 'ሥ', 'ሦ', 'ሧ'],
+    'ረ': ['ረ', 'ሩ', 'ሪ', 'ራ', 'ሬ', 'ር', 'ሮ', 'ሯ'],
+    'ሰ': ['ሰ', 'ሱ', 'ሲ', 'ሳ', 'ሴ', 'ስ', 'ሶ', 'ሷ'],
+    'ሸ': ['ሸ', 'ሹ', 'ሺ', 'ሻ', 'ሼ', 'ሽ', 'ሾ', 'ሿ'],
+    'ቀ': ['ቀ', 'ቁ', 'ቂ', 'ቃ', 'ቄ', 'ቅ', 'ቆ', 'ቋ'],
+    'በ': ['በ', 'ቡ', 'ቢ', 'ባ', 'ቤ', 'ብ', 'ቦ', 'ቧ'],
+    'ተ': ['ተ', 'ቱ', 'ቲ', 'ታ', 'ቴ', 'ት', 'ቶ', 'ቷ'],
+    'ቸ': ['ቸ', 'ቹ', 'ቺ', 'ቻ', 'ቼ', 'ች', 'ቾ', 'ቿ'],
+    'ኀ': ['ኀ', 'ኁ', 'ኂ', 'ኃ', 'ኄ', 'ኅ', 'ኆ', 'ኋ'],
+    'ነ': ['ነ', 'ኑ', 'ኒ', 'ና', 'ኔ', 'ን', 'ኖ', 'ኗ'],
+    'ኘ': ['ኘ', 'ኙ', 'ኚ', 'ኛ', 'ኜ', 'ኝ', 'ኞ', 'ኟ'],
+    'አ': ['አ', 'ኡ', 'ኢ', 'ኣ', 'ኤ', 'እ', 'ኦ'],
+    'ዐ': ['ዐ', 'ዑ', 'ዒ', 'ዓ', 'ዔ', 'ዕ', 'ዖ'],
+    'ከ': ['ከ', 'ኩ', 'ኪ', 'ካ', 'ኬ', 'ክ', 'ኮ', 'ኳ'],
+    'ኸ': ['ኸ', 'ኹ', 'ኺ', 'ኻ', 'ኼ', 'ኽ', 'ኾ'],
+    'ወ': ['ወ', 'ዉ', 'ዊ', 'ዋ', 'ዌ', 'ው', 'ዎ', 'ዏ'],
+    'ዘ': ['ዘ', 'ዙ', 'ዚ', 'ዛ', 'ዜ', 'ዝ', 'ዞ', 'ዟ'],
+    'ዠ': ['ዠ', 'ዡ', 'ዢ', 'ዣ', 'ዤ', 'ዥ', 'ዦ', 'ዧ'],
+    'የ': ['የ', 'ዩ', 'ዪ', 'ያ', 'ዬ', 'ይ', 'ዮ'],
+    'ደ': ['ደ', 'ዱ', 'ዲ', 'ዳ', 'ዴ', 'ድ', 'ዶ', 'ዷ'],
+    'ጀ': ['ጀ', 'ጁ', 'ጂ', 'ጃ', 'ጄ', 'ጅ', 'ጆ', 'ጇ'],
+    'ገ': ['ገ', 'ጉ', 'ጊ', 'ጋ', 'ጌ', 'ግ', 'ጎ', 'ጓ'],
+    'ጘ': ['ጘ', 'ጙ', 'ጚ', 'ጛ', 'ጜ', 'ጝ', 'ጞ'],
+    'ጠ': ['ጠ', 'ጡ', 'ጢ', 'ጣ', 'ጤ', 'ጥ', 'ጦ', 'ጧ'],
+    'ጨ': ['ጨ', 'ጩ', 'ጪ', 'ጫ', 'ጬ', 'ጭ', 'ጮ', 'ጯ'],
+    'ጰ': ['ጰ', 'ጱ', 'ጲ', 'ጳ', 'ጴ', 'ጵ', 'ጶ', 'ጷ'],
+    'ፀ': ['ፀ', 'ፁ', 'ፂ', 'ፃ', 'ፄ', 'ፅ', 'ፆ'],
+    'ፈ': ['ፈ', 'ፉ', 'ፊ', 'ፋ', 'ፌ', 'ፍ', 'ፎ', 'ፏ'],
+    'ፐ': ['ፐ', 'ፑ', 'ፒ', 'ፓ', 'ፔ', 'ፕ', 'ፖ', 'ፗ'],
+    'ቨ': ['ቨ', 'ቩ', 'ቪ', 'ቫ', 'ቬ', 'ቭ', 'ቮ'],
+  };
 }

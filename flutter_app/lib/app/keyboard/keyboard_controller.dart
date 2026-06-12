@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'keyboard_service.dart';
+import 'keyboard_layout.dart';
 
 enum KeyboardMode { letters, numbers, symbols, gif, emoji, stickers, ai, themes }
 
@@ -10,6 +11,8 @@ class AkaiKeyboardController extends ChangeNotifier {
   bool _shifted = false;
   bool _capsLock = false;
   bool _isShiftOneShot = true;
+  bool _isAmharic = true; // default to Amharic as per Next.js
+  String? _activeAmharicBase;
   String _activeEditorHint = '';
   ImeAction _imeAction = ImeAction.unknown;
   int _inputType = 0;
@@ -21,6 +24,8 @@ class AkaiKeyboardController extends ChangeNotifier {
   KeyboardMode get mode => _mode;
   bool get shifted => _shifted;
   bool get capsLock => _capsLock;
+  bool get isAmharic => _isAmharic;
+  String? get activeAmharicBase => _activeAmharicBase;
   String get activeEditorHint => _activeEditorHint;
   ImeAction get imeAction => _imeAction;
   int get inputType => _inputType;
@@ -42,6 +47,17 @@ class AkaiKeyboardController extends ChangeNotifier {
 
   void setShifted(bool value) {
     _shifted = value;
+    notifyListeners();
+  }
+
+  void toggleLanguage() {
+    _isAmharic = !_isAmharic;
+    _activeAmharicBase = null;
+    notifyListeners();
+  }
+
+  void setActiveAmharicBase(String? base) {
+    _activeAmharicBase = base;
     notifyListeners();
   }
 
@@ -72,7 +88,32 @@ class AkaiKeyboardController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> commitVowel(String vowel) async {
+    await service.commitText(vowel);
+    _activeAmharicBase = null;
+    unawaited(service.playHaptic());
+    if (_isShiftOneShot) {
+      _shifted = false;
+      _isShiftOneShot = false;
+    }
+    notifyListeners();
+  }
+
   Future<void> pressChar(String char) async {
+    if (_isAmharic && KeyboardLayout.amharicVowels.containsKey(char)) {
+      if (_activeAmharicBase == char) {
+        // Tapping the same base character again commits it
+        await commitVowel(char);
+      } else {
+        _activeAmharicBase = char;
+        unawaited(service.playHaptic());
+        notifyListeners();
+      }
+      return; 
+    }
+
+    _activeAmharicBase = null;
+
     final text = (_capsLock || _shifted) ? char.toUpperCase() : char;
     await service.commitText(text);
     unawaited(service.playHaptic());
@@ -99,6 +140,7 @@ class AkaiKeyboardController extends ChangeNotifier {
   }
 
   Future<void> space() async {
+    _activeAmharicBase = null;
     await service.commitText(' ');
     unawaited(service.playHaptic());
     if (_isShiftOneShot) {

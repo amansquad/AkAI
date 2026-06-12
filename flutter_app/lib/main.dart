@@ -22,7 +22,17 @@ void main() async {
 }
 
 @pragma('vm:entry-point')
-void keyboardMain() {
+void keyboardMain() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase for the keyboard process
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase keyboard init error: $e');
+  }
+  
   runApp(const AkaiKeyboardHost());
 }

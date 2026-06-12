@@ -4808,6 +4808,14 @@ function drawFbACMilan(ctx: CanvasRenderingContext2D, w: number, h: number, time
   drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/ac-milan-footballlogos-org.png', '#7f1d1d', 'rgba(255,255,255,1)', 'AC Milan');
 }
 
+function drawFbMonaco(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/as-monaco-footballlogos-org.png', '#7f1d1d', 'rgba(255, 255, 255, 1)', 'AS Monaco');
+}
+
+function drawFbLeipzig(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/European/rb-leipzig-footballlogos-org.png', '#1e3a8a', 'rgba(220, 38, 38, 1)', 'RB Leipzig');
+}
+
 // ─── Religious & Cultural Themes ────────────────────────────────────────────
 
 const imgCache: Record<string, HTMLImageElement> = {};
@@ -4985,6 +4993,7 @@ const THEME_ANIMATIONS: Record<string, AnimationFn> = {
   fb_chelsea: drawFbChelsea, fb_liverpool: drawFbLiverpool, fb_psg: drawFbPSG,
   fb_bayern: drawFbBayern, fb_dortmund: drawFbDortmund, fb_juventus: drawFbJuventus, 
   fb_inter: drawFbInter, fb_milan: drawFbACMilan, fb_spurs: drawFbSpurs,
+  fb_monaco: drawFbMonaco, fb_leipzig: drawFbLeipzig,
   // Animation specific aliases
   fb_stgeorge_live: drawFbStGeorge, fb_coffee_live: drawFbCoffee,
   fb_negele_arsi_live: drawFbNegeleArsi,

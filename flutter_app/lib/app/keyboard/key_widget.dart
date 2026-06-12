@@ -261,8 +261,14 @@ class _AkaiKeyState extends State<AkaiKey>
           ),
         );
       case KeyKind.space:
-        // Samsung shows nothing on space bar
-        return const SizedBox.shrink();
+        return Text(
+          widget.def.primary ?? '',
+          style: TextStyle(
+            color: textColor.withOpacity(0.4),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        );
       case KeyKind.symbols:
         return Text(
           widget.def.primary ?? widget.def.secondary ?? '!#1',
