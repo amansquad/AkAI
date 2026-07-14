@@ -238,6 +238,11 @@ class AkaiImeService : InputMethodService() {
                 switchToNextInputMethod(false)
                 result.success(null)
             }
+            "updateHeight" -> {
+                val heightPx = call.argument<Int>("heightPx") ?: 0
+                if (heightPx > 0) updateKeyboardHeight(heightPx)
+                result.success(null)
+            }
             "playHaptic" -> {
                 flutterView?.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                 result.success(null)
@@ -268,6 +273,21 @@ class AkaiImeService : InputMethodService() {
             }
             else -> result.notImplemented()
         }
+    }
+
+    /**
+     * Resize the IME window to exactly match the Flutter keyboard content so
+     * the (live theme) background never extends beyond the keyboard itself.
+     */
+    private fun updateKeyboardHeight(heightPx: Int) {
+        val view = flutterView ?: return
+        val root = view.parent as? FrameLayout ?: return
+        val rootParams = root.layoutParams ?: return
+        if (rootParams.height == heightPx) return
+        rootParams.height = heightPx
+        root.layoutParams = rootParams
+        view.layoutParams = view.layoutParams.apply { height = heightPx }
+        root.requestLayout()
     }
 
     private fun calculateKeyboardHeight(): Int {

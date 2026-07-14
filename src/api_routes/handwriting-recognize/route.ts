@@ -43,6 +43,7 @@ Rules:
 - Return ONLY the JSON object, no other text`;
 
     const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'assistant', content: systemPrompt },
         {
@@ -59,7 +60,6 @@ Rules:
           ],
         },
       ],
-      thinking: { type: 'disabled' },
     });
 
     const rawContent = completion.choices[0]?.message?.content?.trim();

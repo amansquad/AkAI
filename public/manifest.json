@@ -1,0 +1,37 @@
+{
+  "name": "AkAI Mobile Keyboard",
+  "short_name": "AkAI KB",
+  "description": "Advanced keyboard with Samsung layout, live themes, and AI features",
+  "start_url": "/mobile",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Open Keyboard",
+      "short_name": "Keyboard",
+      "description": "Open the mobile keyboard",
+      "url": "/mobile",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

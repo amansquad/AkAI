@@ -1,0 +1,22 @@
+{
+  "name": "Snowfall",
+  "emoji": "❄️",
+  "category": "live",
+  "liveTheme": "aurora",
+  "colors": {
+    "background": 132631,
+    "surface": 989994,
+    "surfaceVariant": 1974587,
+    "key": 1974587,
+    "keyPressed": 39780843,
+    "keySecondary": 3356501,
+    "keySecondaryPressed": 1974587,
+    "keyAccent": 2473852157,
+    "keyAccentPressed": 3216269310,
+    "keyText": 4281484799,
+    "keySecondaryText": 3670425598,
+    "accent": 2473852157,
+    "accentMuted": 1004206070,
+    "glow": 3216269310
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "Plasma",
+  "emoji": "🧪",
+  "category": "live",
+  "liveTheme": "fire",
+  "colors": {
+    "background": 4850766,
+    "surface": 7346805,
+    "surfaceVariant": 8791183,
+    "key": 8791183,
+    "keyPressed": 3966155929,
+    "keySecondary": 10624431,
+    "keySecondaryPressed": 8791183,
+    "keyAccent": 4098769078,
+    "keyAccentPressed": 4189834452,
+    "keyText": 4293062392,
+    "keySecondaryText": 4239118568,
+    "accent": 4098769078,
+    "accentMuted": 3692167031,
+    "glow": 4189834452
+  }
+}

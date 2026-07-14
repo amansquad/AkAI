@@ -1,0 +1,22 @@
+{
+  "name": "Candy",
+  "emoji": "🍬",
+  "category": "solid",
+  "liveTheme": null,
+  "colors": {
+    "background": 436211231,
+    "surface": 639606571,
+    "surfaceVariant": 842936119,
+    "key": 1046265667,
+    "keyPressed": 1249595215,
+    "keySecondary": 673174576,
+    "keySecondaryPressed": 875717692,
+    "keyAccent": 3966155929,
+    "keyAccentPressed": 4098769078,
+    "keyText": 4293062392,
+    "keySecondaryText": 4239118568,
+    "accent": 3966155929,
+    "accentMuted": 3692167031,
+    "glow": 4189834452
+  }
+}

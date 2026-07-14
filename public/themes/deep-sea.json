@@ -1,0 +1,22 @@
+{
+  "name": "Deep Sea",
+  "emoji": "🦑",
+  "category": "live",
+  "liveTheme": "ocean",
+  "colors": {
+    "background": 1973067,
+    "surface": 3223169,
+    "surfaceVariant": 3617699,
+    "key": 3617699,
+    "keyPressed": 347006,
+    "keySecondary": 4404426,
+    "keySecondaryPressed": 3617699,
+    "keyAccent": 1573477588,
+    "keyAccentPressed": 2579271396,
+    "keyText": 4282663418,
+    "keySecondaryText": 3435266033,
+    "accent": 1573477588,
+    "accentMuted": 223885960,
+    "glow": 2579271396
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "Bubbles",
+  "emoji": "🫧",
+  "category": "live",
+  "liveTheme": "ocean",
+  "colors": {
+    "background": 274222,
+    "surface": 1265738,
+    "surfaceVariant": 1134169,
+    "key": 1134169,
+    "keyPressed": 109094612,
+    "keySecondary": 1013870,
+    "keySecondaryPressed": 1134169,
+    "keyAccent": 1758055161,
+    "keyAccentPressed": 576192494,
+    "keyText": 4282663418,
+    "keySecondaryText": 3436131326,
+    "accent": 1758055161,
+    "accentMuted": 143580898,
+    "glow": 576192494
+  }
+}

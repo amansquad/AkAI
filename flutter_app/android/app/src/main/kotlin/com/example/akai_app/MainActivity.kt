@@ -23,7 +23,7 @@ class MainActivity : FlutterActivity() {
                         openImeSettings()
                         result.success(null)
                     }
-                    "showImePicker" -> {
+                    "showImePicker", "showInputMethodPicker" -> {
                         showImePicker()
                         result.success(null)
                     }

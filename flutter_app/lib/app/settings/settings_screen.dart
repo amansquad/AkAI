@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
-import '../theme/theme_marketplace.dart';
-import '../theme/theme_download_service.dart';
+import '../../widgets/theme_marketplace.dart';
+import '../../services/theme_download_service.dart';
 import 'settings_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -103,15 +103,10 @@ class _MarketplaceButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        final prefs = await SharedPreferences.getInstance();
-        final downloadService = ThemeDownloadService(prefs);
-
         if (context.mounted) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => ThemeMarketplace(
-                downloadService: downloadService,
-              ),
+              builder: (_) => const ThemeMarketplace(),
             ),
           );
         }

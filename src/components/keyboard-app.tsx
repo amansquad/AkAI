@@ -8,7 +8,8 @@ import {
   Delete, CornerDownLeft, Copy, Trash2, Plus,
   ArrowRightLeft, Loader2, Sparkles, Send, Globe,
   ArrowUp, Pen, Palette, X, Settings, Sun, Moon, Monitor, Wand2, ImagePlus,
-  SquareCheck, LogOut, Undo2, Redo2, Zap, Smartphone, Mic, MicOff
+  SquareCheck, LogOut, Undo2, Redo2, Zap, Smartphone, Mic, MicOff,
+  PenTool, RotateCcw, Type, CheckCircle2, Search, Star, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -102,6 +103,12 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawingPaths, setDrawingPaths] = useState<{ x: number; y: number }[][]>([]);
   const [currentPath, setCurrentPath] = useState<{ x: number; y: number }[]>([]);
+  const [hwUndoStack, setHwUndoStack] = useState<{ x: number; y: number }[][][]>([]);
+  const [hwRedoStack, setHwRedoStack] = useState<{ x: number; y: number }[][][]>([]);
+  const [strokeWidth, setStrokeWidth] = useState(3);
+  const [strokeColor, setStrokeColor] = useState('#ffffff');
+  const [hwAutoRecognize, setHwAutoRecognize] = useState(true);
+  const hwRecognizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // New state for Change 1: Long press
   const [longPressKey, setLongPressKey] = useState<string | null>(null);
@@ -109,6 +116,12 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
   // New state for Change 2: Recent emojis
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
+
+  // Emoji search, favorites, and predictive bar
+  const [emojiSearchQuery, setEmojiSearchQuery] = useState('');
+  const [favoriteEmojis, setFavoriteEmojis] = useState<string[]>([]);
+  const [emojiBarVisible, setEmojiBarVisible] = useState(true);
+  const [contextEmojiSuggestions, setContextEmojiSuggestions] = useState<string[]>([]);
 
   // New state for Change 4: Handwriting suggestions
   const [hwSuggestions, setHwSuggestions] = useState<string[]>([]);
@@ -228,6 +241,81 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     const settings = { bgOpacity, bgBlur, keyOpacity, bgFile: customBgFile };
     localStorage.setItem('akai_custom_settings', JSON.stringify(settings));
   }, [bgOpacity, bgBlur, keyOpacity, customBgFile]);
+
+  // Emoji favorites persistence
+  useEffect(() => {
+    const saved = localStorage.getItem('akai_favorite_emojis');
+    if (saved) try { setFavoriteEmojis(JSON.parse(saved)); } catch(e) {}
+  }, []);
+  useEffect(() => {
+    localStorage.setItem('akai_favorite_emojis', JSON.stringify(favoriteEmojis));
+  }, [favoriteEmojis]);
+
+  // Context-aware emoji suggestions engine
+  const EMOJI_CONTEXT_MAP: Record<string, string[]> = {
+    'love': ['❤️','😍','🥰','💕','💖','💗','💘','💝','🫶','💋'],
+    'happy': ['😊','😄','😁','🥳','🎉','🎊','✨','💫','🌟','😃'],
+    'sad': ['😢','😭','😞','💔','🥺','😔','😥','😪','😿','😫'],
+    'angry': ['😡','😠','🤬','💢','😤','🔥','👊','💥','👿','🙈'],
+    'thanks': ['🙏','❤️','💕','✨','🤝','💯','🌟','🫶','💝','🎶'],
+    'hello': ['👋','🤗','😊','✨','🙌','🫶','👋','💪','🎉','😄'],
+    'goodbye': ['👋','🥲','💪','🫡','🙌','✨','🌟','💛','🙏','😥'],
+    'food': ['🍕','🍔','🌮','🍜','🍣','☕','🍰','🍩','🍪','🍫'],
+    'party': ['🎉','🎊','🥳','🍾','🎈','🎆','🎇','✨','💫','🕺'],
+    'nature': ['🌸','🌺','🌻','🌈','⭐','🌙','☀️','🌿','🦋','🍀'],
+    'work': ['💼','📊','📈','💻','📝','🗓️','📌','🔧','⚙️','🏗️'],
+    'fire': ['🔥','💥','⚡','🌟','☄️','🔥','✨','💫','🌪️','💥'],
+    'cool': ['😎','🥳','💯','✌️','🤩','🔥','💪','🎶','🎸','🎵'],
+    'cry': ['😢','😭','🥺','💔','😿','😥','😪','😞','😫','🤧'],
+    'laugh': ['😂','🤣','😆','😹','🤭','😜','🤪','😝','😄','😁'],
+    'pray': ['🙏','✝️','⛪','🕊️','💛','✨','💫','🌟','🫶','❤️'],
+    'music': ['🎵','🎶','🎤','🎧','🎸','🎹','🥁','🎺','🎷','🎼'],
+    'travel': ['✈️','🗺️','🧭','🏔️','🌊','🏖️','🚀','🛸','🌍','🗼'],
+    'ethiopia': ['🇪🇹','☕','🦁','🏔️','🌍','🎶','🥁','💪','🔥','👑'],
+    'amharic': ['🇪🇹','☕','🎶','🥁','🏔️','🌍','🦁','🦅','☀️','🌿'],
+  };
+
+  useEffect(() => {
+    if (!text || text.length < 2) {
+      setContextEmojiSuggestions([]);
+      return;
+    }
+    const words = text.toLowerCase().split(/\s+/);
+    const lastWord = words[words.length - 1];
+    const prevWord = words.length >= 2 ? words[words.length - 2] : '';
+    const bigram = prevWord + ' ' + lastWord;
+    const suggestions: { emoji: string; score: number }[] = [];
+    for (const [key, emojis] of Object.entries(EMOJI_CONTEXT_MAP)) {
+      if (key.includes(bigram) || bigram.includes(key)) {
+        emojis.slice(0, 3).forEach((e, i) => suggestions.push({ emoji: e, score: 3 - i }));
+      } else if (key.includes(lastWord) || lastWord.includes(key)) {
+        emojis.slice(0, 2).forEach((e, i) => suggestions.push({ emoji: e, score: 2 - i }));
+      }
+    }
+    const seen = new Set<string>();
+    const unique = suggestions.filter(s => { if (seen.has(s.emoji)) return false; seen.add(s.emoji); return true; });
+    setContextEmojiSuggestions(unique.sort((a, b) => b.score - a.score).slice(0, 8).map(s => s.emoji));
+  }, [text]);
+
+  const toggleFavoriteEmoji = useCallback((emoji: string) => {
+    setFavoriteEmojis(prev => prev.includes(emoji) ? prev.filter(e => e !== emoji) : [emoji, ...prev].slice(0, 30));
+  }, []);
+
+  const addRecentEmoji = useCallback((emoji: string) => {
+    setRecentEmojis(prev => {
+      const filtered = prev.filter(e => e !== emoji);
+      return [emoji, ...filtered].slice(0, 24);
+    });
+  }, []);
+
+  const getFilteredEmojis = useCallback((emojis: string[]) => {
+    if (!emojiSearchQuery) return emojis;
+    const q = emojiSearchQuery.toLowerCase();
+    return emojis.filter(e => {
+      const kw = EMOJI_KEYWORDS[e] || [];
+      return kw.some(k => k.includes(q)) || e.includes(q);
+    });
+  }, [emojiSearchQuery]);
 
   const startVoiceRecognition = useCallback(() => {
     if (isListening) {
@@ -426,13 +514,38 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     }
   }, [onTextChange, language]);
 
-  // Change 2: Add emoji to recent
-  const addRecentEmoji = useCallback((emoji: string) => {
-    setRecentEmojis(prev => {
-      const filtered = prev.filter(e => e !== emoji);
-      return [emoji, ...filtered].slice(0, 24);
-    });
-  }, []);
+  const EMOJI_KEYWORDS: Record<string, string[]> = {
+    '😀': ['happy','smile','grin','joy','glad'],
+    '😂': ['laugh','lol','lmao','tears','funny'],
+    '😍': ['love','heart','eyes','crush','adore'],
+    '🥰': ['love','kiss','hug','warm','sweet'],
+    '😢': ['sad','cry','tear','unhappy','upset'],
+    '😡': ['angry','mad','rage','furious','annoyed'],
+    '👍': ['thumbs','up','good','ok','approve'],
+    '❤️': ['love','heart','red','romance','passion'],
+    '🎉': ['party','celebrate','congrats','yay','hooray'],
+    '🙏': ['pray','thanks','please','namaste','bless'],
+    '☕': ['coffee','tea','hot','drink','buna'],
+    '🔥': ['fire','lit','hot','flame','burn'],
+    '💪': ['strong','muscle','workout','power','flex'],
+    '✨': ['sparkle','magic','glitter','shine','new'],
+    '🌊': ['water','wave','ocean','sea','surf'],
+    '🎵': ['music','note','song','melody','tune'],
+    '📱': ['phone','mobile','call','cell','smartphone'],
+    '💻': ['computer','laptop','code','work','tech'],
+    '✈️': ['travel','fly','plane','trip','vacation'],
+    '🇪🇹': ['ethiopia','ethiopian','habesha','addis'],
+    '😊': ['blush','smile','happy','pleased','shy'],
+    '🤔': ['think','hmm','wonder','consider','doubt'],
+    '😱': ['scream','shock','scared','fear','omg'],
+    '🥳': ['party','celebrate','birthday','yay','woohoo'],
+    '💀': ['dead','skull','death','rip','skeleton'],
+    '👀': ['eyes','look','see','watch','stare'],
+    '🫶': ['heart','hands','love','appreciate','together'],
+    '💯': ['100','perfect','full','score','real'],
+    '😭': ['cry','sob','weep','bawling','tears'],
+    '🤣': ['rofl','lmao','laugh','hilarious','dying'],
+  };
 
   const handleSuggestionClick = useCallback((word: string) => {
     const words = text.trim().split(/\s+/);
@@ -547,15 +660,40 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   }, [text, updateText]);
 
   // ─── Handwriting Canvas ─────────────────────────────────────────────
+  const redrawCanvas = useCallback((paths: { x: number; y: number }[][]) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = strokeWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    paths.forEach(path => {
+      if (path.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let i = 1; i < path.length; i++) {
+        const midX = (path[i - 1].x + path[i].x) / 2;
+        const midY = (path[i - 1].y + path[i].y) / 2;
+        ctx.quadraticCurveTo(path[i - 1].x, path[i - 1].y, midX, midY);
+      }
+      ctx.stroke();
+    });
+  }, [strokeColor, strokeWidth]);
+
   const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     setIsDrawing(true);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
     setCurrentPath([{ x, y }]);
   }, []);
 
@@ -566,36 +704,69 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
 
-    setCurrentPath(prev => [...prev, { x, y }]);
-
-    ctx.strokeStyle = theme === 'default' ? '#333' : '#fff';
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    if (currentPath.length > 0) {
-      const lastPoint = currentPath[currentPath.length - 1];
-      ctx.beginPath();
-      ctx.moveTo(lastPoint.x, lastPoint.y);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    }
-  }, [isDrawing, currentPath, theme]);
+    setCurrentPath(prev => {
+      const newPath = [...prev, { x, y }];
+      if (prev.length > 0) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = strokeWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        const lastPoint = prev[prev.length - 1];
+        const midX = (lastPoint.x + x) / 2;
+        const midY = (lastPoint.y + y) / 2;
+        ctx.beginPath();
+        ctx.moveTo(lastPoint.x, lastPoint.y);
+        ctx.quadraticCurveTo(lastPoint.x, lastPoint.y, midX, midY);
+        ctx.stroke();
+      }
+      return newPath;
+    });
+  }, [isDrawing, strokeColor, strokeWidth]);
 
   const stopDrawing = useCallback(() => {
     if (currentPath.length > 0) {
-      setDrawingPaths(prev => [...prev, currentPath]);
-      const newStrokeCount = drawingPaths.length + 1;
-      setHwStrokes(newStrokeCount);
+      setHwUndoStack(prev => [...prev, drawingPaths]);
+      setHwRedoStack([]);
+      const newPaths = [...drawingPaths, currentPath];
+      setDrawingPaths(newPaths);
+      setHwStrokes(newPaths.length);
+      if (hwAutoRecognize && newPaths.length > 0) {
+        if (hwRecognizeTimerRef.current) clearTimeout(hwRecognizeTimerRef.current);
+        hwRecognizeTimerRef.current = setTimeout(() => {
+          recognizeHandwriting();
+        }, 1500);
+      }
     }
     setIsDrawing(false);
     setCurrentPath([]);
-  }, [currentPath, drawingPaths.length]);
+  }, [currentPath, drawingPaths, hwAutoRecognize]);
+
+  const undoHwStroke = useCallback(() => {
+    if (hwUndoStack.length === 0) return;
+    const prev = hwUndoStack[hwUndoStack.length - 1];
+    setHwUndoStack(s => s.slice(0, -1));
+    setHwRedoStack(r => [...r, drawingPaths]);
+    setDrawingPaths(prev);
+    redrawCanvas(prev);
+    setHwStrokes(prev.length);
+  }, [hwUndoStack, drawingPaths, redrawCanvas]);
+
+  const redoHwStroke = useCallback(() => {
+    if (hwRedoStack.length === 0) return;
+    const next = hwRedoStack[hwRedoStack.length - 1];
+    setHwRedoStack(r => r.slice(0, -1));
+    setHwUndoStack(u => [...u, drawingPaths]);
+    setDrawingPaths(next);
+    redrawCanvas(next);
+    setHwStrokes(next.length);
+  }, [hwRedoStack, drawingPaths, redrawCanvas]);
 
   // AI-powered handwriting recognition
   const recognizeHandwriting = useCallback(async () => {
@@ -604,9 +775,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
     setHwRecognizing(true);
     try {
-      // Capture canvas as base64 image
       const imageData = canvas.toDataURL('image/png');
-
       const res = await fetch('/api/handwriting-recognize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -626,7 +795,6 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         else if (words.length > 0) setSelectedHwSuggestion(words[0]);
         else if (sentences.length > 0) setSelectedHwSuggestion(sentences[0]);
       } else {
-        // Fallback: generate local suggestions
         const fallbackChars = language === 'english'
           ? ['a','e','i','o','u','n','s','t'].sort(() => Math.random() - 0.5).slice(0, 5)
           : ['ሀ','ለ','መ','ሰ','በ','ወ','ነ','ገ'].sort(() => Math.random() - 0.5).slice(0, 5);
@@ -634,7 +802,6 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         if (fallbackChars.length > 0) setSelectedHwSuggestion(fallbackChars[0]);
       }
     } catch {
-      // Fallback on error
       const fallbackChars = language === 'english'
         ? ['a','b','c','d','e'].sort(() => Math.random() - 0.5).slice(0, 5)
         : ['ሀ','ለ','መ','ሰ','በ'].sort(() => Math.random() - 0.5).slice(0, 5);
@@ -651,6 +818,8 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHwUndoStack([]);
+    setHwRedoStack([]);
     setDrawingPaths([]);
     setCurrentPath([]);
     setHwSuggestions([]);
@@ -927,44 +1096,108 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     );
   };
 
-  // Change 2: Stickers with recent emojis
+  // Change 2: Stickers with recent emojis, search, favorites
   const renderStickers = () => {
     const category = activeStickerCategory === 'recent'
       ? { id: 'recent', name: 'Recent', icon: '🕐', stickers: recentEmojis }
-      : STICKER_CATEGORIES.find(c => c.id === activeStickerCategory);
+      : activeStickerCategory === 'favorites'
+        ? { id: 'favorites', name: 'Favorites', icon: '⭐', stickers: favoriteEmojis }
+        : STICKER_CATEGORIES.find(c => c.id === activeStickerCategory);
+
+    const displayEmojis = category?.stickers || [];
+    const filteredEmojis = getFilteredEmojis(displayEmojis);
+
     const allCategories = [
       ...(recentEmojis.length > 0 ? [{ id: 'recent', name: 'Recent', icon: '🕐', stickers: recentEmojis }] : []),
-      ...STICKER_CATEGORIES,
+      ...(favoriteEmojis.length > 0 ? [{ id: 'favorites', name: 'Favorites', icon: '⭐', stickers: favoriteEmojis }] : []),
+      ...STICKER_CATEGORIES.filter(c => c.id !== 'recent'),
     ];
+
     return (
       <div className="flex flex-col h-full">
+        {/* Predictive emoji bar */}
+        {emojiBarVisible && contextEmojiSuggestions.length > 0 && (
+          <div className="shrink-0 flex gap-1.5 px-3 py-2 border-b overflow-x-auto"
+            style={{ background: 'rgba(0,0,0,0.15)', backdropFilter: 'blur(8px)' }}>
+            <span className="text-[9px] font-bold uppercase tracking-wider opacity-50 self-center mr-1 shrink-0">
+              {language === 'english' ? 'Suggest' : 'ጠቃሚ'}
+            </span>
+            {contextEmojiSuggestions.map((emoji, i) => (
+              <motion.button key={`ctx-${i}`} whileHover={{ scale: 1.2, y: -2 }} whileTap={{ scale: 0.9 }}
+                onClick={() => { updateText(text + emoji); addRecentEmoji(emoji); }}
+                className="text-xl px-1.5 py-0.5 rounded-lg hover:bg-white/10 transition-all shrink-0">
+                {emoji}
+              </motion.button>
+            ))}
+          </div>
+        )}
+
+        {/* Search bar */}
+        <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b" style={{ background: 'rgba(0,0,0,0.1)' }}>
+          <Search className={`w-3.5 h-3.5 ${t.keyText} opacity-50 shrink-0`} />
+          <input
+            type="text"
+            value={emojiSearchQuery}
+            onChange={e => setEmojiSearchQuery(e.target.value)}
+            placeholder={language === 'english' ? 'Search emojis...' : 'ፈልግ ሺሸንፎችን...'}
+            className={`flex-1 bg-transparent text-xs outline-none ${t.keyText} placeholder:opacity-30`}
+          />
+          {emojiSearchQuery && (
+            <button onClick={() => setEmojiSearchQuery('')} className="opacity-50 hover:opacity-100">
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Category tabs */}
         <div className="flex gap-1 px-2 py-1.5 overflow-x-auto scrollbar-hide border-b border-border/30">
           {allCategories.map(cat => (
             <motion.button key={cat.id}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setActiveStickerCategory(cat.id)}
+              onClick={() => { setActiveStickerCategory(cat.id); setEmojiSearchQuery(''); }}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                 activeStickerCategory === cat.id ? `${t.tabActive} ${t.tabActiveText} shadow-sm` : `${t.suggestion} ${t.keyText}`}`}>
               <span>{cat.icon}</span><span>{cat.name}</span>
             </motion.button>
           ))}
         </div>
+
+        {/* Emoji grid */}
         <div className="flex-1 p-2 overflow-y-auto">
           {activeStickerCategory === 'recent' && recentEmojis.length === 0 ? (
             <div className={`flex flex-col items-center justify-center h-full ${t.keyText} opacity-50`}>
-              <span className="text-2xl mb-2">🕐</span>
+              <Clock className="w-6 h-6 mb-2 opacity-40" />
               <span className="text-xs">No recent emojis yet</span>
             </div>
+          ) : activeStickerCategory === 'favorites' && favoriteEmojis.length === 0 ? (
+            <div className={`flex flex-col items-center justify-center h-full ${t.keyText} opacity-50`}>
+              <Star className="w-6 h-6 mb-2 opacity-40" />
+              <span className="text-xs">Tap ⭐ on any emoji to add to favorites</span>
+            </div>
+          ) : filteredEmojis.length === 0 ? (
+            <div className={`flex flex-col items-center justify-center h-full ${t.keyText} opacity-50`}>
+              <span className="text-xs">No emojis found</span>
+            </div>
           ) : (
-            <div className="grid grid-cols-4 gap-2">
-              {category?.stickers.map((sticker, i) => (
-                <motion.button key={i} whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-                  onClick={() => { updateText(text + sticker); addRecentEmoji(sticker); }}
-                  className={`flex items-center justify-center p-2 rounded-xl ${t.key} ${t.border} border shadow-sm text-2xl aspect-square`}>
-                  {sticker}
-                </motion.button>
-              ))}
+            <div className="grid grid-cols-5 gap-1.5">
+              {filteredEmojis.map((sticker, i) => {
+                const isFav = favoriteEmojis.includes(sticker);
+                return (
+                  <motion.div key={`${activeStickerCategory}-${i}`} className="relative group" whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}>
+                    <button
+                      onClick={() => { updateText(text + sticker); addRecentEmoji(sticker); }}
+                      className={`flex items-center justify-center p-1.5 rounded-xl w-full ${t.key} ${t.border} border shadow-sm text-xl aspect-square`}>
+                      {sticker}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavoriteEmoji(sticker); }}
+                      className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] transition-all opacity-0 group-hover:opacity-100 ${isFav ? 'opacity-100 bg-amber-500/90 text-white' : 'bg-black/60 text-white/60 hover:text-amber-400'}`}>
+                      {isFav ? '★' : '☆'}
+                    </button>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -1180,77 +1413,99 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     return (
     <div className="flex flex-col h-full overflow-hidden relative z-10 glass-container">
       {/* Premium Header */}
-      <div className={`flex items-center justify-between px-4 py-2 border-b shrink-0 ${t.border}`}
+      <div className={`flex items-center justify-between px-3 py-2 border-b shrink-0 ${t.border}`}
         style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(12px)' }}>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <div className={`p-1.5 rounded-lg ${t.accent} ${t.accentText}`} style={customAccentStyle}>
             <PenTool className="w-3.5 h-3.5" />
           </div>
-          <span className={`text-sm font-bold tracking-tight ${t.keyText}`}>
-            {language === 'english' ? 'Handwriting AI' : 'የእጅ ጽሑፍ AI'}
+          <span className={`text-xs font-bold tracking-tight ${t.keyText}`}>
+            {language === 'english' ? 'Handwriting' : 'የእጅ ጽሑፍ'}
           </span>
           {hwStrokes > 0 && (
-            <div className="flex h-2 w-2 relative">
-             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-             <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-            </div>
+            <span className="text-[9px] opacity-40 font-mono">{hwStrokes}s</span>
           )}
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-1.5 items-center">
+          {/* Undo */}
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            onClick={undoHwStroke} disabled={hwUndoStack.length === 0}
+            className={`h-7 w-7 p-0 rounded-full flex items-center justify-center transition-all ${hwUndoStack.length === 0 ? 'opacity-30' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
+            <Undo2 className="w-3.5 h-3.5" />
+          </motion.button>
+          {/* Redo */}
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            onClick={redoHwStroke} disabled={hwRedoStack.length === 0}
+            className={`h-7 w-7 p-0 rounded-full flex items-center justify-center transition-all ${hwRedoStack.length === 0 ? 'opacity-30' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
+            <Redo2 className="w-3.5 h-3.5" />
+          </motion.button>
+          {/* Recognize */}
           {drawingPaths.length > 0 && (
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={recognizeHandwriting}
-                disabled={hwRecognizing}
-                className={`h-7 px-3 text-[11px] font-bold gap-1.5 rounded-full ${t.accentText} shadow-lg shadow-cyan-500/20`}
-                style={customAccentStyle}>
-                {hwRecognizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                {hwRecognizing ? 'Processing' : 'Recognize'}
-              </Button>
-            </motion.div>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              onClick={recognizeHandwriting} disabled={hwRecognizing}
+              className={`h-7 px-3 text-[10px] font-bold gap-1 rounded-full flex items-center ${t.accentText} shadow-lg`}
+              style={customAccentStyle}>
+              {hwRecognizing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              {hwRecognizing ? '...' : 'AI'}
+            </motion.button>
           )}
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button variant="ghost" size="sm" onClick={clearCanvas} className={`h-7 w-7 p-0 rounded-full bg-white/5 border border-white/10 ${t.keyText}`}>
-              <RotateCcw className="w-3.5 h-3.5" />
-            </Button>
-          </motion.div>
+          {/* Clear */}
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            onClick={clearCanvas}
+            className="h-7 w-7 p-0 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-red-500/20 transition-all">
+            <RotateCcw className="w-3.5 h-3.5" />
+          </motion.button>
         </div>
       </div>
 
-      {/* Suggestions area - Glassy overlay */}
-      <div className="shrink-0 relative overflow-hidden" 
-        style={{ background: 'rgba(0,0,0,0.2)' }}>
-        
+      {/* Tools row - stroke width & auto-recognize toggle */}
+      <div className="shrink-0 flex items-center gap-3 px-3 py-1.5 border-b" style={{ background: 'rgba(0,0,0,0.1)' }}>
+        <div className="flex items-center gap-1.5">
+          {[2, 3, 5, 8].map(w => (
+            <button key={w} onClick={() => setStrokeWidth(w)}
+              className={`rounded-full transition-all ${strokeWidth === w ? 'ring-2 ring-cyan-400/60' : 'opacity-40 hover:opacity-70'}`}
+              style={{ width: w * 2 + 8, height: w * 2 + 8, backgroundColor: strokeColor }}>
+            </button>
+          ))}
+        </div>
+        <div className="w-px h-4 bg-white/10" />
+        <div className="flex items-center gap-1.5">
+          {['#ffffff', '#00d4ff', '#ff6b6b', '#51cf66', '#ffd43b'].map(c => (
+            <button key={c} onClick={() => setStrokeColor(c)}
+              className={`w-4 h-4 rounded-full border transition-all ${strokeColor === c ? 'ring-2 ring-white/50 scale-110' : 'border-white/20 hover:scale-110'}`}
+              style={{ backgroundColor: c }} />
+          ))}
+        </div>
+        <div className="w-px h-4 bg-white/10" />
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" checked={hwAutoRecognize} onChange={e => setHwAutoRecognize(e.target.checked)}
+            className="w-3 h-3 accent-cyan-400" />
+          <span className="text-[9px] opacity-50 font-medium">Auto-AI</span>
+        </label>
+      </div>
+
+      {/* Suggestions area */}
+      <div className="shrink-0 relative overflow-hidden" style={{ background: 'rgba(0,0,0,0.2)' }}>
         {hasAnySuggestions ? (
-          <div className="px-3 py-3 max-h-[160px] overflow-y-auto custom-scrollbar">
-            {/* Sentences - horizontal scroll list */}
+          <div className="px-3 py-2 max-h-[140px] overflow-y-auto custom-scrollbar">
             {hwSentenceSuggestions.length > 0 && (
-              <div className="mb-3">
-                <div className="flex items-center gap-1.5 mb-2 opacity-70">
-                  <Languages className="w-3 h-3 text-emerald-400" />
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                    {language === 'english' ? 'Predictions' : 'ግምቶች'}
-                  </p>
-                </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+              <div className="mb-2">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-300 mb-1.5 opacity-70">
+                  {language === 'english' ? 'Predictions' : 'ግምቶች'}
+                </p>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                   {hwSentenceSuggestions.map((sug, i) => (
-                    <motion.button
-                      key={`s${i}`}
-                      whileHover={{ y: -2, backgroundColor: 'rgba(255,255,255,0.15)' }}
-                      whileTap={{ scale: 0.97 }}
+                    <motion.button key={`s${i}`} whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         setSelectedHwSuggestion(sug);
-                        const separator = text.length > 0 && !text.endsWith(' ') ? ' ' : '';
-                        updateText(text + separator + sug);
+                        const sep = text.length > 0 && !text.endsWith(' ') ? ' ' : '';
+                        updateText(text + sep + sug);
                         clearCanvas();
                       }}
-                      className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold border transition-all duration-300
+                      className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all
                         ${selectedHwSuggestion === sug
-                          ? 'bg-emerald-500/30 text-white border-emerald-400/50 ring-1 ring-emerald-400/30'
-                          : 'bg-white/5 text-white/80 border-white/10 hover:border-white/30'}`}
-                    >
+                          ? 'bg-emerald-500/30 text-white border-emerald-400/50'
+                          : 'bg-white/5 text-white/80 border-white/10 hover:border-white/30'}`}>
                       {sug}
                     </motion.button>
                   ))}
@@ -1258,100 +1513,75 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
               </div>
             )}
 
-            {/* Combined row for words and characters */}
-            <div className="grid grid-cols-1 gap-3">
-               {hwWordSuggestions.length > 0 && (
-                 <div>
-                   <div className="flex items-center gap-1.5 mb-2 opacity-70">
-                     <Type className="w-3 h-3 text-cyan-400" />
-                     <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-300">
-                       {language === 'english' ? 'Words' : 'ቃላት'}
-                     </p>
-                   </div>
-                   <div className="flex gap-2 flex-wrap">
-                     {hwWordSuggestions.map((sug, i) => (
-                       <motion.button
-                         key={`w${i}`}
-                         whileHover={{ scale: 1.05 }}
-                         whileTap={{ scale: 0.95 }}
-                         onClick={() => {
-                           setSelectedHwSuggestion(sug);
-                           const separator = text.length > 0 && !text.endsWith(' ') ? ' ' : '';
-                           updateText(text + separator + sug);
-                           clearCanvas();
-                         }}
-                         className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all
-                           ${selectedHwSuggestion === sug
-                             ? 'bg-cyan-500/30 text-white border-cyan-400/50 ring-1 ring-cyan-400/30'
-                             : 'bg-white/5 text-white/80 border-white/10'}`}
-                       >
-                         {sug}
-                       </motion.button>
-                     ))}
-                   </div>
-                 </div>
-               )}
+            {hwWordSuggestions.length > 0 && (
+              <div className="mb-2">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-cyan-300 mb-1.5 opacity-70">
+                  {language === 'english' ? 'Words' : 'ቃላት'}
+                </p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {hwWordSuggestions.map((sug, i) => (
+                    <motion.button key={`w${i}`} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSelectedHwSuggestion(sug);
+                        const sep = text.length > 0 && !text.endsWith(' ') ? ' ' : '';
+                        updateText(text + sep + sug);
+                        clearCanvas();
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all
+                        ${selectedHwSuggestion === sug
+                          ? 'bg-cyan-500/30 text-white border-cyan-400/50'
+                          : 'bg-white/5 text-white/80 border-white/10'}`}>
+                      {sug}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-               {hwSuggestions.length > 0 && (
-                 <div>
-                   <div className="flex items-center gap-1.5 mb-2 opacity-70">
-                     <Keyboard className="w-3 h-3 text-amber-400" />
-                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300">
-                       {language === 'english' ? 'Letters' : 'ፊደላት'}
-                     </p>
-                   </div>
-                   <div className="flex gap-2 flex-wrap">
-                     {hwSuggestions.map((sug, i) => (
-                       <motion.button
-                         key={`c${i}`}
-                         whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.1)' }}
-                         whileTap={{ scale: 0.9 }}
-                         onClick={() => {
-                           setSelectedHwSuggestion(sug);
-                           updateText(text + sug);
-                           clearCanvas();
-                         }}
-                         className={`flex items-center justify-center min-w-[42px] h-11 rounded-xl text-lg font-bold border transition-all
-                           ${selectedHwSuggestion === sug
-                             ? 'bg-amber-500/30 text-white border-amber-400/50 shadow-lg'
-                             : 'bg-white/5 text-white/90 border-white/10'}`}
-                       >
-                         {sug}
-                       </motion.button>
-                     ))}
-                   </div>
-                 </div>
-               )}
-            </div>
+            {hwSuggestions.length > 0 && (
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-amber-300 mb-1.5 opacity-70">
+                  {language === 'english' ? 'Letters' : 'ፊደላት'}
+                </p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {hwSuggestions.map((sug, i) => (
+                    <motion.button key={`c${i}`} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                      onClick={() => {
+                        setSelectedHwSuggestion(sug);
+                        updateText(text + sug);
+                        clearCanvas();
+                      }}
+                      className={`flex items-center justify-center min-w-[36px] h-9 rounded-lg text-base font-bold border transition-all
+                        ${selectedHwSuggestion === sug
+                          ? 'bg-amber-500/30 text-white border-amber-400/50 shadow-lg'
+                          : 'bg-white/5 text-white/90 border-white/10'}`}>
+                      {sug}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="px-4 py-8 text-center bg-black/10">
+          <div className="px-4 py-4 text-center bg-black/10">
             {hwRecognizing ? (
-              <div className="flex flex-col items-center justify-center gap-3">
-                <div className="relative">
-                  <Loader2 className="w-8 h-8 animate-spin text-cyan-400/50" />
-                  <Sparkles className="w-4 h-4 absolute top-2 left-2 text-cyan-300 animate-pulse" />
-                </div>
-                <p className="text-xs font-medium text-cyan-200/80 tracking-wide">Analysing your strokes...</p>
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-cyan-400/50" />
+                <p className="text-[11px] font-medium text-cyan-200/80">Analysing...</p>
               </div>
             ) : (
-              <div className="max-w-[200px] mx-auto opacity-40">
-                <div className="flex justify-center mb-3">
-                   <PenTool className="w-6 h-6" />
-                </div>
-                <p className="text-[11px] font-medium leading-relaxed">
-                  {language === 'english'
-                    ? 'Write naturally anywhere on the canvas below'
-                    : 'ከታች ባለው ቦታ ላይ በነፃነት ይጻፉ'}
-                </p>
-              </div>
+              <p className="text-[10px] opacity-30 font-medium">
+                {language === 'english'
+                  ? '✍️ Draw characters, words, or sentences below'
+                  : '✍️ ከታች ፊደላት፣ ቃላት ወይም ዓረፍተ ነገሮች ይጻፉ'}
+              </p>
             )}
           </div>
         )}
       </div>
 
-      {/* Canvas area - Premium dark surface */}
-      <div className="flex-1 p-3 min-h-0 relative">
+      {/* Canvas area */}
+      <div className="flex-1 p-2 min-h-0 relative">
         <canvas
           ref={canvasRef}
           width={400}
@@ -1363,29 +1593,29 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           onTouchStart={startDrawing}
           onTouchMove={draw}
           onTouchEnd={stopDrawing}
-          className={`w-full h-full rounded-2xl border-2 border-white/5 cursor-crosshair touch-none transition-all duration-500`}
+          className="w-full h-full rounded-xl border-2 border-white/5 cursor-crosshair touch-none transition-all"
           style={{
             touchAction: 'none',
-            background: 'radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.6) 100%)',
-            boxShadow: 'inset 0 0 40px rgba(0,0,0,0.4)',
+            background: 'radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.5) 100%)',
+            boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3)',
           }}
         />
         {drawingPaths.length === 0 && !hwRecognizing && (
-           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-              <span className="text-4xl font-black italic tracking-widest uppercase">AkAI WRITE</span>
-           </div>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-8">
+            <span className="text-3xl font-black italic tracking-widest uppercase opacity-30">AkAI</span>
+          </div>
         )}
       </div>
 
-      {/* Action Bar - Floating style when suggestions present */}
+      {/* Action Bar */}
       {hasAnySuggestions && selectedHwSuggestion && (
-        <div className="shrink-0 px-4 py-3 border-t bg-black/40 backdrop-blur-md border-white/10">
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button onClick={confirmHwSuggestion} className="w-full h-10 gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-xl shadow-cyan-500/20" size="sm">
-              <CheckCircle2 className="w-4 h-4" />
-              Insert &quot;{selectedHwSuggestion.length > 25 ? selectedHwSuggestion.substring(0, 25) + '...' : selectedHwSuggestion}&quot;
-            </Button>
-          </motion.div>
+        <div className="shrink-0 px-3 py-2 border-t bg-black/40 backdrop-blur-md border-white/10">
+          <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+            onClick={confirmHwSuggestion}
+            className="w-full h-9 gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl shadow-xl shadow-cyan-500/20 flex items-center justify-center">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Insert &quot;{selectedHwSuggestion.length > 22 ? selectedHwSuggestion.substring(0, 22) + '...' : selectedHwSuggestion}&quot;
+          </motion.button>
         </div>
       )}
     </div>

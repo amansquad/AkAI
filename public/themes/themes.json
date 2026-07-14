@@ -1,0 +1,190 @@
+[
+  {
+    "id": "candy",
+    "name": "Candy",
+    "emoji": "🍬",
+    "description": "Sweet pink and purple gradients",
+    "category": "solid",
+    "isPremium": false,
+    "size": 512,
+    "liveTheme": null
+  },
+  {
+    "id": "sunset",
+    "name": "Sunset Glow",
+    "emoji": "🌇",
+    "description": "Warm sunset colors with live fire animation",
+    "category": "live",
+    "isPremium": false,
+    "size": 768,
+    "liveTheme": "fire"
+  },
+  {
+    "id": "forest",
+    "name": "Forest",
+    "emoji": "🌿",
+    "description": "Deep forest green tones",
+    "category": "solid",
+    "isPremium": false,
+    "size": 512
+  },
+  {
+    "id": "rose",
+    "name": "Rose",
+    "emoji": "🌸",
+    "description": "Elegant rose pink palette",
+    "category": "solid",
+    "isPremium": false,
+    "size": 512
+  },
+  {
+    "id": "rainbow",
+    "name": "Rainbow",
+    "emoji": "🌈",
+    "description": "Vibrant rainbow animation",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "rainbow"
+  },
+  {
+    "id": "fire",
+    "name": "Fire",
+    "emoji": "🔥",
+    "description": "Blazing fire animation",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "fire"
+  },
+  {
+    "id": "galaxy",
+    "name": "Galaxy",
+    "emoji": "🪐",
+    "description": "Purple galaxy with aurora effects",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "aurora"
+  },
+  {
+    "id": "waterfall",
+    "name": "Waterfall",
+    "emoji": "💧",
+    "description": "Flowing water animation",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "ocean"
+  },
+  {
+    "id": "autumn",
+    "name": "Autumn",
+    "emoji": "🍂",
+    "description": "Warm autumn leaves with fire effects",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "fire"
+  },
+  {
+    "id": "cyberpunk",
+    "name": "Cyberpunk",
+    "emoji": "🤖",
+    "description": "Futuristic neon pink and cyan",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "matrix"
+  },
+  {
+    "id": "snowfall",
+    "name": "Snowfall",
+    "emoji": "❄️",
+    "description": "Icy blue with aurora animation",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "aurora"
+  },
+  {
+    "id": "bubbles",
+    "name": "Bubbles",
+    "emoji": "🫧",
+    "description": "Underwater bubbles animation",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "ocean"
+  },
+  {
+    "id": "plasma",
+    "name": "Plasma",
+    "emoji": "🧪",
+    "description": "Electric plasma effects",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "fire"
+  },
+  {
+    "id": "deep-sea",
+    "name": "Deep Sea",
+    "emoji": "🦑",
+    "description": "Deep ocean with teal highlights",
+    "category": "live",
+    "isPremium": false,
+    "size": 1024,
+    "liveTheme": "ocean"
+  },
+  {
+    "id": "matrix",
+    "name": "Matrix Rain",
+    "emoji": "🌧️",
+    "description": "Digital green matrix code rain",
+    "category": "live",
+    "isPremium": true,
+    "size": 2048,
+    "liveTheme": "matrix"
+  },
+  {
+    "id": "aurora",
+    "name": "Aurora Borealis",
+    "emoji": "🌌",
+    "description": "Stunning polar lights sky",
+    "category": "live",
+    "isPremium": true,
+    "size": 2048,
+    "liveTheme": "aurora"
+  },
+  {
+    "id": "lava",
+    "name": "Volcanic Lava",
+    "emoji": "🌋",
+    "description": "Flowing magma background",
+    "category": "live",
+    "isPremium": true,
+    "size": 2048,
+    "liveTheme": "lava"
+  },
+  {
+    "id": "neon-pulse",
+    "name": "Neon Pulse",
+    "emoji": "💫",
+    "description": "Pulsing neon glowing lines",
+    "category": "live",
+    "isPremium": true,
+    "size": 1536,
+    "liveTheme": "neon-pulse"
+  },
+  {
+    "id": "solar",
+    "name": "Solar Flare",
+    "emoji": "☀️",
+    "description": "Intense solar fire animation",
+    "category": "live",
+    "isPremium": true,
+    "size": 2048,
+    "liveTheme": "solar"
+  }
+]

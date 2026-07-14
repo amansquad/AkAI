@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'faith_themes.dart';
@@ -22,6 +24,7 @@ class AkaiPalette {
   final Color accentMuted;
   final Color glow;
   final String name;
+  final String id;
   final String emoji;
   final String? liveTheme;
   final String category;
@@ -42,10 +45,56 @@ class AkaiPalette {
     required this.accentMuted,
     required this.glow,
     required this.name,
+    required this.id,
     required this.emoji,
     this.liveTheme,
     this.category = 'solid',
   });
+
+  static Future<AkaiPalette?> loadFromFile(File file, String themeId) async {
+    if (!await file.exists()) {
+      // Fallback: check if it's a native theme
+      try {
+        final native = CulturalPalettes.all.firstWhere((t) => t.id == themeId);
+        return native;
+      } catch (_) {
+        try {
+          final native = FaithPalettes.all.firstWhere((t) => t.id == themeId);
+          return native;
+        } catch (_) {}
+      }
+      return null;
+    }
+    
+    final String contents = await file.readAsString();
+    final Map<String, dynamic> json = jsonDecode(contents);
+    
+    return _parseThemeFromJson(json);
+  }
+
+  static AkaiPalette _parseThemeFromJson(Map<String, dynamic> json) {
+    return AkaiPalette(
+      name: json['name'] as String,
+      id: json['id'] as String? ?? (json['name'] as String).toLowerCase().replaceAll(' ', '-'),
+      emoji: json['emoji'] as String,
+      background: Color(json['background'] as int),
+      surface: Color(json['surface'] as int),
+      surfaceVariant: Color(json['surfaceVariant'] as int),
+      key: Color(json['key'] as int),
+      keyPressed: Color(json['keyPressed'] as int),
+      keySecondary: Color(json['keySecondary'] as int),
+      keySecondaryPressed: Color(json['keySecondaryPressed'] as int),
+      keyAccent: Color(json['keyAccent'] as int),
+      keyAccentPressed: Color(json['keyAccentPressed'] as int),
+      keyText: Color(json['keyText'] as int),
+      keySecondaryText: Color(json['keySecondaryText'] as int),
+      accent: Color(json['accent'] as int),
+      accentMuted: Color(json['accentMuted'] as int),
+      glow: Color(json['glow'] as int),
+      liveTheme: json['liveTheme'] as String?,
+      category: json['category'] as String? ?? 'solid',
+    );
+  }
 }
 
 
@@ -54,6 +103,7 @@ class AkaiThemes {
   // Core themes (built-in)
   static const akaiObsidian = AkaiPalette(
     name: 'Obsidian',
+    id: 'obsidian',
     emoji: '⬛',
     liveTheme: 'aurora',
     category: 'live',
@@ -75,6 +125,7 @@ class AkaiThemes {
 
   static const akaiLight = AkaiPalette(
     name: 'Light',
+    id: 'light',
     emoji: '☁️',
     background: Color(0xFFF5F5F7),
     surface: Color(0xFFFFFFFF),
@@ -94,6 +145,7 @@ class AkaiThemes {
 
   static const akaiOcean = AkaiPalette(
     name: 'Ocean Wave',
+    id: 'ocean-wave',
     emoji: '🌊',
     liveTheme: 'ocean',
     category: 'live',
@@ -115,6 +167,7 @@ class AkaiThemes {
 
   static const akaiMint = AkaiPalette(
     name: 'Mint',
+    id: 'mint',
     emoji: '🍃',
     background: Color(0xFF0D1F1A),
     surface: Color(0xFF142B24),
@@ -134,6 +187,7 @@ class AkaiThemes {
 
   static const akaiCandy = AkaiPalette(
     name: 'Candy',
+    id: 'candy',
     emoji: '🍬',
     background: Color(0xFF1A0D1F),
     surface: Color(0xFF26142B),
@@ -153,6 +207,7 @@ class AkaiThemes {
 
   static const akaiSunset = AkaiPalette(
     name: 'Sunset Glow',
+    id: 'sunset-glow',
     emoji: '🌇',
     liveTheme: 'fire',
     category: 'live',
@@ -174,6 +229,7 @@ class AkaiThemes {
 
   static const akaiMatrix = AkaiPalette(
     name: 'Matrix',
+    id: 'matrix',
     emoji: '🟩',
     liveTheme: 'matrix',
     category: 'live',
@@ -195,6 +251,7 @@ class AkaiThemes {
 
   static const akaiAurora = AkaiPalette(
     name: 'Aurora',
+    id: 'aurora',
     emoji: '🌌',
     liveTheme: 'aurora',
     category: 'live',
@@ -216,6 +273,7 @@ class AkaiThemes {
 
   static const akaiLava = AkaiPalette(
     name: 'Lava',
+    id: 'lava',
     emoji: '🌋',
     liveTheme: 'fire',
     category: 'live',
@@ -237,6 +295,7 @@ class AkaiThemes {
 
   static const akaiNeonPulse = AkaiPalette(
     name: 'Neon Pulse',
+    id: 'neon-pulse',
     emoji: '⚡',
     liveTheme: 'aurora',
     category: 'live',
@@ -258,6 +317,7 @@ class AkaiThemes {
 
   static const akaiForest = AkaiPalette(
     name: 'Forest',
+    id: 'forest',
     emoji: '🌿',
     background: Color(0xFF0A1810),
     surface: Color(0xFF122518),
@@ -277,6 +337,7 @@ class AkaiThemes {
 
   static const akaiRose = AkaiPalette(
     name: 'Rose',
+    id: 'rose',
     emoji: '🌸',
     background: Color(0xFF1F0F1A),
     surface: Color(0xFF2A1825),
@@ -296,6 +357,7 @@ class AkaiThemes {
 
   static const akaiRainbow = AkaiPalette(
     name: 'Rainbow',
+    id: 'rainbow',
     emoji: '🌈',
     liveTheme: 'rainbow',
     category: 'live',
@@ -317,6 +379,7 @@ class AkaiThemes {
 
   static const akaiFire = AkaiPalette(
     name: 'Fire',
+    id: 'fire',
     emoji: '🔥',
     liveTheme: 'fire',
     category: 'live',
@@ -338,6 +401,7 @@ class AkaiThemes {
 
   static const akaiGalaxy = AkaiPalette(
     name: 'Galaxy',
+    id: 'galaxy',
     emoji: '🪐',
     liveTheme: 'aurora',
     category: 'live',
@@ -359,12 +423,13 @@ class AkaiThemes {
 
   static const akaiWaterfall = AkaiPalette(
     name: 'Waterfall',
+    id: 'waterfall',
     emoji: '💧',
-    liveTheme: 'ocean',
+    liveTheme: 'aurora',
     category: 'live',
-    background: Color(0xA0042F2E), // teal-950
-    surface: Color(0xA0134E4A),
-    surfaceVariant: Color(0xA0115E59),
+    background: Color(0xA0020617), // slate-950
+    surface: Color(0xA00F172A),
+    surfaceVariant: Color(0xA01E293B),
     key: Color(0xA0115E59),
     keyPressed: Color(0xA00891B2), // cyan-600
     keySecondary: Color(0xA00F766E),
@@ -380,12 +445,13 @@ class AkaiThemes {
 
   static const akaiAutumn = AkaiPalette(
     name: 'Autumn',
+    id: 'autumn',
     emoji: '🍂',
-    liveTheme: 'fire',
+    liveTheme: 'aurora',
     category: 'live',
-    background: Color(0xA0431407), // orange-950
-    surface: Color(0xA07C2D12),
-    surfaceVariant: Color(0xA09A3412),
+    background: Color(0xA0020617),
+    surface: Color(0xA00F172A),
+    surfaceVariant: Color(0xA01E293B),
     key: Color(0xA09A3412),
     keyPressed: Color(0xA0D97706), // amber-600
     keySecondary: Color(0xA0C2410C),
@@ -401,8 +467,9 @@ class AkaiThemes {
 
   static const akaiCyberpunk = AkaiPalette(
     name: 'Cyberpunk',
+    id: 'cyberpunk',
     emoji: '🤖',
-    liveTheme: 'matrix',
+    liveTheme: 'cyberpunk',
     category: 'live',
     background: Color(0xA0030712), // gray-950
     surface: Color(0xA0111827),
@@ -422,6 +489,7 @@ class AkaiThemes {
 
   static const akaiSnowfall = AkaiPalette(
     name: 'Snowfall',
+    id: 'snowfall',
     emoji: '❄️',
     liveTheme: 'aurora',
     category: 'live',
@@ -443,6 +511,7 @@ class AkaiThemes {
 
   static const akaiBubbles = AkaiPalette(
     name: 'Bubbles',
+    id: 'bubbles',
     emoji: '🫧',
     liveTheme: 'ocean',
     category: 'live',
@@ -464,6 +533,7 @@ class AkaiThemes {
 
   static const akaiPlasma = AkaiPalette(
     name: 'Plasma',
+    id: 'plasma',
     emoji: '🧪',
     liveTheme: 'fire',
     category: 'live',
@@ -485,6 +555,7 @@ class AkaiThemes {
 
   static const akaiDeepSea = AkaiPalette(
     name: 'Deep Sea',
+    id: 'deep-sea',
     emoji: '🦑',
     liveTheme: 'ocean',
     category: 'live',
@@ -505,7 +576,7 @@ class AkaiThemes {
   );
 
   // Core built-in themes + all downloadable themes
-  static const all = [
+  static final List<AkaiPalette> all = [
     // Faith
     ...FaithPalettes.all,
     // Cultural & Teams
@@ -546,6 +617,7 @@ class AkaiThemes {
 
   static const akaiFireflies = AkaiPalette(
     name: 'Fireflies',
+    id: 'fireflies',
     emoji: '🧚',
     liveTheme: 'fireflies_live',
     background: Color(0xFF031D03),
@@ -566,6 +638,7 @@ class AkaiThemes {
 
   static const akaiBinaryRain = AkaiPalette(
     name: 'Binary Rain',
+    id: 'binary-rain',
     emoji: '🔢',
     liveTheme: 'binary_rain_live',
     background: Color(0xFF020617),
@@ -586,6 +659,7 @@ class AkaiThemes {
 
   static const akaiGeometricFlow = AkaiPalette(
     name: 'Geometric Flow',
+    id: 'geometric-flow',
     emoji: '📐',
     liveTheme: 'geometric_flow_live',
     background: Color(0xFF0A0A0A),
@@ -606,6 +680,7 @@ class AkaiThemes {
 
   static const akaiNebula = AkaiPalette(
     name: 'Nebula Space',
+    id: 'nebula',
     emoji: '🌌',
     liveTheme: 'nebula_live',
     background: Color(0xFF1E1B4B),
@@ -626,6 +701,7 @@ class AkaiThemes {
 
   static const akaiOceanWaves = AkaiPalette(
     name: 'Ocean Waves',
+    id: 'ocean-waves',
     emoji: '🌊',
     liveTheme: 'ocean_waves_live',
     background: Color(0xFF083344),
@@ -646,6 +722,7 @@ class AkaiThemes {
 
   static const akaiLavaLamp = AkaiPalette(
     name: 'Lava Lamp',
+    id: 'lava-lamp',
     emoji: '🌋',
     liveTheme: 'lava_lamp_live',
     background: Color(0xFF451A03),
@@ -666,6 +743,7 @@ class AkaiThemes {
 
   static const akaiCircuitBoard = AkaiPalette(
     name: 'Circuit Board',
+    id: 'circuit-board',
     emoji: '🔌',
     liveTheme: 'circuit_board_live',
     background: Color(0xFF020617),

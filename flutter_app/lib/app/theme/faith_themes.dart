@@ -8,7 +8,7 @@ import 'app_theme.dart' show AkaiPalette;
 /// Note: These are simple palettes; you can refine colors later.
 class FaithPalettes {
   static const akaiEthiopianOrthodox = AkaiPalette(
-    name: 'Ethiopian Orthodox',
+    name: 'Ethiopian Orthodox', id: 'faith_orthodox',
     emoji: '✝️',
     liveTheme: 'ortho_maryam',
     background: Color(0xFF1B0F2E),
@@ -28,7 +28,7 @@ class FaithPalettes {
   );
 
   static const akaiMaryamIcon = AkaiPalette(
-    name: 'Holy Maryam',
+    name: 'Holy Maryam', id: 'faith_maryam',
     emoji: '🙏',
     liveTheme: 'ortho_maryam',
     background: Color(0xFF0F172A),
@@ -48,7 +48,7 @@ class FaithPalettes {
   );
 
   static const akaiMeskel = AkaiPalette(
-    name: 'Meskel Fire',
+    name: 'Meskel Fire', id: 'faith_meskel',
     emoji: '🔥',
     liveTheme: 'ortho_meskel',
     background: Color(0xFF450A0A),
@@ -68,7 +68,7 @@ class FaithPalettes {
   );
 
   static const akaiNajashi = AkaiPalette(
-    name: 'Al-Najashi',
+    name: 'Al-Najashi', id: 'faith_najashi',
     emoji: '🕌',
     liveTheme: 'islam_najashi',
     background: Color(0xFF064E3B),
@@ -88,7 +88,7 @@ class FaithPalettes {
   );
 
   static const akaiIslamicHarar = AkaiPalette(
-    name: 'Harar Jegol',
+    name: 'Harar Jegol', id: 'faith_harar',
     emoji: '🕌',
     liveTheme: 'islam_harar',
     background: Color(0xFF1E3A8A),
@@ -108,7 +108,7 @@ class FaithPalettes {
   );
 
   static const akaiLanterns = AkaiPalette(
-    name: 'Ramadan Lanterns',
+    name: 'Ramadan Lanterns', id: 'faith_ramadan',
     emoji: '🏮',
     liveTheme: 'islam_lantern',
     background: Color(0xFF020617),
@@ -128,7 +128,7 @@ class FaithPalettes {
   );
 
   static const akaiTimkat = AkaiPalette(
-    name: 'Timkat Holy',
+    name: 'Timkat Holy', id: 'faith_timkat',
     emoji: '🕊️',
     liveTheme: 'ortho_timkat',
     background: Color(0xFF1E3A8A),
@@ -147,7 +147,7 @@ class FaithPalettes {
     glow: Color(0xFFFDE047),
   );
 
-  static const all = [
+  static final List<AkaiPalette> all = [
     akaiEthiopianOrthodox,
     akaiMaryamIcon,
     akaiMeskel,
