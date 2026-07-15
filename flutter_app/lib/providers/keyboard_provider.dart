@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/clipboard_item.dart';
 import '../app/keyboard/english_dictionary.dart';
+import '../app/keyboard/keyboard_service.dart';
+import '../services/gif_service.dart';
 
 enum KeyboardMode {
   keyboard,
@@ -86,8 +89,95 @@ class KeyboardProvider with ChangeNotifier {
   bool get isSearching => _isSearching;
   KeyboardMode get searchSourceMode => _searchSourceMode;
 
-  KeyboardProvider() {
+  KeyboardProvider({this.imeMode = false}) {
     _loadStoredData();
+    if (imeMode) _initImeBridge();
+  }
+
+  /// True when running inside the Android IME service. Every edit is then
+  /// also committed to the focused app through the platform channel — the
+  /// local [_text] acts as a mirror used for suggestions and auto-shift.
+  final bool imeMode;
+  final AkaiKeyboardService ime = AkaiKeyboardService();
+
+  bool _autoCapEnabled = true;
+  bool _hapticsEnabled = true;
+  DateTime? _lastSpaceAt;
+  Map<String, int> _learnedWords = {};
+
+  void _initImeBridge() {
+    ime.initialize();
+    ime.editorStream.listen((_) => _onInputStart());
+  }
+
+  /// A new field gained focus: seed the mirror with the field's existing
+  /// text and refresh setting mirrors (they may have changed in the app).
+  Future<void> _onInputStart() async {
+    await _reloadTypingSettings();
+    final ctx = await ime.getCursorContext();
+    _text = ctx?['textBefore'] ?? '';
+    _lastSpaceAt = null;
+    _capsLockActive = false;
+    _shiftActive = false;
+    _updateAutoShift();
+    _updateSuggestions();
+    notifyListeners();
+  }
+
+  Future<void> _reloadTypingSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      _autoCapEnabled = prefs.getBool('auto_capitalization') ?? true;
+      _hapticsEnabled = prefs.getBool('vibrate_on_key_press') ?? true;
+    } catch (_) {}
+  }
+
+  void _haptic() {
+    if (!_hapticsEnabled) return;
+    if (imeMode) {
+      ime.playHaptic();
+    } else {
+      HapticFeedback.lightImpact();
+    }
+  }
+
+  /// Enable shift at sentence starts when auto-capitalization is on.
+  void _updateAutoShift() {
+    if (!_autoCapEnabled ||
+        _capsLockActive ||
+        _language != KeyboardLanguage.english) {
+      return;
+    }
+    if (_text.isEmpty ||
+        _text.endsWith('\n') ||
+        RegExp(r'[.!?]\s+$').hasMatch(_text)) {
+      _shiftActive = true;
+    }
+  }
+
+  // ── Personal dictionary ────────────────────────────────────────────────
+
+  void _learnLastWord() {
+    final m = RegExp(r'([A-Za-zሀ-፿]{3,})$').firstMatch(_text);
+    if (m != null) _learnWord(m.group(1)!);
+  }
+
+  void _learnWord(String word) {
+    final w = word.toLowerCase();
+    if (!RegExp(r'^[a-zሀ-፿]{3,}$').hasMatch(w)) return;
+    _learnedWords[w] = (_learnedWords[w] ?? 0) + 1;
+    if (_learnedWords.length > 600) {
+      final entries = _learnedWords.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      _learnedWords = Map.fromEntries(entries.take(400));
+    }
+    _saveLearnedWords();
+  }
+
+  Future<void> _saveLearnedWords() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('learned_words_v1', jsonEncode(_learnedWords));
   }
 
   void updateText(String newText) {
@@ -98,6 +188,7 @@ class KeyboardProvider with ChangeNotifier {
 
   void appendText(String addition) {
     _text += addition;
+    if (imeMode) ime.commitText(addition);
     _updateSuggestions();
     notifyListeners();
   }
@@ -118,6 +209,19 @@ class KeyboardProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Insert a GIF like Gboard does: as real inline image content when the
+  /// focused editor accepts image/gif (chat apps), otherwise fall back to
+  /// committing the Giphy link as text.
+  Future<void> insertGif(String url, {String title = 'GIF', String? id}) async {
+    if (imeMode && await ime.canCommitImage()) {
+      final path = await GifService.downloadToCache(url, id ?? title);
+      if (path != null && await ime.commitGifFile(path, description: title)) {
+        return;
+      }
+    }
+    appendText('$url ');
+  }
+
   void deleteCharacter() {
     if (_isSearching) {
       if (_searchQuery.isNotEmpty) {
@@ -126,11 +230,15 @@ class KeyboardProvider with ChangeNotifier {
       }
       return;
     }
+    _haptic();
     if (_text.isNotEmpty) {
       _text = _text.substring(0, _text.length - 1);
-      _updateSuggestions();
-      notifyListeners();
     }
+    // The focused app may hold more text than our mirror — always forward.
+    if (imeMode) ime.deleteText(1);
+    _updateAutoShift();
+    _updateSuggestions();
+    notifyListeners();
   }
 
   void insertCharacter(String char) {
@@ -140,7 +248,8 @@ class KeyboardProvider with ChangeNotifier {
         finalChar = char.toUpperCase();
       }
     }
-    
+
+    _haptic();
     if (_isSearching) {
       _searchQuery += finalChar;
       notifyListeners();
@@ -148,9 +257,11 @@ class KeyboardProvider with ChangeNotifier {
     }
 
     _text += finalChar;
+    if (imeMode) ime.commitText(finalChar);
     if (_shiftActive && !_capsLockActive) {
       _shiftActive = false;
     }
+    _updateAutoShift();
     _updateSuggestions();
     notifyListeners();
   }
@@ -161,7 +272,30 @@ class KeyboardProvider with ChangeNotifier {
       notifyListeners();
       return;
     }
-    _text += ' ';
+    _haptic();
+
+    // Double-space within 450ms turns "word " into "word. "
+    final now = DateTime.now();
+    final isDoubleSpace = _lastSpaceAt != null &&
+        now.difference(_lastSpaceAt!) < const Duration(milliseconds: 450) &&
+        _text.length >= 2 &&
+        _text.endsWith(' ') &&
+        RegExp(r'[A-Za-z0-9ሀ-፿]').hasMatch(_text[_text.length - 2]);
+
+    if (isDoubleSpace) {
+      _text = '${_text.substring(0, _text.length - 1)}. ';
+      if (imeMode) {
+        ime.deleteText(1);
+        ime.commitText('. ');
+      }
+      _lastSpaceAt = null;
+    } else {
+      _learnLastWord();
+      _text += ' ';
+      if (imeMode) ime.commitText(' ');
+      _lastSpaceAt = now;
+    }
+    _updateAutoShift();
     _updateSuggestions();
     notifyListeners();
   }
@@ -171,7 +305,13 @@ class KeyboardProvider with ChangeNotifier {
       finishSearch(_searchSourceMode);
       return;
     }
+    _haptic();
+    _learnLastWord();
     _text += '\n';
+    // Let the editor decide: performs its IME action (search/send/…) or
+    // inserts a newline when no action is set.
+    if (imeMode) ime.performAction('enter');
+    _updateAutoShift();
     _updateSuggestions();
     notifyListeners();
   }
@@ -228,13 +368,22 @@ class KeyboardProvider with ChangeNotifier {
   }
 
   void applySuggestion(String suggestion) {
-    final words = _text.trim().split(RegExp(r'\s+'));
-    if (words.isNotEmpty && words.last.isNotEmpty && !_text.endsWith(' ')) {
-      words[words.length - 1] = suggestion;
-      _text = '${words.join(' ')} ';
-    } else {
-      _text += '$suggestion ';
+    _haptic();
+    // Replace the word currently being typed (if any) with the suggestion.
+    String lastWord = '';
+    if (!_text.endsWith(' ') && !_text.endsWith('\n')) {
+      lastWord = RegExp(r'(\S+)$').firstMatch(_text)?.group(1) ?? '';
     }
+    if (lastWord.isNotEmpty) {
+      _text = _text.substring(0, _text.length - lastWord.length);
+    }
+    _text += '$suggestion ';
+    if (imeMode) {
+      if (lastWord.isNotEmpty) ime.deleteText(lastWord.length);
+      ime.commitText('$suggestion ');
+    }
+    _learnWord(suggestion);
+    _updateAutoShift();
     _updateSuggestions();
     notifyListeners();
   }
@@ -290,7 +439,14 @@ class KeyboardProvider with ChangeNotifier {
 
     final List<String> matches = [];
 
-    // 1. Emoji Matches (Exact keyword match)
+    // 1. Personal dictionary: words this user actually types, best first
+    final personal = _learnedWords.keys
+        .where((word) => word.startsWith(lastWord) && word != lastWord)
+        .toList()
+      ..sort((a, b) => _learnedWords[b]!.compareTo(_learnedWords[a]!));
+    matches.addAll(personal.take(3));
+
+    // 2. Emoji Matches (Exact keyword match)
     if (wordToEmoji.containsKey(lastWord)) {
       matches.addAll(wordToEmoji[lastWord]!);
     }
@@ -332,6 +488,16 @@ class KeyboardProvider with ChangeNotifier {
 
     _recentEmojis = prefs.getStringList('recent_emojis') ?? [];
     _recentGifs = prefs.getStringList('recent_gifs') ?? [];
+
+    final learned = prefs.getString('learned_words_v1');
+    if (learned != null) {
+      try {
+        _learnedWords = Map<String, int>.from(jsonDecode(learned));
+      } catch (_) {}
+    }
+    _autoCapEnabled = prefs.getBool('auto_capitalization') ?? true;
+    _hapticsEnabled = prefs.getBool('vibrate_on_key_press') ?? true;
+    _updateAutoShift();
     notifyListeners();
   }
 

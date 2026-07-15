@@ -219,4 +219,31 @@ class AkaiKeyboardService {
       // ignored
     }
   }
+
+  /// Whether the focused editor accepts inline image/gif content
+  /// (Commit Content API — supported by most chat apps).
+  Future<bool> canCommitImage() async {
+    try {
+      final res = await _channel.invokeMethod('canCommitImage');
+      return res == true;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
+  /// Insert a local GIF file as real inline content. Returns false when the
+  /// editor rejects it so callers can fall back to committing the URL.
+  Future<bool> commitGifFile(String path, {String description = 'GIF'}) async {
+    try {
+      final res = await _channel.invokeMethod(
+          'commitGif', {'path': path, 'description': description});
+      return res == true;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
 }

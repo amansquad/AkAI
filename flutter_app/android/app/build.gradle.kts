@@ -35,6 +35,11 @@ kotlin {
     }
 }
 
+dependencies {
+    // FileProvider + InputConnectionCompat for inline GIF commit
+    implementation("androidx.core:core-ktx:1.13.1")
+}
+
 flutter {
     source = "../.."
 }

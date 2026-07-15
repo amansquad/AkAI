@@ -53,6 +53,10 @@ class SettingsProvider with ChangeNotifier {
     _loadSettings();
   }
 
+  /// Re-read persisted settings from disk (used by the IME on open so
+  /// changes made in the companion app apply immediately).
+  Future<void> reload() => _loadSettings();
+
   void setVibrateOnKeyPress(bool value) {
     _vibrateOnKeyPress = value;
     _saveSettings();
@@ -130,6 +134,7 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     _vibrateOnKeyPress = prefs.getBool('vibrate_on_key_press') ?? true;
     _soundOnKeyPress = prefs.getBool('sound_on_key_press') ?? true;
     _autoCapitalization = prefs.getBool('auto_capitalization') ?? true;

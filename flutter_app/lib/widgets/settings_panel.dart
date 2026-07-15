@@ -137,6 +137,8 @@ class SettingsPanel extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
+                      _buildHeightSelector(settings, theme),
+                      const SizedBox(height: 16),
                       _buildSliderTile('Glass Opacity', settings.backgroundOpacity, 0.05, 0.6, (v) => settings.setBackgroundOpacity(v), theme, Icons.blur_on_rounded),
                       const SizedBox(height: 16),
                       _buildSliderTile('Vibe Intensity', settings.vibrationIntensity, 0.1, 1.0, (v) => settings.setVibrationIntensity(v), theme, Icons.vibration_rounded),
@@ -150,6 +152,60 @@ class SettingsPanel extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeightSelector(SettingsProvider settings, AkaiPalette theme) {
+    const options = [
+      ('Compact', 0.85),
+      ('Normal', 1.0),
+      ('Tall', 1.15),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.height_rounded, size: 14, color: theme.accent.withOpacity(0.6)),
+            const SizedBox(width: 8),
+            Text('Keyboard Height',
+                style: TextStyle(color: theme.keyText, fontSize: 13, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: options.map((opt) {
+            final selected = (settings.keyboardHeight - opt.$2).abs() < 0.01;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => settings.setKeyboardHeight(opt.$2),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? theme.accent.withOpacity(0.2) : theme.surfaceVariant.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected ? theme.accent : Colors.transparent,
+                      width: 1.4,
+                    ),
+                  ),
+                  child: Text(
+                    opt.$1,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: selected ? theme.accent : theme.keySecondaryText,
+                      fontSize: 12,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 

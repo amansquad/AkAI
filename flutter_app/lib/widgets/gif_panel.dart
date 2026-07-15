@@ -1,10 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../providers/keyboard_provider.dart';
 import '../providers/theme_provider.dart';
+import '../services/gif_service.dart';
 import '../app/theme/app_theme.dart';
 
 class GifPanel extends StatefulWidget {
@@ -27,67 +25,6 @@ class _GifPanelState extends State<GifPanel> {
     _loadGifs();
   }
 
-  // Optional Tenor v2 API key (free at https://developers.google.com/tenor).
-  // When empty, the panel falls back to keyless animated emoji GIFs.
-  static const String _tenorApiKey = '';
-
-  // Animated emoji sets served from Google's keyless Noto emoji CDN.
-  // Each entry: emoji char, Noto codepoint path, label + search keywords.
-  static const List<Map<String, String>> _emojiGifCatalog = [
-    {'e': '😂', 'c': '1f602', 't': 'LOL!', 'k': 'laugh funny lol haha joy'},
-    {'e': '🤣', 'c': '1f923', 't': 'Rolling!', 'k': 'laugh funny rofl haha'},
-    {'e': '🥰', 'c': '1f970', 't': 'Adore', 'k': 'love adore heart cute'},
-    {'e': '😍', 'c': '1f60d', 't': 'Love it!', 'k': 'love heart eyes wow'},
-    {'e': '😘', 'c': '1f618', 't': 'Muah!', 'k': 'love kiss muah'},
-    {'e': '🥳', 'c': '1f973', 't': 'Party!', 'k': 'party celebrate birthday yay'},
-    {'e': '🎉', 'c': '1f389', 't': 'Congrats!', 'k': 'party celebrate congrats confetti'},
-    {'e': '🔥', 'c': '1f525', 't': 'Fire!', 'k': 'fire lit hot cool'},
-    {'e': '✨', 'c': '2728', 't': 'Sparkle', 'k': 'sparkle magic shine cool'},
-    {'e': '💯', 'c': '1f4af', 't': '100!', 'k': 'hundred perfect cool score'},
-    {'e': '😎', 'c': '1f60e', 't': 'Cool', 'k': 'cool sunglasses chill'},
-    {'e': '🤩', 'c': '1f929', 't': 'Starstruck', 'k': 'wow star amazing omg'},
-    {'e': '😭', 'c': '1f62d', 't': 'Crying!', 'k': 'sad cry tears'},
-    {'e': '🥺', 'c': '1f97a', 't': 'Please!', 'k': 'sad please pleading cute'},
-    {'e': '😢', 'c': '1f622', 't': 'So sad', 'k': 'sad cry tear'},
-    {'e': '😡', 'c': '1f621', 't': 'Furious', 'k': 'angry mad rage'},
-    {'e': '🤔', 'c': '1f914', 't': 'Hmm...', 'k': 'think hmm wonder'},
-    {'e': '😴', 'c': '1f634', 't': 'Zzz', 'k': 'sleep tired zzz night'},
-    {'e': '👋', 'c': '1f44b', 't': 'Hello!', 'k': 'hello hi bye wave'},
-    {'e': '👍', 'c': '1f44d', 't': 'Nice!', 'k': 'ok yes thumbs good nice'},
-    {'e': '👏', 'c': '1f44f', 't': 'Bravo!', 'k': 'clap bravo congrats'},
-    {'e': '🙏', 'c': '1f64f', 't': 'Thanks!', 'k': 'thanks thank you pray please'},
-    {'e': '💪', 'c': '1f4aa', 't': 'Strong!', 'k': 'strong flex power gym'},
-    {'e': '🕺', 'c': '1f57a', 't': 'Dance!', 'k': 'dance party groove'},
-    {'e': '💃', 'c': '1f483', 't': 'Dancing', 'k': 'dance party salsa'},
-    {'e': '🤗', 'c': '1f917', 't': 'Hugs!', 'k': 'hug love warm'},
-    {'e': '😅', 'c': '1f605', 't': 'Phew!', 'k': 'laugh sweat awkward phew'},
-    {'e': '🤯', 'c': '1f92f', 't': 'Mind blown', 'k': 'wow omg shocked mind'},
-    {'e': '😉', 'c': '1f609', 't': 'Wink', 'k': 'wink flirt hey'},
-    {'e': '⚽', 'c': '26bd', 't': 'Goal!', 'k': 'football soccer goal sport'},
-  ];
-
-  List<Map<String, dynamic>> _emojiGifs(String? query) {
-    final q = (query ?? '').toLowerCase().trim();
-    final matches = q.isEmpty
-        ? _emojiGifCatalog
-        : _emojiGifCatalog
-            .where((it) =>
-                it['k']!.contains(q) ||
-                it['t']!.toLowerCase().contains(q) ||
-                q.split(' ').any((word) => word.isNotEmpty && it['k']!.contains(word)))
-            .toList();
-    final list = matches.isEmpty ? _emojiGifCatalog : matches;
-    return list
-        .map<Map<String, dynamic>>((it) => {
-              'id': 'noto_${it['c']}',
-              'title': it['t']!,
-              'emoji': it['e']!,
-              'url':
-                  'https://fonts.gstatic.com/s/e/notoemoji/latest/${it['c']}/512.webp',
-            })
-        .toList();
-  }
-
   Future<void> _loadGifs({String? query}) async {
     setState(() => _loading = true);
 
@@ -102,48 +39,13 @@ class _GifPanelState extends State<GifPanel> {
       return;
     }
 
-    // Live Tenor GIFs when an API key is configured
-    if (_tenorApiKey.isNotEmpty) {
-      try {
-        final uri = query != null && query.isNotEmpty
-            ? Uri.parse(
-                'https://tenor.googleapis.com/v2/search?q=${Uri.encodeComponent(query)}&key=$_tenorApiKey&client_key=akai_keyboard&limit=24&media_filter=tinygif&contentfilter=medium')
-            : Uri.parse(
-                'https://tenor.googleapis.com/v2/featured?key=$_tenorApiKey&client_key=akai_keyboard&limit=24&media_filter=tinygif&contentfilter=medium');
+    final results = (query != null && query.isNotEmpty)
+        ? await GifService.search(query)
+        : await GifService.byCategory(_activeCategory);
 
-        final response = await http.get(uri).timeout(const Duration(seconds: 8));
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body) as Map<String, dynamic>;
-          final results = (data['results'] as List<dynamic>? ?? []);
-          final gifs = <Map<String, dynamic>>[];
-          for (final item in results) {
-            final url = ((item['media_formats']
-                as Map<String, dynamic>?)?['tinygif']
-                as Map<String, dynamic>?)?['url'] as String?;
-            if (url == null) continue;
-            gifs.add({
-              'id': item['id'] ?? url,
-              'title': (item['content_description'] as String?) ?? 'GIF',
-              'url': url,
-            });
-          }
-          if (gifs.isNotEmpty && mounted) {
-            setState(() {
-              _gifs = gifs;
-              _loading = false;
-            });
-            return;
-          }
-        }
-      } catch (e) {
-        debugPrint('GifPanel: Tenor failed, using emoji GIFs: $e');
-      }
-    }
-
-    // Keyless fallback: animated emoji GIFs
     if (mounted) {
       setState(() {
-        _gifs = _emojiGifs(query);
+        _gifs = results;
         _loading = false;
       });
     }
@@ -199,8 +101,8 @@ class _GifPanelState extends State<GifPanel> {
                       child: Text(
                         provider.searchQuery.isEmpty ? 'Search Giphy...' : provider.searchQuery,
                         style: TextStyle(
-                          color: provider.searchQuery.isEmpty 
-                            ? theme.keySecondaryText.withOpacity(0.5) 
+                          color: provider.searchQuery.isEmpty
+                            ? theme.keySecondaryText.withOpacity(0.5)
                             : theme.keyText,
                           fontSize: 13,
                         ),
@@ -218,15 +120,18 @@ class _GifPanelState extends State<GifPanel> {
           ),
 
           // Categories
-          Container(
+          SizedBox(
             height: 36,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
                 _buildTab('Recent', theme, Icons.history),
                 const SizedBox(width: 8),
-                _buildTab('Trending', theme, Icons.trending_up),
-                const SizedBox(width: 8),
+                for (final cat in GifService.categories) ...[
+                  _buildTab(cat, theme, _categoryIcon(cat)),
+                  const SizedBox(width: 8),
+                ],
                 if (_activeCategory == 'Search')
                   _buildTab('Results', theme, Icons.search),
               ],
@@ -259,12 +164,12 @@ class _GifPanelState extends State<GifPanel> {
                         final gif = _gifs[index];
                         return GestureDetector(
                           onTap: () {
-                            final emoji = gif['emoji'] as String?;
-                            if (emoji != null) {
-                              provider.appendText(emoji);
-                            } else {
-                              provider.appendText(' [GIF: ${gif['title']}] ');
-                            }
+                            // Inline image where supported, URL text elsewhere
+                            provider.insertGif(
+                              gif['url'] as String,
+                              title: (gif['title'] as String?) ?? 'GIF',
+                              id: '${gif['id']}',
+                            );
                             provider.addGifToRecent(gif['url']);
                             provider.setMode(KeyboardMode.keyboard);
                           },
@@ -279,23 +184,27 @@ class _GifPanelState extends State<GifPanel> {
                                 child: Stack(
                                   fit: StackFit.expand,
                                   children: [
-                                    Image.network(
-                                      gif['url'],
-                                      fit: BoxFit.cover,
-                                      loadingBuilder: (context, child, progress) {
-                                        if (progress == null) return child;
-                                        return Center(
-                                          child: CircularProgressIndicator(
-                                            value: progress.expectedTotalBytes != null
-                                                ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                                                : null,
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(theme.accent.withOpacity(0.3)),
-                                          ),
-                                        );
-                                      },
-                                      errorBuilder: (context, error, stackTrace) => Center(
-                                        child: Icon(Icons.broken_image_outlined, size: 30, color: theme.keySecondaryText),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.network(
+                                        gif['url'],
+                                        fit: BoxFit.cover,
+                                        gaplessPlayback: true,
+                                        loadingBuilder: (context, child, progress) {
+                                          if (progress == null) return child;
+                                          return Center(
+                                            child: CircularProgressIndicator(
+                                              value: progress.expectedTotalBytes != null
+                                                  ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                                                  : null,
+                                              strokeWidth: 2,
+                                              valueColor: AlwaysStoppedAnimation<Color>(theme.accent.withOpacity(0.3)),
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder: (context, error, stackTrace) => Center(
+                                          child: Icon(Icons.broken_image_outlined, size: 30, color: theme.keySecondaryText),
+                                        ),
                                       ),
                                     ),
                                     Positioned(
@@ -304,7 +213,10 @@ class _GifPanelState extends State<GifPanel> {
                                       right: 0,
                                       child: Container(
                                         padding: const EdgeInsets.all(4),
-                                        color: Colors.black.withOpacity(0.4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black45,
+                                          borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+                                        ),
                                         child: Text(
                                           gif['title'],
                                           style: const TextStyle(color: Colors.white, fontSize: 10),
@@ -324,6 +236,25 @@ class _GifPanelState extends State<GifPanel> {
         ],
       ),
     );
+  }
+
+  IconData _categoryIcon(String cat) {
+    switch (cat) {
+      case 'Trending':
+        return Icons.trending_up;
+      case 'Reactions':
+        return Icons.emoji_emotions_outlined;
+      case 'Hype':
+        return Icons.celebration_outlined;
+      case 'Funny':
+        return Icons.sentiment_very_satisfied_outlined;
+      case 'Animals':
+        return Icons.pets_outlined;
+      case 'Mood':
+        return Icons.nightlight_outlined;
+      default:
+        return Icons.gif_box_outlined;
+    }
   }
 
   Widget _buildTab(String label, AkaiPalette theme, IconData icon) {

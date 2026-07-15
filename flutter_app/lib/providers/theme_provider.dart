@@ -16,6 +16,10 @@ class ThemeProvider with ChangeNotifier {
     _loadTheme();
   }
 
+  /// Re-read the persisted theme from disk. Used by the IME service so theme
+  /// changes made in the companion app apply the next time the keyboard opens.
+  Future<void> reload() => _loadTheme();
+
   void setTheme(AkaiPalette palette) {
     _currentPalette = palette;
     _saveTheme();
@@ -48,6 +52,9 @@ class ThemeProvider with ChangeNotifier {
     await loadDownloadedThemes();
     
     final prefs = await SharedPreferences.getInstance();
+    // The app and the IME are separate isolates with separate caches —
+    // re-read from disk so cross-process changes are seen.
+    await prefs.reload();
     final themeId = prefs.getString('current_theme_id') ?? 'akai-obsidian';
     
     // Try to find theme in all themes (bundled + downloaded)

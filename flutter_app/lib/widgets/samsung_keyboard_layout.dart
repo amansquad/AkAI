@@ -18,7 +18,12 @@ class _SamsungKeyboardLayoutState extends State<SamsungKeyboardLayout> {
   String? _longPressKey;
   Offset? _longPressPosition;
   String? _selectedConsonant;
+  String? _pressedKey; // for pressed-state visual feedback
   int _symbolPage = 0; // 0 = first page, 1 = second page
+
+  void _setPressed(String? key) {
+    if (_pressedKey != key) setState(() => _pressedKey = key);
+  }
 
   static const List<List<String>> qwertyRows = [
     ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
@@ -153,7 +158,9 @@ class _SamsungKeyboardLayoutState extends State<SamsungKeyboardLayout> {
     // Amharic (4 rows) + Number Row + Bottom = 6 rows. 6 * 52 = 312 (Overflow!)
     // We adjust height if row count > 5.
     final totalRows = (showNumberRow && !symbolsActive ? 1 : 0) + rows.length + 1;
-    final double keyHeight = totalRows > 5 ? 38.0 : 44.0;
+    final heightScale =
+        context.watch<SettingsProvider>().keyboardHeight.clamp(0.8, 1.25).toDouble();
+    final double keyHeight = (totalRows > 5 ? 38.0 : 44.0) * heightScale;
 
     return Stack(
       children: [
@@ -257,10 +264,14 @@ class _SamsungKeyboardLayoutState extends State<SamsungKeyboardLayout> {
     final label = provider.shiftActive ? key.toUpperCase() : key;
     final hasAlts = longPressAlternates.containsKey(key);
 
+    final isPressed = _pressedKey == key;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.0),
       child: GestureDetector(
         onTap: () => _handleKeyPress(context, key),
+        onTapDown: (_) => _setPressed(key),
+        onTapUp: (_) => _setPressed(null),
+        onTapCancel: () => _setPressed(null),
         onLongPressStart: (details) {
           if (hasAlts) {
             setState(() {
@@ -269,10 +280,19 @@ class _SamsungKeyboardLayoutState extends State<SamsungKeyboardLayout> {
             });
           }
         },
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 60),
           height: keyHeight,
+          transform: isPressed
+              ? (Matrix4.identity()..scale(0.94))
+              : Matrix4.identity(),
+          transformAlignment: Alignment.center,
           decoration: BoxDecoration(
-            color: theme.name == 'Matrix' ? theme.key.withOpacity(0.3) : theme.key,
+            color: isPressed
+                ? theme.keyPressed
+                : (theme.name == 'Matrix'
+                    ? theme.key.withOpacity(0.3)
+                    : theme.key),
             borderRadius: BorderRadius.circular(8),
             boxShadow: theme.name == 'Matrix' 
                 ? [BoxShadow(color: theme.accent.withOpacity(0.1), blurRadius: 2, spreadRadius: 0)]
@@ -332,14 +352,23 @@ class _SamsungKeyboardLayoutState extends State<SamsungKeyboardLayout> {
       );
     }
 
+    final isPressed = _pressedKey == key;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 1.2, vertical: 1.0),
       child: GestureDetector(
         onTap: () => _handleKeyPress(context, key),
-        child: Container(
+        onTapDown: (_) => _setPressed(key),
+        onTapUp: (_) => _setPressed(null),
+        onTapCancel: () => _setPressed(null),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 60),
           height: keyHeight,
+          transform: isPressed
+              ? (Matrix4.identity()..scale(0.94))
+              : Matrix4.identity(),
+          transformAlignment: Alignment.center,
           decoration: BoxDecoration(
-            color: theme.keySecondary,
+            color: isPressed ? theme.keySecondaryPressed : theme.keySecondary,
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(

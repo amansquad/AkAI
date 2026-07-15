@@ -107,6 +107,10 @@ class AkaiImeService : InputMethodService() {
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        // Frames (animations, setState rebuilds) are only pumped while the
+        // engine believes the app is resumed; without this the IME renders a
+        // single frame and then freezes.
+        flutterEngine?.lifecycleChannel?.appIsResumed()
         eventSink?.success(
             mapOf(
                 "type" to "inputStart",
@@ -116,6 +120,17 @@ class AkaiImeService : InputMethodService() {
                 "hintText" to info?.hintText?.toString()
             )
         )
+    }
+
+    override fun onWindowShown() {
+        super.onWindowShown()
+        flutterEngine?.lifecycleChannel?.appIsResumed()
+    }
+
+    override fun onWindowHidden() {
+        super.onWindowHidden()
+        // Stop pumping frames while the keyboard is off-screen to save battery.
+        flutterEngine?.lifecycleChannel?.appIsPaused()
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -247,6 +262,14 @@ class AkaiImeService : InputMethodService() {
                 flutterView?.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                 result.success(null)
             }
+            "canCommitImage" -> {
+                result.success(editorSupportsMime("image/gif"))
+            }
+            "commitGif" -> {
+                val path = call.argument<String>("path")
+                val description = call.argument<String>("description") ?: "GIF"
+                result.success(commitGifFile(path, description))
+            }
             "getEditorState" -> {
                 val info = currentInputEditorInfo
                 result.success(
@@ -272,6 +295,45 @@ class AkaiImeService : InputMethodService() {
                 result.success(null)
             }
             else -> result.notImplemented()
+        }
+    }
+
+    /** Whether the focused editor accepts rich content of the given mime type. */
+    private fun editorSupportsMime(mime: String): Boolean {
+        val info = currentInputEditorInfo ?: return false
+        val mimes = androidx.core.view.inputmethod.EditorInfoCompat.getContentMimeTypes(info)
+        return mimes.any { android.content.ClipDescription.compareMimeTypes(it, mime) }
+    }
+
+    /**
+     * Insert a GIF file as real inline content (like Gboard) via the
+     * Commit Content API. Returns false when the editor does not accept
+     * images so the caller can fall back to committing the URL as text.
+     */
+    private fun commitGifFile(path: String?, description: String): Boolean {
+        if (path == null) return false
+        val conn = currentInputConnection ?: return false
+        val editorInfo = currentInputEditorInfo ?: return false
+        if (!editorSupportsMime("image/gif")) return false
+        return try {
+            val file = java.io.File(path)
+            if (!file.exists()) return false
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                this, "$packageName.fileprovider", file
+            )
+            val contentInfo = androidx.core.view.inputmethod.InputContentInfoCompat(
+                uri,
+                android.content.ClipDescription(description, arrayOf("image/gif")),
+                null
+            )
+            androidx.core.view.inputmethod.InputConnectionCompat.commitContent(
+                conn, editorInfo, contentInfo,
+                androidx.core.view.inputmethod.InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION,
+                null
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("AkaiIME", "commitGif failed", e)
+            false
         }
     }
 
