@@ -23,6 +23,7 @@ import {
   ETHIOPIAN_SYM_ROW, NUMBER_SHIFT_CHARS, DESKTOP_QWERTY_ROWS, DESKTOP_SYMBOL_ROWS,
   type ThemeDef, type CustomThemeData, type GiphyGif,
 } from '@/components/keyboard-data';
+import { trendingGifCatalog, searchGifCatalog } from '@/components/giphy-catalog';
 
 export type KeyboardMode = 'keyboard' | 'stickers' | 'gifs' | 'clipboard' | 'translate' | 'handwriting' | 'settings' | 'themes';
 export type Language = 'english' | 'amharic';
@@ -413,18 +414,31 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   }, [customName, customBgColor, customKeyColor, customKeyTextColor, customAccentColor, customSpecialKeyColor, customBgImageUrl, customBgGifUrl]);
 
   // Fetch Giphy
+  //
+  // This site is built with `output: "export"` (static export — required so
+  // the same Next.js app can be packaged into the Capacitor mobile shell),
+  // which does not serve API routes, so /api/giphy 404s in production. We
+  // still try it first in case a server deployment is ever restored, but
+  // fall back to a curated, keyless catalog of real Giphy CDN GIFs (the same
+  // one the Flutter app ships) rather than the old fake emoji "stickers".
   const fetchGiphy = useCallback(async (query: string) => {
     setGiphyLoading(true);
     try {
       const type = query ? 'search' : 'trending';
-      const res = await fetch(`/api/giphy?type=${type}&q=${encodeURIComponent(query)}&limit=20`);
-      const data = await res.json();
-      setGiphyResults(data.data || []);
+      const res = await fetch(`/api/giphy?type=${type}&q=${encodeURIComponent(query)}&limit=24`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.data) && data.data.length > 0 && !data.isFallback) {
+          setGiphyResults(data.data);
+          return;
+        }
+      }
     } catch {
-      setGiphyResults(null);
+      // /api/giphy unavailable in this deployment — use the local catalog.
     } finally {
       setGiphyLoading(false);
     }
+    setGiphyResults(query ? searchGifCatalog(query) : trendingGifCatalog());
   }, []);
 
   useEffect(() => {

@@ -147,7 +147,20 @@ class ThemeDownloadService {
     {'id': 'lava',       'name': 'Volcanic Lava',   'emoji': '🌋', 'description': 'Flowing magma background',                 'category': 'live',     'isPremium': true,  'size': 2048, 'liveTheme': 'lava'},
     {'id': 'neon-pulse', 'name': 'Neon Pulse',      'emoji': '💫', 'description': 'Pulsing neon glowing lines',               'category': 'live',     'isPremium': true,  'size': 1536, 'liveTheme': 'neon-pulse'},
     {'id': 'solar',      'name': 'Solar Flare',     'emoji': '☀️', 'description': 'Intense solar fire animation',             'category': 'live',     'isPremium': true,  'size': 2048, 'liveTheme': 'solar'},
-    
+    {'id': 'fireflies',      'name': 'Fireflies',      'emoji': '🧚', 'description': 'Blinking fireflies in a night forest',     'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'fireflies_live'},
+    {'id': 'binary-rain',    'name': 'Binary Rain',    'emoji': '🔢', 'description': 'Falling streams of digital code',          'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'binary_rain_live'},
+    {'id': 'geometric-flow', 'name': 'Geometric Flow', 'emoji': '📐', 'description': 'Wireframe shapes drifting in space',       'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'geometric_flow_live'},
+    {'id': 'nebula',         'name': 'Nebula Space',   'emoji': '🌌', 'description': 'Deep space nebula colors',                 'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'nebula_live'},
+    {'id': 'ocean-waves',    'name': 'Ocean Waves',    'emoji': '🌊', 'description': 'Rolling teal ocean waves',                 'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'ocean_waves_live'},
+    {'id': 'lava-lamp',      'name': 'Lava Lamp',      'emoji': '🌋', 'description': 'Goopy retro lava lamp blobs',              'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'lava_lamp_live'},
+    {'id': 'circuit-board',  'name': 'Circuit Board',  'emoji': '🔌', 'description': 'PCB traces with live signal pulses',       'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'circuit_board_live'},
+    {'id': 'starfield',      'name': 'Starfield',      'emoji': '🚀', 'description': 'Warp-speed stars streaking past',          'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'starfield_live'},
+    {'id': 'meteor-shower',  'name': 'Meteor Shower',  'emoji': '☄️', 'description': 'Shooting stars over a twinkling sky',      'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'meteor_live'},
+    {'id': 'fireworks',      'name': 'Fireworks',      'emoji': '🎆', 'description': 'Rockets bursting into colorful sparks',    'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'fireworks_live'},
+    {'id': 'city-lights',    'name': 'City Lights',    'emoji': '🌃', 'description': 'Soft bokeh lights of a city at night',     'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'bokeh_live'},
+    {'id': 'zen-pond',       'name': 'Zen Pond',       'emoji': '🪷', 'description': 'Calm rain ripples on still water',         'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'ripples_live'},
+    {'id': 'glitch',         'name': 'Glitch',         'emoji': '📺', 'description': 'RGB-split glitches and static noise',      'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'glitch_live'},
+
     // ── Faith ────────────────────────────────────────────────────────────
     {'id': 'faith_orthodox', 'name': 'Ethiopian Orthodox', 'emoji': '✝️', 'description': 'Deep purple with gold accents',   'category': 'faith',    'isPremium': false, 'size': 512, 'liveTheme': 'ortho_maryam'},
     {'id': 'faith_maryam',   'name': 'Holy Maryam',         'emoji': '🙏', 'description': 'Sacred icon with blue accents',      'category': 'faith',    'isPremium': false, 'size': 512, 'liveTheme': 'ortho_maryam'},

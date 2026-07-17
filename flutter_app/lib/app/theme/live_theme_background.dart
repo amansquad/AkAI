@@ -172,11 +172,33 @@ class _LiveThemePainter extends CustomPainter {
       _drawOverlays(canvas, size, typeStr);
       return;
     }
-    if (typeStr.startsWith('fb_') || typeStr.startsWith('club_')) {
+    // Dedicated scenes first — their names can contain generic words
+    // ("fireflies" contains "fire") so they must win before the fallbacks.
+    if (typeStr.contains('fireflies')) {
+      _drawFireflies(canvas, size);
+    } else if (typeStr.contains('lava_lamp')) {
+      _drawLavaLamp(canvas, size);
+    } else if (typeStr.contains('circuit')) {
+      _drawCircuitBoard(canvas, size);
+    } else if (typeStr.contains('geometric')) {
+      _drawGeometricFlow(canvas, size);
+    } else if (typeStr.contains('starfield') || typeStr.contains('hyperspace')) {
+      _drawStarfield(canvas, size);
+    } else if (typeStr.contains('meteor')) {
+      _drawMeteorShower(canvas, size);
+    } else if (typeStr.contains('firework')) {
+      _drawFireworks(canvas, size);
+    } else if (typeStr.contains('bokeh')) {
+      _drawBokeh(canvas, size);
+    } else if (typeStr.contains('ripple') || typeStr.contains('zen')) {
+      _drawRipples(canvas, size);
+    } else if (typeStr.contains('glitch')) {
+      _drawGlitch(canvas, size);
+    } else if (typeStr.startsWith('fb_') || typeStr.startsWith('club_')) {
       _drawFootball(canvas, size, typeStr);
     } else if (typeStr.contains('cyberpunk')) {
       _drawCyberpunk(canvas, size);
-    } else if (typeStr.contains('matrix') || typeStr.contains('binary') || typeStr.contains('circuit')) {
+    } else if (typeStr.contains('matrix') || typeStr.contains('binary')) {
       _drawMatrix(canvas, size);
     } else if (typeStr.contains('fire') || typeStr.contains('lava') || typeStr.contains('flame') || typeStr.contains('fb_stgeorge') || typeStr.contains('fb_coffee') || typeStr.contains('fb_fasil') || typeStr.contains('fb_mekelle')) {
       _drawFire(canvas, size);
@@ -678,6 +700,482 @@ class _LiveThemePainter extends CustomPainter {
               Rect.fromCenter(center: Offset(lx, ly), width: 7, height: 11),
               const Radius.circular(3)),
           Paint()..color = const Color(0xFFFF9800).withOpacity(0.8 * (1 - t * 0.4)));
+    }
+  }
+
+  /// Fireflies: drifting motes over a dark forest, each blinking on its own
+  /// rhythm.
+  void _drawFireflies(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF01140A), Color(0xFF06301C)],
+          ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Faint silhouetted grass line at the bottom
+    final grass = Paint()..color = const Color(0xFF010D06);
+    final grassPath = Path()..moveTo(0, h);
+    for (double x = 0; x <= w; x += 24) {
+      grassPath.lineTo(x, h - 14 - math.sin(x * 0.08) * 8);
+    }
+    grassPath
+      ..lineTo(w, h)
+      ..close();
+    canvas.drawPath(grassPath, grass);
+
+    final rand = math.Random(7);
+    for (int i = 0; i < 24; i++) {
+      final sx = rand.nextDouble(), sy = rand.nextDouble();
+      final phase = rand.nextDouble() * 2 * math.pi;
+      final x = (sx * w +
+              math.sin(time * 2 * math.pi * 0.6 + phase) * 42 +
+              math.cos(time * 2 * math.pi * 0.23 + phase * 2) * 26) %
+          w;
+      final y = (sy * h + math.cos(time * 2 * math.pi * 0.4 + phase) * 30) % h;
+      final blink = math
+          .pow(math.sin(time * 2 * math.pi * (1.2 + sx) + phase) * 0.5 + 0.5, 3)
+          .toDouble();
+      if (blink < 0.05) continue;
+      final p = Offset(x, y);
+      canvas.drawCircle(
+          p,
+          9 + blink * 6,
+          Paint()
+            ..shader = RadialGradient(colors: [
+              const Color(0xFFD4FF50).withOpacity(0.30 * blink),
+              Colors.transparent,
+            ]).createShader(Rect.fromCircle(center: p, radius: 9 + blink * 6)));
+      canvas.drawCircle(p, 1.4 + blink * 1.2,
+          Paint()..color = const Color(0xFFF4FFB0).withOpacity(0.3 + 0.7 * blink));
+    }
+  }
+
+  /// Lava lamp: slow goopy blobs rising and sinking in warm light.
+  void _drawLavaLamp(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2A0A02), Color(0xFF48120A)],
+          ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    final blob = Paint()..blendMode = BlendMode.plus;
+    final rand = math.Random(11);
+    for (int i = 0; i < 6; i++) {
+      final sx = 0.12 + rand.nextDouble() * 0.76;
+      final speed = 0.25 + rand.nextDouble() * 0.35;
+      final phase = rand.nextDouble() * 2 * math.pi;
+      // Ping-pong vertical travel
+      final tt = (time * speed + phase / (2 * math.pi)) % 1.0;
+      final yy = 0.5 - 0.42 * math.cos(tt * 2 * math.pi);
+      final cx = sx * w + math.sin(time * 2 * math.pi * 0.3 + phase) * 12;
+      final cy = yy * h;
+      final wobble = 1.0 + math.sin(time * 2 * math.pi * 1.4 + phase) * 0.12;
+      final r = (26 + rand.nextDouble() * 26) * wobble;
+      blob.shader = RadialGradient(colors: [
+        const Color(0xFFFF6B1A).withOpacity(0.55),
+        const Color(0xFFFF2E63).withOpacity(0.18),
+        Colors.transparent,
+      ]).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r * 1.6));
+      canvas.drawCircle(Offset(cx, cy), r * 1.6, blob);
+    }
+    // Warm light from the base
+    canvas.drawRect(
+        Rect.fromLTWH(0, h * 0.75, w, h * 0.25),
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              const Color(0xFFFFB01A).withOpacity(0.20),
+              Colors.transparent
+            ],
+          ).createShader(Rect.fromLTWH(0, h * 0.75, w, h * 0.25)));
+  }
+
+  /// Circuit board: PCB traces with signal pulses running along them.
+  void _drawCircuitBoard(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h), Paint()..color = const Color(0xFF03140A));
+
+    const green = Color(0xFF16A34A);
+    final trace = Paint()
+      ..color = green.withOpacity(0.28)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    final pad = Paint()..color = green.withOpacity(0.5);
+
+    final rand = math.Random(19);
+    for (int i = 0; i < 12; i++) {
+      // Manhattan-style trace: start point, horizontal run, then vertical.
+      final x0 = rand.nextDouble() * w;
+      final y0 = rand.nextDouble() * h;
+      final dx = (rand.nextDouble() - 0.5) * w * 0.7;
+      final dy = (rand.nextDouble() - 0.5) * h * 0.7;
+      final p1 = Offset(x0 + dx, y0);
+      final p2 = Offset(x0 + dx, y0 + dy);
+
+      canvas.drawLine(Offset(x0, y0), p1, trace);
+      canvas.drawLine(p1, p2, trace);
+      canvas.drawCircle(Offset(x0, y0), 2.4, pad);
+      canvas.drawCircle(p2, 2.4, pad);
+
+      // Signal pulse travelling start → corner → end
+      final len1 = dx.abs(), len2 = dy.abs();
+      final total = len1 + len2;
+      if (total < 1) continue;
+      final tt = (time * (0.6 + rand.nextDouble() * 0.8) +
+              rand.nextDouble()) %
+          1.0;
+      final d = tt * total;
+      final pos = d < len1
+          ? Offset(x0 + dx.sign * d, y0)
+          : Offset(x0 + dx, y0 + dy.sign * (d - len1));
+      canvas.drawCircle(
+          pos,
+          5,
+          Paint()
+            ..shader = RadialGradient(colors: [
+              const Color(0xFF4ADE80).withOpacity(0.8),
+              Colors.transparent,
+            ]).createShader(Rect.fromCircle(center: pos, radius: 5)));
+      canvas.drawCircle(pos, 1.6, Paint()..color = const Color(0xFFBBF7D0));
+    }
+  }
+
+  /// Geometric flow: wireframe shapes drifting upward and slowly rotating.
+  void _drawGeometricFlow(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h), Paint()..color = const Color(0xFF0A0A0A));
+
+    final rand = math.Random(23);
+    for (int i = 0; i < 14; i++) {
+      final sx = rand.nextDouble();
+      final speed = 0.08 + rand.nextDouble() * 0.12;
+      final tt = (time * speed + rand.nextDouble()) % 1.0;
+      final cx = sx * w + math.sin(time * 2 * math.pi * 0.2 + i) * 20;
+      final cy = h * (1.1 - tt * 1.2);
+      final r = 10.0 + rand.nextDouble() * 26;
+      final sides = 3 + (i % 4); // triangles, squares, pentagons, hexagons
+      final rot = time * 2 * math.pi * (0.1 + rand.nextDouble() * 0.15) +
+          rand.nextDouble() * math.pi;
+      final color = [
+        const Color(0xFF3B82F6),
+        const Color(0xFF60A5FA),
+        const Color(0xFF93C5FD),
+        Colors.white,
+      ][i % 4]
+          .withOpacity(0.10 + 0.25 * (1 - (tt - 0.5).abs() * 2));
+
+      final path = Path();
+      for (int v = 0; v <= sides; v++) {
+        final a = rot + v * 2 * math.pi / sides;
+        final p = Offset(cx + math.cos(a) * r, cy + math.sin(a) * r);
+        v == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+      }
+      canvas.drawPath(
+          path,
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.4);
+    }
+  }
+
+  /// Starfield: warp-speed stars streaking outward from the center.
+  void _drawStarfield(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h), Paint()..color = const Color(0xFF02030A));
+
+    final center = Offset(w * 0.5, h * 0.42);
+    final maxDist = math.max(w, h) * 0.75;
+    final rand = math.Random(29);
+    for (int i = 0; i < 90; i++) {
+      final angle = rand.nextDouble() * 2 * math.pi;
+      final speed = 0.35 + rand.nextDouble() * 0.65;
+      final tt = (time * speed * 2 + rand.nextDouble()) % 1.0;
+      final d = tt * tt * maxDist; // accelerate outward
+      final dir = Offset(math.cos(angle), math.sin(angle));
+      final pos = center + dir * d;
+      final tail = center + dir * math.max(0, d - 6 - tt * 26);
+      final o = (0.15 + tt * 0.85).clamp(0.0, 1.0);
+      canvas.drawLine(
+          tail,
+          pos,
+          Paint()
+            ..color = Color.lerp(const Color(0xFF93C5FD), Colors.white, tt)!
+                .withOpacity(o)
+            ..strokeWidth = 0.8 + tt * 1.8
+            ..strokeCap = StrokeCap.round);
+    }
+  }
+
+  /// Meteor shower: twinkling night sky with periodic shooting stars.
+  void _drawMeteorShower(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF060B22), Color(0xFF0B1026)],
+          ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Star bed
+    final rand = math.Random(31);
+    for (int i = 0; i < 40; i++) {
+      final sx = rand.nextDouble() * w;
+      final sy = rand.nextDouble() * h * 0.8;
+      final tw = math.sin((time * 3 + rand.nextDouble() * 6) * math.pi) * 0.5 + 0.5;
+      canvas.drawCircle(Offset(sx, sy), 0.7 + tw * 0.9,
+          Paint()..color = Colors.white.withOpacity(0.2 + 0.5 * tw));
+    }
+
+    // Meteors: each slot fires on its own cycle
+    for (int i = 0; i < 4; i++) {
+      final r2 = math.Random(i * 17 + 5);
+      final cycle = (time * (0.55 + r2.nextDouble() * 0.3) + r2.nextDouble()) % 1.0;
+      if (cycle > 0.30) continue; // visible for the first 30% of its cycle
+      final p = cycle / 0.30;
+      final startX = r2.nextDouble() * w * 1.2;
+      final startY = -20.0 + r2.nextDouble() * h * 0.25;
+      final travel = 260.0 + r2.nextDouble() * 160;
+      const dirX = -0.82, dirY = 0.57; // fixed diagonal
+      final head =
+          Offset(startX + dirX * travel * p, startY + dirY * travel * p);
+      final tail = head - const Offset(dirX, dirY) * (55 + 40 * (1 - p));
+      final fade = (1 - p) * 0.9;
+      canvas.drawLine(
+          tail,
+          head,
+          Paint()
+            ..shader = LinearGradient(colors: [
+              Colors.transparent,
+              const Color(0xFFFDE68A).withOpacity(fade),
+            ]).createShader(Rect.fromPoints(tail, head))
+            ..strokeWidth = 2.2
+            ..strokeCap = StrokeCap.round);
+      canvas.drawCircle(
+          head,
+          6,
+          Paint()
+            ..shader = RadialGradient(colors: [
+              Colors.white.withOpacity(fade),
+              Colors.transparent,
+            ]).createShader(Rect.fromCircle(center: head, radius: 6)));
+    }
+  }
+
+  /// Fireworks: rockets that burst into fading sparks.
+  void _drawFireworks(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0B0614), Color(0xFF160B24)],
+          ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    const colors = [
+      Color(0xFFF472B6),
+      Color(0xFFFBBF24),
+      Color(0xFF60A5FA),
+      Color(0xFF4ADE80),
+      Color(0xFFF87171),
+    ];
+
+    for (int i = 0; i < 3; i++) {
+      final speed = 0.45 + i * 0.13;
+      final t0 = time * speed + i * 0.37;
+      final cycle = t0 % 1.0;
+      final burstSeed = t0.floor() * 7 + i * 13;
+      final r2 = math.Random(burstSeed);
+      final cx = w * (0.15 + r2.nextDouble() * 0.7);
+      final cy = h * (0.15 + r2.nextDouble() * 0.35);
+      final color = colors[burstSeed.abs() % colors.length];
+
+      if (cycle < 0.28) {
+        // Rocket rising
+        final p = cycle / 0.28;
+        final y = h - (h - cy) * p;
+        canvas.drawCircle(Offset(cx, y), 2,
+            Paint()..color = Colors.white.withOpacity(0.85));
+        canvas.drawLine(
+            Offset(cx, y + 4),
+            Offset(cx, y + 16),
+            Paint()
+              ..color = const Color(0xFFFBBF24).withOpacity(0.5 * (1 - p))
+              ..strokeWidth = 1.5);
+      } else {
+        // Burst
+        final p = ((cycle - 0.28) / 0.72).clamp(0.0, 1.0);
+        final radius = p * (60 + r2.nextDouble() * 40);
+        final fade = (1 - p);
+        final spark = Paint()
+          ..color = color.withOpacity(0.85 * fade)
+          ..strokeWidth = 1.6
+          ..strokeCap = StrokeCap.round;
+        for (int s = 0; s < 18; s++) {
+          final a = s * 2 * math.pi / 18 + r2.nextDouble() * 0.2;
+          final droop = p * p * 26; // gravity pulls sparks down
+          final tip = Offset(
+              cx + math.cos(a) * radius, cy + math.sin(a) * radius + droop);
+          final inner = Offset(cx + math.cos(a) * radius * 0.72,
+              cy + math.sin(a) * radius * 0.72 + droop * 0.8);
+          canvas.drawLine(inner, tip, spark);
+        }
+        canvas.drawCircle(
+            Offset(cx, cy),
+            radius * 0.35,
+            Paint()
+              ..shader = RadialGradient(colors: [
+                color.withOpacity(0.35 * fade),
+                Colors.transparent,
+              ]).createShader(
+                  Rect.fromCircle(center: Offset(cx, cy), radius: radius * 0.35)));
+      }
+    }
+  }
+
+  /// Bokeh: big soft out-of-focus city lights drifting gently.
+  void _drawBokeh(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF130C07), Color(0xFF221207)],
+          ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    const colors = [
+      Color(0xFFFFB84D),
+      Color(0xFFFF7B9C),
+      Color(0xFF7DD3FC),
+      Color(0xFFFDE68A),
+    ];
+    final orb = Paint()..blendMode = BlendMode.plus;
+    final rand = math.Random(37);
+    for (int i = 0; i < 16; i++) {
+      final sx = rand.nextDouble(), sy = rand.nextDouble();
+      final phase = rand.nextDouble() * 2 * math.pi;
+      final x = sx * w + math.sin(time * 2 * math.pi * 0.15 + phase) * 30;
+      final y = sy * h + math.cos(time * 2 * math.pi * 0.11 + phase) * 22;
+      final pulse = math.sin(time * 2 * math.pi * 0.5 + phase) * 0.5 + 0.5;
+      final r = 16.0 + rand.nextDouble() * 34;
+      final color = colors[i % colors.length];
+      orb.shader = RadialGradient(colors: [
+        color.withOpacity(0.10 + 0.10 * pulse),
+        color.withOpacity(0.03),
+        Colors.transparent,
+      ]).createShader(Rect.fromCircle(center: Offset(x, y), radius: r));
+      canvas.drawCircle(Offset(x, y), r, orb);
+    }
+  }
+
+  /// Zen pond: expanding rain ripples on still dark water.
+  void _drawRipples(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF032422), Color(0xFF06403A)],
+          ).createShader(Rect.fromLTWH(0, 0, w, h)));
+
+    // Soft light caustics
+    final caustic = Paint()
+      ..color = const Color(0xFF34D399).withOpacity(0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8;
+    for (int i = 0; i < 3; i++) {
+      final path = Path()..moveTo(0, h * (0.25 + i * 0.25));
+      for (double x = 0; x <= w; x += 16) {
+        path.lineTo(
+            x,
+            h * (0.25 + i * 0.25) +
+                math.sin(x * 0.02 + time * 2 * math.pi + i * 2) * 10);
+      }
+      canvas.drawPath(path, caustic);
+    }
+
+    // Ripple rings
+    final rand = math.Random(41);
+    for (int i = 0; i < 7; i++) {
+      final cx = rand.nextDouble() * w;
+      final cy = rand.nextDouble() * h;
+      final speed = 0.35 + rand.nextDouble() * 0.3;
+      final tt = (time * speed + rand.nextDouble()) % 1.0;
+      final maxR = 40 + rand.nextDouble() * 50;
+      final fade = (1 - tt) * 0.4;
+      final ring = Paint()
+        ..color = const Color(0xFF6EE7B7).withOpacity(fade)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6 * (1 - tt) + 0.4;
+      canvas.drawCircle(Offset(cx, cy), tt * maxR, ring);
+      // Trailing inner ring
+      if (tt > 0.25) {
+        canvas.drawCircle(Offset(cx, cy), (tt - 0.25) * maxR,
+            ring..color = const Color(0xFF6EE7B7).withOpacity(fade * 0.5));
+      }
+    }
+  }
+
+  /// Glitch: RGB-split slices, static noise and rolling scanlines.
+  void _drawGlitch(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h), Paint()..color = const Color(0xFF060606));
+
+    // Subtle scanlines
+    final scan = Paint()..color = Colors.white.withOpacity(0.025);
+    for (double y = (time * 30) % 6; y < h; y += 6) {
+      canvas.drawRect(Rect.fromLTWH(0, y, w, 1), scan);
+    }
+
+    // Glitch slices change a few times per second
+    final frame = (time * 8).floor();
+    final rand = math.Random(frame);
+    final sliceCount = 2 + rand.nextInt(3);
+    for (int i = 0; i < sliceCount; i++) {
+      final y = rand.nextDouble() * h;
+      final sh = 4.0 + rand.nextDouble() * 18;
+      final shift = (rand.nextDouble() - 0.5) * 44;
+      canvas.drawRect(Rect.fromLTWH(shift, y, w, sh),
+          Paint()..color = const Color(0xFFFF2E63).withOpacity(0.16));
+      canvas.drawRect(Rect.fromLTWH(-shift, y + sh * 0.4, w, sh * 0.7),
+          Paint()..color = const Color(0xFF22D3EE).withOpacity(0.16));
+    }
+
+    // Static noise specks
+    final noise = Paint()..color = Colors.white.withOpacity(0.12);
+    for (int i = 0; i < 60; i++) {
+      final x = rand.nextDouble() * w;
+      final y = rand.nextDouble() * h;
+      canvas.drawRect(Rect.fromLTWH(x, y, 1.6, 1.6), noise);
+    }
+
+    // Occasional bright tear across the screen
+    if (rand.nextDouble() > 0.72) {
+      final y = rand.nextDouble() * h;
+      canvas.drawRect(Rect.fromLTWH(0, y, w, 2),
+          Paint()..color = Colors.white.withOpacity(0.22));
     }
   }
 
