@@ -12,6 +12,144 @@ class EmojiSuggestion {
 /// Supports English + Amharic (basic mappings + common slang).
 /// Extend anytime by adding new keys to the maps below.
 class EmojiSuggestionEngine {
+  /// Word → candidate emojis, shown in the suggestion strip while typing.
+  /// Keys are single lowercase tokens (the strip matches word-by-word).
+  static const Map<String, List<String>> _wordEn = {
+    // Emotions / reactions
+    'love': ['❤️', '😍'], 'loved': ['❤️'], 'loves': ['❤️'],
+    'heart': ['❤️', '💕'], 'hearts': ['💕'],
+    'happy': ['😊', '🥳'], 'happiness': ['😊'],
+    'sad': ['😢', '😔'], 'cry': ['😭'], 'crying': ['😭'],
+    'laugh': ['😂'], 'laughing': ['😂', '🤣'],
+    'lol': ['😂'], 'lmao': ['🤣'], 'haha': ['😂'], 'hehe': ['😅'],
+    'funny': ['😂', '🤣'], 'joke': ['😜'], 'smile': ['😊'],
+    'angry': ['😡'], 'mad': ['😡', '🤬'], 'upset': ['😞'],
+    'tired': ['🥱', '😴'], 'sleep': ['😴', '🌙'], 'sleepy': ['😴'],
+    'wow': ['😮', '🤯'], 'omg': ['😱'], 'shocked': ['😱'],
+    'surprise': ['🎉', '😮'], 'surprised': ['😲'],
+    'scared': ['😱', '😨'], 'crazy': ['🤪'], 'weird': ['🤨'],
+    'cool': ['😎'], 'nice': ['👍', '😊'], 'good': ['👍', '😊'],
+    'great': ['👏', '🔥'], 'awesome': ['🤩'], 'amazing': ['🤩', '✨'],
+    'perfect': ['👌'], 'ok': ['👌'], 'okay': ['👌'],
+    'yes': ['✅', '👍'], 'no': ['❌'], 'sure': ['👍'],
+    'think': ['🤔'], 'thinking': ['🤔', '💭'],
+    'why': ['🤔'], 'question': ['❓'], 'idea': ['💡'],
+    'strong': ['💪'], 'fire': ['🔥'], 'lit': ['🔥'],
+    'hot': ['🔥', '🥵'], 'cold': ['🥶', '❄️'],
+    'sick': ['🤒', '🤧'], 'pain': ['😣'], 'hurt': ['🤕'],
+    'clap': ['👏'], 'pray': ['🙏'], 'luck': ['🍀', '🤞'],
+    'dead': ['💀', '😂'], 'skull': ['💀'],
+
+    // Greetings / courtesy
+    'hello': ['👋'], 'hi': ['👋'], 'hey': ['👋', '😊'],
+    'bye': ['👋'], 'goodbye': ['👋', '😢'], 'welcome': ['🤗'],
+    'selam': ['👋'],
+    'please': ['🙏'], 'thanks': ['🙏', '😊'], 'thank': ['🙏'],
+    'sorry': ['😔', '🙏'],
+    'morning': ['☀️', '🌅'], 'night': ['🌙', '😴'], 'goodnight': ['🌙'],
+
+    // Celebrations
+    'congrats': ['🎉', '👏'], 'congratulations': ['🎉', '🥳'],
+    'birthday': ['🎂', '🥳'], 'party': ['🥳', '🎉'],
+    'celebrate': ['🎉', '🍾'], 'win': ['🏆', '🎉'], 'winner': ['🏆'],
+    'gift': ['🎁'], 'christmas': ['🎄'], 'easter': ['🐣'],
+
+    // Activities
+    'dance': ['💃', '🕺'], 'music': ['🎵', '🎶'], 'sing': ['🎤'],
+    'song': ['🎵'], 'movie': ['🎬', '🍿'], 'game': ['🎮'],
+    'play': ['🎮', '⚽'], 'read': ['📖'], 'write': ['✍️'],
+    'study': ['📚', '✍️'], 'exam': ['📝', '😰'], 'test': ['📝'],
+    'homework': ['📚'], 'school': ['🏫', '📚'], 'book': ['📖'],
+    'work': ['💼', '💻'], 'working': ['💻'], 'busy': ['😅', '⏰'],
+    'meeting': ['📅', '💼'], 'code': ['💻'], 'coding': ['👨‍💻'],
+    'gym': ['💪', '🏋️'], 'workout': ['💪', '🔥'],
+    'run': ['🏃', '💨'], 'running': ['🏃'], 'walk': ['🚶'],
+    'football': ['⚽'], 'soccer': ['⚽'], 'basketball': ['🏀'],
+    'goal': ['⚽', '🥅'], 'ball': ['⚽'],
+    'travel': ['✈️', '🧳'], 'trip': ['✈️'], 'flight': ['✈️'],
+    'beach': ['🏖️'], 'swim': ['🏊'], 'shopping': ['🛍️'],
+
+    // Food / drink
+    'food': ['🍔', '🍕'], 'eat': ['🍽️', '😋'], 'hungry': ['😋', '🍔'],
+    'breakfast': ['🍳', '☕'], 'lunch': ['🍱'], 'dinner': ['🍽️'],
+    'pizza': ['🍕'], 'burger': ['🍔'], 'chicken': ['🍗'],
+    'rice': ['🍚'], 'bread': ['🍞'], 'cake': ['🎂'],
+    'coffee': ['☕'], 'buna': ['☕'], 'tea': ['🍵'],
+    'beer': ['🍺'], 'wine': ['🍷'], 'water': ['💧'], 'milk': ['🥛'],
+    'injera': ['🍽️'], 'egg': ['🥚'], 'apple': ['🍎'],
+    'banana': ['🍌'], 'mango': ['🥭'], 'avocado': ['🥑'],
+    'sweet': ['🍬', '😋'], 'delicious': ['😋', '🤤'], 'yummy': ['😋'],
+
+    // Animals / nature
+    'cat': ['🐱'], 'dog': ['🐶'], 'bird': ['🐦'], 'fish': ['🐟'],
+    'lion': ['🦁'], 'horse': ['🐴'], 'cow': ['🐄'], 'goat': ['🐐'],
+    'sun': ['☀️'], 'sunny': ['☀️', '😎'], 'rain': ['🌧️', '☔'],
+    'raining': ['🌧️'], 'snow': ['❄️', '☃️'], 'storm': ['⛈️'],
+    'weather': ['🌤️'], 'moon': ['🌙'], 'star': ['⭐', '✨'],
+    'stars': ['✨'], 'flower': ['🌸', '🌹'], 'rose': ['🌹'],
+    'tree': ['🌳'], 'sea': ['🌊'], 'ocean': ['🌊'], 'mountain': ['⛰️'],
+
+    // People
+    'baby': ['👶'], 'family': ['👨‍👩‍👧‍👦'], 'friend': ['🤝', '😊'],
+    'friends': ['👯'], 'team': ['🤝'], 'mom': ['👩', '❤️'], 'dad': ['👨'],
+    'kiss': ['💋', '😘'], 'hug': ['🤗'], 'miss': ['🥺', '💔'],
+
+    // Things / daily life
+    'phone': ['📱'], 'call': ['📞'], 'message': ['💬'],
+    'email': ['📧'], 'photo': ['📷'], 'picture': ['📷'],
+    'video': ['🎥'], 'camera': ['📷'], 'computer': ['💻'],
+    'money': ['💰', '💵'], 'cash': ['💵'], 'pay': ['💳'],
+    'buy': ['🛒'], 'car': ['🚗'], 'bus': ['🚌'], 'train': ['🚆'],
+    'bike': ['🚲'], 'home': ['🏠'], 'house': ['🏠'], 'key': ['🔑'],
+    'time': ['⏰'], 'late': ['⏰', '😅'], 'wait': ['⏳'],
+    'waiting': ['⏳'], 'today': ['📅'], 'tomorrow': ['📅'],
+    'help': ['🙏'], 'stop': ['🛑', '✋'], 'fast': ['⚡', '💨'],
+    'slow': ['🐌'], 'new': ['✨'], 'warning': ['⚠️'],
+    'doctor': ['👨‍⚕️'], 'hospital': ['🏥'], 'medicine': ['💊'],
+  };
+
+  /// Amharic single-word → emojis (multi-word phrases live in [_am] and are
+  /// used by the free-text matcher, not the word strip).
+  static const Map<String, List<String>> _wordAm = {
+    'ፍቅር': ['❤️', '😍'], 'ልብ': ['❤️'],
+    'ሳቅ': ['😂'], 'እስቂኝ': ['😂', '🤣'],
+    'ደስታ': ['🥳', '😊'], 'ደስተኛ': ['😄'],
+    'እንባ': ['😭'], 'ልቅሶ': ['😢'], 'አዝናለሁ': ['😞'],
+    'ቁጣ': ['😡'], 'ተናዳ': ['😠'],
+    'ዋው': ['😮'],
+    'ጥሩ': ['👍', '👌'], 'እሺ': ['👌'], 'አዎ': ['✅', '👍'], 'አይ': ['❌'],
+    'አመሰግናለሁ': ['🙏'], 'እባክህ': ['🙏'], 'እባክሽ': ['🙏'], 'ይቅርታ': ['🙇', '😔'],
+    'ሰላም': ['👋'], 'ሄሎ': ['👋'], 'ጧት': ['☀️'], 'ማለዳ': ['☀️'], 'ምሽት': ['🌙'],
+    'ለምን': ['🤔'], 'ምንድን': ['🤔'], 'አላውቅም': ['🤷'],
+    'ቡና': ['☕'], 'ሻይ': ['🍵'], 'ምግብ': ['🍽️'], 'እንጀራ': ['🍽️'],
+    'ውሃ': ['💧'], 'ወተት': ['🥛'],
+    'ቤት': ['🏠'], 'ስራ': ['💼'], 'ትምህርት': ['📚'], 'መኪና': ['🚗'],
+    'ልደት': ['🎂', '🥳'], 'እንኳን': ['🎉'],
+    'ፀሐይ': ['☀️'], 'ዝናብ': ['🌧️'], 'ጨረቃ': ['🌙'], 'ኮከብ': ['⭐'],
+    'ውሻ': ['🐶'], 'ድመት': ['🐱'], 'አንበሳ': ['🦁'],
+    'እናት': ['👩', '❤️'], 'አባት': ['👨'], 'ጓደኛ': ['🤝', '😊'],
+    'ገንዘብ': ['💰'], 'ስልክ': ['📱'], 'ሙዚቃ': ['🎵'],
+    'እግር': ['⚽'], 'ኳስ': ['⚽'],
+  };
+
+  /// Emojis to suggest for a single typed word, best first.
+  /// Handles case, surrounding punctuation, and simple English plurals.
+  static List<String> forWord(String rawWord) {
+    var word = rawWord.trim().replaceAll(
+        RegExp('''^[.,!?;:'"()\\[\\]]+|[.,!?;:'"()\\[\\]]+\$'''), '');
+    if (word.isEmpty) return const [];
+
+    final am = _wordAm[word];
+    if (am != null) return am;
+
+    word = word.toLowerCase();
+    var en = _wordEn[word];
+    if (en == null && word.length > 3 && word.endsWith('s')) {
+      en = _wordEn[word.substring(0, word.length - 1)];
+    }
+    return en ?? const [];
+  }
+
   static final Map<String, String> _en = {
     // Love / affection
     'love': '❤️',

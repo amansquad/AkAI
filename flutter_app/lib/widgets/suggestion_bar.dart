@@ -64,25 +64,29 @@ class SuggestionBar extends StatelessWidget {
             itemCount: suggestions.length,
             itemBuilder: (context, index) {
               final suggestion = suggestions[index];
+              final isEmoji =
+                  !RegExp(r'[A-Za-z0-9ሀ-፿]').hasMatch(suggestion);
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: Material(
-                  color: index == 0 && theme.name == 'Matrix' 
-                      ? theme.accent.withOpacity(0.95) 
+                  color: index == 0 && theme.name == 'Matrix'
+                      ? theme.accent.withOpacity(0.95)
                       : theme.key.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(20),
                   child: InkWell(
                     onTap: () => keyboardProvider.applySuggestion(suggestion),
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: isEmoji ? 12 : 18,
+                          vertical: isEmoji ? 4 : 8),
                       child: Text(
                         suggestion,
                         style: TextStyle(
-                          color: index == 0 && theme.name == 'Matrix' 
-                              ? Colors.black 
+                          color: index == 0 && theme.name == 'Matrix'
+                              ? Colors.black
                               : theme.keyText,
-                          fontSize: 16,
+                          fontSize: isEmoji ? 21 : 16,
                           shadows: [
                             if (index == 0 && theme.name == 'Matrix')
                               const Shadow(color: Colors.white24, blurRadius: 4),

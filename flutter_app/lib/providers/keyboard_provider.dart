@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/clipboard_item.dart';
+import '../app/emoji/emoji_suggestions.dart';
 import '../app/keyboard/english_dictionary.dart';
 import '../app/keyboard/keyboard_service.dart';
 import '../services/gif_service.dart';
@@ -17,39 +18,75 @@ enum KeyboardMode {
   handwriting,
 }
 
-const Map<String, List<String>> wordToEmoji = {
-  'fire': ['🔥', '🧨', '💥'],
-  'love': ['❤️', '😍', '🥰', '💖'],
-  'heart': ['❤️', '💙', '💜'],
-  'cool': ['😎', '🆒', '🧊'],
-  'cat': ['🐱', '🐈', '😸'],
-  'dog': ['🐶', '🐕', '🐩'],
-  'sun': ['☀️', '🌞', '🌅'],
-  'moon': ['🌙', '🌕', '🌛'],
-  'star': ['⭐', '🌟', '✨'],
-  'happy': ['😀', '😊', '🥳'],
-  'sad': ['😢', '😔', '😭'],
-  'angry': ['😡', '😠', '🤬'],
-  'laugh': ['😂', '🤣', '😆'],
-  'cry': ['😭', '😢', '😿'],
-  'clap': ['👏', '🙌', '👏👏'],
-  'food': ['🍎', '🍔', '🍕', '🥘'],
-  'coffee': ['☕', '🍵', '🍩'],
-  'beer': ['🍺', '🍻', '🥂'],
-  'car': ['🚗', '🏎️', '🚓'],
-  'home': ['🏠', '🏡', '🏘️'],
-  'work': ['💼', '💻', '🏢'],
-  'code': ['💻', '📜', '👾'],
-  'music': ['🎵', '🎶', '🎸'],
-  'game': ['🎮', '🕹️', '🎲'],
-  'book': ['📖', '📚', '🔖'],
-  'time': ['⏰', '⏳', '⌚'],
-  'phone': ['📱', '📞', '☎️'],
-  'money': ['💰', '💵', '💸'],
-  'gift': ['🎁', '🎈', '🎉'],
-  'party': ['🎉', '🥳', '🎈'],
-  'flag': ['🏴', '🏳️', '🚩'],
+/// Previous word → likely next words, used for predictions after a space.
+const Map<String, List<String>> _nextWords = {
+  'i': ['am', 'will', 'have', 'love'],
+  "i'm": ['not', 'so', 'good', 'on'],
+  'im': ['not', 'so', 'good', 'on'],
+  'how': ['are', 'is', 'do', 'was'],
+  'you': ['are', 'can', 'know', 'will'],
+  'we': ['are', 'can', 'will', 'have'],
+  'they': ['are', 'will', 'have'],
+  'thank': ['you', 'god'],
+  'thanks': ['for', 'so', 'a'],
+  'good': ['morning', 'night', 'luck', 'job'],
+  'see': ['you', 'it', 'the'],
+  'let': ['me', 'us', 'it'],
+  'what': ['is', 'are', 'do', 'about'],
+  'where': ['are', 'is', 'do'],
+  'when': ['are', 'is', 'will'],
+  'can': ['you', 'i', 'we'],
+  'will': ['be', 'you', 'not'],
+  'would': ['you', 'be', 'like'],
+  'love': ['you', 'it', 'this'],
+  'miss': ['you', 'it'],
+  'happy': ['birthday', 'to', 'for'],
+  'no': ['problem', 'way', 'one'],
+  'not': ['sure', 'yet', 'now'],
+  'be': ['there', 'back', 'careful'],
+  'have': ['a', 'to', 'you'],
+  'had': ['a', 'to', 'no'],
+  'has': ['been', 'a', 'to'],
+  'was': ['it', 'that', 'a'],
+  'is': ['it', 'that', 'the'],
+  'are': ['you', 'we', 'they'],
+  'it': ['is', 'was', 'will'],
+  'this': ['is', 'was', 'one'],
+  'that': ['is', 'was', 'sounds'],
+  'so': ['much', 'good', 'i'],
+  'very': ['good', 'nice', 'much'],
+  'my': ['name', 'phone', 'house'],
+  'your': ['name', 'turn', 'phone'],
+  'the': ['best', 'same', 'one'],
+  'a': ['lot', 'bit', 'few'],
+  'in': ['the', 'a', 'my'],
+  'on': ['the', 'my', 'a'],
+  'at': ['the', 'home', 'work'],
+  'to': ['be', 'the', 'get', 'go'],
+  'of': ['the', 'course', 'my'],
+  'for': ['the', 'you', 'me'],
+  'and': ['then', 'the', 'i'],
+  'talk': ['to', 'soon', 'later'],
+  'call': ['me', 'you', 'back'],
+  'text': ['me', 'you', 'back'],
+  'come': ['on', 'over', 'back'],
+  'go': ['to', 'home', 'back'],
+  'going': ['to', 'home', 'out'],
+  'want': ['to', 'it', 'some'],
+  'need': ['to', 'a', 'you'],
+  'right': ['now', 'away', 'there'],
+  'about': ['it', 'the', 'you'],
+  'sounds': ['good', 'great', 'like'],
+  'looking': ['forward', 'for', 'at'],
+  'nice': ['to', 'one', 'work'],
+  'great': ['job', 'work', 'news'],
+  'well': ['done', 'said'],
+  'take': ['care', 'it', 'a'],
+  'on my': ['way'],
 };
+
+/// Suggestions offered when there is nothing to complete or predict yet.
+const List<String> _starterWords = ['I', 'The', 'Hello', 'Thanks', 'How', 'What'];
 
 enum KeyboardLanguage {
   english,
@@ -369,20 +406,27 @@ class KeyboardProvider with ChangeNotifier {
 
   void applySuggestion(String suggestion) {
     _haptic();
-    // Replace the word currently being typed (if any) with the suggestion.
-    String lastWord = '';
-    if (!_text.endsWith(' ') && !_text.endsWith('\n')) {
-      lastWord = RegExp(r'(\S+)$').firstMatch(_text)?.group(1) ?? '';
-    }
+    // Emoji suggestions carry no letters; they insert without a trailing
+    // space and don't replace a finished word.
+    final isEmoji = !RegExp(r'[A-Za-z0-9ሀ-፿]').hasMatch(suggestion);
+
+    // Replace the word currently being composed (if any) with the suggestion.
+    // Same boundary rule as _updateSuggestions, so "🍕how" only replaces "how".
+    final lastWord = _composingWord;
     if (lastWord.isNotEmpty) {
       _text = _text.substring(0, _text.length - lastWord.length);
     }
-    _text += '$suggestion ';
+    final insert = isEmoji ? suggestion : '$suggestion ';
+    _text += insert;
     if (imeMode) {
       if (lastWord.isNotEmpty) ime.deleteText(lastWord.length);
-      ime.commitText('$suggestion ');
+      ime.commitText(insert);
     }
-    _learnWord(suggestion);
+    if (isEmoji) {
+      addEmojiToRecent(suggestion);
+    } else {
+      _learnWord(suggestion);
+    }
     _updateAutoShift();
     _updateSuggestions();
     notifyListeners();
@@ -429,48 +473,101 @@ class KeyboardProvider with ChangeNotifier {
   }
 
   void _updateSuggestions() {
-    final words = _text.trim().split(RegExp(r'\s+'));
-    final lastWord = words.isNotEmpty ? words.last.toLowerCase() : '';
-    
-    if (lastWord.isEmpty) {
-      _suggestions = [];
-      return;
-    }
+    // The word being composed is the trailing run of word characters, so an
+    // emoji or punctuation just typed counts as a boundary ("🍕how" → "how").
+    final lastWord = _composingWord;
+    _suggestions =
+        lastWord.isEmpty ? _predictNextWords() : _completeWord(lastWord);
+  }
 
-    final List<String> matches = [];
+  String get _composingWord =>
+      RegExp(r"[A-Za-z0-9ሀ-፿']+$").firstMatch(_text)?.group(0) ?? '';
 
-    // 1. Personal dictionary: words this user actually types, best first
+  /// Completions + emoji for the word currently being typed.
+  /// Emoji appear right after the top completion, Gboard-style.
+  List<String> _completeWord(String lastWord) {
+    final lower = lastWord.toLowerCase();
+    final firstChar = lastWord[0];
+    final isCapitalized = firstChar.toUpperCase() == firstChar &&
+        firstChar.toLowerCase() != firstChar;
+    final isAllCaps = lastWord.length > 1 && lastWord.toUpperCase() == lastWord;
+    String cased(String w) => isAllCaps
+        ? w.toUpperCase()
+        : isCapitalized
+            ? '${w[0].toUpperCase()}${w.substring(1)}'
+            : w;
+
+    final words = <String>[];
+
+    // 1. Personal dictionary: words this user actually types, best first.
     final personal = _learnedWords.keys
-        .where((word) => word.startsWith(lastWord) && word != lastWord)
+        .where((word) => word.startsWith(lower) && word != lower)
         .toList()
       ..sort((a, b) => _learnedWords[b]!.compareTo(_learnedWords[a]!));
-    matches.addAll(personal.take(3));
+    words.addAll(personal.take(2));
 
-    // 2. Emoji Matches (Exact keyword match)
-    if (wordToEmoji.containsKey(lastWord)) {
-      matches.addAll(wordToEmoji[lastWord]!);
+    // 2. Built-in dictionary — list order is frequency order.
+    for (final word in englishWords) {
+      if (words.length >= 4) break;
+      final lw = word.toLowerCase();
+      if (lw.startsWith(lower) && lw != lower && !words.contains(lw)) {
+        words.add(lw);
+      }
     }
 
-    // 2. Dictionary Matches (Prefix matching)
-    // We prioritize shorter words or exact matches if relevant, 
-    // but here we just take the first few alphabetical or common ones.
-    final dictionaryMatches = englishWords
-        .where((word) => word.toLowerCase().startsWith(lastWord) && word.toLowerCase() != lastWord)
-        .take(6)
-        .toList();
-    
-    matches.addAll(dictionaryMatches);
+    // 3. Emoji for the exact word typed so far ("pizza" → 🍕).
+    final emojis = EmojiSuggestionEngine.forWord(lastWord).take(2).toList();
 
-    // 3. Fallback suffix logic (only if we have space)
-    if (matches.length < 3) {
-      matches.addAll([
-        '${lastWord}ing',
-        '${lastWord}ed',
-        '${lastWord}s',
-      ]);
+    final out = <String>[
+      if (words.isNotEmpty) cased(words.first),
+      ...emojis,
+      ...words.skip(1).map(cased),
+    ];
+    return out.take(6).toList();
+  }
+
+  /// After a word is finished (space typed): emoji for the word just written,
+  /// then likely next words.
+  List<String> _predictNextWords() {
+    final out = <String>[];
+
+    // Strip everything that isn't a word character, so "Pizza." and "🍕how"
+    // still resolve to the word they contain.
+    String clean(String w) =>
+        w.toLowerCase().replaceAll(RegExp(r"[^a-z0-9ሀ-፿']"), '');
+
+    final trailing =
+        RegExp(r'(?:(\S+)\s+)?(\S+)\s*$').firstMatch(_text.trimRight());
+    final prev = clean(trailing?.group(2) ?? '');
+    final prev2 = clean(trailing?.group(1) ?? '');
+
+    // Emoji for the word just completed ("pizza " → 🍕).
+    out.addAll(EmojiSuggestionEngine.forWord(prev).take(2));
+
+    // The predictions below are English; in Amharic mode show only emoji.
+    if (_language == KeyboardLanguage.amharic) return out.take(6).toList();
+
+    // At the start of a sentence offer capitalized openers instead of
+    // continuations of the previous sentence.
+    final sentenceStart = _text.trim().isEmpty ||
+        RegExp(r'''[.!?]["')\]]*\s*$''').hasMatch(_text);
+    if (sentenceStart) {
+      return [...out, ..._starterWords].take(6).toList();
     }
-    
-    _suggestions = matches.toSet().take(6).toList();
+
+    // Next-word predictions: two-word context first, then one-word.
+    final bigram = _nextWords['$prev2 $prev'];
+    final unigram = _nextWords[prev];
+    for (final w in [...?bigram, ...?unigram]) {
+      if (!out.contains(w)) out.add(w);
+    }
+
+    // Top up with frequent words so the strip is never empty.
+    for (final w in const ['the', 'I', 'and', 'to', 'you', 'a']) {
+      if (out.length >= 5) break;
+      if (!out.contains(w)) out.add(w);
+    }
+    return out.take(6).toList();
   }
 
   Future<void> _loadStoredData() async {
