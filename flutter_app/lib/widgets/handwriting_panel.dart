@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/keyboard_provider.dart';
 import '../providers/theme_provider.dart';
 import '../app/theme/app_theme.dart';
+import '../services/handwriting_service.dart';
 
 class HandwritingPanel extends StatefulWidget {
   const HandwritingPanel({super.key});
@@ -13,106 +13,138 @@ class HandwritingPanel extends StatefulWidget {
   State<HandwritingPanel> createState() => _HandwritingPanelState();
 }
 
-class _StrokeData {
-  final List<Offset> points;
-  const _StrokeData(this.points);
-  _StrokeData copy() => _StrokeData(List<Offset>.from(points));
-}
+enum _ModelState { checking, missing, downloading, ready, failed }
 
 class _HandwritingPanelState extends State<HandwritingPanel> {
-  final List<_StrokeData> _strokes = [];
-  final List<_StrokeData> _undoStack = [];
-  final List<_StrokeData> _redoStack = [];
-  List<Offset> _currentStroke = [];
+  final GlobalKey _canvasKey = GlobalKey();
+
+  final List<InkStroke> _strokes = [];
+  final List<InkStroke> _redoStack = [];
+  List<Offset> _currentPoints = [];
+  List<int> _currentTimes = [];
+
   double _strokeWidth = 4.0;
   Color _strokeColor = Colors.white;
   bool _autoRecognize = true;
   bool _isRecognizing = false;
   List<String> _suggestions = [];
-  int _strokeCount = 0;
   Timer? _recognizeTimer;
 
-  void _onPanStart(DragStartDetails details, RenderBox renderBox) {
+  String _lang = HandwritingService.english;
+  _ModelState _modelState = _ModelState.checking;
+
+  @override
+  void initState() {
+    super.initState();
+    final provider = context.read<KeyboardProvider>();
+    _lang = provider.language == KeyboardLanguage.amharic
+        ? HandwritingService.amharic
+        : HandwritingService.english;
+    _checkModel();
+  }
+
+  Future<void> _checkModel() async {
+    setState(() => _modelState = _ModelState.checking);
+    final ready = await HandwritingService.isModelReady(_lang);
+    if (!mounted) return;
+    setState(() => _modelState = ready ? _ModelState.ready : _ModelState.missing);
+  }
+
+  Future<void> _downloadModel() async {
+    setState(() => _modelState = _ModelState.downloading);
+    final ok = await HandwritingService.downloadModel(_lang);
+    if (!mounted) return;
+    setState(() => _modelState = ok ? _ModelState.ready : _ModelState.failed);
+  }
+
+  void _setLanguage(String lang) {
+    if (_lang == lang) return;
     setState(() {
-      _currentStroke = [renderBox.globalToLocal(details.globalPosition)];
+      _lang = lang;
+      _suggestions = [];
+    });
+    _checkModel();
+  }
+
+  RenderBox? get _canvasBox =>
+      _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+
+  void _onPanStart(DragStartDetails details) {
+    final box = _canvasBox;
+    if (box == null || _modelState != _ModelState.ready) return;
+    _recognizeTimer?.cancel();
+    setState(() {
+      _currentPoints = [box.globalToLocal(details.globalPosition)];
+      _currentTimes = [DateTime.now().millisecondsSinceEpoch];
     });
   }
 
-  void _onPanUpdate(DragUpdateDetails details, RenderBox renderBox) {
+  void _onPanUpdate(DragUpdateDetails details) {
+    final box = _canvasBox;
+    if (box == null || _currentPoints.isEmpty) return;
     setState(() {
-      _currentStroke.add(renderBox.globalToLocal(details.globalPosition));
+      _currentPoints.add(box.globalToLocal(details.globalPosition));
+      _currentTimes.add(DateTime.now().millisecondsSinceEpoch);
     });
   }
 
   void _onPanEnd(DragEndDetails details) {
-    if (_currentStroke.isNotEmpty) {
-      setState(() {
-        _undoStack.add(_StrokeData(_currentStroke.toList()));
-        _redoStack.clear();
-        _strokes.add(_StrokeData(_currentStroke.toList()));
-        _currentStroke = [];
-        _strokeCount = _strokes.length;
-      });
+    if (_currentPoints.isEmpty) return;
+    setState(() {
+      _strokes.add(InkStroke(
+          List<Offset>.from(_currentPoints), List<int>.from(_currentTimes)));
+      _redoStack.clear();
+      _currentPoints = [];
+      _currentTimes = [];
+    });
 
-      if (_autoRecognize) {
-        _recognizeTimer?.cancel();
-        _recognizeTimer = Timer(const Duration(milliseconds: 1200), () {
-          if (mounted && _strokes.isNotEmpty) _recognizeHandwriting();
-        });
-      }
+    if (_autoRecognize) {
+      _recognizeTimer?.cancel();
+      _recognizeTimer = Timer(const Duration(milliseconds: 700), () {
+        if (mounted && _strokes.isNotEmpty) _recognize();
+      });
     }
   }
 
-  void _undo() {
-    if (_undoStack.isEmpty) return;
+  Future<void> _recognize() async {
+    if (_strokes.isEmpty || _modelState != _ModelState.ready) return;
+    setState(() => _isRecognizing = true);
+    final area = _canvasBox?.size;
+    final results = await HandwritingService.recognize(
+      _lang,
+      List<InkStroke>.from(_strokes),
+      writingArea: area,
+    );
+    if (!mounted) return;
     setState(() {
-      _redoStack.add(_StrokeData(_strokes.last.points.toList()));
-      _strokes.removeLast();
-      _strokeCount = _strokes.length;
+      _isRecognizing = false;
+      _suggestions = results.take(6).toList();
     });
+  }
+
+  void _undo() {
+    if (_strokes.isEmpty) return;
+    setState(() {
+      _redoStack.add(_strokes.removeLast());
+      _suggestions = [];
+    });
+    if (_autoRecognize && _strokes.isNotEmpty) _recognize();
   }
 
   void _redo() {
     if (_redoStack.isEmpty) return;
-    setState(() {
-      final stroke = _redoStack.removeLast();
-      _strokes.add(stroke);
-      _strokeCount = _strokes.length;
-    });
+    setState(() => _strokes.add(_redoStack.removeLast()));
+    if (_autoRecognize) _recognize();
   }
 
   void _clearCanvas() {
-    if (_strokes.isNotEmpty) {
-      _undoStack.addAll(_strokes.map((s) => s.copy()));
-      _redoStack.clear();
-    }
+    _recognizeTimer?.cancel();
     setState(() {
       _strokes.clear();
-      _currentStroke = [];
+      _redoStack.clear();
+      _currentPoints = [];
+      _currentTimes = [];
       _suggestions = [];
-      _strokeCount = 0;
-    });
-  }
-
-  Future<void> _recognizeHandwriting() async {
-    if (_strokes.isEmpty) return;
-    setState(() => _isRecognizing = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (mounted) {
-      setState(() {
-        _isRecognizing = false;
-        _suggestions = _getMockSuggestions();
-      });
-    }
-  }
-
-  List<String> _getMockSuggestions() {
-    final random = Random();
-    final en = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    final am = ['ሀ', 'ለ', 'መ', 'ሰ', 'በ', 'ወ', 'ነ', 'ገ'];
-    return List.generate(5, (_) {
-      final chars = random.nextBool() ? en : am;
-      return chars[random.nextInt(chars.length)];
     });
   }
 
@@ -144,14 +176,14 @@ class _HandwritingPanelState extends State<HandwritingPanel> {
           _header(theme),
           _tools(theme, sc),
           _buildSuggestions(theme, sc),
-          Expanded(child: _canvas(theme, sc, isMatrix)),
-          if (_suggestionsList.isNotEmpty) _actionBar(theme),
+          Expanded(
+              child: _modelState == _ModelState.ready
+                  ? _canvas(theme, sc, isMatrix)
+                  : _modelGate(theme)),
         ]),
       ),
     );
   }
-
-  List<String> get _suggestionsList => _suggestions;
 
   Widget _header(AkaiPalette theme) {
     return Padding(
@@ -171,45 +203,17 @@ class _HandwritingPanelState extends State<HandwritingPanel> {
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.5)),
-        if (_strokeCount > 0) ...[
-          const SizedBox(width: 6),
-          Text('$_strokeCount strokes',
-              style: TextStyle(
-                  color: theme.keySecondaryText.withValues(alpha: 0.4),
-                  fontSize: 9))
-        ],
+        const SizedBox(width: 10),
+        _langChip('EN', HandwritingService.english, theme),
+        const SizedBox(width: 4),
+        _langChip('አማ', HandwritingService.amharic, theme),
         const Spacer(),
-        _iconBtn(Icons.undo, theme, _undoStack.isNotEmpty ? _undo : null),
+        _iconBtn(Icons.undo, theme, _strokes.isNotEmpty ? _undo : null),
         const SizedBox(width: 8),
         _iconBtn(Icons.redo, theme, _redoStack.isNotEmpty ? _redo : null),
         const SizedBox(width: 8),
-        if (_strokes.isNotEmpty)
-          GestureDetector(
-            onTap: _isRecognizing ? null : _recognizeHandwriting,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                  color: theme.accent, borderRadius: BorderRadius.circular(12)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                if (_isRecognizing)
-                  SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 1.5, color: theme.background))
-                else
-                  Icon(Icons.auto_awesome, color: theme.background, size: 14),
-                const SizedBox(width: 4),
-                Text('AI',
-                    style: TextStyle(
-                        color: theme.background,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold)),
-              ]),
-            ),
-          ),
-        const SizedBox(width: 8),
-        _iconBtn(Icons.delete_outline, theme, _clearCanvas),
+        _iconBtn(Icons.delete_outline, theme,
+            _strokes.isNotEmpty ? _clearCanvas : null),
         const SizedBox(width: 8),
         _iconBtn(
             Icons.keyboard_return,
@@ -218,6 +222,32 @@ class _HandwritingPanelState extends State<HandwritingPanel> {
                 .read<KeyboardProvider>()
                 .setMode(KeyboardMode.keyboard)),
       ]),
+    );
+  }
+
+  Widget _langChip(String label, String lang, AkaiPalette theme) {
+    final selected = _lang == lang;
+    return GestureDetector(
+      onTap: () => _setLanguage(lang),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+            color: selected
+                ? theme.accent.withValues(alpha: 0.25)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+                color: selected
+                    ? theme.accent
+                    : theme.accent.withValues(alpha: 0.25))),
+        child: Text(label,
+            style: TextStyle(
+                color: selected
+                    ? theme.accent
+                    : theme.keySecondaryText.withValues(alpha: 0.7),
+                fontSize: 10,
+                fontWeight: FontWeight.w800)),
+      ),
     );
   }
 
@@ -279,7 +309,7 @@ class _HandwritingPanelState extends State<HandwritingPanel> {
         GestureDetector(
           onTap: () => setState(() => _autoRecognize = !_autoRecognize),
           child: Row(children: [
-            Text('Auto-AI',
+            Text('Auto',
                 style: TextStyle(
                     color: theme.keySecondaryText.withValues(alpha: 0.5),
                     fontSize: 9)),
@@ -304,58 +334,149 @@ class _HandwritingPanelState extends State<HandwritingPanel> {
                             color: Colors.white, shape: BoxShape.circle)))),
           ]),
         ),
+        if (!_autoRecognize) ...[
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap:
+                _strokes.isNotEmpty && !_isRecognizing ? _recognize : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                  color: theme.accent,
+                  borderRadius: BorderRadius.circular(10)),
+              child: Text('Read',
+                  style: TextStyle(
+                      color: theme.background,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
       ]),
     );
   }
 
   Widget _buildSuggestions(AkaiPalette theme, Color sc) {
-    if (_suggestionsList.isEmpty && !_isRecognizing) {
+    if (_suggestions.isEmpty && !_isRecognizing) {
       return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Text('Draw characters, words, or sentences below',
+          child: Text(
+              _modelState == _ModelState.ready
+                  ? 'Draw characters or words below — tap a match to type it'
+                  : 'Handwriting works fully offline after a one-time setup',
               style: TextStyle(
-                  color: theme.keySecondaryText.withValues(alpha: 0.3),
+                  color: theme.keySecondaryText.withValues(alpha: 0.35),
                   fontSize: 10,
                   fontStyle: FontStyle.italic)));
     }
+    return SizedBox(
+      height: 44,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: _isRecognizing
+            ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                SizedBox(
+                    width: 14,
+                    height: 14,
+                    child:
+                        CircularProgressIndicator(strokeWidth: 1.5, color: sc)),
+                const SizedBox(width: 8),
+                Text('Reading...',
+                    style: TextStyle(
+                        color: sc.withValues(alpha: 0.6), fontSize: 11))
+              ])
+            : ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _suggestions.length,
+                itemBuilder: (ctx, i) {
+                  final s = _suggestions[i];
+                  return GestureDetector(
+                      onTap: () => _insertSuggestion(s),
+                      child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                              color: sc.withValues(alpha: i == 0 ? 0.28 : 0.12),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                  color: sc.withValues(
+                                      alpha: i == 0 ? 0.7 : 0.3))),
+                          child: Center(
+                              child: Text(s,
+                                  style: TextStyle(
+                                      color: sc,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold)))));
+                }),
+      ),
+    );
+  }
+
+  /// Shown instead of the canvas until the recognition model is available.
+  Widget _modelGate(AkaiPalette theme) {
+    final isAm = _lang == HandwritingService.amharic;
+    final langName = isAm ? 'Amharic (አማርኛ)' : 'English';
+
+    Widget child;
+    switch (_modelState) {
+      case _ModelState.checking:
+        child = CircularProgressIndicator(
+            strokeWidth: 2, color: theme.accent.withValues(alpha: 0.6));
+        break;
+      case _ModelState.downloading:
+        child = Column(mainAxisSize: MainAxisSize.min, children: [
+          CircularProgressIndicator(strokeWidth: 2, color: theme.accent),
+          const SizedBox(height: 10),
+          Text('Downloading $langName model…',
+              style: TextStyle(color: theme.keyText, fontSize: 12)),
+          Text('about 20 MB, one time only',
+              style: TextStyle(
+                  color: theme.keySecondaryText.withValues(alpha: 0.5),
+                  fontSize: 10)),
+        ]);
+        break;
+      case _ModelState.failed:
+      case _ModelState.missing:
+        child = Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.cloud_download_outlined,
+              color: theme.accent, size: 30),
+          const SizedBox(height: 8),
+          Text(
+              _modelState == _ModelState.failed
+                  ? 'Download failed — check your connection'
+                  : 'Get the $langName handwriting model',
+              style: TextStyle(color: theme.keyText, fontSize: 12)),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: _downloadModel,
+            style: ElevatedButton.styleFrom(
+                backgroundColor: theme.accent,
+                foregroundColor: theme.background,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12))),
+            child: Text(
+                _modelState == _ModelState.failed ? 'Retry' : 'Download',
+                style: const TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ]);
+        break;
+      case _ModelState.ready:
+        child = const SizedBox.shrink();
+        break;
+    }
+
     return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: _isRecognizing
-          ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              SizedBox(
-                  width: 14,
-                  height: 14,
-                  child:
-                      CircularProgressIndicator(strokeWidth: 1.5, color: sc)),
-              const SizedBox(width: 8),
-              Text('Analysing...',
-                  style:
-                      TextStyle(color: sc.withValues(alpha: 0.6), fontSize: 11))
-            ])
-          : ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _suggestionsList.length,
-              itemBuilder: (ctx, i) {
-                final s = _suggestionsList[i];
-                return GestureDetector(
-                    onTap: () => _insertSuggestion(s),
-                    child: Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                            color: sc.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                            border:
-                                Border.all(color: sc.withValues(alpha: 0.3))),
-                        child: Center(
-                            child: Text(s,
-                                style: TextStyle(
-                                    color: sc,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold)))));
-              }),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      decoration: BoxDecoration(
+          color: theme.surface.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: theme.accent.withValues(alpha: 0.15), width: 1)),
+      child: Center(child: child),
     );
   }
 
@@ -370,47 +491,18 @@ class _HandwritingPanelState extends State<HandwritingPanel> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: GestureDetector(
-          onPanStart: (d) =>
-              _onPanStart(d, context.findRenderObject() as RenderBox),
-          onPanUpdate: (d) =>
-              _onPanUpdate(d, context.findRenderObject() as RenderBox),
+          onPanStart: _onPanStart,
+          onPanUpdate: _onPanUpdate,
           onPanEnd: _onPanEnd,
           child: CustomPaint(
+              key: _canvasKey,
               painter: _Painter(
                   strokes: _strokes,
-                  current: _currentStroke,
+                  current: _currentPoints,
                   color: sc,
                   width: _strokeWidth,
                   isMatrix: isMatrix),
               size: Size.infinite),
-        ),
-      ),
-    );
-  }
-
-  Widget _actionBar(AkaiPalette theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-          color: theme.surface.withValues(alpha: 0.2),
-          border: Border(
-              top: BorderSide(color: theme.accent.withValues(alpha: 0.1)))),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _suggestionsList.isNotEmpty
-              ? () => _insertSuggestion(_suggestionsList.first)
-              : null,
-          style: ElevatedButton.styleFrom(
-              backgroundColor: theme.accent,
-              foregroundColor: theme.background,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(vertical: 10)),
-          child: Text(
-              'Insert "${_suggestionsList.isNotEmpty ? _suggestionsList.first : ''}"',
-              style:
-                  const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
         ),
       ),
     );
@@ -436,7 +528,7 @@ class _HandwritingPanelState extends State<HandwritingPanel> {
 }
 
 class _Painter extends CustomPainter {
-  final List<_StrokeData> strokes;
+  final List<InkStroke> strokes;
   final List<Offset> current;
   final Color color;
   final double width;
@@ -453,18 +545,28 @@ class _Painter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
+      ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..isAntiAlias = true;
     if (isMatrix) paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
 
-    for (final s in strokes) _drawPath(canvas, s.points, paint);
+    for (final s in strokes) {
+      _drawPath(canvas, s.points, paint);
+    }
     if (current.isNotEmpty) _drawPath(canvas, current, paint);
   }
 
   void _drawPath(Canvas canvas, List<Offset> pts, Paint paint) {
     if (pts.length < 2) {
-      if (pts.length == 1) canvas.drawCircle(pts.first, width / 2, paint);
+      if (pts.length == 1) {
+        canvas.drawCircle(
+            pts.first,
+            width / 2,
+            Paint()
+              ..color = color
+              ..isAntiAlias = true);
+      }
       return;
     }
     final path = Path()..moveTo(pts.first.dx, pts.first.dy);

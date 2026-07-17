@@ -17,6 +17,12 @@ dependencies:
 
   # For caching downloaded themes locally
   path_provider: ^2.1.2
+
+  # On-device handwriting recognition (English + Amharic).
+  # Pinned to 0.14.2: 0.15.0's Kotlin rewrite registers the Android channel as
+  # "google_mlkit_digital_ink_recognition" while its Dart side calls
+  # "google_mlkit_digital_ink_recognizer", so every call throws MissingPluginException.
+  google_mlkit_digital_ink_recognition: 0.14.2
   firebase_core: ^3.1.1
   cloud_firestore: ^5.0.2
   firebase_storage: ^12.1.1
