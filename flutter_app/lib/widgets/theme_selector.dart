@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/keyboard_provider.dart';
 import '../providers/theme_provider.dart';
 import '../app/theme/app_theme.dart';
+import '../app/theme/live_theme_background.dart';
 import 'theme_marketplace.dart';
 
 class ThemeSelector extends StatefulWidget {
@@ -291,49 +292,37 @@ class _ThemeSelectorState extends State<ThemeSelector> {
                             ),
                             child: Stack(
                               children: [
-                                // Live indicator (if any)
+                                // Animated backdrop for live & team themes — a static
+                                // representative frame, matching the keyboard's own preview.
+                                if (palette.liveTheme != null)
+                                  Positioned.fill(
+                                    child: ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(15),
+                                      ),
+                                      child: Opacity(
+                                        opacity: 0.55,
+                                        child: LiveThemeBackground(
+                                          key: ValueKey('grid_preview_${palette.id}'),
+                                          palette: palette,
+                                          animate: false,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                // Live / Team indicator — football themes read as a squad,
+                                // not a generic effect, so they get their own badge.
                                 if (palette.liveTheme != null)
                                   Positioned(
                                     top: 10,
                                     right: 10,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: palette.accent.withOpacity(0.9),
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: palette.accent.withOpacity(0.5),
-                                            blurRadius: 8,
-                                          )
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.bolt_rounded,
-                                            size: 14,
-                                            color: Colors.white,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          const Text(
-                                            'LIVE',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                    child: _ThemeBadge(
+                                      isTeam: palette.category == 'football',
+                                      color: palette.accent,
                                     ),
                                   ),
-                                
+
                                 // Selected badge
                                 if (isSelected)
                                   Positioned(
@@ -359,7 +348,22 @@ class _ThemeSelectorState extends State<ThemeSelector> {
                                     ),
                                   ),
                                 
-                                // Abstract Preview keys
+                                // Abstract Preview keys, scrimmed so they stay legible
+                                // over an animated live/team backdrop.
+                                if (palette.liveTheme != null)
+                                  Positioned.fill(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: RadialGradient(
+                                          colors: [
+                                            palette.background.withOpacity(0.55),
+                                            palette.background.withOpacity(0.0),
+                                          ],
+                                          radius: 0.9,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 Center(
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -468,6 +472,50 @@ class _ThemeSelectorState extends State<ThemeSelector> {
         Icons.backspace_outlined,
         size: 18,
         color: palette.keyText,
+      ),
+    );
+  }
+}
+
+/// LIVE for animated-effect themes, TEAM for football club themes —
+/// same shape and weight so the grid stays consistent, different enough
+/// to read at a glance which promise each card is making.
+class _ThemeBadge extends StatelessWidget {
+  final bool isTeam;
+  final Color color;
+
+  const _ThemeBadge({required this.isTeam, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: color.withOpacity(0.5), blurRadius: 8),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isTeam ? Icons.shield_rounded : Icons.bolt_rounded,
+            size: 14,
+            color: Colors.white,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isTeam ? 'TEAM' : 'LIVE',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
     );
   }

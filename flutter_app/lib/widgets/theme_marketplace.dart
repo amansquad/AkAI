@@ -348,6 +348,7 @@ class _ThemeMarketplaceState extends State<ThemeMarketplace> {
     final name = theme['name'] as String;
     final emoji = theme['emoji'] as String;
     final isLive = theme['liveTheme'] != null;
+    final isTeam = theme['category'] == 'football';
     final isDownloaded = _downloadedThemes.contains(themeId);
     final isDownloading = _downloading[themeId] ?? false;
 
@@ -390,10 +391,24 @@ class _ThemeMarketplaceState extends State<ThemeMarketplace> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981),
+                            color: isTeam ? const Color(0xFFE4A11B) : const Color(0xFF10B981),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isTeam ? Icons.shield_rounded : Icons.bolt_rounded,
+                                size: 8,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                isTeam ? 'TEAM' : 'LIVE',
+                                style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                   ],

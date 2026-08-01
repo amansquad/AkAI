@@ -227,26 +227,28 @@ class AkaiThemes {
     glow: Color(0xFFFFB0B0),
   );
 
+  // Matches public/themes/matrix.json (the web theme) so the bundled
+  // fallback and a downloaded copy of this theme render identically.
   static const akaiMatrix = AkaiPalette(
     name: 'Matrix',
     id: 'matrix',
     emoji: '🟩',
     liveTheme: 'matrix',
     category: 'live',
-    background: Color(0xFF000800),     
-    surface: Color(0xF0000E00),        // More opaque for top bars
-    surfaceVariant: Color(0xFF001500),
-    key: Color(0x66001800),            
-    keyPressed: Color(0xFF00FF41),     // Bright neon green when pressed (Identical to REF)
-    keySecondary: Color(0x55001000),   
-    keySecondaryPressed: Color(0xFF00CC30),
-    keyAccent: Color(0xFF00FF41),      
-    keyAccentPressed: Color(0xFF39FF14),
-    keyText: Color(0xFF00FF41),        
-    keySecondaryText: Color(0xFF00C030),
-    accent: Color(0xFF00FF41),         // Active highlights are green
-    accentMuted: Color(0xFF00661A),
-    glow: Color(0xFF00FF41),
+    background: Color(0xFF000000),
+    surface: Color(0xFF000D00),
+    surfaceVariant: Color(0xFF001A00),
+    key: Color(0x66002900),
+    keyPressed: Color(0xFF003600),
+    keySecondary: Color(0x55001000),
+    keySecondaryPressed: Color(0xFF001E00),
+    keyAccent: Color(0xFF004000),
+    keyAccentPressed: Color(0xFF004D00),
+    keyText: Color(0xFF00FF41),
+    keySecondaryText: Color(0xFF00B30A),
+    accent: Color(0xFF004000),
+    accentMuted: Color(0xFF003000),
+    glow: Color(0xFF004D00),
   );
 
   static const akaiAurora = AkaiPalette(

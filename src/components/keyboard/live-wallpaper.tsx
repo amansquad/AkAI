@@ -7,6 +7,9 @@ import React, { useEffect, useRef, useCallback } from 'react';
 interface LiveWallpaperProps {
   theme: string;
   className?: string;
+  /** Paint one representative frame and stop — for thumbnails and grids,
+   * where dozens of live rAF loops running at once would tank the page. */
+  static?: boolean;
 }
 
 type AnimState = Record<string, unknown>;
@@ -4492,7 +4495,7 @@ const THEME_ANIMATIONS: Record<string, AnimationFn> = {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export default function LiveWallpaper({ theme, className = '' }: LiveWallpaperProps) {
+export default function LiveWallpaper({ theme, className = '', static: staticFrame = false }: LiveWallpaperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const mouseRef = useRef({ x: -1000, y: -1000 });
@@ -4564,6 +4567,17 @@ export default function LiveWallpaper({ theme, className = '' }: LiveWallpaperPr
       resizeObserver.observe(canvas.parentElement);
     }
 
+    if (staticFrame) {
+      // One representative mid-animation frame, no rAF loop.
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      ctx.save();
+      animFn(ctx, w, h, 3.5, -1000, -1000, stateRef.current);
+      ctx.restore();
+      return () => resizeObserver.disconnect();
+    }
+
     const startTime = performance.now();
 
     const animate = (now: number) => {
@@ -4588,7 +4602,7 @@ export default function LiveWallpaper({ theme, className = '' }: LiveWallpaperPr
       cancelAnimationFrame(animFrameRef.current);
       resizeObserver.disconnect();
     };
-  }, [theme]);
+  }, [theme, staticFrame]);
 
   return (
     <canvas

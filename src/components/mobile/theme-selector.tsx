@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Zap, Palette } from 'lucide-react';
+import { X, Sparkles, Zap, Palette, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { THEMES, type ThemeDef } from '@/components/keyboard-data';
+import LiveWallpaper from '@/components/keyboard/live-wallpaper';
 
 interface ThemeSelectorProps {
   currentTheme: string;
@@ -13,22 +14,32 @@ interface ThemeSelectorProps {
   onClose: () => void;
 }
 
-type ThemeCategory = 'all' | 'solid' | 'live';
+type ThemeCategory = 'all' | 'solid' | 'live' | 'football' | 'faith' | 'culture';
+
+const CATEGORY_TABS: { id: ThemeCategory; label: string; icon?: React.ReactNode }[] = [
+  { id: 'all', label: 'All', icon: <Palette className="w-4 h-4 mr-1.5" /> },
+  { id: 'live', label: 'Live', icon: <Sparkles className="w-4 h-4 mr-1.5" /> },
+  { id: 'football', label: 'Teams', icon: <Shield className="w-4 h-4 mr-1.5" /> },
+  { id: 'faith', label: 'Faith' },
+  { id: 'culture', label: 'Culture' },
+  { id: 'solid', label: 'Solid' },
+];
 
 export function ThemeSelector({ currentTheme, onSelectTheme, onClose }: ThemeSelectorProps) {
   const [category, setCategory] = useState<ThemeCategory>('all');
 
   const themeEntries = Object.entries(THEMES);
-  
+
+  const countFor = (c: ThemeCategory) =>
+    themeEntries.filter(([_, theme]) =>
+      c === 'all' ? true : c === 'solid' ? !theme.isLive : theme.category === c
+    ).length;
+
   const filteredThemes = themeEntries.filter(([_, theme]) => {
     if (category === 'all') return true;
     if (category === 'solid') return !theme.isLive;
-    if (category === 'live') return theme.isLive;
-    return true;
+    return theme.category === category;
   });
-
-  const solidThemes = themeEntries.filter(([_, theme]) => !theme.isLive);
-  const liveThemes = themeEntries.filter(([_, theme]) => theme.isLive);
 
   return (
     <div className="h-full flex flex-col bg-background">
@@ -44,34 +55,26 @@ export function ThemeSelector({ currentTheme, onSelectTheme, onClose }: ThemeSel
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-2 p-4 bg-muted/20">
-        <Button
-          size="sm"
-          variant={category === 'all' ? 'default' : 'outline'}
-          onClick={() => setCategory('all')}
-          className="flex-1"
-        >
-          <Palette className="w-4 h-4 mr-2" />
-          All ({themeEntries.length})
-        </Button>
-        <Button
-          size="sm"
-          variant={category === 'solid' ? 'default' : 'outline'}
-          onClick={() => setCategory('solid')}
-          className="flex-1"
-        >
-          Solid ({solidThemes.length})
-        </Button>
-        <Button
-          size="sm"
-          variant={category === 'live' ? 'default' : 'outline'}
-          onClick={() => setCategory('live')}
-          className="flex-1"
-        >
-          <Sparkles className="w-4 h-4 mr-2" />
-          Live ({liveThemes.length})
-        </Button>
-      </div>
+      <ScrollArea className="w-full whitespace-nowrap bg-muted/20">
+        <div className="flex gap-2 p-4">
+          {CATEGORY_TABS.map((tab) => {
+            const count = countFor(tab.id);
+            if (tab.id !== 'all' && tab.id !== 'live' && tab.id !== 'solid' && count === 0) return null;
+            return (
+              <Button
+                key={tab.id}
+                size="sm"
+                variant={category === tab.id ? 'default' : 'outline'}
+                onClick={() => setCategory(tab.id)}
+                className="shrink-0"
+              >
+                {tab.icon}
+                {tab.label} ({count})
+              </Button>
+            );
+          })}
+        </div>
+      </ScrollArea>
 
       {/* Theme Grid */}
       <ScrollArea className="flex-1 p-4">
@@ -95,26 +98,18 @@ export function ThemeSelector({ currentTheme, onSelectTheme, onClose }: ThemeSel
               >
                 {/* Theme Preview */}
                 <div className={`${theme.bg} h-24 relative overflow-hidden`}>
-                  {/* Animated background for live themes */}
+                  {/* Real per-theme canvas animation — one still frame, not a
+                      generic pulse, so the card shows what the theme actually is. */}
                   {theme.isLive && (
-                    <div className="absolute inset-0">
-                      <motion.div
-                        className={`absolute inset-0 ${theme.accent} opacity-20`}
-                        animate={{
-                          scale: [1, 1.2, 1],
-                          opacity: [0.2, 0.4, 0.2]
-                        }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                          ease: 'easeInOut'
-                        }}
-                      />
-                    </div>
+                    <LiveWallpaper theme={themeKey} static className="opacity-60" />
                   )}
 
-                  {/* Sample Keys */}
-                  <div className="absolute inset-0 flex items-center justify-center gap-2 p-2">
+                  {/* Sample Keys, scrimmed for legibility over a busy backdrop */}
+                  <div
+                    className={`absolute inset-0 flex items-center justify-center gap-2 p-2 ${
+                      theme.isLive ? 'bg-[radial-gradient(circle,rgba(0,0,0,0)_0%,rgba(0,0,0,0.1)_60%,rgba(0,0,0,0.4)_100%)]' : ''
+                    }`}
+                  >
                     <div className={`${theme.key} rounded-md w-10 h-10 ${theme.keyText} flex items-center justify-center text-xs font-medium shadow-sm`}>
                       A
                     </div>
@@ -126,12 +121,17 @@ export function ThemeSelector({ currentTheme, onSelectTheme, onClose }: ThemeSel
                     </div>
                   </div>
 
-                  {/* Live indicator */}
+                  {/* Live / Team indicator — team themes read as a squad, not a
+                      generic effect, so they get their own badge. */}
                   {theme.isLive && (
                     <div className="absolute top-2 right-2">
                       <div className="bg-primary text-primary-foreground px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1">
-                        <Zap className="w-3 h-3" />
-                        LIVE
+                        {theme.category === 'football' ? (
+                          <Shield className="w-3 h-3" />
+                        ) : (
+                          <Zap className="w-3 h-3" />
+                        )}
+                        {theme.category === 'football' ? 'TEAM' : 'LIVE'}
                       </div>
                     </div>
                   )}
