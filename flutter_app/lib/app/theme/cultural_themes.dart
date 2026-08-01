@@ -677,12 +677,13 @@ class CulturalPalettes {
     keyText: Color(0xFF000000), keySecondaryText: Color(0xFF333333), accent: Color(0xFFFACC15), accentMuted: Color(0xFFEAB308), glow: Color(0xFFFDE047),
   );
 
+  // Matches the web theme's zinc/black/amber palette (keyboard-data.ts `lion`).
   static const akaiJudahLion = AkaiPalette(
     name: 'Judah Lion', id: 'judah-lion', emoji: '🦁', category: 'cultural', liveTheme: '/judah_lion',
-    background: Color(0xFF450A0A), surface: Color(0x4D000000), surfaceVariant: Color(0x66000000),
+    background: Color(0xFF09090B), surface: Color(0x80000000), surfaceVariant: Color(0x66000000),
     key: Color(0x59000000), keyPressed: Color(0x8C000000), keySecondary: Color(0x73000000),
-    keySecondaryPressed: Color(0x8C000000), keyAccent: Color(0xFFFACC15), keyAccentPressed: Color(0xFFFDE047),
-    keyText: Color(0xFFFEFCE8), keySecondaryText: Color(0xFFFEF08A), accent: Color(0xFFFACC15), accentMuted: Color(0xFFEAB308), glow: Color(0xFFFDE047),
+    keySecondaryPressed: Color(0x8C000000), keyAccent: Color(0xFFFCD34D), keyAccentPressed: Color(0xFFFDE68A),
+    keyText: Color(0xFFFEF3C7), keySecondaryText: Color(0xFFFDE68A), accent: Color(0xFFFCD34D), accentMuted: Color(0xFFFBBF24), glow: Color(0xFFFDE68A),
   );
 
   static const akaiSouthernEthiopia = AkaiPalette(
