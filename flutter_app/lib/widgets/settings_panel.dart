@@ -103,6 +103,49 @@ class SettingsPanel extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
+                // Group 1.5: Typing Behavior — these settings already existed
+                // in SettingsProvider and drove real behavior, but had no UI.
+                _buildSectionHeader('Typing Behavior', theme),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: theme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: theme.surfaceVariant.withOpacity(0.5)),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildSwitchTile(context, 'Vibrate on Keypress', 'Haptic feedback for every key', Icons.vibration_rounded, const Color(0xFF3B82F6), settings.vibrateOnKeyPress, (v) => settings.setVibrateOnKeyPress(v), theme, isFirst: true, isLast: false),
+                      _buildDivider(theme),
+                      _buildSwitchTile(context, 'Sound on Keypress', 'Play a click sound per key', Icons.volume_up_rounded, const Color(0xFF14B8A6), settings.soundOnKeyPress, (v) => settings.setSoundOnKeyPress(v), theme, isFirst: false, isLast: false),
+                      _buildDivider(theme),
+                      _buildSwitchTile(context, 'Auto Capitalization', 'Capitalize start of sentences', Icons.text_fields_rounded, const Color(0xFF8B5CF6), settings.autoCapitalization, (v) => settings.setAutoCapitalization(v), theme, isFirst: false, isLast: false),
+                      _buildDivider(theme),
+                      _buildSwitchTile(context, 'Double-Space for Period', 'Tap space twice to insert ". "', Icons.space_bar_rounded, const Color(0xFFF59E0B), settings.doubleSpacePeriod, (v) => settings.setDoubleSpacePeriod(v), theme, isFirst: false, isLast: false),
+                      _buildDivider(theme),
+                      _buildSwitchTile(context, 'Key Popup on Long Press', 'Show alternate characters on long press', Icons.touch_app_rounded, const Color(0xFFEC4899), settings.keyPopupOnLongPress, (v) => settings.setKeyPopupOnLongPress(v), theme, isFirst: false, isLast: false),
+                      _buildDivider(theme),
+                      _buildSwitchTile(context, 'Show Number Row', 'Always show numbers above letters', Icons.pin_rounded, const Color(0xFF10B981), settings.showNumberRow, (v) => settings.setShowNumberRow(v), theme, isFirst: false, isLast: true),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                _buildSectionHeader('One-Handed Mode', theme),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: theme.surfaceVariant.withOpacity(0.5)),
+                  ),
+                  child: _buildOneHandedSelector(settings, theme),
+                ),
+
+                const SizedBox(height: 24),
+
                 // Group 2: Advanced Customization
                 _buildSectionHeader('Toolbar & Glass', theme),
                 const SizedBox(height: 8),
@@ -179,6 +222,62 @@ class SettingsPanel extends StatelessWidget {
             return Expanded(
               child: GestureDetector(
                 onTap: () => settings.setKeyboardHeight(opt.$2),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? theme.accent.withOpacity(0.2) : theme.surfaceVariant.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected ? theme.accent : Colors.transparent,
+                      width: 1.4,
+                    ),
+                  ),
+                  child: Text(
+                    opt.$1,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: selected ? theme.accent : theme.keySecondaryText,
+                      fontSize: 12,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOneHandedSelector(SettingsProvider settings, AkaiPalette theme) {
+    const options = [
+      ('Off', 'off'),
+      ('Left', 'left'),
+      ('Right', 'right'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.smartphone_rounded, size: 14, color: theme.accent.withOpacity(0.6)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('Shrink and shift the keyboard for thumb reach',
+                  style: TextStyle(color: theme.keySecondaryText, fontSize: 11)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: options.map((opt) {
+            final selected = settings.oneHandedMode == opt.$2;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => settings.setOneHandedMode(opt.$2),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(horizontal: 3),

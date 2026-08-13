@@ -156,23 +156,35 @@ class _AkaiKeyState extends State<AkaiKey>
                     color: palette.surfaceVariant.withOpacity(0.15),
                     width: 0.35,
                   ),
-                  // Samsung-style: subtle shadow and soft key depth
-                  boxShadow: palette.liveTheme == null
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.10),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1.8),
-                          ),
-                        ]
-                      : null,
+                  // Samsung-style: subtle shadow and soft key depth, plus a
+                  // theme-glow halo that blooms in as the key is pressed.
+                  boxShadow: [
+                    if (palette.liveTheme == null)
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1.8),
+                      ),
+                    if (lerpFactor > 0.01)
+                      BoxShadow(
+                        color: palette.glow.withOpacity(
+                            (0.55 * lerpFactor.clamp(0.0, 1.0))),
+                        blurRadius: 16 * lerpFactor.clamp(0.0, 1.0),
+                        spreadRadius: 1.2 * lerpFactor.clamp(0.0, 1.0),
+                      ),
+                  ],
                 ),
                 child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    // Main content (centered)
+                    // Main content (centered), with a quick "pop" scale
+                    // as the key registers a press.
                     Center(
-                      child: _buildKeyContent(
-                          resolvedText, showAsUpper, displayText),
+                      child: Transform.scale(
+                        scale: 1.0 + 0.12 * lerpFactor.clamp(0.0, 1.0),
+                        child: _buildKeyContent(
+                            resolvedText, showAsUpper, displayText),
+                      ),
                     ),
                     // Secondary character hint (top-right, Samsung-style)
                     if (widget.def.secondary != null &&

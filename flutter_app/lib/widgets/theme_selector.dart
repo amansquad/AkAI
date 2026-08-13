@@ -5,6 +5,7 @@ import '../providers/theme_provider.dart';
 import '../app/theme/app_theme.dart';
 import '../app/theme/live_theme_background.dart';
 import 'theme_marketplace.dart';
+import 'motion_helpers.dart';
 
 class ThemeSelector extends StatefulWidget {
   const ThemeSelector({super.key});
@@ -195,7 +196,7 @@ class _ThemeSelectorState extends State<ThemeSelector> {
                 final isSelected = _selectedCategory == category;
                 return Padding(
                   padding: const EdgeInsets.only(right: 10),
-                  child: GestureDetector(
+                  child: PressScale(
                     onTap: () {
                       setState(() {
                         _selectedCategory = category;
@@ -252,7 +253,9 @@ class _ThemeSelectorState extends State<ThemeSelector> {
                 final palette = filteredThemes[index];
                 final isSelected = palette.name == currentPalette.name;
 
-                return GestureDetector(
+                return StaggerIn(
+                  index: index,
+                  child: PressScale(
                   onTap: () {
                     themeProvider.setTheme(palette);
                     context.read<KeyboardProvider>().setMode(KeyboardMode.keyboard);
@@ -323,11 +326,18 @@ class _ThemeSelectorState extends State<ThemeSelector> {
                                     ),
                                   ),
 
-                                // Selected badge
-                                if (isSelected)
-                                  Positioned(
-                                    top: 10,
-                                    left: 10,
+                                // Selected badge — pops in with a spring-ish overshoot
+                                Positioned(
+                                  top: 10,
+                                  left: 10,
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 0, end: isSelected ? 1.0 : 0.0),
+                                    duration: const Duration(milliseconds: 320),
+                                    curve: Curves.elasticOut,
+                                    builder: (context, v, child) => Transform.scale(
+                                      scale: v,
+                                      child: child,
+                                    ),
                                     child: Container(
                                       padding: const EdgeInsets.all(4),
                                       decoration: BoxDecoration(
@@ -347,6 +357,7 @@ class _ThemeSelectorState extends State<ThemeSelector> {
                                       ),
                                     ),
                                   ),
+                                ),
                                 
                                 // Abstract Preview keys, scrimmed so they stay legible
                                 // over an animated live/team backdrop.
@@ -415,6 +426,7 @@ class _ThemeSelectorState extends State<ThemeSelector> {
                         ),
                       ],
                     ),
+                  ),
                   ),
                 );
               },

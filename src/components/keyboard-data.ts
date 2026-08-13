@@ -338,6 +338,14 @@ export const THEMES: Record<string, ThemeDef> = {
     suggestion: 'bg-pink-200',
   },
   // ─── LIVE THEMES ──────────────────────────────────────────────────────
+  prism_live: {
+    name: 'Prism Flow', flag: '🔮', category: 'live', isLive: true, liveClass: 'theme-prism-live',
+    bg: 'bg-[#0b0a1a]', card: 'bg-[#150f24]/80', key: 'bg-[#1c1430]/90', keyHover: 'hover:bg-fuchsia-700',
+    keyActive: 'bg-fuchsia-300 text-[#0b0a1a]', keyText: 'text-violet-50',
+    specialKey: 'bg-[#241a3a]', accent: 'bg-fuchsia-400', accentText: 'text-[#0b0a1a]',
+    border: 'border-fuchsia-500/30', tabBar: 'bg-[#150f24]/80', tabActive: 'bg-fuchsia-400', tabActiveText: 'text-[#0b0a1a]',
+    suggestion: 'bg-[#1c1430]/80',
+  },
   aurora_live: {
     name: 'Aurora', flag: '🌌', category: 'live', isLive: true, liveClass: 'theme-aurora-live',
     bg: 'bg-slate-950', card: 'bg-slate-900/80', key: 'bg-slate-800/90', keyHover: 'hover:bg-cyan-700',

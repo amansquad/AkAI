@@ -1,0 +1,23 @@
+{
+  "id": "prism",
+  "name": "Prism Flow",
+  "emoji": "🔮",
+  "description": "Iridescent holographic sheen with drifting light shards",
+  "isPremium": false,
+  "colors": {
+    "background": 4278913562,
+    "surface": 4279570212,
+    "surfaceVariant": 4280030256,
+    "key": 4280030256,
+    "keyPressed": 4280950597,
+    "keySecondary": 4280556090,
+    "keySecondaryPressed": 4281213512,
+    "keyAccent": 4293425657,
+    "keyAccentPressed": 4293962748,
+    "keyText": 4294308863,
+    "keySecondaryText": 4293514751,
+    "accent": 4293425657,
+    "accentMuted": 4289222135,
+    "glow": 4293962748
+  }
+}

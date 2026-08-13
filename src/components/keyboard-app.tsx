@@ -142,6 +142,10 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   const [soundOnKeyPress, setSoundOnKeyPress] = useState(false);
   const [autoCapitalization, setAutoCapitalization] = useState(true);
   const [recentStickers, setRecentStickers] = useState<string[]>([]);
+  const [hapticStrength, setHapticStrength] = useState<'light' | 'medium' | 'strong'>('medium');
+  const [doubleSpacePeriod, setDoubleSpacePeriod] = useState(true);
+  const [oneHandedMode, setOneHandedMode] = useState<'off' | 'left' | 'right'>('off');
+  const lastSpaceTapRef = useRef<number>(0);
 
   // Animation state for Change 7
   const [textBounce, setTextBounce] = useState(false);
@@ -455,6 +459,11 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         if (parsed.sound !== undefined) setSoundOnKeyPress(parsed.sound);
         if (parsed.autoCap !== undefined) setAutoCapitalization(parsed.autoCap);
         if (parsed.kbHeight !== undefined) setKeyboardHeight(parsed.kbHeight);
+        if (parsed.hapticStrength !== undefined) setHapticStrength(parsed.hapticStrength);
+        if (parsed.doubleSpacePeriod !== undefined) setDoubleSpacePeriod(parsed.doubleSpacePeriod);
+        if (parsed.oneHandedMode !== undefined) setOneHandedMode(parsed.oneHandedMode);
+        if (parsed.autoSpace !== undefined) setAutoSpaceAfterPunctuation(parsed.autoSpace);
+        if (parsed.keyPopup !== undefined) setKeyPopupOnLongPress(parsed.keyPopup);
       } catch (e) { console.error('Failed to load settings', e); }
     }
     const savedRecents = localStorage.getItem('akai-kb-recents');
@@ -470,9 +479,14 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       vibrate: vibrateOnKeyPress,
       sound: soundOnKeyPress,
       autoCap: autoCapitalization,
-      kbHeight: keyboardHeight
+      kbHeight: keyboardHeight,
+      hapticStrength,
+      doubleSpacePeriod,
+      oneHandedMode,
+      autoSpace: autoSpaceAfterPunctuation,
+      keyPopup: keyPopupOnLongPress,
     }));
-  }, [vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight]);
+  }, [vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticStrength, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress]);
 
   useEffect(() => {
     localStorage.setItem('akai-kb-recents', JSON.stringify(recentEmojis));
@@ -495,11 +509,11 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     } catch (e) { /* Audio context might be blocked */ }
   }, [soundOnKeyPress]);
 
-  const doVibrate = useCallback((strength = 10) => {
-    if (vibrateOnKeyPress && window.navigator.vibrate) {
-      window.navigator.vibrate(strength);
-    }
-  }, [vibrateOnKeyPress]);
+  const doVibrate = useCallback((strength?: number) => {
+    if (!vibrateOnKeyPress || !window.navigator.vibrate) return;
+    const strengthMap = { light: 5, medium: 12, strong: 25 };
+    window.navigator.vibrate(strength ?? strengthMap[hapticStrength]);
+  }, [vibrateOnKeyPress, hapticStrength]);
 
   // Cleanup long press timer on unmount
   useEffect(() => {
@@ -593,7 +607,17 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     if (key === 'backspace') {
       updateText(text.slice(0, -1));
     } else if (key === 'space') {
-      updateText(text + ' ');
+      const now = Date.now();
+      const isQuickDoubleTap = now - lastSpaceTapRef.current < 350;
+      const endsWithSingleSpace = text.length > 0 && text.endsWith(' ') && !text.endsWith('  ');
+      const hasWordBeforeSpace = /\S $/.test(text);
+      if (doubleSpacePeriod && isQuickDoubleTap && endsWithSingleSpace && hasWordBeforeSpace) {
+        updateText(text.slice(0, -1) + '. ');
+        lastSpaceTapRef.current = 0;
+      } else {
+        updateText(text + ' ');
+        lastSpaceTapRef.current = now;
+      }
     } else if (key === 'enter') {
       updateText(text + '\n');
     } else if (key === 'shift') {
@@ -627,7 +651,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       updateText(newText);
       if (shiftActive) setShiftActive(false);
     }
-  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate]);
+  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod]);
 
   const handleAmharicPress = useCallback((consonant: string) => {
     const vowels = AMHARIC_VOWELS[consonant];
@@ -635,6 +659,9 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       setSelectedConsonant(consonant);
       updateText(text + vowels[0]);
     }
+    doVibrate();
+    setRippleKey(consonant);
+    setTimeout(() => setRippleKey(null), 400);
   }, [text, updateText]);
 
   const handleVowelSelect = useCallback((vowel: string) => {
@@ -917,7 +944,8 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     return (
       <motion.button
         key={key}
-        whileTap={{ scale: 0.95 }}
+        whileTap={{ scale: 0.93, y: 1 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 22, mass: 0.5 }}
         onMouseEnter={() => !isIme && setHoveredKey(key)}
         onMouseLeave={() => { !isIme && setHoveredKey(null); handlePointerUp(); }}
         onClick={() => {
@@ -947,28 +975,32 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           handlePointerUp();
         }}
         className={`
-          relative flex items-center justify-center rounded-xl font-medium
+          relative flex items-center justify-center rounded-lg font-medium text-xs
           transition-all duration-75 select-none overflow-visible
-          ${
-            keyboardSpacing === 'compact'
-              ? (isWide ? 'flex-[4] h-10' : isMedium ? 'flex-[1.5] h-10' : 'flex-1 h-10')
-              : keyboardSpacing === 'spacious'
-              ? (isWide ? 'flex-[4.5] h-14' : isMedium ? 'flex-[1.8] h-14' : 'flex-1 h-14')
-              : (isWide ? 'flex-[4] h-12' : isMedium ? 'flex-[1.5] h-12' : 'flex-1 h-12')
-          }
+          ${isWide ? 'flex-[3.5]' : isMedium ? 'flex-[1.4]' : 'flex-1'} ${kbKeyHeight}
           ${!isIme && isHovered ? `${t.keyHover} shadow-md` : ''}
           ${isSpecial ? `${t.specialKey} ${t.keyText}` : `${t.key} ${t.keyText} ${t.border} border shadow-sm`}
           active:brightness-90
         `}
         style={customKeyStyle}
       >
-        {/* Ripple effect */}
+        {/* Press glow: soft accent halo that blooms out and fades */}
         {isRippled && (
           <motion.span
-            initial={{ scale: 0, opacity: 0.5 }}
-            animate={{ scale: 2.5, opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className={`absolute inset-0 rounded-xl ${t.accent} pointer-events-none`}
+            initial={{ scale: 0.4, opacity: 0.55 }}
+            animate={{ scale: 1.9, opacity: 0 }}
+            transition={{ duration: 0.38, ease: 'easeOut' }}
+            className={`absolute inset-0 rounded-xl ${t.accent} pointer-events-none blur-[2px]`}
+            style={{ mixBlendMode: 'screen' }}
+          />
+        )}
+        {/* Press flash: quick bright pulse right at contact */}
+        {isRippled && (
+          <motion.span
+            initial={{ opacity: 0.35 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="absolute inset-0 rounded-xl bg-white pointer-events-none"
           />
         )}
         {key === 'shift' && <ArrowUp className={`w-4 h-4 ${shiftActive ? 'text-yellow-500' : ''}`} />}
@@ -977,7 +1009,13 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         {key === 'voice' && (isListening ? <MicOff className="w-4 h-4 text-red-500" /> : <Mic className="w-4 h-4" />)}
         {key === 'language' && <span className="text-[10px] font-bold">{displayKey}</span>}
         {key !== 'shift' && key !== 'backspace' && key !== 'enter' && key !== 'language' && key !== 'voice' && (
-          <span className={isWide ? 'text-xs' : 'text-sm'}>{displayKey}</span>
+          <motion.span
+            animate={isRippled ? { scale: [1, 1.22, 1] } : { scale: 1 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className={isWide ? 'text-xs' : 'text-sm'}
+          >
+            {displayKey}
+          </motion.span>
         )}
         {/* Spacebar: listening indicator */}
         {key === 'space' && isListening && (
@@ -995,18 +1033,18 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
             initial={{ opacity: 0, y: 5, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.9 }}
-            className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 ${t.card} ${t.border} border rounded-xl shadow-2xl p-1.5 z-50 flex gap-1 min-w-max`}
+            className={`absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 ${t.card} ${t.border} border rounded-lg shadow-2xl p-1 z-50 flex gap-0.5 min-w-max`}
           >
             {LONG_PRESS_ALTERNATES[key].map((alt, i) => (
               <motion.div
                 key={i}
                 role="button"
                 tabIndex={0}
-                whileHover={{ scale: 1.15, y: -2 }}
+                whileHover={{ scale: 1.1, y: -1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={(e) => { e.stopPropagation(); handleAlternateSelect(alt); }}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleAlternateSelect(alt); } }}
-                className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm cursor-pointer`}
+                className={`flex items-center justify-center w-7 h-7 rounded-md text-xs font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm cursor-pointer`}
               >
                 {alt}
               </motion.div>
@@ -1316,12 +1354,22 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     <div className="flex flex-col h-full">
       <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
         <span className={`text-xs font-medium ${t.keyText} opacity-70`}>Clipboard History</span>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button variant="ghost" size="sm" onClick={() => { if (text.trim()) setClipboardItems(prev => [{ id: Date.now().toString(), text: text.trim(), timestamp: Date.now() }, ...prev]); }}
-            className={`h-7 text-xs gap-1 ${t.keyText}`}>
-            <Plus className="w-3 h-3" />Add Current
-          </Button>
-        </motion.div>
+        <div className="flex items-center gap-1">
+          {clipboardItems.length > 0 && (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button variant="ghost" size="sm" onClick={() => setClipboardItems([])}
+                className={`h-7 text-xs gap-1 text-red-500`}>
+                <Trash2 className="w-3 h-3" />Clear All
+              </Button>
+            </motion.div>
+          )}
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button variant="ghost" size="sm" onClick={() => { if (text.trim()) setClipboardItems(prev => [{ id: Date.now().toString(), text: text.trim(), timestamp: Date.now() }, ...prev]); }}
+              className={`h-7 text-xs gap-1 ${t.keyText}`}>
+              <Plus className="w-3 h-3" />Add Current
+            </Button>
+          </motion.div>
+        </div>
       </div>
       <div className="flex-1 p-2 overflow-y-auto">
         {clipboardItems.length === 0 ? (
@@ -1791,6 +1839,128 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
             <motion.div animate={{ x: autoCapitalization ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
           </motion.button>
         </div>
+
+        {/* Vibrate on Keypress */}
+        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <div>
+            <p className={`text-xs font-medium ${t.keyText}`}>Vibrate on Keypress</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Haptic feedback for every key</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setVibrateOnKeyPress(!vibrateOnKeyPress)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${vibrateOnKeyPress ? t.accent : 'bg-gray-600'}`}
+          >
+            <motion.div animate={{ x: vibrateOnKeyPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+          </motion.button>
+        </div>
+
+        {/* Haptic Strength (only meaningful while vibration is on) */}
+        {vibrateOnKeyPress && (
+          <div className={`p-3 rounded-xl ${t.card} ${t.border} border`}>
+            <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Haptic Strength</p>
+            <div className="flex gap-2">
+              {(['light', 'medium', 'strong'] as const).map(s => (
+                <motion.button
+                  key={s}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { setHapticStrength(s); doVibrate({ light: 5, medium: 12, strong: 25 }[s]); }}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                    hapticStrength === s ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
+                  }`}
+                >
+                  {s}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sound on Keypress */}
+        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <div>
+            <p className={`text-xs font-medium ${t.keyText}`}>Sound on Keypress</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Play a click sound per key</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setSoundOnKeyPress(!soundOnKeyPress)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${soundOnKeyPress ? t.accent : 'bg-gray-600'}`}
+          >
+            <motion.div animate={{ x: soundOnKeyPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+          </motion.button>
+        </div>
+
+        {/* Double-space for period */}
+        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <div>
+            <p className={`text-xs font-medium ${t.keyText}`}>Double-Space for Period</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Tap space twice to insert ". "</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setDoubleSpacePeriod(!doubleSpacePeriod)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${doubleSpacePeriod ? t.accent : 'bg-gray-600'}`}
+          >
+            <motion.div animate={{ x: doubleSpacePeriod ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+          </motion.button>
+        </div>
+
+        {/* Auto-space after punctuation */}
+        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <div>
+            <p className={`text-xs font-medium ${t.keyText}`}>Auto-Space After Punctuation</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Add space after . ! ? ; :</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setAutoSpaceAfterPunctuation(!autoSpaceAfterPunctuation)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${autoSpaceAfterPunctuation ? t.accent : 'bg-gray-600'}`}
+          >
+            <motion.div animate={{ x: autoSpaceAfterPunctuation ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+          </motion.button>
+        </div>
+
+        {/* Key popup on long press */}
+        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <div>
+            <p className={`text-xs font-medium ${t.keyText}`}>Key Popup on Long Press</p>
+            <p className={`text-[10px] ${t.keyText} opacity-50`}>Show alternate characters on long press</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setKeyPopupOnLongPress(!keyPopupOnLongPress)}
+            className={`w-10 h-6 rounded-full transition-colors flex items-center ${keyPopupOnLongPress ? t.accent : 'bg-gray-600'}`}
+          >
+            <motion.div animate={{ x: keyPopupOnLongPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+          </motion.button>
+        </div>
+
+        {/* One-Handed Mode */}
+        <div className={`p-3 rounded-xl ${t.card} ${t.border} border`}>
+          <p className={`text-xs font-medium mb-2 ${t.keyText}`}>One-Handed Mode</p>
+          <p className={`text-[10px] ${t.keyText} opacity-50 mb-2`}>Shrink and shift the keyboard for thumb reach</p>
+          <div className="flex gap-2">
+            {([
+              { id: 'off', label: 'Off' },
+              { id: 'left', label: 'Left' },
+              { id: 'right', label: 'Right' },
+            ] as const).map(opt => (
+              <motion.button
+                key={opt.id}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setOneHandedMode(opt.id)}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  oneHandedMode === opt.id ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
+                }`}
+              >
+                {opt.label}
+              </motion.button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -2091,10 +2261,10 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     return (window as unknown as Record<string, number>).__panelDirection || 1;
   };
 
-  // Keyboard height class
+  // Keyboard height class - optimized for phone frame (300px width)
   const kbHeightClass = keyboardHeight === 'compact' ? 'min-h-[180px]' : keyboardHeight === 'tall' ? 'min-h-[280px]' : 'min-h-[220px]';
   const kbPanelHeight = keyboardHeight === 'compact' ? 'h-[200px]' : keyboardHeight === 'tall' ? 'h-[300px]' : 'h-[240px]';
-  const kbKeyHeight = keyboardHeight === 'compact' ? 'h-9' : keyboardHeight === 'tall' ? 'h-13' : 'h-11';
+  const kbKeyHeight = keyboardHeight === 'compact' ? 'h-8' : keyboardHeight === 'tall' ? 'h-11' : 'h-9';
 
   // ─── Desktop Render Functions ─────────────────────────────────────────
 
@@ -2703,6 +2873,90 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 <motion.div animate={{ x: keyPopupOnLongPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
               </motion.button>
             </div>
+            {/* Vibrate on keypress */}
+            <div className={`flex items-center justify-between p-3 rounded-xl ${t.key} ${t.border} border`}
+              style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
+              <div>
+                <p className={`text-xs font-medium ${t.keyText}`}>Vibrate on Keypress</p>
+                <p className={`text-[10px] ${t.keyText} opacity-50`}>Haptic feedback for every key</p>
+              </div>
+              <motion.button whileTap={{ scale: 0.9 }}
+                onClick={() => setVibrateOnKeyPress(!vibrateOnKeyPress)}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${vibrateOnKeyPress ? t.accent : 'bg-gray-600'}`}
+                style={vibrateOnKeyPress && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                <motion.div animate={{ x: vibrateOnKeyPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+              </motion.button>
+            </div>
+            {/* Haptic strength */}
+            {vibrateOnKeyPress && (
+              <div className={`p-3 rounded-xl ${t.key} ${t.border} border`}
+                style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
+                <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Haptic Strength</p>
+                <div className="flex gap-2">
+                  {(['light', 'medium', 'strong'] as const).map(s => (
+                    <motion.button key={s}
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      onClick={() => { setHapticStrength(s); doVibrate({ light: 5, medium: 12, strong: 25 }[s]); }}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+                        hapticStrength === s ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
+                      }`}
+                      style={hapticStrength === s && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                      {s}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Sound on keypress */}
+            <div className={`flex items-center justify-between p-3 rounded-xl ${t.key} ${t.border} border`}
+              style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
+              <div>
+                <p className={`text-xs font-medium ${t.keyText}`}>Sound on Keypress</p>
+                <p className={`text-[10px] ${t.keyText} opacity-50`}>Play a click sound per key</p>
+              </div>
+              <motion.button whileTap={{ scale: 0.9 }}
+                onClick={() => setSoundOnKeyPress(!soundOnKeyPress)}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${soundOnKeyPress ? t.accent : 'bg-gray-600'}`}
+                style={soundOnKeyPress && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                <motion.div animate={{ x: soundOnKeyPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+              </motion.button>
+            </div>
+            {/* Double-space for period */}
+            <div className={`flex items-center justify-between p-3 rounded-xl ${t.key} ${t.border} border`}
+              style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
+              <div>
+                <p className={`text-xs font-medium ${t.keyText}`}>Double-Space for Period</p>
+                <p className={`text-[10px] ${t.keyText} opacity-50`}>Tap space twice to insert ". "</p>
+              </div>
+              <motion.button whileTap={{ scale: 0.9 }}
+                onClick={() => setDoubleSpacePeriod(!doubleSpacePeriod)}
+                className={`w-10 h-6 rounded-full transition-colors flex items-center ${doubleSpacePeriod ? t.accent : 'bg-gray-600'}`}
+                style={doubleSpacePeriod && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                <motion.div animate={{ x: doubleSpacePeriod ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
+              </motion.button>
+            </div>
+            {/* One-handed mode */}
+            <div className={`p-3 rounded-xl ${t.key} ${t.border} border`}
+              style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
+              <p className={`text-xs font-medium mb-2 ${t.keyText}`}>One-Handed Mode</p>
+              <div className="flex gap-2">
+                {([
+                  { id: 'off', label: 'Off' },
+                  { id: 'left', label: 'Left' },
+                  { id: 'right', label: 'Right' },
+                ] as const).map(opt => (
+                  <motion.button key={opt.id}
+                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    onClick={() => setOneHandedMode(opt.id)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      oneHandedMode === opt.id ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
+                    }`}
+                    style={oneHandedMode === opt.id && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                    {opt.label}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -2992,8 +3246,8 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         <>
           {/* Text Display Area */}
           {!isIme && (
-            <div className={`kb-text-area ${desktopView ? 'flex-1 min-h-[80px]' : 'flex-1 min-h-[60px]'} p-2 relative z-10`}>
-              <div className={`h-full rounded-xl ${t.isLive ? 'border-white/10' : t.border} border p-2.5 overflow-y-auto`}
+            <div className={`kb-text-area ${desktopView ? 'flex-1 min-h-[80px]' : 'h-[100px]'} p-2 relative z-10`}>
+              <div className={`h-full rounded-lg ${t.isLive ? 'border-white/10' : t.border} border p-2 overflow-y-auto`}
                 style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '40' } : t.isLive ? { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' } : {}}>
                 {text ? (
                   <motion.p
@@ -3111,14 +3365,19 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
             <motion.div
               key="keyboard"
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              animate={{
+                opacity: 1,
+                width: oneHandedMode === 'off' ? '100%' : '72%',
+                marginLeft: oneHandedMode === 'right' ? '28%' : '0%',
+                marginRight: oneHandedMode === 'left' ? '28%' : '0%',
+              }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
+              transition={{ duration: 0.12, width: { type: 'spring', stiffness: 300, damping: 30 }, marginLeft: { type: 'spring', stiffness: 300, damping: 30 }, marginRight: { type: 'spring', stiffness: 300, damping: 30 } }}
             >
-              <div className="flex flex-col gap-1.5 p-2">
+              <div className="flex flex-col gap-1 p-1.5">
                 {/* ─── Number Row (conditionally visible based on settings) ─── */}
                 {!symbolsActive && showNumberRow && (
-                  <div className="flex gap-1 justify-center">
+                  <div className="flex gap-0.5 justify-center">
                     {(language === 'english'
                       ? ['1','2','3','4','5','6','7','8','9','0']
                       : ETHIOPIAN_NUM_ROW_1
@@ -3127,7 +3386,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                         whileHover={{ scale: 1.05, y: -1 }}
                         whileTap={{ scale: 0.92 }}
                         onClick={() => updateText(text + num)}
-                        className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-xl text-sm font-medium ${t.suggestion} ${t.keyText} ${t.keyHover} ${t.border} border`}
+                        className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-lg text-xs font-medium ${t.suggestion} ${t.keyText} ${t.keyHover} ${t.border} border`}
                         style={customKeyStyle}
                       >
                         {num}
@@ -3141,7 +3400,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
                 {/* ─── English Keyboard ─── */}
                 {language === 'english' && currentRows && currentRows.map((row, ri) => (
-                  <div key={ri} className="flex gap-1 justify-center">
+                  <div key={ri} className="flex gap-0.5 justify-center">
                     {row.map(key => renderEnglishKey(key))}
                   </div>
                 ))}
@@ -3150,21 +3409,23 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 {language === 'amharic' && !symbolsActive && (
                   <>
                     {AMHARIC_ROWS.map((row, ri) => (
-                      <div key={ri} className="flex gap-1 justify-center">
+                      <div key={ri} className="flex gap-0.5 justify-center">
                         {row.map(consonant => {
                           const isHovered = hoveredKey === consonant;
                           const isSelected = selectedConsonant === consonant;
+                          const isRippled = rippleKey === consonant;
                           return (
                             <motion.button
                               key={consonant}
-                              whileTap={{ scale: 0.92 }}
+                              whileTap={{ scale: 0.9, y: 1 }}
                               whileHover={{ scale: 1.08, y: -1 }}
+                              transition={{ type: 'spring', stiffness: 500, damping: 22, mass: 0.5 }}
                               onMouseEnter={() => setHoveredKey(consonant)}
                               onMouseLeave={() => setHoveredKey(null)}
                               onClick={() => handleAmharicPress(consonant)}
                               className={`
-                                relative flex items-center justify-center flex-1 ${kbKeyHeight} rounded-xl font-medium
-                                transition-all duration-150 select-none text-base
+                                relative flex items-center justify-center flex-1 ${kbKeyHeight} rounded-lg font-medium
+                                transition-all duration-150 select-none text-sm overflow-visible
                                 ${isSelected ? `ring-2 ring-yellow-500/60` : ''}
                                 ${isHovered ? `${t.keyHover} shadow-md` : ''}
                                 ${t.key} ${t.keyText} ${t.border} border shadow-sm
@@ -3174,25 +3435,40 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                               {/* Change 7: Glow effect on active consonant */}
                               {isSelected && (
                                 <motion.div
-                                  className="absolute inset-0 rounded-xl"
+                                  className="absolute inset-0 rounded-lg"
                                   animate={{ boxShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 12px rgba(234,179,8,0.4)', '0 0 0px rgba(234,179,8,0)'] }}
                                   transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
                                 />
                               )}
-                              {consonant}
+                              {isRippled && (
+                                <motion.span
+                                  initial={{ scale: 0.4, opacity: 0.55 }}
+                                  animate={{ scale: 1.9, opacity: 0 }}
+                                  transition={{ duration: 0.38, ease: 'easeOut' }}
+                                  className={`absolute inset-0 rounded-lg ${t.accent} pointer-events-none blur-[2px]`}
+                                  style={{ mixBlendMode: 'screen' }}
+                                />
+                              )}
+                              <motion.span
+                                animate={isRippled ? { scale: [1, 1.22, 1] } : { scale: 1 }}
+                                transition={{ duration: 0.22, ease: 'easeOut' }}
+                                className="relative"
+                              >
+                                {consonant}
+                              </motion.span>
                             </motion.button>
                           );
                         })}
                       </div>
                     ))}
                     {/* Amharic special keys bottom row mapping FIXED */}
-                    <div className="flex gap-1 justify-center">
+                    <div className="flex gap-0.5 justify-center">
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => { setSymbolsActive(true); setSelectedConsonant(null); }}
-                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText} text-xs font-medium`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-xs font-medium`}>
                         ፩፪
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={handleLanguageToggle}
-                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText} text-[10px] font-bold`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-[9px] font-bold`}>
                         🌐 EN
                       </motion.button>
                       {/* Unified space bar with long press voice recognition */}
@@ -3204,18 +3480,18 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                           else handleKeyPress('space');
                           (window as any).__spaceDown = 0;
                         }}
-                        className={`flex-[4] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}
+                        className={`flex-[3.5] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}
                         style={customKeyStyle}
                       >
                          {language === 'amharic' ? 'አማርኛ' : 'Space'}
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('backspace')}
-                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText}`}>
-                        <Delete className="w-4 h-4" />
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText}`}>
+                        <Delete className="w-3.5 h-3.5" />
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('enter')}
-                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText}`}>
-                        <CornerDownLeft className="w-4 h-4" />
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText}`}>
+                        <CornerDownLeft className="w-3.5 h-3.5" />
                       </motion.button>
                     </div>
 
@@ -3225,52 +3501,52 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 {/* ─── Amharic Symbols Mode (Ethiopian numbers + symbols) ─── */}
                 {language === 'amharic' && symbolsActive && (
                   <>
-                    <div className="flex gap-1 justify-center">
+                    <div className="flex gap-0.5 justify-center">
                       {ETHIOPIAN_NUM_ROW_1.map((num, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + num)}
-                          className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
+                          className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
                           {num}
                         </motion.button>
                       ))}
                     </div>
-                    <div className="flex gap-1 justify-center">
+                    <div className="flex gap-0.5 justify-center">
                       {ETHIOPIAN_NUM_ROW_2.map((num, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + num)}
-                          className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-xl text-base font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
+                          className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}>
                           {num}
                         </motion.button>
                       ))}
                     </div>
-                    <div className="flex gap-1 justify-center">
+                    <div className="flex gap-0.5 justify-center">
                       {ETHIOPIAN_SYM_ROW.map((sym, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + sym)}
-                          className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-xl text-sm font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}
+                          className={`flex-1 flex items-center justify-center ${kbKeyHeight} rounded-lg text-xs font-medium ${t.key} ${t.keyText} ${t.border} border shadow-sm ${t.keyHover}`}
                           style={customKeyStyle}>
                           {sym}
                         </motion.button>
                       ))}
                     </div>
                     {/* More Ethiopian punctuation & common symbols */}
-                    <div className="flex gap-1 justify-center">
+                    <div className="flex gap-0.5 justify-center">
                       {['′','″','«','»','—','…','·','⟐'].map((sym, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + sym)}
-                          className={`flex-1 flex items-center justify-center h-9 rounded-lg text-sm font-medium ${t.suggestion} ${t.keyText} ${t.keyHover}`}>
+                          className={`flex-1 flex items-center justify-center h-8 rounded-lg text-xs font-medium ${t.suggestion} ${t.keyText} ${t.keyHover}`}>
                           {sym}
                         </motion.button>
                       ))}
                     </div>
                     {/* Amharic symbols bottom row mapping FIXED */}
-                    <div className="flex gap-1 justify-center">
+                    <div className="flex gap-0.5 justify-center">
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => setSymbolsActive(false)}
-                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText} text-sm font-bold`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-xs font-bold`}>
                         አማ
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={handleLanguageToggle}
-                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText} text-[10px] font-bold`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-[9px] font-bold`}>
                         🌐 EN
                       </motion.button>
                       {/* Unified space bar */}
@@ -3282,17 +3558,17 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                           else handleKeyPress('space');
                           (window as any).__spaceDown = 0;
                         }}
-                        className={`flex-[4] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}
+                        className={`flex-[3.5] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}
                       >
                         Space
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('backspace')}
-                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText}`}>
-                        <Delete className="w-4 h-4" />
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText}`}>
+                        <Delete className="w-3.5 h-3.5" />
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('enter')}
-                        className={`flex-[1.5] flex items-center justify-center ${kbKeyHeight} rounded-xl ${t.specialKey} ${t.keyText}`}>
-                        <CornerDownLeft className="w-4 h-4" />
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText}`}>
+                        <CornerDownLeft className="w-3.5 h-3.5" />
                       </motion.button>
                     </div>
                   </>
@@ -3300,11 +3576,11 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
                 {/* ─── English extra symbols when in symbols mode ─── */}
                 {language === 'english' && symbolsActive && (
-                  <div className="flex gap-1">
+                  <div className="flex gap-0.5">
                     {['_','=','^','<','>','{','}'].map((sym, i) => (
                       <motion.button key={i} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.92 }}
                         onClick={() => updateText(text + sym)}
-                        className={`flex-1 flex items-center justify-center h-9 rounded-lg text-sm ${t.suggestion} ${t.keyText} ${t.keyHover}`}>
+                        className={`flex-1 flex items-center justify-center h-8 rounded-lg text-xs ${t.suggestion} ${t.keyText} ${t.keyHover}`}>
                         {sym}
                       </motion.button>
                     ))}

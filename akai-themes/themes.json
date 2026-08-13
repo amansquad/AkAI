@@ -1,6 +1,14 @@
 {
   "themes": [
     {
+      "id": "prism",
+      "name": "Prism Flow",
+      "emoji": "🔮",
+      "description": "Iridescent holographic sheen with drifting light shards",
+      "isPremium": false,
+      "downloadUrl": "https://raw.githubusercontent.com/YOUR_USERNAME/akai-themes/main/themes/prism.json"
+    },
+    {
       "id": "sunset",
       "name": "Sunset",
       "emoji": "🌅",

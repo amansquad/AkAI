@@ -4437,7 +4437,108 @@ function drawGlitch(ctx: CanvasRenderingContext2D, w: number, h: number, time: n
   }
 }
 
+// ─── Prism Flow ─────────────────────────────────────────────────────────────
+// Iridescent holographic sheen: shifting diagonal spectrum bands, a glassy
+// sweep highlight that tracks the pointer, and drifting light shards.
+
+function drawPrism(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.shards = Array.from({ length: 14 }, () => ({
+      x: rand(0, w), y: rand(0, h),
+      len: rand(40, 140), angle: rand(0, Math.PI * 2),
+      speed: rand(0.05, 0.2), hue: rand(0, 360), drift: rand(0, Math.PI * 2),
+    }));
+    state.glints = Array.from({ length: 50 }, () =>
+      makeParticle({
+        x: rand(0, w), y: rand(0, h),
+        size: rand(0.6, 2.2), maxLife: rand(2, 5), life: rand(0, 1),
+        hue: rand(0, 360), sat: 90, light: rand(75, 95),
+      })
+    );
+  }
+  const shards = state.shards as { x: number; y: number; len: number; angle: number; speed: number; hue: number; drift: number }[];
+  const glints = state.glints as Particle[];
+
+  // Deep pearlescent base
+  const base = ctx.createLinearGradient(0, 0, w, h);
+  base.addColorStop(0, '#0b0a1a');
+  base.addColorStop(0.5, '#120a1e');
+  base.addColorStop(1, '#0a0f1e');
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, w, h);
+
+  // Diagonal spectrum bands, slowly rotating hue
+  const bandCount = 7;
+  for (let i = 0; i < bandCount; i++) {
+    const hueShift = time * 26 + i * (360 / bandCount);
+    const offset = Math.sin(time * 0.3 + i) * 40;
+    const bandW = w * 1.6;
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(Math.PI / 5 + Math.sin(time * 0.08) * 0.15);
+    const grad = ctx.createLinearGradient(-bandW / 2, 0, bandW / 2, 0);
+    grad.addColorStop(0, hsl(hueShift, 90, 60, 0));
+    grad.addColorStop(0.5, hsl(hueShift, 95, 65, 0.16));
+    grad.addColorStop(1, hsl(hueShift, 90, 60, 0));
+    ctx.fillStyle = grad;
+    ctx.fillRect(-bandW / 2, -h + (i * (2 * h) / bandCount) + offset, bandW, h / bandCount + 10);
+    ctx.restore();
+  }
+
+  // Pointer-tracked glassy sweep highlight
+  if (mx > 0 && my > 0) {
+    const sweep = ctx.createRadialGradient(mx, my, 0, mx, my, Math.max(w, h) * 0.35);
+    sweep.addColorStop(0, 'rgba(255,255,255,0.14)');
+    sweep.addColorStop(0.4, hsl((time * 40) % 360, 100, 75, 0.08));
+    sweep.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sweep;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // Drifting light shards (thin refracted streaks)
+  for (const s of shards) {
+    s.x += Math.cos(s.drift) * s.speed;
+    s.y += Math.sin(s.drift) * s.speed;
+    s.drift += 0.002;
+    if (s.x < -50) s.x = w + 50; if (s.x > w + 50) s.x = -50;
+    if (s.y < -50) s.y = h + 50; if (s.y > h + 50) s.y = -50;
+
+    const a = s.angle + Math.sin(time * 0.4 + s.hue) * 0.3;
+    const x2 = s.x + Math.cos(a) * s.len;
+    const y2 = s.y + Math.sin(a) * s.len;
+    const grad = ctx.createLinearGradient(s.x, s.y, x2, y2);
+    grad.addColorStop(0, hsl(s.hue + time * 20, 100, 70, 0));
+    grad.addColorStop(0.5, hsl(s.hue + time * 20, 100, 80, 0.35));
+    grad.addColorStop(1, hsl(s.hue + time * 20, 100, 70, 0));
+    ctx.beginPath();
+    ctx.moveTo(s.x, s.y);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Twinkling glints
+  for (const p of glints) {
+    p.life -= 0.004;
+    p.hue += 1.2;
+    if (p.life <= 0) {
+      Object.assign(p, { x: rand(0, w), y: rand(0, h), life: 1, hue: rand(0, 360) });
+    }
+    const twinkle = 0.4 + 0.6 * Math.abs(Math.sin(time * 3 + p.x * 0.05));
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * twinkle, 0, Math.PI * 2);
+    ctx.fillStyle = hsl(p.hue, 90, 85, p.life * 0.7 * twinkle);
+    ctx.shadowColor = hsl(p.hue, 100, 80, 0.6);
+    ctx.shadowBlur = 5;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
 const THEME_ANIMATIONS: Record<string, AnimationFn> = {
+  prism_live: drawPrism,
   aurora_live: drawAurora, lava_live: drawLava, ocean_live: drawOcean,
   neon_pulse_live: drawNeonPulse, sunset_live: drawSunset, matrix_live: drawMatrix,
   rainbow_live: drawRainbow, fire_live: drawFire, galaxy_live: drawGalaxy,

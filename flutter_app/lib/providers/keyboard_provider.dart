@@ -139,6 +139,8 @@ class KeyboardProvider with ChangeNotifier {
 
   bool _autoCapEnabled = true;
   bool _hapticsEnabled = true;
+  double _vibrationIntensity = 0.5;
+  bool _doubleSpacePeriodEnabled = true;
   DateTime? _lastSpaceAt;
   Map<String, int> _learnedWords = {};
 
@@ -167,6 +169,8 @@ class KeyboardProvider with ChangeNotifier {
       await prefs.reload();
       _autoCapEnabled = prefs.getBool('auto_capitalization') ?? true;
       _hapticsEnabled = prefs.getBool('vibrate_on_key_press') ?? true;
+      _vibrationIntensity = prefs.getDouble('vibration_intensity') ?? 0.5;
+      _doubleSpacePeriodEnabled = prefs.getBool('double_space_period') ?? true;
     } catch (_) {}
   }
 
@@ -174,8 +178,12 @@ class KeyboardProvider with ChangeNotifier {
     if (!_hapticsEnabled) return;
     if (imeMode) {
       ime.playHaptic();
-    } else {
+    } else if (_vibrationIntensity < 0.4) {
       HapticFeedback.lightImpact();
+    } else if (_vibrationIntensity < 0.75) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.heavyImpact();
     }
   }
 
@@ -313,7 +321,8 @@ class KeyboardProvider with ChangeNotifier {
 
     // Double-space within 450ms turns "word " into "word. "
     final now = DateTime.now();
-    final isDoubleSpace = _lastSpaceAt != null &&
+    final isDoubleSpace = _doubleSpacePeriodEnabled &&
+        _lastSpaceAt != null &&
         now.difference(_lastSpaceAt!) < const Duration(milliseconds: 450) &&
         _text.length >= 2 &&
         _text.endsWith(' ') &&
@@ -594,6 +603,8 @@ class KeyboardProvider with ChangeNotifier {
     }
     _autoCapEnabled = prefs.getBool('auto_capitalization') ?? true;
     _hapticsEnabled = prefs.getBool('vibrate_on_key_press') ?? true;
+    _vibrationIntensity = prefs.getDouble('vibration_intensity') ?? 0.5;
+    _doubleSpacePeriodEnabled = prefs.getBool('double_space_period') ?? true;
     _updateAutoShift();
     notifyListeners();
   }

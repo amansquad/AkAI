@@ -5,6 +5,7 @@ import '../services/firestore_theme_service.dart';
 import '../providers/theme_provider.dart';
 import '../app/theme/app_theme.dart';
 import '../app/theme/live_theme_background.dart';
+import 'motion_helpers.dart';
 import 'dart:async';
 
 class ThemeMarketplace extends StatefulWidget {
@@ -321,7 +322,7 @@ class _ThemeMarketplaceState extends State<ThemeMarketplace> {
                         itemCount: _availableThemes.where((t) => _selectedCategory == 'all' || t['category'] == _selectedCategory).length,
                         itemBuilder: (context, index) {
                           final filtered = _availableThemes.where((t) => _selectedCategory == 'all' || t['category'] == _selectedCategory).toList();
-                          return _buildThemeGridCard(filtered[index]);
+                          return StaggerIn(index: index, child: _buildThemeGridCard(filtered[index]));
                         },
                       ),
           ),

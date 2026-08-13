@@ -607,6 +607,7 @@ class AkaiThemes {
     akaiBubbles,
     akaiPlasma,
     akaiDeepSea,
+    akaiPrism,
     // Premium Live Themes
     akaiFireflies,
     akaiBinaryRain,
@@ -623,6 +624,28 @@ class AkaiThemes {
     akaiZenPond,
     akaiGlitch,
   ];
+
+  static const akaiPrism = AkaiPalette(
+    name: 'Prism Flow',
+    id: 'prism',
+    emoji: '🔮',
+    liveTheme: 'prism_live',
+    category: 'live',
+    background: Color(0xFF0B0A1A),
+    surface: Color(0xFF150F24),
+    surfaceVariant: Color(0xFF1C1430),
+    key: Color(0xFF1C1430),
+    keyPressed: Color(0xFF2A1F45),
+    keySecondary: Color(0xFF241A3A),
+    keySecondaryPressed: Color(0xFF2E2248),
+    keyAccent: Color(0xFFE879F9),
+    keyAccentPressed: Color(0xFFF0ABFC),
+    keyText: Color(0xFFF5F3FF),
+    keySecondaryText: Color(0xFFE9D5FF),
+    accent: Color(0xFFE879F9),
+    accentMuted: Color(0xFFA855F7),
+    glow: Color(0xFFF0ABFC),
+  );
 
   static const akaiFireflies = AkaiPalette(
     name: 'Fireflies',

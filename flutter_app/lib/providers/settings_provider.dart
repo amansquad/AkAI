@@ -25,6 +25,10 @@ class SettingsProvider with ChangeNotifier {
   bool _showBackspaceKey = true;
   bool _showLanguageKey = false; // Relocated to toolbar, but kept here for dynamic toggle
 
+  // Typing behavior
+  bool _doubleSpacePeriod = true;
+  String _oneHandedMode = 'off'; // 'off' | 'left' | 'right'
+
   // App Version (Incremented)
   String get appVersion => '1.1.7';
 
@@ -48,6 +52,8 @@ class SettingsProvider with ChangeNotifier {
   bool get showPeriodKey => _showPeriodKey;
   bool get showBackspaceKey => _showBackspaceKey;
   bool get showLanguageKey => _showLanguageKey;
+  bool get doubleSpacePeriod => _doubleSpacePeriod;
+  String get oneHandedMode => _oneHandedMode;
 
   SettingsProvider() {
     _loadSettings();
@@ -131,6 +137,8 @@ class SettingsProvider with ChangeNotifier {
   void setShowPeriodKey(bool value) { _showPeriodKey = value; _saveSettings(); notifyListeners(); }
   void setShowBackspaceKey(bool value) { _showBackspaceKey = value; _saveSettings(); notifyListeners(); }
   void setShowLanguageKey(bool value) { _showLanguageKey = value; _saveSettings(); notifyListeners(); }
+  void setDoubleSpacePeriod(bool value) { _doubleSpacePeriod = value; _saveSettings(); notifyListeners(); }
+  void setOneHandedMode(String value) { _oneHandedMode = value; _saveSettings(); notifyListeners(); }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -155,6 +163,8 @@ class SettingsProvider with ChangeNotifier {
     _showPeriodKey = prefs.getBool('show_period_key') ?? true;
     _showBackspaceKey = prefs.getBool('show_backspace_key') ?? true;
     _showLanguageKey = prefs.getBool('show_language_key') ?? false;
+    _doubleSpacePeriod = prefs.getBool('double_space_period') ?? true;
+    _oneHandedMode = prefs.getString('one_handed_mode') ?? 'off';
     notifyListeners();
   }
 
@@ -180,5 +190,7 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setBool('show_period_key', _showPeriodKey);
     await prefs.setBool('show_backspace_key', _showBackspaceKey);
     await prefs.setBool('show_language_key', _showLanguageKey);
+    await prefs.setBool('double_space_period', _doubleSpacePeriod);
+    await prefs.setString('one_handed_mode', _oneHandedMode);
   }
 }

@@ -174,7 +174,9 @@ class _LiveThemePainter extends CustomPainter {
     }
     // Dedicated scenes first — their names can contain generic words
     // ("fireflies" contains "fire") so they must win before the fallbacks.
-    if (typeStr.contains('fireflies')) {
+    if (typeStr.contains('prism')) {
+      _drawPrism(canvas, size);
+    } else if (typeStr.contains('fireflies')) {
       _drawFireflies(canvas, size);
     } else if (typeStr.contains('lava_lamp')) {
       _drawLavaLamp(canvas, size);
@@ -230,6 +232,55 @@ class _LiveThemePainter extends CustomPainter {
     } else {
       // Never show a static color: unknown live types fall back to aurora
       _drawAurora(canvas, size);
+    }
+  }
+
+  // Iridescent holographic sheen: rotating diagonal spectrum bands plus
+  // twinkling glints — the Flutter counterpart of the web "Prism Flow" theme.
+  void _drawPrism(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final base = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF0B0A1A), Color(0xFF120A1E), Color(0xFF0A0F1E)],
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), base);
+
+    const bandCount = 7;
+    canvas.save();
+    canvas.translate(w / 2, h / 2);
+    canvas.rotate(math.pi / 5 + math.sin(time * 0.08) * 0.15);
+    final bandW = w * 1.6;
+    for (int i = 0; i < bandCount; i++) {
+      final hue = (time * 26 + i * (360 / bandCount)) % 360;
+      final offset = math.sin(time * 0.3 + i) * 40;
+      final color = HSLColor.fromAHSL(0.16, hue, 0.9, 0.62).toColor();
+      final bandPaint = Paint()
+        ..shader = LinearGradient(
+          colors: [color.withOpacity(0), color, color.withOpacity(0)],
+        ).createShader(Rect.fromLTWH(-bandW / 2, 0, bandW, h / bandCount + 10));
+      canvas.drawRect(
+        Rect.fromLTWH(-bandW / 2, -h + (i * (2 * h) / bandCount) + offset,
+            bandW, h / bandCount + 10),
+        bandPaint,
+      );
+    }
+    canvas.restore();
+
+    // Twinkling glints
+    final rnd = math.Random(7);
+    for (int i = 0; i < 50; i++) {
+      final gx = rnd.nextDouble() * w;
+      final gy = rnd.nextDouble() * h;
+      final hue = (rnd.nextDouble() * 360 + time * 40) % 360;
+      final twinkle = 0.4 + 0.6 * (math.sin(time * 3 + gx * 0.05).abs());
+      final glintPaint = Paint()
+        ..color = HSLColor.fromAHSL(0.75 * twinkle, hue, 0.9, 0.85).toColor()
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
+      canvas.drawCircle(Offset(gx, gy), (0.6 + rnd.nextDouble() * 1.6) * twinkle, glintPaint);
     }
   }
 

@@ -160,6 +160,7 @@ class ThemeDownloadService {
     {'id': 'city-lights',    'name': 'City Lights',    'emoji': '🌃', 'description': 'Soft bokeh lights of a city at night',     'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'bokeh_live'},
     {'id': 'zen-pond',       'name': 'Zen Pond',       'emoji': '🪷', 'description': 'Calm rain ripples on still water',         'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'ripples_live'},
     {'id': 'glitch',         'name': 'Glitch',         'emoji': '📺', 'description': 'RGB-split glitches and static noise',      'category': 'live',     'isPremium': false, 'size': 1024, 'liveTheme': 'glitch_live'},
+    {'id': 'prism',          'name': 'Prism Flow',     'emoji': '🔮', 'description': 'Iridescent holographic sheen and light shards', 'category': 'live', 'isPremium': false, 'size': 1024, 'liveTheme': 'prism_live'},
 
     // ── Faith ────────────────────────────────────────────────────────────
     {'id': 'faith_orthodox', 'name': 'Ethiopian Orthodox', 'emoji': '✝️', 'description': 'Deep purple with gold accents',   'category': 'faith',    'isPremium': false, 'size': 512, 'liveTheme': 'ortho_maryam'},

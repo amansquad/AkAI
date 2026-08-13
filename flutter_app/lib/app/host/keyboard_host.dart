@@ -124,9 +124,27 @@ class _KeyboardHostView extends StatelessWidget {
                                     switch (provider.mode) {
                                       case KeyboardMode.keyboard:
                                         // Intrinsic height: no dead space
-                                        // below the keys.
-                                        return const SamsungKeyboardLayout(
-                                            key: ValueKey('keyboard'));
+                                        // below the keys. One-handed mode
+                                        // shrinks and docks the keys to
+                                        // whichever side the thumb favors.
+                                        if (settings.oneHandedMode == 'off') {
+                                          return const SamsungKeyboardLayout(
+                                              key: ValueKey('keyboard'));
+                                        }
+                                        return AnimatedAlign(
+                                          key: const ValueKey('keyboard'),
+                                          duration:
+                                              const Duration(milliseconds: 220),
+                                          curve: Curves.easeOut,
+                                          alignment:
+                                              settings.oneHandedMode == 'left'
+                                                  ? Alignment.centerLeft
+                                                  : Alignment.centerRight,
+                                          child: FractionallySizedBox(
+                                            widthFactor: 0.72,
+                                            child: const SamsungKeyboardLayout(),
+                                          ),
+                                        );
                                       case KeyboardMode.stickers:
                                         return const SizedBox(
                                             height: 340,
