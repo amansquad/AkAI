@@ -1,0 +1,48 @@
+/* ==========================================
+   CRITICAL CSS - Loaded immediately
+   Core styles needed for initial render
+   ========================================== */
+
+/* Base theme styles - always loaded */
+.theme-default {
+  background: hsl(var(--background));
+}
+
+.theme-midnight {
+  background: linear-gradient(135deg, #020617, #0f172a);
+}
+
+.theme-charcoal {
+  background: linear-gradient(135deg, #18181b, #27272a);
+}
+
+/* Placeholder for live themes before animation loads */
+[class*="theme-"][class*="-live"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  opacity: 0.8;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* Loading state for live wallpapers */
+.live-wallpaper-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+}
+
+.live-wallpaper-loading::after {
+  content: 'Loading animation...';
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.875rem;
+}
+
+/* End of critical CSS - ~5KB */

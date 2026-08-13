@@ -1,0 +1,246 @@
+   NEW LIVE THEME ANIMATIONS 2026
+   ========================================== */
+
+/* Nebula - Swirling purple and fuchsia cosmic clouds */
+@keyframes nebula-animation {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-nebula-live {
+  background: linear-gradient(-45deg, #1e1b4b, #581c87, #86198f, #be185d);
+  background-size: 400% 400%;
+  animation: nebula-animation 20s ease infinite;
+}
+
+/* Cosmic Dust - Sparkling golden particles on indigo */
+@keyframes cosmic-dust {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-cosmic-dust-live {
+  background: linear-gradient(-45deg, #1e1b4b, #312e81, #4c1d95, #b45309);
+  background-size: 400% 400%;
+  animation: cosmic-dust 18s ease infinite;
+}
+
+/* Electric Storm - Lightning yellow flashes on dark slate */
+@keyframes electric-storm {
+  0%, 100% { background-position: 0% 50%; opacity: 1; }
+  25% { opacity: 0.9; }
+  50% { background-position: 100% 50%; opacity: 1; }
+  75% { opacity: 0.95; }
+}
+
+.theme-electric-storm-live {
+  background: linear-gradient(45deg, #020617, #0f172a, #1e293b, #fbbf24);
+  background-size: 400% 400%;
+  animation: electric-storm 15s ease-in-out infinite;
+}
+
+/* Coral Reef - Teal ocean with orange coral accents */
+@keyframes coral-reef {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-coral-reef-live {
+  background: linear-gradient(-45deg, #042f2e, #0f766e, #14b8a6, #fb923c);
+  background-size: 400% 400%;
+  animation: coral-reef 22s ease infinite;
+}
+
+/* Volcano - Molten lava flow with red and orange */
+@keyframes volcano-flow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-volcano-live {
+  background: linear-gradient(45deg, #1c1917, #292524, #dc2626, #f97316);
+  background-size: 400% 400%;
+  animation: volcano-flow 16s ease infinite;
+}
+
+/* Moonlight - Soft cyan glow on deep blue */
+@keyframes moonlight-glow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-moonlight-live {
+  background: linear-gradient(-45deg, #172554, #1e3a8a, #0891b2, #67e8f9);
+  background-size: 400% 400%;
+  animation: moonlight-glow 20s ease infinite;
+}
+
+/* Jungle Mist - Lime green fog through dark jungle */
+@keyframes jungle-mist {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-jungle-mist-live {
+  background: linear-gradient(-45deg, #052e16, #14532d, #15803d, #84cc16);
+  background-size: 400% 400%;
+  animation: jungle-mist 24s ease infinite;
+}
+
+/* Desert Sunset - Amber and orange horizon */
+@keyframes desert-sunset {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-desert-sunset-live {
+  background: linear-gradient(45deg, #431407, #7c2d12, #ea580c, #fbbf24);
+  background-size: 400% 400%;
+  animation: desert-sunset 18s ease infinite;
+}
+
+/* Frozen Lake - Icy cyan and sky blue */
+@keyframes frozen-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-frozen-lake-live {
+  background: linear-gradient(-45deg, #083344, #155e75, #06b6d4, #bae6fd);
+  background-size: 400% 400%;
+  animation: frozen-shimmer 19s ease infinite;
+}
+
+/* Sakura Wind - Pink petals blowing in the wind */
+@keyframes sakura-wind {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-sakura-wind-live {
+  background: linear-gradient(-45deg, #4c0519, #881337, #fb7185, #fbcfe8);
+  background-size: 400% 400%;
+  animation: sakura-wind 21s ease infinite;
+}
+
+/* Dragon Fire - Red flames with yellow bursts */
+@keyframes dragon-fire {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-dragon-fire-live {
+  background: linear-gradient(45deg, #450a0a, #991b1b, #dc2626, #facc15);
+  background-size: 400% 400%;
+  animation: dragon-fire 14s ease infinite;
+}
+
+/* Emerald Cave - Deep emerald with teal highlights */
+@keyframes emerald-cave {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-emerald-cave-live {
+  background: linear-gradient(-45deg, #022c22, #065f46, #059669, #2dd4bf);
+  background-size: 400% 400%;
+  animation: emerald-cave 23s ease infinite;
+}
+
+/* Aurora Borealis - Violet sky with green northern lights */
+@keyframes aurora-borealis {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-aurora-borealis-live {
+  background: linear-gradient(-45deg, #2e1065, #5b21b6, #7c3aed, #4ade80);
+  background-size: 400% 400%;
+  animation: aurora-borealis 25s ease infinite;
+}
+
+/* Mystic Forest - Emerald glow through dark forest */
+@keyframes mystic-forest {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-mystic-forest-live {
+  background: linear-gradient(45deg, #020617, #0f172a, #064e3b, #10b981);
+  background-size: 400% 400%;
+  animation: mystic-forest 20s ease infinite;
+}
+
+/* Solar Flare - Bright orange sun bursts */
+@keyframes solar-flare {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-solar-flare-live {
+  background: linear-gradient(45deg, #451a03, #78350f, #f59e0b, #fb923c);
+  background-size: 400% 400%;
+  animation: solar-flare 16s ease infinite;
+}
+
+/* Midnight Ocean - Deep blue waves */
+@keyframes midnight-ocean {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-midnight-ocean-live {
+  background: linear-gradient(-45deg, #020617, #0c4a6e, #0369a1, #7dd3fc);
+  background-size: 400% 400%;
+  animation: midnight-ocean 22s ease infinite;
+}
+
+/* Purple Haze - Violet fog and mist */
+@keyframes purple-haze {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-purple-haze-live {
+  background: linear-gradient(-45deg, #2e1065, #6b21a8, #a855f7, #c4b5fd);
+  background-size: 400% 400%;
+  animation: purple-haze 19s ease infinite;
+}
+
+/* Golden Hour - Warm sunset amber tones */
+@keyframes golden-hour {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-golden-hour-live {
+  background: linear-gradient(45deg, #422006, #713f12, #eab308, #fbbf24);
+  background-size: 400% 400%;
+  animation: golden-hour 17s ease infinite;
+}
+
+/* Neon City - Pink cyberpunk neon lights */
+@keyframes neon-city {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-neon-city-live {
+  background: linear-gradient(-45deg, #09090b, #18181b, #ec4899, #f472b6);
+  background-size: 400% 400%;
+  animation: neon-city 15s ease infinite;
+}
+
+/* Tropical Storm - Cyan rain on teal ocean */
+@keyframes tropical-storm {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.theme-tropical-storm-live {
+  background: linear-gradient(45deg, #042f2e, #115e59, #14b8a6, #67e8f9);
+  background-size: 400% 400%;
+  animation: tropical-storm 18s ease infinite;
+}
+
+/* End of new live theme animations */

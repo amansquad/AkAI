@@ -1,15 +1,27 @@
 import type { NextConfig } from "next";
 
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig: NextConfig = {
   output: "export",
   images: {
-    unoptimized: true,
+    unoptimized: true, // Required for static export
   },
-  /* config options here */
   typescript: {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+
+  // Performance optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  experimental: {
+    optimizeCss: true, // Enable CSS optimization
+  },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

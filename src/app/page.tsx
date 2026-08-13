@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import Image from 'next/image';
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import {
@@ -8,7 +9,9 @@ import {
   Zap, Shield, Palette, Star, ArrowRight, Play, Pause
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import KeyboardApp from '@/components/keyboard-app';
+
+// Lazy load heavy components
+const DemoKeyboard = lazy(() => import('@/components/demo-keyboard'));
 
 /*
   <!--
@@ -151,7 +154,7 @@ export default function Home() {
           >
             <div className="flex items-center gap-3">
               <div className="relative">
-                <img src="/akai-icon.png" alt="AkAI" className="w-12 h-12 rounded-xl" />
+                <Image src="/akai-icon.png" alt="AkAI" width={48} height={48} className="rounded-xl" priority />
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-[rgb(18,18,20)]" />
               </div>
               <div>
@@ -390,10 +393,13 @@ export default function Home() {
                 whileHover={{ scale: 1.05, y: -5 }}
                 className="group relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer"
               >
-                <img
+                <Image
                   src={theme.image}
                   alt={theme.name}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 768px) 50vw, 33vw"
+                  className="object-cover"
+                  loading={i < 3 ? "eager" : "lazy"}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
@@ -445,9 +451,16 @@ export default function Home() {
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-3xl z-10" />
 
               <div className="relative bg-white rounded-[2rem] overflow-hidden" style={{ height: '640px' }}>
-                <div className="h-full">
-                  <KeyboardApp />
-                </div>
+                <Suspense fallback={
+                  <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-slate-600 text-sm">Loading keyboard...</p>
+                    </div>
+                  </div>
+                }>
+                  <DemoKeyboard />
+                </Suspense>
               </div>
 
               <div className="flex justify-center py-2">
@@ -540,7 +553,16 @@ export default function Home() {
               <div className="p-6">
                 <div className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl border border-white/10 overflow-hidden">
                   <div style={{ height: '600px' }}>
-                    <KeyboardApp />
+                    <Suspense fallback={
+                      <div className="h-full flex items-center justify-center bg-gradient-to-br from-[rgb(18,18,20)] to-[rgb(25,25,28)]">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                          <p className="text-white/60 text-sm">Loading demo keyboard...</p>
+                        </div>
+                      </div>
+                    }>
+                      <DemoKeyboard />
+                    </Suspense>
                   </div>
                 </div>
               </div>
@@ -555,7 +577,7 @@ export default function Home() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <img src="/akai-icon.png" alt="AkAI" className="w-10 h-10 rounded-lg" />
+                <Image src="/akai-icon.png" alt="AkAI" width={40} height={40} className="rounded-lg" />
                 <div>
                   <h4 className="font-bold">AkAI</h4>
                   <p className="text-xs text-white/40">Keyboard</p>
