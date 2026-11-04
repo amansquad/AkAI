@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Trash2, Copy } from 'lucide-react';
+import { Trash2, Copy, ClipboardList } from 'lucide-react';
 import type { ThemeDef } from '@/components/keyboard-data';
 
 interface ClipboardPanelProps {
@@ -26,6 +26,9 @@ export function ClipboardPanel({ onSelect, theme }: ClipboardPanelProps) {
     const saved = localStorage.getItem('akai_clipboard_items');
     if (saved) {
       try {
+        // Deferred to an effect (not a lazy useState initializer) since
+        // localStorage isn't available during SSR/static prerender.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setItems(JSON.parse(saved));
       } catch (e) {
         console.error('Failed to load clipboard items', e);

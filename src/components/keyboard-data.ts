@@ -546,14 +546,6 @@ export const THEMES: Record<string, ThemeDef> = {
     border: 'border-blue-500/30', tabBar: 'bg-neutral-900/80', tabActive: 'bg-blue-400', tabActiveText: 'text-neutral-950',
     suggestion: 'bg-neutral-800/80',
   },
-  nebula_live: {
-    name: 'Nebula', flag: '🌌', category: 'live', isLive: true, liveClass: 'theme-nebula-live',
-    bg: 'bg-indigo-950', card: 'bg-indigo-900/80', key: 'bg-indigo-800/90', keyHover: 'hover:bg-fuchsia-500',
-    keyActive: 'bg-fuchsia-400 text-indigo-950', keyText: 'text-fuchsia-50',
-    specialKey: 'bg-indigo-700', accent: 'bg-fuchsia-400', accentText: 'text-indigo-950',
-    border: 'border-fuchsia-500/30', tabBar: 'bg-indigo-900/80', tabActive: 'bg-fuchsia-400', tabActiveText: 'text-indigo-950',
-    suggestion: 'bg-indigo-800/80',
-  },
   ocean_waves_live: {
     name: 'Ocean Waves', flag: '🌊', category: 'live', isLive: true, liveClass: 'theme-ocean-waves-live',
     bg: 'bg-cyan-950', card: 'bg-cyan-900/80', key: 'bg-cyan-800/90', keyHover: 'hover:bg-teal-400',

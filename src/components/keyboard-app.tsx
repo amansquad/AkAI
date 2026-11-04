@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect, useSyncExternalStore } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useSyncExternalStore, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LiveWallpaper } from '@/components/keyboard/live-wallpaper';
+import { getApiBaseUrl } from '@/lib/api-base-url';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
   Delete, CornerDownLeft, Copy, Trash2, Plus,
@@ -24,6 +25,14 @@ import {
   type ThemeDef, type CustomThemeData, type GiphyGif,
 } from '@/components/keyboard-data';
 import { trendingGifCatalog, searchGifCatalog } from '@/components/giphy-catalog';
+
+// Mode panels only pay for their own code once the user actually opens that
+// mode, instead of all of them loading up front with the rest of the keyboard.
+const KeyboardClipboardPanel = lazy(() => import('@/components/keyboard/modes/clipboard-panel'));
+const KeyboardGifsPanel = lazy(() => import('@/components/keyboard/modes/gifs-panel'));
+const KeyboardTranslatePanel = lazy(() => import('@/components/keyboard/modes/translate-panel'));
+const KeyboardHandwritingPanel = lazy(() => import('@/components/keyboard/modes/handwriting-panel'));
+const KeyboardSettingsPanel = lazy(() => import('@/components/keyboard/modes/settings-panel'));
 
 export type KeyboardMode = 'keyboard' | 'stickers' | 'gifs' | 'clipboard' | 'translate' | 'handwriting' | 'settings' | 'themes';
 export type Language = 'english' | 'amharic';
@@ -419,17 +428,16 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
   // Fetch Giphy
   //
-  // This site is built with `output: "export"` (static export — required so
-  // the same Next.js app can be packaged into the Capacitor mobile shell),
-  // which does not serve API routes, so /api/giphy 404s in production. We
-  // still try it first in case a server deployment is ever restored, but
-  // fall back to a curated, keyless catalog of real Giphy CDN GIFs (the same
-  // one the Flutter app ships) rather than the old fake emoji "stickers".
+  // The Android build ships as a static Capacitor bundle with no server, so
+  // /api/giphy only exists on the deployed website — getApiBaseUrl() routes
+  // native requests there. Still falls back to a curated, keyless catalog of
+  // real Giphy CDN GIFs (the same one the Flutter app ships) if that's
+  // unreachable or GIPHY_API_KEY isn't configured server-side.
   const fetchGiphy = useCallback(async (query: string) => {
     setGiphyLoading(true);
     try {
       const type = query ? 'search' : 'trending';
-      const res = await fetch(`/api/giphy?type=${type}&q=${encodeURIComponent(query)}&limit=24`);
+      const res = await fetch(`${getApiBaseUrl()}/api/giphy?type=${type}&q=${encodeURIComponent(query)}&limit=24`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.data) && data.data.length > 0 && !data.isFallback) {
@@ -817,7 +825,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     setHwRecognizing(true);
     try {
       const imageData = canvas.toDataURL('image/png');
-      const res = await fetch('/api/handwriting-recognize', {
+      const res = await fetch(`${getApiBaseUrl()}/api/handwriting-recognize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: imageData, language }),
@@ -885,7 +893,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     try {
       const sourceLang = translateFrom === 'English' ? 'English' : 'Amharic';
       const targetLang = translateFrom === 'English' ? 'Amharic' : 'English';
-      const response = await fetch('/api/translate', {
+      const response = await fetch(`${getApiBaseUrl()}/api/translate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: translateInput, sourceLang, targetLang }),
@@ -1258,711 +1266,123 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   };
 
   const renderGifs = () => (
-    <div className="flex flex-col h-full">
-      <div className={`flex gap-1 px-2 py-1.5 overflow-x-auto scrollbar-hide border-b border-border/30`}>
-        {/* Search bar */}
-        <div className={`flex items-center gap-1 flex-1 px-2 py-1 rounded-lg ${t.card} ${t.border} border`}>
-          <input
-            type="text"
-            value={giphyQuery}
-            onChange={e => setGiphyQuery(e.target.value)}
-            placeholder="Search GIFs..."
-            className={`flex-1 bg-transparent text-xs outline-none ${t.keyText} placeholder:opacity-40`}
-          />
-          {giphyQuery && (
-            <button onClick={() => setGiphyQuery('')} className="opacity-50 hover:opacity-100">
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-        {GIF_CATEGORIES.slice(0, 6).map(cat => (
-          <motion.button key={cat.id}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setGiphyQuery(cat.name.toLowerCase())}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-              giphyQuery === cat.name.toLowerCase() ? `${t.tabActive} ${t.tabActiveText} shadow-sm` : `${t.suggestion} ${t.keyText}`}`}>
-            <span>{cat.emoji}</span><span className="hidden sm:inline">{cat.name}</span>
-          </motion.button>
-        ))}
-      </div>
-      <div className="flex-1 p-2 overflow-y-auto">
-        {giphyLoading ? (
-          <div className={`flex items-center justify-center h-full ${t.keyText}`}>
-            <Loader2 className="w-6 h-6 animate-spin opacity-50" />
-          </div>
-        ) : giphyResults && giphyResults.length > 0 ? (
-          <div className="grid grid-cols-2 gap-2">
-            {giphyResults.map((gif, i) => (
-              <motion.button key={gif.id || i} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  const emoji = gif._fallback?.emoji || '🖼️';
-                  updateText(text + emoji + ' ');
-                  addRecentEmoji(emoji);
-                }}
-                className={`relative flex flex-col items-center justify-center p-2 rounded-xl ${t.key} ${t.border} border shadow-sm aspect-video overflow-hidden`}
-              >
-                {gif.images?.fixed_height?.url && !gif._fallback ? (
-                  <img
-                    src={gif.images.fixed_height.url}
-                    alt={gif.title || 'GIF'}
-                    className="w-full h-full object-cover rounded-lg"
-                    loading="lazy"
-                  />
-                ) : (
-                  <motion.span className="text-3xl"
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}>
-                    {gif._fallback?.emoji || '🖼️'}
-                  </motion.span>
-                )}
-                <span className={`text-[9px] font-medium mt-1 ${t.keyText} opacity-70 truncate w-full text-center`}>
-                  {gif._fallback?.label || gif.title?.slice(0, 15) || 'GIF'}
-                </span>
-              </motion.button>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {(GIF_ITEMS[activeGifCategory] || GIF_ITEMS.hello).map((gif, i) => (
-              <motion.button key={i} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }}
-                onClick={() => { updateText(text + gif.emoji + ' '); addRecentEmoji(gif.emoji); }}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl ${t.key} ${t.border} border shadow-sm aspect-video relative overflow-hidden`}
-              >
-                <motion.span className="text-3xl relative z-10"
-                  animate={
-                    gif.animation === 'bounce' ? { y: [0, -4, 0] } :
-                    gif.animation === 'pulse' ? { scale: [1, 1.1, 1] } :
-                    gif.animation === 'shake' ? { x: [0, -2, 2, 0] } :
-                    gif.animation === 'sparkle' ? { opacity: [1, 0.7, 1] } :
-                    gif.animation === 'wave' ? { rotate: [0, 15, -15, 0] } :
-                    gif.animation === 'heartbeat' ? { scale: [1, 1.15, 1, 1.15, 1] } : {}
-                  }
-                  transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}>
-                  {gif.emoji}
-                </motion.span>
-                <span className={`text-[10px] font-medium mt-1 relative z-10 ${t.keyText} opacity-70`}>{gif.label}</span>
-              </motion.button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    <Suspense fallback={null}>
+      <KeyboardGifsPanel
+        t={t}
+        text={text}
+        giphyQuery={giphyQuery}
+        setGiphyQuery={setGiphyQuery}
+        giphyLoading={giphyLoading}
+        giphyResults={giphyResults}
+        activeGifCategory={activeGifCategory}
+        updateText={updateText}
+        addRecentEmoji={addRecentEmoji}
+      />
+    </Suspense>
   );
 
   const renderClipboard = () => (
-    <div className="flex flex-col h-full">
-      <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
-        <span className={`text-xs font-medium ${t.keyText} opacity-70`}>Clipboard History</span>
-        <div className="flex items-center gap-1">
-          {clipboardItems.length > 0 && (
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button variant="ghost" size="sm" onClick={() => setClipboardItems([])}
-                className={`h-7 text-xs gap-1 text-red-500`}>
-                <Trash2 className="w-3 h-3" />Clear All
-              </Button>
-            </motion.div>
-          )}
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button variant="ghost" size="sm" onClick={() => { if (text.trim()) setClipboardItems(prev => [{ id: Date.now().toString(), text: text.trim(), timestamp: Date.now() }, ...prev]); }}
-              className={`h-7 text-xs gap-1 ${t.keyText}`}>
-              <Plus className="w-3 h-3" />Add Current
-            </Button>
-          </motion.div>
-        </div>
-      </div>
-      <div className="flex-1 p-2 overflow-y-auto">
-        {clipboardItems.length === 0 ? (
-          <div className={`flex flex-col items-center justify-center h-full ${t.keyText} opacity-50`}>
-            <ClipboardList className="w-8 h-8 mb-2" />
-            <span className="text-xs">No clipboard items</span>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {clipboardItems.map(item => (
-              <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className={`flex items-center gap-2 p-2.5 rounded-xl ${t.card} ${t.border} border shadow-sm group`}>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm truncate ${t.keyText}`}>{item.text}</p>
-                  <p className={`text-[10px] ${t.keyText} opacity-50 mt-0.5`}>
-                    {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                    <Button variant="ghost" size="sm" onClick={() => updateText(text + item.text)} className="h-7 w-7 p-0"><Copy className="w-3 h-3" /></Button>
-                  </motion.div>
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                    <Button variant="ghost" size="sm" onClick={() => setClipboardItems(prev => prev.filter(i => i.id !== item.id))} className="h-7 w-7 p-0 text-red-500"><Trash2 className="w-3 h-3" /></Button>
-                  </motion.div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    <Suspense fallback={null}>
+      <KeyboardClipboardPanel
+        t={t}
+        text={text}
+        clipboardItems={clipboardItems}
+        setClipboardItems={setClipboardItems}
+        updateText={updateText}
+      />
+    </Suspense>
   );
 
   const renderTranslate = () => (
-    <div className="flex flex-col h-full">
-      <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
-        <span className={`text-xs font-medium ${t.keyText} opacity-70`}>AI Translator</span>
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Button variant="ghost" size="sm"
-            onClick={() => { setTranslateFrom(translateFrom === 'English' ? 'Amharic' : 'English'); setTranslateInput(''); setTranslateOutput(''); }}
-            className={`h-7 text-xs gap-1 ${t.keyText}`}>
-            <ArrowRightLeft className="w-3 h-3" />Switch
-          </Button>
-        </motion.div>
-      </div>
-      <div className="flex-1 p-3 overflow-y-auto flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 text-center"><span className={`text-xs font-semibold ${t.keyText}`}>{translateFrom}</span></div>
-          <ArrowRightLeft className={`w-4 h-4 ${t.keyText} opacity-50`} />
-          <div className="flex-1 text-center"><span className={`text-xs font-semibold ${t.keyText}`}>{translateFrom === 'English' ? 'Amharic' : 'English'}</span></div>
-        </div>
-        <div className="space-y-2">
-          <textarea value={translateInput} onChange={e => setTranslateInput(e.target.value)}
-            placeholder={translateFrom === 'English' ? 'Type in English...' : 'በአማርኛ ይጻፉ...'}
-            className={`w-full p-3 text-sm rounded-xl ${t.card} ${t.border} border focus:outline-none resize-none min-h-[60px] ${t.keyText} placeholder:opacity-40`}
-            rows={2} />
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button onClick={handleTranslate} disabled={isTranslating || !translateInput.trim()}
-              className={`w-full gap-2 ${t.accent} ${t.accentText}`} size="sm">
-              {isTranslating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Languages className="w-3 h-3" />}
-              {isTranslating ? 'Translating...' : 'Translate'}
-            </Button>
-          </motion.div>
-        </div>
-        {translateOutput && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className={`p-3 rounded-xl ${t.accent}/10 ${t.border} border`}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1">
-                <p className={`text-xs font-medium mb-1 ${t.keyText}`}>Translation</p>
-                <p className={`text-sm ${t.keyText}`}>{translateOutput}</p>
-              </div>
-              <div className="flex gap-1">
-                <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                    <Button variant="ghost" size="sm" onClick={handleUseTranslation} className="h-7 w-7 p-0"><Send className="w-3 h-3" /></Button>
-                  </motion.div>
-                </TooltipTrigger><TooltipContent>Use in text</TooltipContent></Tooltip></TooltipProvider>
-                <TooltipProvider><Tooltip><TooltipTrigger asChild>
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                    <Button variant="ghost" size="sm" onClick={() => navigator.clipboard?.writeText(translateOutput)} className="h-7 w-7 p-0"><Copy className="w-3 h-3" /></Button>
-                  </motion.div>
-                </TooltipTrigger><TooltipContent>Copy</TooltipContent></Tooltip></TooltipProvider>
-              </div>
-            </div>
-          </motion.div>
-        )}
-        <div className="mt-auto pt-2">
-          <p className={`text-[10px] text-center ${t.keyText} opacity-40`}>
-            <Sparkles className="w-3 h-3 inline-block mr-1" />Powered by AI • English ↔ Amharic
-          </p>
-        </div>
-      </div>
-    </div>
+    <Suspense fallback={null}>
+      <KeyboardTranslatePanel
+        t={t}
+        translateFrom={translateFrom}
+        setTranslateFrom={setTranslateFrom}
+        translateInput={translateInput}
+        setTranslateInput={setTranslateInput}
+        translateOutput={translateOutput}
+        setTranslateOutput={setTranslateOutput}
+        isTranslating={isTranslating}
+        handleTranslate={handleTranslate}
+        handleUseTranslation={handleUseTranslation}
+      />
+    </Suspense>
   );
 
-  // Change 4: Enhanced handwriting with AI word/sentence recognition
-  // Change 4: Enhanced handwriting with AI word/sentence recognition - PREMIUM GLASS RESKIN
-  const renderHandwriting = () => {
-    const hasAnySuggestions = hwSuggestions.length > 0 || hwWordSuggestions.length > 0 || hwSentenceSuggestions.length > 0;
-
-    return (
-    <div className="flex flex-col h-full overflow-hidden relative z-10 glass-container">
-      {/* Premium Header */}
-      <div className={`flex items-center justify-between px-3 py-2 border-b shrink-0 ${t.border}`}
-        style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(12px)' }}>
-        <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded-lg ${t.accent} ${t.accentText}`} style={customAccentStyle}>
-            <PenTool className="w-3.5 h-3.5" />
-          </div>
-          <span className={`text-xs font-bold tracking-tight ${t.keyText}`}>
-            {language === 'english' ? 'Handwriting' : 'የእጅ ጽሑፍ'}
-          </span>
-          {hwStrokes > 0 && (
-            <span className="text-[9px] opacity-40 font-mono">{hwStrokes}s</span>
-          )}
-        </div>
-        <div className="flex gap-1.5 items-center">
-          {/* Undo */}
-          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-            onClick={undoHwStroke} disabled={hwUndoStack.length === 0}
-            className={`h-7 w-7 p-0 rounded-full flex items-center justify-center transition-all ${hwUndoStack.length === 0 ? 'opacity-30' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
-            <Undo2 className="w-3.5 h-3.5" />
-          </motion.button>
-          {/* Redo */}
-          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-            onClick={redoHwStroke} disabled={hwRedoStack.length === 0}
-            className={`h-7 w-7 p-0 rounded-full flex items-center justify-center transition-all ${hwRedoStack.length === 0 ? 'opacity-30' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}>
-            <Redo2 className="w-3.5 h-3.5" />
-          </motion.button>
-          {/* Recognize */}
-          {drawingPaths.length > 0 && (
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-              onClick={recognizeHandwriting} disabled={hwRecognizing}
-              className={`h-7 px-3 text-[10px] font-bold gap-1 rounded-full flex items-center ${t.accentText} shadow-lg`}
-              style={customAccentStyle}>
-              {hwRecognizing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-              {hwRecognizing ? '...' : 'AI'}
-            </motion.button>
-          )}
-          {/* Clear */}
-          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-            onClick={clearCanvas}
-            className="h-7 w-7 p-0 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-red-500/20 transition-all">
-            <RotateCcw className="w-3.5 h-3.5" />
-          </motion.button>
-        </div>
-      </div>
-
-      {/* Tools row - stroke width & auto-recognize toggle */}
-      <div className="shrink-0 flex items-center gap-3 px-3 py-1.5 border-b" style={{ background: 'rgba(0,0,0,0.1)' }}>
-        <div className="flex items-center gap-1.5">
-          {[2, 3, 5, 8].map(w => (
-            <button key={w} onClick={() => setStrokeWidth(w)}
-              className={`rounded-full transition-all ${strokeWidth === w ? 'ring-2 ring-cyan-400/60' : 'opacity-40 hover:opacity-70'}`}
-              style={{ width: w * 2 + 8, height: w * 2 + 8, backgroundColor: strokeColor }}>
-            </button>
-          ))}
-        </div>
-        <div className="w-px h-4 bg-white/10" />
-        <div className="flex items-center gap-1.5">
-          {['#ffffff', '#00d4ff', '#ff6b6b', '#51cf66', '#ffd43b'].map(c => (
-            <button key={c} onClick={() => setStrokeColor(c)}
-              className={`w-4 h-4 rounded-full border transition-all ${strokeColor === c ? 'ring-2 ring-white/50 scale-110' : 'border-white/20 hover:scale-110'}`}
-              style={{ backgroundColor: c }} />
-          ))}
-        </div>
-        <div className="w-px h-4 bg-white/10" />
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <input type="checkbox" checked={hwAutoRecognize} onChange={e => setHwAutoRecognize(e.target.checked)}
-            className="w-3 h-3 accent-cyan-400" />
-          <span className="text-[9px] opacity-50 font-medium">Auto-AI</span>
-        </label>
-      </div>
-
-      {/* Suggestions area */}
-      <div className="shrink-0 relative overflow-hidden" style={{ background: 'rgba(0,0,0,0.2)' }}>
-        {hasAnySuggestions ? (
-          <div className="px-3 py-2 max-h-[140px] overflow-y-auto custom-scrollbar">
-            {hwSentenceSuggestions.length > 0 && (
-              <div className="mb-2">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-300 mb-1.5 opacity-70">
-                  {language === 'english' ? 'Predictions' : 'ግምቶች'}
-                </p>
-                <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                  {hwSentenceSuggestions.map((sug, i) => (
-                    <motion.button key={`s${i}`} whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
-                      onClick={() => {
-                        setSelectedHwSuggestion(sug);
-                        const sep = text.length > 0 && !text.endsWith(' ') ? ' ' : '';
-                        updateText(text + sep + sug);
-                        clearCanvas();
-                      }}
-                      className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all
-                        ${selectedHwSuggestion === sug
-                          ? 'bg-emerald-500/30 text-white border-emerald-400/50'
-                          : 'bg-white/5 text-white/80 border-white/10 hover:border-white/30'}`}>
-                      {sug}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {hwWordSuggestions.length > 0 && (
-              <div className="mb-2">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-cyan-300 mb-1.5 opacity-70">
-                  {language === 'english' ? 'Words' : 'ቃላት'}
-                </p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {hwWordSuggestions.map((sug, i) => (
-                    <motion.button key={`w${i}`} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setSelectedHwSuggestion(sug);
-                        const sep = text.length > 0 && !text.endsWith(' ') ? ' ' : '';
-                        updateText(text + sep + sug);
-                        clearCanvas();
-                      }}
-                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all
-                        ${selectedHwSuggestion === sug
-                          ? 'bg-cyan-500/30 text-white border-cyan-400/50'
-                          : 'bg-white/5 text-white/80 border-white/10'}`}>
-                      {sug}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {hwSuggestions.length > 0 && (
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-wider text-amber-300 mb-1.5 opacity-70">
-                  {language === 'english' ? 'Letters' : 'ፊደላት'}
-                </p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {hwSuggestions.map((sug, i) => (
-                    <motion.button key={`c${i}`} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                      onClick={() => {
-                        setSelectedHwSuggestion(sug);
-                        updateText(text + sug);
-                        clearCanvas();
-                      }}
-                      className={`flex items-center justify-center min-w-[36px] h-9 rounded-lg text-base font-bold border transition-all
-                        ${selectedHwSuggestion === sug
-                          ? 'bg-amber-500/30 text-white border-amber-400/50 shadow-lg'
-                          : 'bg-white/5 text-white/90 border-white/10'}`}>
-                      {sug}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="px-4 py-4 text-center bg-black/10">
-            {hwRecognizing ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-cyan-400/50" />
-                <p className="text-[11px] font-medium text-cyan-200/80">Analysing...</p>
-              </div>
-            ) : (
-              <p className="text-[10px] opacity-30 font-medium">
-                {language === 'english'
-                  ? '✍️ Draw characters, words, or sentences below'
-                  : '✍️ ከታች ፊደላት፣ ቃላት ወይም ዓረፍተ ነገሮች ይጻፉ'}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Canvas area */}
-      <div className="flex-1 p-2 min-h-0 relative">
-        <canvas
-          ref={canvasRef}
-          width={400}
-          height={280}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-          className="w-full h-full rounded-xl border-2 border-white/5 cursor-crosshair touch-none transition-all"
-          style={{
-            touchAction: 'none',
-            background: 'radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.5) 100%)',
-            boxShadow: 'inset 0 0 30px rgba(0,0,0,0.3)',
-          }}
-        />
-        {drawingPaths.length === 0 && !hwRecognizing && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-8">
-            <span className="text-3xl font-black italic tracking-widest uppercase opacity-30">AkAI</span>
-          </div>
-        )}
-      </div>
-
-      {/* Action Bar */}
-      {hasAnySuggestions && selectedHwSuggestion && (
-        <div className="shrink-0 px-3 py-2 border-t bg-black/40 backdrop-blur-md border-white/10">
-          <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-            onClick={confirmHwSuggestion}
-            className="w-full h-9 gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl shadow-xl shadow-cyan-500/20 flex items-center justify-center">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Insert &quot;{selectedHwSuggestion.length > 22 ? selectedHwSuggestion.substring(0, 22) + '...' : selectedHwSuggestion}&quot;
-          </motion.button>
-        </div>
-      )}
-    </div>
-    );
-  };
+  const renderHandwriting = () => (
+    <Suspense fallback={null}>
+      <KeyboardHandwritingPanel
+        t={t}
+        language={language}
+        text={text}
+        updateText={updateText}
+        customAccentStyle={customAccentStyle}
+        canvasRef={canvasRef}
+        drawingPaths={drawingPaths}
+        hwUndoStack={hwUndoStack}
+        hwRedoStack={hwRedoStack}
+        strokeWidth={strokeWidth}
+        setStrokeWidth={setStrokeWidth}
+        strokeColor={strokeColor}
+        setStrokeColor={setStrokeColor}
+        hwAutoRecognize={hwAutoRecognize}
+        setHwAutoRecognize={setHwAutoRecognize}
+        hwStrokes={hwStrokes}
+        hwRecognizing={hwRecognizing}
+        hwSuggestions={hwSuggestions}
+        hwWordSuggestions={hwWordSuggestions}
+        hwSentenceSuggestions={hwSentenceSuggestions}
+        selectedHwSuggestion={selectedHwSuggestion}
+        setSelectedHwSuggestion={setSelectedHwSuggestion}
+        startDrawing={startDrawing}
+        draw={draw}
+        stopDrawing={stopDrawing}
+        undoHwStroke={undoHwStroke}
+        redoHwStroke={redoHwStroke}
+        recognizeHandwriting={recognizeHandwriting}
+        clearCanvas={clearCanvas}
+        confirmHwSuggestion={confirmHwSuggestion}
+      />
+    </Suspense>
+  );
 
   // Change 6: Settings panel (NO theme picker - themes are in themes button)
   const renderSettings = () => (
-    <div className="flex flex-col h-full">
-      <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
-        <span className={`text-xs font-medium ${t.keyText} opacity-70`}>Keyboard Settings</span>
-      </div>
-      <div className="flex-1 p-3 overflow-y-auto flex flex-col gap-4">
-        {/* Desktop View toggle */}
-        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <div>
-            <p className={`text-xs font-medium ${t.keyText}`}>Desktop View</p>
-            <p className={`text-[10px] ${t.keyText} opacity-50`}>Wide layout for larger screens</p>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setDesktopView(!desktopView)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center ${desktopView ? t.accent : 'bg-gray-600'}`}
-          >
-            <motion.div
-              animate={{ x: desktopView ? 16 : 2 }}
-              className="w-5 h-5 bg-white rounded-full shadow-sm"
-            />
-          </motion.button>
-        </div>
-
-        {/* Keyboard height selector */}
-        <div className={`p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Keyboard Height</p>
-          <div className="flex gap-2">
-            {(['compact', 'normal', 'tall'] as const).map(h => (
-              <motion.button
-                key={h}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setKeyboardHeight(h)}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
-                  keyboardHeight === h ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
-                }`}
-              >
-                {h}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        {/* Keyboard Spacing */}
-        <div className={`p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Key Spacing (Density)</p>
-          <div className="flex gap-2">
-            {(['compact', 'normal', 'spacious'] as const).map(spacing => (
-              <motion.button
-                key={spacing}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setKeyboardSpacing(spacing)}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
-                  keyboardSpacing === spacing ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
-                }`}
-              >
-                {spacing}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Toolbar Style */}
-        <div className={`p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Toolbar Style (Mobile)</p>
-          <div className="flex gap-2">
-            {[ 
-               { id: 'active', label: 'Active Only' }, 
-               { id: 'all', label: 'All Labels' }, 
-               { id: 'icons', label: 'Icons Only' } 
-            ].map(style => (
-              <motion.button
-                key={style.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setToolbarStyle(style.id as any)}
-                className={`flex-1 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all ${
-                  toolbarStyle === style.id ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
-                }`}
-              >
-                {style.label}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        {/* Show number row toggle */}
-        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <div className="flex items-center gap-3">
-             <div className={`p-2 rounded-lg ${t.suggestion} ${t.keyText} opacity-80`}>
-                <Globe className="w-4 h-4" />
-             </div>
-             <div>
-                <p className={`text-xs font-bold ${t.keyText}`}>Show Number Row</p>
-                <p className={`text-[10px] ${t.keyText} opacity-50`}>Always show numbers</p>
-             </div>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setShowNumberRow(!showNumberRow)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center ${showNumberRow ? t.accent : 'bg-gray-600'}`}
-          >
-            <motion.div animate={{ x: showNumberRow ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
-          </motion.button>
-        </div>
-
-        {/* Dynamic Buttons Toggle */}
-        <div className={`p-4 rounded-2xl ${t.card} ${t.border} border space-y-4`}>
-          <div className="flex items-center gap-2 mb-1">
-             <Wand2 className={`w-4 h-4 ${t.accentText} opacity-70`} />
-             <p className={`text-xs font-bold ${t.keyText} uppercase tracking-tight`}>Toolbar Buttons</p>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-3">
-            {[
-              { id: 'stickers', label: 'Stickers', icon: Smile },
-              { id: 'gifs', label: 'GIFs', icon: Image },
-              { id: 'clipboard', label: 'Clipboard', icon: ClipboardList },
-              { id: 'handwriting', label: 'Handwriting', icon: PenTool },
-              { id: 'translate', label: 'Language AI', icon: Sparkles },
-            ].map(btn => (
-              <div key={btn.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <btn.icon className={`w-4 h-4 ${t.keyText} opacity-40`} />
-                  <span className={`text-[11px] font-medium ${t.keyText}`}>{btn.label}</span>
-                </div>
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setVisibleButtons(prev => ({ ...prev, [btn.id]: !prev[btn.id] }))}
-                  className={`w-8 h-4 rounded-full transition-colors flex items-center ${visibleButtons[btn.id] ? t.accent : 'bg-gray-600'}`}
-                >
-                  <motion.div animate={{ x: visibleButtons[btn.id] ? 14 : 2 }} className="w-3 h-3 bg-white rounded-full shadow-sm" />
-                </motion.button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Auto Capitalization */}
-        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <div>
-            <p className={`text-xs font-medium ${t.keyText}`}>Auto Capitalization</p>
-            <p className={`text-[10px] ${t.keyText} opacity-50`}>Capitalize start of sentences</p>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setAutoCapitalization(!autoCapitalization)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center ${autoCapitalization ? t.accent : 'bg-gray-600'}`}
-          >
-            <motion.div animate={{ x: autoCapitalization ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
-          </motion.button>
-        </div>
-
-        {/* Vibrate on Keypress */}
-        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <div>
-            <p className={`text-xs font-medium ${t.keyText}`}>Vibrate on Keypress</p>
-            <p className={`text-[10px] ${t.keyText} opacity-50`}>Haptic feedback for every key</p>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setVibrateOnKeyPress(!vibrateOnKeyPress)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center ${vibrateOnKeyPress ? t.accent : 'bg-gray-600'}`}
-          >
-            <motion.div animate={{ x: vibrateOnKeyPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
-          </motion.button>
-        </div>
-
-        {/* Haptic Strength (only meaningful while vibration is on) */}
-        {vibrateOnKeyPress && (
-          <div className={`p-3 rounded-xl ${t.card} ${t.border} border`}>
-            <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Haptic Strength</p>
-            <div className="flex gap-2">
-              {(['light', 'medium', 'strong'] as const).map(s => (
-                <motion.button
-                  key={s}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => { setHapticStrength(s); doVibrate({ light: 5, medium: 12, strong: 25 }[s]); }}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
-                    hapticStrength === s ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
-                  }`}
-                >
-                  {s}
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Sound on Keypress */}
-        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <div>
-            <p className={`text-xs font-medium ${t.keyText}`}>Sound on Keypress</p>
-            <p className={`text-[10px] ${t.keyText} opacity-50`}>Play a click sound per key</p>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setSoundOnKeyPress(!soundOnKeyPress)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center ${soundOnKeyPress ? t.accent : 'bg-gray-600'}`}
-          >
-            <motion.div animate={{ x: soundOnKeyPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
-          </motion.button>
-        </div>
-
-        {/* Double-space for period */}
-        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <div>
-            <p className={`text-xs font-medium ${t.keyText}`}>Double-Space for Period</p>
-            <p className={`text-[10px] ${t.keyText} opacity-50`}>Tap space twice to insert ". "</p>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setDoubleSpacePeriod(!doubleSpacePeriod)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center ${doubleSpacePeriod ? t.accent : 'bg-gray-600'}`}
-          >
-            <motion.div animate={{ x: doubleSpacePeriod ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
-          </motion.button>
-        </div>
-
-        {/* Auto-space after punctuation */}
-        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <div>
-            <p className={`text-xs font-medium ${t.keyText}`}>Auto-Space After Punctuation</p>
-            <p className={`text-[10px] ${t.keyText} opacity-50`}>Add space after . ! ? ; :</p>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setAutoSpaceAfterPunctuation(!autoSpaceAfterPunctuation)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center ${autoSpaceAfterPunctuation ? t.accent : 'bg-gray-600'}`}
-          >
-            <motion.div animate={{ x: autoSpaceAfterPunctuation ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
-          </motion.button>
-        </div>
-
-        {/* Key popup on long press */}
-        <div className={`flex items-center justify-between p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <div>
-            <p className={`text-xs font-medium ${t.keyText}`}>Key Popup on Long Press</p>
-            <p className={`text-[10px] ${t.keyText} opacity-50`}>Show alternate characters on long press</p>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setKeyPopupOnLongPress(!keyPopupOnLongPress)}
-            className={`w-10 h-6 rounded-full transition-colors flex items-center ${keyPopupOnLongPress ? t.accent : 'bg-gray-600'}`}
-          >
-            <motion.div animate={{ x: keyPopupOnLongPress ? 16 : 2 }} className="w-5 h-5 bg-white rounded-full shadow-sm" />
-          </motion.button>
-        </div>
-
-        {/* One-Handed Mode */}
-        <div className={`p-3 rounded-xl ${t.card} ${t.border} border`}>
-          <p className={`text-xs font-medium mb-2 ${t.keyText}`}>One-Handed Mode</p>
-          <p className={`text-[10px] ${t.keyText} opacity-50 mb-2`}>Shrink and shift the keyboard for thumb reach</p>
-          <div className="flex gap-2">
-            {([
-              { id: 'off', label: 'Off' },
-              { id: 'left', label: 'Left' },
-              { id: 'right', label: 'Right' },
-            ] as const).map(opt => (
-              <motion.button
-                key={opt.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setOneHandedMode(opt.id)}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  oneHandedMode === opt.id ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
-                }`}
-              >
-                {opt.label}
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    <Suspense fallback={null}>
+      <KeyboardSettingsPanel
+        t={t}
+        desktopView={desktopView}
+        setDesktopView={setDesktopView}
+        keyboardHeight={keyboardHeight}
+        setKeyboardHeight={setKeyboardHeight}
+        keyboardSpacing={keyboardSpacing}
+        setKeyboardSpacing={setKeyboardSpacing}
+        toolbarStyle={toolbarStyle}
+        setToolbarStyle={setToolbarStyle}
+        showNumberRow={showNumberRow}
+        setShowNumberRow={setShowNumberRow}
+        visibleButtons={visibleButtons}
+        setVisibleButtons={setVisibleButtons}
+        autoCapitalization={autoCapitalization}
+        setAutoCapitalization={setAutoCapitalization}
+        vibrateOnKeyPress={vibrateOnKeyPress}
+        setVibrateOnKeyPress={setVibrateOnKeyPress}
+        hapticStrength={hapticStrength}
+        setHapticStrength={setHapticStrength}
+        doVibrate={doVibrate}
+        soundOnKeyPress={soundOnKeyPress}
+        setSoundOnKeyPress={setSoundOnKeyPress}
+        doubleSpacePeriod={doubleSpacePeriod}
+        setDoubleSpacePeriod={setDoubleSpacePeriod}
+        autoSpaceAfterPunctuation={autoSpaceAfterPunctuation}
+        setAutoSpaceAfterPunctuation={setAutoSpaceAfterPunctuation}
+        keyPopupOnLongPress={keyPopupOnLongPress}
+        setKeyPopupOnLongPress={setKeyPopupOnLongPress}
+        oneHandedMode={oneHandedMode}
+        setOneHandedMode={setOneHandedMode}
+      />
+    </Suspense>
   );
 
   // ─── Full-Screen Theme Picker ────────────────────────────────────────

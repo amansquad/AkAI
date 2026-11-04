@@ -45,7 +45,7 @@ Rules:
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'assistant', content: systemPrompt },
+        { role: 'system', content: systemPrompt },
         {
           role: 'user',
           content: [

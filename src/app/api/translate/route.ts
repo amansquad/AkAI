@@ -14,21 +14,21 @@ export async function POST(request: NextRequest) {
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
 
-    const systemPrompt = `You are a professional translator specializing in English and Amharic (አማርኛ) translation. 
+    const systemPrompt = `You are a professional translator specializing in English and Amharic (አማርኛ) translation.
 You translate text accurately while preserving meaning, tone, and context.
 When translating to Amharic, use proper Ge'ez script.
 When translating from Amharic to English, provide natural English translations.
 Only return the translated text, nothing else. No explanations, no notes, just the translation.`;
 
     const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [
-        { role: 'assistant', content: systemPrompt },
+        { role: 'system', content: systemPrompt },
         {
           role: 'user',
           content: `Translate the following text from ${sourceLang} to ${targetLang}:\n\n${text}`,
         },
       ],
-      thinking: { type: 'disabled' },
     });
 
     const translation = completion.choices[0]?.message?.content?.trim();

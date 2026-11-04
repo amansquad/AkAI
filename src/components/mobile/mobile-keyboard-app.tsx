@@ -45,6 +45,9 @@ export default function MobileKeyboardApp() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        // Deferred to an effect (not a lazy useState initializer) since
+        // localStorage isn't available during SSR/static prerender.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setVibrateOnKeyPress(parsed.vibrate ?? true);
         setSoundOnKeyPress(parsed.sound ?? true);
         setAutoCapitalization(parsed.autoCap ?? true);

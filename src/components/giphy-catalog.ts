@@ -4,13 +4,13 @@
 //
 // This is the client-side, keyless counterpart to the same catalog shipped
 // in the Flutter app (flutter_app/lib/services/gif_service.dart) — kept in
-// sync so both platforms show the same real GIFs. It exists because the
-// site's /api/giphy route only exists in Next.js's server output; this repo
-// is built with `output: "export"` (static export, required so the same
-// Next.js app can be packaged into the Capacitor mobile shell — see
-// capacitor.config.ts webDir: 'out'), which does not serve API routes at
-// all. Without this catalog, the GIF panel silently fell back to animated
-// emoji "stickers" instead of real GIFs.
+// sync so both platforms show the same real GIFs. It's the fallback when
+// /api/giphy is unreachable: the Android build ships as a static Capacitor
+// bundle with no server (see capacitor.config.ts webDir: 'out'), so native
+// requests depend on getApiBaseUrl() reaching the deployed website, and
+// GIPHY_API_KEY may not be configured there either. Without this catalog,
+// the GIF panel would fall back to animated emoji "stickers" instead of
+// real GIFs, or show nothing at all.
 
 import type { GiphyGif } from './keyboard-data';
 

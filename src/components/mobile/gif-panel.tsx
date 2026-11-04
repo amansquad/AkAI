@@ -5,23 +5,13 @@ import { motion } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search } from 'lucide-react';
-import type { ThemeDef } from '@/components/keyboard-data';
+import type { ThemeDef, GiphyGif } from '@/components/keyboard-data';
+import { getApiBaseUrl } from '@/lib/api-base-url';
+import { searchGifCatalog, trendingGifCatalog } from '@/components/giphy-catalog';
 
 interface GifPanelProps {
   onSelect: (gifUrl: string) => void;
   theme: ThemeDef;
-}
-
-interface GiphyGif {
-  id: string;
-  title: string;
-  images: {
-    fixed_height: {
-      url: string;
-      width: string;
-      height: string;
-    };
-  };
 }
 
 export function GifPanel({ onSelect, theme }: GifPanelProps) {
@@ -34,12 +24,16 @@ export function GifPanel({ onSelect, theme }: GifPanelProps) {
       setLoading(true);
       try {
         const type = searchQuery ? 'search' : 'trending';
-        const response = await fetch(`/api/giphy?type=${type}&q=${encodeURIComponent(searchQuery)}&limit=20`);
+        const response = await fetch(`${getApiBaseUrl()}/api/giphy?type=${type}&q=${encodeURIComponent(searchQuery)}&limit=20`);
         const data = await response.json();
-        setGifs(data.data || []);
+        if (Array.isArray(data.data) && data.data.length > 0 && !data.isFallback) {
+          setGifs(data.data);
+        } else {
+          setGifs(searchQuery ? searchGifCatalog(searchQuery) : trendingGifCatalog());
+        }
       } catch (error) {
         console.error('Failed to fetch GIFs:', error);
-        setGifs([]);
+        setGifs(searchQuery ? searchGifCatalog(searchQuery) : trendingGifCatalog());
       } finally {
         setLoading(false);
       }

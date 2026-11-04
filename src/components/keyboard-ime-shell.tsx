@@ -24,7 +24,10 @@ export default function KeyboardImeShell() {
   const [, forceUpdate] = useState(0);
 
   useEffect(() => {
-    // Re-render after mount so isAndroidIme() can read window
+    // Re-render after mount so isAndroidIme() can read window. Can't be a
+    // lazy useState initializer: `window` isn't available during SSR/static
+    // prerender, so this must stay deferred to an effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     forceUpdate(n => n + 1);
     // Tell Android the page is ready
     if (window.AkaiKeyboard) {

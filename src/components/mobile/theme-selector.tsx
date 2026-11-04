@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Zap, Palette, Shield, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { THEMES, type ThemeDef } from '@/components/keyboard-data';
-import LiveWallpaper from '@/components/keyboard/live-wallpaper';
+import { useInView } from '@/hooks/use-in-view';
+
+// The animation module is ~4.7k lines; keep it out of the bundle for anyone
+// who never opens the theme picker, and only pay for it once per session.
+const LiveWallpaper = lazy(() => import('@/components/keyboard/live-wallpaper'));
 
 interface ThemeSelectorProps {
   currentTheme: string;
@@ -24,6 +28,128 @@ const CATEGORY_TABS: { id: ThemeCategory; label: string; icon?: React.ReactNode 
   { id: 'culture', label: 'Culture' },
   { id: 'solid', label: 'Solid' },
 ];
+
+interface ThemeGridCardProps {
+  themeKey: string;
+  theme: ThemeDef;
+  selected: boolean;
+  onSelect: () => void;
+}
+
+function ThemeGridCard({ themeKey, theme, selected, onSelect }: ThemeGridCardProps) {
+  // Up to ~125 live themes can be in this grid at once (the "All" tab) — only
+  // mount a theme's canvas once the card has actually scrolled into view,
+  // instead of paying for every live-wallpaper preview up front.
+  const { ref, inView } = useInView<HTMLDivElement>();
+
+  return (
+    <motion.div
+      layout
+      variants={{
+        hidden: { opacity: 0, y: 14, scale: 0.94 },
+        show: { opacity: 1, y: 0, scale: 1 },
+      }}
+      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+      whileHover={{ y: -3, scale: 1.02 }}
+      whileTap={{ scale: 0.95 }}
+      className="relative"
+    >
+      <button
+        onClick={onSelect}
+        className={`
+          w-full rounded-xl overflow-hidden
+          border-2 transition-colors duration-200
+          ${selected
+            ? 'border-primary shadow-lg'
+            : 'border-border/30 hover:border-border/60'
+          }
+        `}
+      >
+        {/* Selected glow ring — breathing halo instead of a static ring */}
+        {selected && (
+          <motion.div
+            className="absolute -inset-0.5 rounded-xl pointer-events-none z-20"
+            style={{ boxShadow: '0 0 0 4px var(--primary)' }}
+            animate={{ opacity: [0, 0.35, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
+
+        {/* Theme Preview */}
+        <div ref={ref} className={`${theme.bg} h-24 relative overflow-hidden`}>
+          {/* Real per-theme canvas animation — one still frame, not a
+              generic pulse, so the card shows what the theme actually is. */}
+          {theme.isLive && inView && (
+            <Suspense fallback={null}>
+              <LiveWallpaper theme={themeKey} static className="opacity-60" />
+            </Suspense>
+          )}
+
+          {/* Sample Keys, scrimmed for legibility over a busy backdrop */}
+          <div
+            className={`absolute inset-0 flex items-center justify-center gap-2 p-2 ${
+              theme.isLive ? 'bg-[radial-gradient(circle,rgba(0,0,0,0)_0%,rgba(0,0,0,0.1)_60%,rgba(0,0,0,0.4)_100%)]' : ''
+            }`}
+          >
+            <div className={`${theme.key} rounded-md w-10 h-10 ${theme.keyText} flex items-center justify-center text-xs font-medium shadow-sm`}>
+              A
+            </div>
+            <div className={`${theme.key} rounded-md w-10 h-10 ${theme.keyText} flex items-center justify-center text-xs font-medium shadow-sm`}>
+              B
+            </div>
+            <div className={`${theme.specialKey} rounded-md w-10 h-10 ${theme.keyText} flex items-center justify-center text-xs font-medium shadow-sm`}>
+              ⌫
+            </div>
+          </div>
+
+          {/* Live / Team indicator — team themes read as a squad, not a
+              generic effect, so they get their own badge. */}
+          {theme.isLive && (
+            <motion.div
+              className="absolute top-2 right-2"
+              animate={{ opacity: [0.85, 1, 0.85] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <div className="bg-primary text-primary-foreground px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 shadow-sm">
+                {theme.category === 'football' ? (
+                  <Shield className="w-3 h-3" />
+                ) : (
+                  <Zap className="w-3 h-3" />
+                )}
+                {theme.category === 'football' ? 'TEAM' : 'LIVE'}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Current theme checkmark */}
+          <AnimatePresence>
+            {selected && (
+              <motion.div
+                className="absolute top-2 left-2 z-30"
+                initial={{ scale: 0, rotate: -90, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+              >
+                <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                  <Check className="w-3.5 h-3.5" />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Theme Name */}
+        <div className="p-3 bg-card">
+          <p className="font-medium text-sm flex items-center gap-2">
+            <span>{theme.flag}</span>
+            <span>{theme.name}</span>
+          </p>
+        </div>
+      </button>
+    </motion.div>
+  );
+}
 
 export function ThemeSelector({ currentTheme, onSelectTheme, onClose }: ThemeSelectorProps) {
   const [category, setCategory] = useState<ThemeCategory>('all');
@@ -113,115 +239,15 @@ export function ThemeSelector({ currentTheme, onSelectTheme, onClose }: ThemeSel
               show: { transition: { staggerChildren: 0.035 } },
             }}
           >
-            {filteredThemes.map(([themeKey, theme]) => {
-              const selected = currentTheme === themeKey;
-              return (
-                <motion.div
-                  key={themeKey}
-                  layout
-                  variants={{
-                    hidden: { opacity: 0, y: 14, scale: 0.94 },
-                    show: { opacity: 1, y: 0, scale: 1 },
-                  }}
-                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                  whileHover={{ y: -3, scale: 1.02 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="relative"
-                >
-                  <button
-                    onClick={() => onSelectTheme(themeKey)}
-                    className={`
-                      w-full rounded-xl overflow-hidden
-                      border-2 transition-colors duration-200
-                      ${selected
-                        ? 'border-primary shadow-lg'
-                        : 'border-border/30 hover:border-border/60'
-                      }
-                    `}
-                  >
-                    {/* Selected glow ring — breathing halo instead of a static ring */}
-                    {selected && (
-                      <motion.div
-                        className="absolute -inset-0.5 rounded-xl pointer-events-none z-20"
-                        style={{ boxShadow: '0 0 0 4px var(--primary)' }}
-                        animate={{ opacity: [0, 0.35, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                      />
-                    )}
-
-                    {/* Theme Preview */}
-                    <div className={`${theme.bg} h-24 relative overflow-hidden`}>
-                      {/* Real per-theme canvas animation — one still frame, not a
-                          generic pulse, so the card shows what the theme actually is. */}
-                      {theme.isLive && (
-                        <LiveWallpaper theme={themeKey} static className="opacity-60" />
-                      )}
-
-                      {/* Sample Keys, scrimmed for legibility over a busy backdrop */}
-                      <div
-                        className={`absolute inset-0 flex items-center justify-center gap-2 p-2 ${
-                          theme.isLive ? 'bg-[radial-gradient(circle,rgba(0,0,0,0)_0%,rgba(0,0,0,0.1)_60%,rgba(0,0,0,0.4)_100%)]' : ''
-                        }`}
-                      >
-                        <div className={`${theme.key} rounded-md w-10 h-10 ${theme.keyText} flex items-center justify-center text-xs font-medium shadow-sm`}>
-                          A
-                        </div>
-                        <div className={`${theme.key} rounded-md w-10 h-10 ${theme.keyText} flex items-center justify-center text-xs font-medium shadow-sm`}>
-                          B
-                        </div>
-                        <div className={`${theme.specialKey} rounded-md w-10 h-10 ${theme.keyText} flex items-center justify-center text-xs font-medium shadow-sm`}>
-                          ⌫
-                        </div>
-                      </div>
-
-                      {/* Live / Team indicator — team themes read as a squad, not a
-                          generic effect, so they get their own badge. */}
-                      {theme.isLive && (
-                        <motion.div
-                          className="absolute top-2 right-2"
-                          animate={{ opacity: [0.85, 1, 0.85] }}
-                          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                        >
-                          <div className="bg-primary text-primary-foreground px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 shadow-sm">
-                            {theme.category === 'football' ? (
-                              <Shield className="w-3 h-3" />
-                            ) : (
-                              <Zap className="w-3 h-3" />
-                            )}
-                            {theme.category === 'football' ? 'TEAM' : 'LIVE'}
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {/* Current theme checkmark */}
-                      <AnimatePresence>
-                        {selected && (
-                          <motion.div
-                            className="absolute top-2 left-2 z-30"
-                            initial={{ scale: 0, rotate: -90, opacity: 0 }}
-                            animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-                          >
-                            <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center shadow-md">
-                              <Check className="w-3.5 h-3.5" />
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Theme Name */}
-                    <div className="p-3 bg-card">
-                      <p className="font-medium text-sm flex items-center gap-2">
-                        <span>{theme.flag}</span>
-                        <span>{theme.name}</span>
-                      </p>
-                    </div>
-                  </button>
-                </motion.div>
-              );
-            })}
+            {filteredThemes.map(([themeKey, theme]) => (
+              <ThemeGridCard
+                key={themeKey}
+                themeKey={themeKey}
+                theme={theme}
+                selected={currentTheme === themeKey}
+                onSelect={() => onSelectTheme(themeKey)}
+              />
+            ))}
           </motion.div>
         </AnimatePresence>
       </ScrollArea>

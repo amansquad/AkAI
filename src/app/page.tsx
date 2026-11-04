@@ -13,34 +13,6 @@ import { Button } from '@/components/ui/button';
 // Lazy load heavy components
 const DemoKeyboard = lazy(() => import('@/components/demo-keyboard'));
 
-/*
-  <!--
-  THESIS: AkAI as Ethiopia's keyboard export — the design confidence of Ethiopian Airlines
-  applied to software. Bilingual is the mechanism, not a feature checkbox. Both scripts
-  are first-class from the first pixel.
-
-  OWN-WORLD: Deep charcoal ground (rgb(18, 18, 20)), brilliant emerald green primary
-  (rgb(16, 185, 129) — Ethiopian Airlines signature), crisp white text, warm gold accents
-  (rgb(251, 191, 36)) for AI/premium features. Clean geometric sans (system-ui stack),
-  confident scale jumps, sharp corners, purposeful motion. No decorative texture.
-
-  STORY: Hero demonstrates live bilingual typing with inline AI translation → visitor sees
-  both scripts as equals → explores interactive features → sees 20+ real themes → downloads
-  or tries demo immediately.
-
-  FIRST VIEWPORT: Interactive split-view typing demonstration. Left: English keyboard typing
-  live. Right: Amharic keyboard. Center: Real-time AI translation with emerald highlights.
-  Immediate CTA. Phone mockup showing actual product below. No multi-tap nostalgia — the
-  mechanism is now, not the problem it replaced.
-
-  FORM: Modern tech product landing (Ethiopian Airlines confidence applied to software),
-  seed key 0b120b1b.
-
-  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review,
-  the verdict, and DESIGN.md
-  -->
-*/
-
 const TRANSLATION_PAIRS = [
   { en: 'Hello', am: 'ሰላም', enFull: 'Hello, how are you?', amFull: 'ሰላም፣ እንዴት ነህ?' },
   { en: 'Thank you', am: 'አመሰግናለሁ', enFull: 'Thank you very much', amFull: 'በጣም አመሰግናለሁ' },
@@ -65,7 +37,7 @@ const FEATURES = [
     icon: Palette,
     title: 'Live Themes',
     description: 'Animated backgrounds, team colors, cultural themes. Not screenshots.',
-    stat: '20+ Themes'
+    stat: '160+ Themes'
   },
   {
     icon: Shield,
@@ -229,7 +201,7 @@ export default function Home() {
                   <div className="text-xs text-white/50">Scripts Native</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-emerald-500 mb-1">20+</div>
+                  <div className="text-3xl font-bold text-emerald-500 mb-1">120+</div>
                   <div className="text-xs text-white/50">Live Themes</div>
                 </div>
                 <div>

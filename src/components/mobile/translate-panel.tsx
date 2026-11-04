@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowRightLeft, Loader2, Volume2 } from 'lucide-react';
 import type { ThemeDef } from '@/components/keyboard-data';
 import type { Language } from './mobile-keyboard-app';
+import { getApiBaseUrl } from '@/lib/api-base-url';
 
 interface TranslatePanelProps {
   onTranslate: (text: string) => void;
@@ -26,7 +27,7 @@ export function TranslatePanel({ onTranslate, theme, language }: TranslatePanelP
 
     setIsTranslating(true);
     try {
-      const response = await fetch('/api/translate', {
+      const response = await fetch(`${getApiBaseUrl()}/api/translate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
