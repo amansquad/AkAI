@@ -1360,6 +1360,72 @@ export const THEMES: Record<string, ThemeDef> = {
     border: 'border-cyan-400/30', tabBar: 'bg-teal-900/80', tabActive: 'bg-cyan-300', tabActiveText: 'text-teal-950',
     suggestion: 'bg-teal-800/80',
   },
+  // ─── New Live Themes 2026 (2nd wave) ──────────────────────────────────────
+  rain_live: {
+    name: 'Rainfall', flag: '🌧️', category: 'live', isLive: true,
+    bg: 'bg-slate-900', card: 'bg-slate-800/80', key: 'bg-slate-700/90', keyHover: 'hover:bg-sky-400',
+    keyActive: 'bg-sky-300 text-slate-900', keyText: 'text-sky-50',
+    specialKey: 'bg-slate-700', accent: 'bg-sky-300', accentText: 'text-slate-900',
+    border: 'border-sky-400/30', tabBar: 'bg-slate-900/80', tabActive: 'bg-sky-300', tabActiveText: 'text-slate-900',
+    suggestion: 'bg-slate-800/80',
+  },
+  desert_mirage_live: {
+    name: 'Desert Mirage', flag: '🏜️', category: 'live', isLive: true,
+    bg: 'bg-orange-900', card: 'bg-orange-800/80', key: 'bg-amber-800/90', keyHover: 'hover:bg-amber-400',
+    keyActive: 'bg-amber-300 text-orange-950', keyText: 'text-amber-50',
+    specialKey: 'bg-orange-800', accent: 'bg-amber-300', accentText: 'text-orange-950',
+    border: 'border-amber-400/30', tabBar: 'bg-orange-950/80', tabActive: 'bg-amber-300', tabActiveText: 'text-orange-950',
+    suggestion: 'bg-orange-800/80',
+  },
+  confetti_live: {
+    name: 'Confetti Party', flag: '🎊', category: 'live', isLive: true,
+    bg: 'bg-indigo-950', card: 'bg-indigo-900/80', key: 'bg-indigo-800/90', keyHover: 'hover:bg-pink-400',
+    keyActive: 'bg-pink-400 text-indigo-950', keyText: 'text-indigo-50',
+    specialKey: 'bg-indigo-700', accent: 'bg-pink-400', accentText: 'text-indigo-950',
+    border: 'border-pink-400/30', tabBar: 'bg-indigo-900/80', tabActive: 'bg-pink-400', tabActiveText: 'text-indigo-950',
+    suggestion: 'bg-indigo-800/80',
+  },
+  city_nights_live: {
+    name: 'City Nights', flag: '🌃', category: 'live', isLive: true,
+    bg: 'bg-slate-950', card: 'bg-slate-900/80', key: 'bg-slate-800/90', keyHover: 'hover:bg-yellow-300',
+    keyActive: 'bg-yellow-300 text-slate-950', keyText: 'text-slate-50',
+    specialKey: 'bg-slate-800', accent: 'bg-yellow-300', accentText: 'text-slate-950',
+    border: 'border-yellow-300/30', tabBar: 'bg-slate-950/90', tabActive: 'bg-yellow-300', tabActiveText: 'text-slate-950',
+    suggestion: 'bg-slate-900/80',
+  },
+  // ─── New Culture / Faith Themes ────────────────────────────────────────────
+  faith_enkutatash: {
+    name: 'Enkutatash', flag: '🌼', category: 'faith', isLive: true,
+    bg: 'bg-green-900', card: 'bg-yellow-900/30', key: 'bg-green-800/30', keyHover: 'hover:bg-yellow-400/40',
+    keyActive: 'bg-yellow-400 text-green-950', keyText: 'text-yellow-50',
+    specialKey: 'bg-green-800/50', accent: 'bg-yellow-400', accentText: 'text-green-950',
+    border: 'border-yellow-400/30', tabBar: 'bg-green-950/90', tabActive: 'bg-yellow-400', tabActiveText: 'text-green-950',
+    suggestion: 'bg-green-900/30',
+  },
+  cult_irreecha: {
+    name: 'Irreecha', flag: '🌾', category: 'culture', isLive: true,
+    bg: 'bg-sky-900', card: 'bg-green-900/30', key: 'bg-sky-800/30', keyHover: 'hover:bg-yellow-400/40',
+    keyActive: 'bg-yellow-400 text-sky-950', keyText: 'text-sky-50',
+    specialKey: 'bg-sky-800/50', accent: 'bg-yellow-400', accentText: 'text-sky-950',
+    border: 'border-yellow-400/20', tabBar: 'bg-sky-950/90', tabActive: 'bg-yellow-400', tabActiveText: 'text-sky-950',
+    suggestion: 'bg-sky-900/30',
+  },
+  faith_fasika: {
+    name: 'Fasika', flag: '🕯️', category: 'faith', isLive: true,
+    bg: 'bg-indigo-950', card: 'bg-rose-900/30', key: 'bg-indigo-900/30', keyHover: 'hover:bg-rose-400/40',
+    keyActive: 'bg-rose-300 text-indigo-950', keyText: 'text-rose-50',
+    specialKey: 'bg-indigo-900/50', accent: 'bg-rose-300', accentText: 'text-indigo-950',
+    border: 'border-rose-400/30', tabBar: 'bg-indigo-950/90', tabActive: 'bg-rose-400', tabActiveText: 'text-indigo-950',
+    suggestion: 'bg-indigo-900/30',
+  },
+  cult_ashenda: {
+    name: 'Ashenda', flag: '🎀', category: 'culture', isLive: true,
+    bg: 'bg-purple-950', card: 'bg-pink-900/30', key: 'bg-purple-900/30', keyHover: 'hover:bg-pink-400/40',
+    keyActive: 'bg-pink-400 text-purple-950', keyText: 'text-pink-50',
+    specialKey: 'bg-purple-900/50', accent: 'bg-pink-400', accentText: 'text-purple-950',
+    border: 'border-pink-400/30', tabBar: 'bg-purple-950/90', tabActive: 'bg-pink-400', tabActiveText: 'text-purple-950',
+    suggestion: 'bg-purple-900/30',
+  },
 };
 
 export const LONG_PRESS_ALTERNATES: Record<string, string[]> = {

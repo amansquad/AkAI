@@ -37,7 +37,7 @@ const FEATURES = [
     icon: Palette,
     title: 'Live Themes',
     description: 'Animated backgrounds, team colors, cultural themes. Not screenshots.',
-    stat: '160+ Themes'
+    stat: '170+ Themes'
   },
   {
     icon: Shield,
@@ -201,7 +201,7 @@ export default function Home() {
                   <div className="text-xs text-white/50">Scripts Native</div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-emerald-500 mb-1">120+</div>
+                  <div className="text-3xl font-bold text-emerald-500 mb-1">130+</div>
                   <div className="text-xs text-white/50">Live Themes</div>
                 </div>
                 <div>

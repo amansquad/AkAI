@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { THEMES, type ThemeDef } from '@/components/keyboard-data';
 import { useInView } from '@/hooks/use-in-view';
+import { loadLiveThemeCSS } from '@/lib/css-loader';
 
 // The animation module is ~4.7k lines; keep it out of the bundle for anyone
 // who never opens the theme picker, and only pay for it once per session.
@@ -42,6 +43,14 @@ function ThemeGridCard({ themeKey, theme, selected, onSelect }: ThemeGridCardPro
   // instead of paying for every live-wallpaper preview up front.
   const { ref, inView } = useInView<HTMLDivElement>();
 
+  // Some live themes (the CSS-gradient ones, theme.liveClass) have no canvas
+  // animation — load their keyframe CSS once the card is actually visible.
+  React.useEffect(() => {
+    if (inView && theme.isLive && theme.liveClass) {
+      loadLiveThemeCSS();
+    }
+  }, [inView, theme.isLive, theme.liveClass]);
+
   return (
     <motion.div
       layout
@@ -76,7 +85,7 @@ function ThemeGridCard({ themeKey, theme, selected, onSelect }: ThemeGridCardPro
         )}
 
         {/* Theme Preview */}
-        <div ref={ref} className={`${theme.bg} h-24 relative overflow-hidden`}>
+        <div ref={ref} className={`${theme.bg} ${theme.liveClass || ''} h-24 relative overflow-hidden`}>
           {/* Real per-theme canvas animation — one still frame, not a
               generic pulse, so the card shows what the theme actually is. */}
           {theme.isLive && inView && (

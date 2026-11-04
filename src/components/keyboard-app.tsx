@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect, useSyncExternalStore, 
 import { motion, AnimatePresence } from 'framer-motion';
 import { LiveWallpaper } from '@/components/keyboard/live-wallpaper';
 import { getApiBaseUrl } from '@/lib/api-base-url';
+import { loadLiveThemeCSS } from '@/lib/css-loader';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
   Delete, CornerDownLeft, Copy, Trash2, Plus,
@@ -388,6 +389,15 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
   const t = allThemes[theme] || THEMES.default;
 
+  // Some live themes (the CSS-gradient ones, t.liveClass) have no canvas
+  // animation — load their keyframe CSS on demand instead of bundling it
+  // with every theme.
+  useEffect(() => {
+    if (t.isLive && t.liveClass) {
+      loadLiveThemeCSS();
+    }
+  }, [t.isLive, t.liveClass]);
+
   // Custom theme style overrides
   const customThemeData = theme.startsWith('custom_') ? customThemes.find(ct => `custom_${ct.id}` === theme) : null;
   const customBgStyle: React.CSSProperties = (theme === 'custom' && customBgFile) ? {
@@ -634,6 +644,15 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       setSymbolsActive(!symbolsActive);
       setShiftActive(false);
       setSelectedConsonant(null);
+    } else if (key === 'language') {
+      // Without this the key id falls through to the text branch below and
+      // literally types "language" instead of switching script.
+      setLanguage(l => l === 'english' ? 'amharic' : 'english');
+      setShiftActive(false);
+      setSymbolsActive(false);
+      setSelectedConsonant(null);
+    } else if (key === 'voice') {
+      startVoiceRecognition();
     } else {
       let char = key;
       // Auto-capitalization logic
@@ -659,7 +678,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       updateText(newText);
       if (shiftActive) setShiftActive(false);
     }
-  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod]);
+  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod, startVoiceRecognition]);
 
   const handleAmharicPress = useCallback((consonant: string) => {
     const vowels = AMHARIC_VOWELS[consonant];
@@ -2622,7 +2641,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   };
 
   return (
-    <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''}`}
+    <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''} ${t.liveClass || ''}`}
       style={customBgStyle}>
       {/* Custom image/GIF background layer */}
       {customBgFile && (

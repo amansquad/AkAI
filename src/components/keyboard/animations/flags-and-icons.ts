@@ -139,15 +139,62 @@ function drawMaryamIcon(ctx: CanvasRenderingContext2D, w: number, h: number, tim
 }
 
 function drawLalibela(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/lalibela.png', '#422006', 'rgba(245, 158, 11, 1)', 'Lalibela');
+  // Procedural rock-hewn cross church, carved into stone under a starlit sky
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#1c1310'); bg.addColorStop(1, '#4a2f1a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 40; i++) {
+    const sx = (i * 173 + w) % w, sy = (i * 97) % (h * 0.55);
+    ctx.fillStyle = `rgba(255,255,255,${0.25 + 0.35 * Math.abs(Math.sin(time + i))})`;
+    ctx.beginPath(); ctx.arc(sx, sy, 1.2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.save();
+  ctx.translate(w / 2, h * 0.62);
+  const cs = Math.min(w, h) * 0.45;
+  ctx.fillStyle = '#6b4226';
+  ctx.fillRect(-cs * 0.12, -cs * 0.5, cs * 0.24, cs);
+  ctx.fillRect(-cs * 0.5, -cs * 0.12, cs, cs * 0.24);
+  ctx.strokeStyle = `rgba(217,119,6,${0.4 + 0.15 * Math.sin(time * 0.8)})`;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(-cs * 0.12, -cs * 0.5, cs * 0.24, cs);
+  ctx.strokeRect(-cs * 0.5, -cs * 0.12, cs, cs * 0.24);
+  ctx.restore();
 }
 
 function drawNajashi(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/najashi.png', '#064e3b', 'rgba(52, 211, 153, 1)', 'Al-Najashi');
+  // Procedural mosque silhouette — dome, minaret, crescent — at dusk
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#022c22'); bg.addColorStop(1, '#064e3b');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(w / 2, h * 0.68);
+  const r = Math.min(w, h) * 0.22;
+  ctx.fillStyle = '#065f46';
+  ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, 0); ctx.fill();
+  ctx.fillRect(-r, 0, r * 2, r * 0.6);
+  ctx.fillRect(r * 1.3, -r * 0.9, r * 0.22, r * 1.5);
+  ctx.beginPath(); ctx.arc(r * 1.41, -r * 0.95, r * 0.15, Math.PI, 0); ctx.fill();
+  const pulse = 0.5 + 0.5 * Math.sin(time * 0.6);
+  ctx.strokeStyle = `rgba(52, 211, 153, ${0.3 + pulse * 0.3})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(r * 1.41, -r * 1.25, r * 0.1, 0.3, Math.PI * 1.7); ctx.stroke();
+  ctx.restore();
 }
 
 function drawHarar(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/harar.png', '#1e3a8a', 'rgba(251, 191, 36, 1)', 'Harar Jegol');
+  // Procedural Harar Jegol — colorful walled-city houses
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#1e3a8a'); bg.addColorStop(1, '#78350f');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const colors = ['#fbbf24', '#ef4444', '#22c55e', '#3b82f6', '#f97316'];
+  for (let i = 0; i < 10; i++) {
+    const x = (i * (w / 10));
+    const bh = h * (0.25 + 0.1 * Math.sin(i * 1.3));
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fillRect(x, h - bh, w / 10 - 4, bh);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(x + (w / 10) * 0.3, h - bh * 0.6, (w / 10) * 0.2, bh * 0.25);
+  }
 }
 
 function drawLantern(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
@@ -163,15 +210,69 @@ function drawLantern(ctx: CanvasRenderingContext2D, w: number, h: number, time: 
 }
 
 function drawAxumStela(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/axum.png', '#1e293b', 'rgba(148, 163, 184, 1)', 'Axum Stela');
+  // Procedural obelisks silhouetted against a dusk sky
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#1e293b'); bg.addColorStop(1, '#334155');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const glow = 0.5 + 0.5 * Math.sin(time * 0.5);
+  ctx.fillStyle = `rgba(148, 163, 184, ${0.15 + glow * 0.1})`;
+  ctx.beginPath(); ctx.ellipse(w / 2, h * 0.3, w * 0.4, h * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+  [0.3, 0.5, 0.7].forEach((xr, i) => {
+    const sh = h * (0.4 + i * 0.08);
+    const sw = Math.min(w, h) * 0.06;
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(w * xr - sw / 2, h - sh, sw, sh);
+    ctx.fillStyle = '#64748b';
+    ctx.beginPath();
+    ctx.moveTo(w * xr - sw / 2, h - sh);
+    ctx.lineTo(w * xr, h - sh - sw * 0.8);
+    ctx.lineTo(w * xr + sw / 2, h - sh);
+    ctx.fill();
+  });
 }
 
 function drawDebreDamo(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/damo.png', '#451a03', 'rgba(251, 191, 36, 1)', 'Debre Damo');
+  // Procedural clifftop monastery with a hanging rope
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#78350f'); bg.addColorStop(1, '#1c1917');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#44403c';
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(0, h * 0.55);
+  ctx.lineTo(w * 0.55, h * 0.4);
+  ctx.lineTo(w * 0.7, h * 0.55);
+  ctx.lineTo(w, h * 0.5);
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#92400e';
+  ctx.fillRect(w * 0.6, h * 0.3, w * 0.12, h * 0.1);
+  const sway = Math.sin(time * 1.2) * 4;
+  ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.65, h * 0.4);
+  ctx.quadraticCurveTo(w * 0.65 + sway, h * 0.5, w * 0.63, h * 0.62);
+  ctx.stroke();
 }
 
 function drawDireDawa(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/diredawa.png', '#0c4a6e', 'rgba(56, 189, 248, 1)', 'Dire Dawa');
+  // Procedural desert city — camel caravan crossing dunes at sunset
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#9a3412'); bg.addColorStop(1, '#431407');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = 'rgba(234, 88, 12, 0.6)';
+  ctx.beginPath(); ctx.arc(w * 0.75, h * 0.28, w * 0.1, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#292524';
+  for (let i = 0; i < 4; i++) {
+    const x = ((i * 120 + time * 25) % (w + 160)) - 80;
+    const y = h * 0.72;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 18, 10, 0, 0, Math.PI * 2);
+    ctx.moveTo(x - 6, y - 6); ctx.arc(x - 6, y - 14, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawTeff(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
@@ -188,27 +289,134 @@ function drawTeff(ctx: CanvasRenderingContext2D, w: number, h: number, time: num
 }
 
 function drawDanakil(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/danakil.png', '#7c2d12', 'rgba(234, 179, 8, 1)', 'Danakil');
+  // Procedural salt flats cracked by volcanic heat
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#fef3c7'); bg.addColorStop(1, '#78350f');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = 'rgba(120, 53, 15, 0.35)';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 18; i++) {
+    const x = (i * 97) % w, y = (i * 61) % h;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 25 + Math.sin(i) * 10, y + 15);
+    ctx.lineTo(x + 10, y + 30);
+    ctx.stroke();
+  }
+  const glow = 0.5 + 0.5 * Math.sin(time);
+  ctx.fillStyle = `rgba(234, 88, 12, ${0.15 + glow * 0.15})`;
+  ctx.beginPath(); ctx.ellipse(w * 0.3, h * 0.85, w * 0.25, h * 0.08, 0, 0, Math.PI * 2); ctx.fill();
 }
 
 function drawOmo(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/culture/omo.png', '#1e3a8a', 'rgba(147, 197, 253, 1)', 'Omo Valley');
+  // Procedural tribal beadwork pattern beside the river
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#1e3a8a'); bg.addColorStop(1, '#78350f');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const colors = ['#ef4444', '#fbbf24', '#22c55e', '#f8fafc'];
+  const rows = 6, cols = 10;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = (c / cols) * w + (r % 2 === 0 ? 0 : (w / cols) * 0.5);
+      const y = h * 0.15 + r * (h * 0.1);
+      const pulse = Math.sin(time + r + c) * 2;
+      ctx.fillStyle = colors[(r + c) % colors.length];
+      ctx.beginPath(); ctx.arc(x, y + pulse, 5, 0, Math.PI * 2); ctx.fill();
+    }
+  }
 }
 
 function drawEthCross(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/cross.png', '#431407', 'rgba(251, 191, 36, 1)', 'Holy Cross');
+  // Procedural ornate Ethiopian cross, gold on deep brown
+  const bg = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w);
+  bg.addColorStop(0, '#431407'); bg.addColorStop(1, '#1c0a01');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(w / 2, h / 2);
+  ctx.rotate(Math.sin(time * 0.2) * 0.03);
+  const r = Math.min(w, h) * 0.3;
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = r * 0.12;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(0, r); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-r * 0.7, -r * 0.35); ctx.lineTo(r * 0.7, -r * 0.35); ctx.stroke();
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    ctx.beginPath();
+    ctx.arc(Math.cos(angle) * r * 0.75, Math.sin(angle) * r * 0.75, r * 0.1, 0, Math.PI * 2);
+    ctx.fillStyle = '#fbbf24'; ctx.fill();
+  }
+  ctx.restore();
 }
 
 function drawTimkat(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/timkat.png', '#1e3a8a', 'rgba(253, 224, 71, 1)', 'Timkat');
+  // Procedural Timkat — water ripples under colorful ceremonial umbrellas
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#0c4a6e'); bg.addColorStop(1, '#082f49');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 3; i++) {
+    const t = (time * 0.4 + i * 0.5) % 1;
+    const r = t * Math.min(w, h) * 0.4;
+    ctx.strokeStyle = `rgba(253, 224, 71, ${(1 - t) * 0.5})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(w / 2, h * 0.65, r, 0, Math.PI * 2); ctx.stroke();
+  }
+  const colors = ['#ef4444', '#fbbf24', '#22c55e'];
+  colors.forEach((c, i) => {
+    const x = w * (0.3 + i * 0.2);
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.arc(x, h * 0.3, 22, Math.PI, 0); ctx.fill();
+    ctx.fillRect(x - 2, h * 0.3, 4, 20);
+  });
 }
 
 function drawGena(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/gena.png', '#064e3b', 'rgba(220, 38, 38, 1)', 'Gena');
+  // Procedural Gena (Ethiopian Christmas) — star and candlelight
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#064e3b'); bg.addColorStop(1, '#021810');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(w / 2, h * 0.3);
+  const pulse = 0.7 + 0.3 * Math.sin(time * 1.5);
+  ctx.fillStyle = `rgba(252, 211, 77, ${pulse})`;
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+    const outer = Math.min(w, h) * 0.12, inner = outer * 0.4;
+    ctx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+    ctx.lineTo(Math.cos(angle + Math.PI / 5) * inner, Math.sin(angle + Math.PI / 5) * inner);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  for (let i = 0; i < 6; i++) {
+    const x = w * (0.1 + i * 0.16);
+    const flicker = 0.6 + 0.4 * Math.sin(time * 3 + i);
+    ctx.fillStyle = `rgba(220, 38, 38, ${flicker})`;
+    ctx.fillRect(x, h * 0.75, 4, 20);
+    ctx.fillStyle = `rgba(251, 191, 36, ${flicker})`;
+    ctx.beginPath(); ctx.arc(x + 2, h * 0.75 - 4, 4, 0, Math.PI * 2); ctx.fill();
+  }
 }
 
 function drawEidCelebration(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  drawCrestTheme(ctx, w, h, time, mx, my, '/teams/faith/eid.png', '#14532d', 'rgba(253, 224, 71, 1)', 'Eid Mubarak');
+  // Procedural Eid — crescent moon and festive lantern lights
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#14532d'); bg.addColorStop(1, '#052e16');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(w * 0.7, h * 0.3);
+  const r = Math.min(w, h) * 0.14;
+  ctx.fillStyle = '#fde68a';
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#14532d';
+  ctx.beginPath(); ctx.arc(r * 0.35, -r * 0.1, r * 0.85, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  for (let i = 0; i < 8; i++) {
+    const tx = (i * 150 + time * 20) % w;
+    const ty = h * 0.75 + Math.sin(time + i) * 10;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 2 + i);
+    ctx.fillStyle = `rgba(253, 224, 71, ${0.4 + pulse * 0.4})`;
+    ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.fill();
+  }
 }
 
 function drawAngelCloud(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
@@ -224,7 +432,86 @@ function drawAngelCloud(ctx: CanvasRenderingContext2D, w: number, h: number, tim
   }
 }
 
+function drawEnkutatash(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Ethiopian New Year — golden Adey Abeba flowers under a bright new sun
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#fef9c3'); bg.addColorStop(1, '#166534');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const pulse = 0.8 + 0.2 * Math.sin(time * 0.8);
+  ctx.fillStyle = `rgba(250, 204, 21, ${pulse})`;
+  ctx.beginPath(); ctx.arc(w * 0.5, h * 0.22, Math.min(w, h) * 0.1, 0, Math.PI * 2); ctx.fill();
+  for (let i = 0; i < 14; i++) {
+    const x = (i * 83 + Math.sin(time + i) * 8) % w;
+    const y = h * (0.55 + (i % 3) * 0.12);
+    ctx.fillStyle = '#facc15';
+    for (let p = 0; p < 6; p++) {
+      const angle = (p / 6) * Math.PI * 2;
+      ctx.beginPath(); ctx.ellipse(x + Math.cos(angle) * 6, y + Math.sin(angle) * 6, 4, 2.5, angle, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+function drawIrreecha(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Oromo thanksgiving festival — green fields by the river, golden grass
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#15803d'); bg.addColorStop(1, '#0c4a6e');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w * 0.5, h);
+  const bg2 = ctx.createLinearGradient(0, 0, 0, h);
+  bg2.addColorStop(0, '#166534'); bg2.addColorStop(1, '#0369a1');
+  ctx.fillStyle = bg2; ctx.fillRect(w * 0.5, 0, w * 0.5, h);
+  for (let i = 0; i < 20; i++) {
+    const x = (i * 53) % w;
+    const sway = Math.sin(time * 1.5 + i) * 6;
+    ctx.strokeStyle = 'rgba(250, 204, 21, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x + sway, h - 35); ctx.stroke();
+  }
+}
+
+function drawFasika(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Fasika (Orthodox Easter) — candles and a glowing dawn
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#fda4af'); bg.addColorStop(1, '#1e1b4b');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const pulse = 0.6 + 0.4 * Math.sin(time);
+  ctx.fillStyle = `rgba(254, 240, 138, ${pulse})`;
+  ctx.beginPath(); ctx.arc(w / 2, h * 0.75, Math.min(w, h) * 0.18, Math.PI, 0); ctx.fill();
+  for (let i = 0; i < 7; i++) {
+    const x = w * (0.08 + i * 0.13);
+    const flicker = 0.5 + 0.5 * Math.sin(time * 3 + i);
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillRect(x, h * 0.78, 3, 18);
+    ctx.fillStyle = `rgba(251, 146, 60, ${flicker})`;
+    ctx.beginPath(); ctx.arc(x + 1.5, h * 0.78 - 4, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawAshenda(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
+  // Ashenda — Tigray girls' festival, colorful woven sistrum patterns
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#be185d'); bg.addColorStop(1, '#581c87');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+  const colors = ['#fbbf24', '#f8fafc', '#22c55e', '#ef4444'];
+  for (let ring = 0; ring < 4; ring++) {
+    const r = (ring + 1) * Math.min(w, h) * 0.08;
+    const rot = time * 0.3 * (ring % 2 === 0 ? 1 : -1);
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(rot);
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      ctx.fillStyle = colors[(ring + i) % colors.length];
+      ctx.beginPath(); ctx.arc(Math.cos(angle) * r, Math.sin(angle) * r, 4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
 export {
+  drawEnkutatash,
+  drawIrreecha,
+  drawFasika,
+  drawAshenda,
   drawEthFlag,
   drawAdey,
   drawCoffee,

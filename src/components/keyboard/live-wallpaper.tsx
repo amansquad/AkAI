@@ -37,6 +37,9 @@ type AnimationGroup = 'scenic' | 'football' | 'flags';
 
 type AnimationModule = Record<string, AnimationFn>;
 
+// (New themes are resolved dynamically by [group, exportName] below — no
+// static import needed here, keeping each group lazily loaded.)
+
 const GROUP_LOADERS: Record<AnimationGroup, () => Promise<AnimationModule>> = {
   scenic: () => import('./animations/scenic') as unknown as Promise<AnimationModule>,
   football: () => import('./animations/football-crests') as unknown as Promise<AnimationModule>,
@@ -44,6 +47,14 @@ const GROUP_LOADERS: Record<AnimationGroup, () => Promise<AnimationModule>> = {
 };
 
 const THEME_ANIMATION_REFS: Record<string, [AnimationGroup, string]> = {
+  rain_live: ['scenic', 'drawRainfall'],
+  desert_mirage_live: ['scenic', 'drawDesertMirage'],
+  confetti_live: ['scenic', 'drawConfettiParty'],
+  city_nights_live: ['scenic', 'drawCityNights'],
+  faith_enkutatash: ['flags', 'drawEnkutatash'],
+  cult_irreecha: ['flags', 'drawIrreecha'],
+  faith_fasika: ['flags', 'drawFasika'],
+  cult_ashenda: ['flags', 'drawAshenda'],
   prism_live: ['scenic', 'drawPrism'],
   aurora_live: ['scenic', 'drawAurora'],
   lava_live: ['scenic', 'drawLava'],

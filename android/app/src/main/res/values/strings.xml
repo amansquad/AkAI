@@ -33,4 +33,11 @@
     <!-- Notification -->
     <string name="keyboard_notification_title">Akai Keyboard Active</string>
     <string name="keyboard_notification_text">Tap to change keyboard settings</string>
+
+    <!-- Emoji Picker accessibility labels -->
+    <string name="emoji_search">Search emojis</string>
+    <string name="smileys_category">Smileys and people</string>
+    <string name="gestures_category">Gestures</string>
+    <string name="objects_category">Objects</string>
+    <string name="close_emoji_picker">Close emoji picker</string>
 </resources>

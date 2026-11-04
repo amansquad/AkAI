@@ -31,7 +31,7 @@ const notoSansEthiopic = Noto_Sans_Ethiopic({
 
 export const metadata: Metadata = {
   title: "AkAI - Amharic Keyboard + AI | English & Amharic Bilingual Keyboard",
-  description: "AkAI: The smartest bilingual keyboard for English and Amharic. AI translation, stickers, GIFs, handwriting, 160+ themes, Ethiopian numbers, word suggestions.",
+  description: "AkAI: The smartest bilingual keyboard for English and Amharic. AI translation, stickers, GIFs, handwriting, 170+ themes, Ethiopian numbers, word suggestions.",
   keywords: ["AkAI", "keyboard", "Amharic", "English", "bilingual", "AI translation", "Ge'ez", "stickers", "GIFs", "handwriting", "themes", "Ethiopian"],
   authors: [{ name: "AkAI Team" }],
   icons: {

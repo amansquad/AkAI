@@ -3801,7 +3801,144 @@ function drawSabbath(ctx: CanvasRenderingContext2D, w: number, h: number, time: 
   drawStardust(ctx, w, h, time, mx, my, {});
 }
 
+// ─── New scenic themes 2026 ────────────────────────────────────────────────
+
+function drawRainfall(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.drops = Array.from({ length: 150 }, () =>
+      makeParticle({ x: rand(0, w), y: rand(0, h), vy: rand(6, 14), size: rand(1, 2.5) })
+    );
+  }
+  const drops = state.drops as Particle[];
+
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#0f172a'); bg.addColorStop(1, '#1e293b');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  const flash = Math.sin(time * 0.3) > 0.985 ? 0.25 : 0;
+  if (flash > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${flash})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  ctx.strokeStyle = 'rgba(186, 230, 253, 0.4)';
+  ctx.lineWidth = 1.5;
+  for (const d of drops) {
+    d.y += d.vy;
+    d.x -= 1.5;
+    if (d.y > h) { d.y = -10; d.x = rand(0, w); }
+    ctx.beginPath();
+    ctx.moveTo(d.x, d.y);
+    ctx.lineTo(d.x - 3, d.y + d.size * 8);
+    ctx.stroke();
+  }
+
+  for (let i = 0; i < 6; i++) {
+    const rippleX = (i * 97 + mx * 0.1) % w;
+    const t = (time * 0.6 + i * 0.4) % 1;
+    ctx.strokeStyle = `rgba(186, 230, 253, ${(1 - t) * 0.2})`;
+    ctx.beginPath(); ctx.ellipse(rippleX, h - 10, t * 20, t * 6, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+}
+
+function drawDesertMirage(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#fbbf24'); bg.addColorStop(0.5, '#f97316'); bg.addColorStop(1, '#78350f');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.9)';
+  ctx.beginPath(); ctx.arc(w * 0.5, h * 0.35, Math.min(w, h) * 0.12, 0, Math.PI * 2); ctx.fill();
+
+  ctx.fillStyle = '#92400e';
+  for (let i = 0; i < 3; i++) {
+    const baseY = h * (0.7 + i * 0.1);
+    ctx.beginPath();
+    ctx.moveTo(0, baseY);
+    for (let x = 0; x <= w; x += 20) {
+      ctx.lineTo(x, baseY - Math.sin(x * 0.01 + i) * 25);
+    }
+    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+    ctx.fill();
+  }
+
+  // Heat shimmer bands
+  for (let i = 0; i < 8; i++) {
+    const y = h * 0.55 + i * 6;
+    const wobble = Math.sin(time * 3 + i) * 4;
+    ctx.fillStyle = `rgba(255,255,255,${0.02 + 0.01 * Math.sin(time * 2 + i)})`;
+    ctx.fillRect(wobble, y, w, 3);
+  }
+}
+
+function drawConfettiParty(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  if (!state.init) {
+    state.init = true;
+    state.pieces = Array.from({ length: 80 }, () =>
+      makeParticle({
+        x: rand(0, w), y: rand(-h, h), vy: rand(1.5, 4), vx: rand(-0.5, 0.5),
+        size: rand(4, 8), hue: rand(0, 360),
+      })
+    );
+  }
+  const pieces = state.pieces as Particle[];
+
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#1e1b4b'); bg.addColorStop(1, '#312e81');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  for (const p of pieces) {
+    p.y += p.vy;
+    p.x += p.vx + Math.sin(time + p.hue) * 0.5;
+    if (p.y > h) { p.y = -10; p.x = rand(0, w); }
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(time * 2 + p.hue);
+    ctx.fillStyle = hsl(p.hue, 85, 60);
+    ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+    ctx.restore();
+  }
+}
+
+function drawCityNights(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#0f172a'); bg.addColorStop(1, '#1e1b4b');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+  for (let i = 0; i < 40; i++) {
+    const sx = (i * 173) % w, sy = (i * 61) % (h * 0.4);
+    ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.4 * Math.abs(Math.sin(time * 0.5 + i))})`;
+    ctx.beginPath(); ctx.arc(sx, sy, 1, 0, Math.PI * 2); ctx.fill();
+  }
+
+  ctx.fillStyle = '#020617';
+  let x = 0;
+  let seed = 0;
+  while (x < w) {
+    seed++;
+    const bw = 30 + (seed * 37) % 40;
+    const bh = h * (0.3 + ((seed * 53) % 50) / 100);
+    ctx.fillRect(x, h - bh, bw, bh);
+    for (let wy = h - bh + 8; wy < h - 6; wy += 12) {
+      for (let wx = x + 4; wx < x + bw - 4; wx += 10) {
+        const lit = Math.sin(wx * 0.5 + wy * 0.3 + seed) > 0.3;
+        if (lit) {
+          const flicker = 0.6 + 0.4 * Math.sin(time * 2 + wx + wy);
+          ctx.fillStyle = `rgba(253, 224, 71, ${flicker})`;
+          ctx.fillRect(wx, wy, 4, 5);
+          ctx.fillStyle = '#020617';
+        }
+      }
+    }
+    x += bw + 4;
+  }
+}
+
 export {
+  drawRainfall,
+  drawDesertMirage,
+  drawConfettiParty,
+  drawCityNights,
   drawAurora,
   drawLava,
   drawOcean,

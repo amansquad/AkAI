@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { THEMES, type ThemeDef } from '@/components/keyboard-data';
+import { loadLiveThemeCSS } from '@/lib/css-loader';
 import { SamsungKeyboardLayout } from './samsung-keyboard-layout';
 import { ThemeSelector } from './theme-selector';
 import { StickerPanel } from './sticker-panel';
@@ -38,6 +39,15 @@ export default function MobileKeyboardApp() {
 
   // Get current theme
   const currentTheme = THEMES[theme] || THEMES.default;
+
+  // Some live themes (the CSS-gradient ones, liveClass) have no canvas
+  // animation — load their keyframe CSS on demand instead of bundling it
+  // with every theme.
+  useEffect(() => {
+    if (currentTheme.isLive && currentTheme.liveClass) {
+      loadLiveThemeCSS();
+    }
+  }, [currentTheme.isLive, currentTheme.liveClass]);
 
   // Load settings
   useEffect(() => {
@@ -218,7 +228,7 @@ export default function MobileKeyboardApp() {
 
       {/* Keyboard Area */}
       <div
-        className={`relative ${currentTheme.bg} border-t border-border/30`}
+        className={`relative ${currentTheme.bg} ${currentTheme.liveClass || ''} border-t border-border/30`}
         style={{
           height: mode === 'keyboard' ? 'auto' : '60vh',
           maxHeight: '70vh'

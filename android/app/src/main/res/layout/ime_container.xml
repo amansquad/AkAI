@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Height is deliberately wrap_content: InputMethodService.setInputView()
+  replaces this view's LayoutParams with its own MATCH_PARENT x WRAP_CONTENT,
+  so any height set here is discarded. The keyboard's real height is set on
+  the WebView child in AkaiKeyboardService.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ime_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#000000" />
