@@ -11,7 +11,8 @@ declare global {
       deleteSurroundingText: (count: number) => void;
       performEnter: () => void;
       performSpace: () => void;
-      playHaptic: () => void;
+      /** Strength 1–5; omitted means medium. */
+      playHaptic: (level?: number) => void;
       // Added in 0.6.0; may be absent on an older host app.
       setHeight?: (cssPx: number) => void;
     };

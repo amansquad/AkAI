@@ -6,6 +6,7 @@ import { LiveWallpaper, hasLiveAnimation } from '@/components/keyboard/live-wall
 import { getApiBaseUrl } from '@/lib/api-base-url';
 import { loadLiveThemeCSS } from '@/lib/css-loader';
 import { useInView } from '@/hooks/use-in-view';
+import { DEFAULT_PREFS, LONG_PRESS_MS, HAPTIC_MS, KEY_TEXT_CLASS, KEY_GAP_CLASS, ROW_GAP_CLASS, type KeyboardPrefs } from '@/components/keyboard/prefs';
 import { pressKey as translitPress, pressBackspace as translitBackspace, EMPTY_TRANSLIT, type TranslitState } from '@/lib/amharic-translit';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
@@ -281,14 +282,25 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   // New state for Change 6: Settings
   const [keyPressFeedback, setKeyPressFeedback] = useState(true);
   const [keyboardHeight, setKeyboardHeight] = useState<'compact' | 'normal' | 'tall'>('normal');
-  const [showNumberRow, setShowNumberRow] = useState(true);
+  const [showNumberRow, setShowNumberRow] = useState(DEFAULT_PREFS.showNumberRow);
   const [autoSpaceAfterPunctuation, setAutoSpaceAfterPunctuation] = useState(true);
   const [keyPopupOnLongPress, setKeyPopupOnLongPress] = useState(true);
   const [vibrateOnKeyPress, setVibrateOnKeyPress] = useState(true);
   const [soundOnKeyPress, setSoundOnKeyPress] = useState(false);
   const [autoCapitalization, setAutoCapitalization] = useState(true);
   const [recentStickers, setRecentStickers] = useState<string[]>([]);
-  const [hapticStrength, setHapticStrength] = useState<'light' | 'medium' | 'strong'>('medium');
+  // Key-press vibration strength, 1 (barely there) to 5 (strongest). Replaces
+  // the old light/medium/strong setting, which is migrated on load.
+  const [hapticLevel, setHapticLevel] = useState(DEFAULT_PREFS.hapticLevel);
+  // Key-click volume, 0–100.
+  const [soundVolume, setSoundVolume] = useState(DEFAULT_PREFS.soundVolume);
+  const [showWordOfTheDay, setShowWordOfTheDay] = useState(DEFAULT_PREFS.showWordOfTheDay);
+  const [showSuggestionBar, setShowSuggestionBar] = useState(DEFAULT_PREFS.showSuggestionBar);
+  const [showKeyHints, setShowKeyHints] = useState(DEFAULT_PREFS.showKeyHints);
+  const [showMicKey, setShowMicKey] = useState(DEFAULT_PREFS.showMicKey);
+  const [keyTextSize, setKeyTextSize] = useState<KeyboardPrefs['keyTextSize']>(DEFAULT_PREFS.keyTextSize);
+  const [longPressDelay, setLongPressDelay] = useState<KeyboardPrefs['longPressDelay']>(DEFAULT_PREFS.longPressDelay);
+  const [keyAnimations, setKeyAnimations] = useState(DEFAULT_PREFS.keyAnimations);
   const [doubleSpacePeriod, setDoubleSpacePeriod] = useState(true);
   const [oneHandedMode, setOneHandedMode] = useState<'off' | 'left' | 'right'>('off');
   const lastSpaceTapRef = useRef<number>(0);
@@ -310,39 +322,14 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   
-  const [visibleButtons, setVisibleButtons] = useState<Record<string, boolean>>({
-    stickers: true,
-    gifs: true,
-    clipboard: true,
-    translate: true,
-    handwriting: true,
-  });
-  const [toolbarStyle, setToolbarStyle] = useState<'active' | 'all' | 'icons'>('active');
-  const [keyboardSpacing, setKeyboardSpacing] = useState<'compact' | 'normal' | 'spacious'>('normal');
+  const [visibleButtons, setVisibleButtons] = useState<Record<string, boolean>>(DEFAULT_PREFS.visibleButtons);
+  const [toolbarStyle, setToolbarStyle] = useState<KeyboardPrefs['toolbarStyle']>(DEFAULT_PREFS.toolbarStyle);
+  const [keyboardSpacing, setKeyboardSpacing] = useState<KeyboardPrefs['keyboardSpacing']>(DEFAULT_PREFS.keyboardSpacing);
 
-  // Persist custom settings
-  useEffect(() => {
-    const savedButtons = localStorage.getItem('akai_dynamic_buttons');
-    if (savedButtons) try { setVisibleButtons(JSON.parse(savedButtons)); } catch(e) {}
-    
-    const savedToolbar = localStorage.getItem('akai_toolbar_style');
-    if (savedToolbar) setToolbarStyle(savedToolbar as any);
-    
-    const savedSpacing = localStorage.getItem('akai_keyboard_spacing');
-    if (savedSpacing) setKeyboardSpacing(savedSpacing as any);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('akai_dynamic_buttons', JSON.stringify(visibleButtons));
-  }, [visibleButtons]);
-
-  useEffect(() => {
-    localStorage.setItem('akai_toolbar_style', toolbarStyle);
-  }, [toolbarStyle]);
-
-  useEffect(() => {
-    localStorage.setItem('akai_keyboard_spacing', keyboardSpacing);
-  }, [keyboardSpacing]);
+  // visibleButtons, toolbarStyle and keyboardSpacing used to be saved under
+  // keys of their own, by effects that ran before the saved values had been
+  // restored. They now live in the one settings blob below; the old keys are
+  // still read once, so nobody loses what they had set.
 
   useEffect(() => {
     localStorage.setItem('akai_dynamic_buttons', JSON.stringify(visibleButtons));
@@ -618,7 +605,21 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         if (parsed.sound !== undefined) setSoundOnKeyPress(parsed.sound);
         if (parsed.autoCap !== undefined) setAutoCapitalization(parsed.autoCap);
         if (parsed.kbHeight !== undefined) setKeyboardHeight(parsed.kbHeight);
-        if (parsed.hapticStrength !== undefined) setHapticStrength(parsed.hapticStrength);
+        if (parsed.hapticLevel !== undefined) setHapticLevel(parsed.hapticLevel);
+        else if (parsed.hapticStrength !== undefined) setHapticLevel({ light: 2, medium: 3, strong: 5 }[parsed.hapticStrength as 'light' | 'medium' | 'strong'] ?? DEFAULT_PREFS.hapticLevel);
+        if (parsed.soundVolume !== undefined) setSoundVolume(parsed.soundVolume);
+        if (parsed.showWordOfTheDay !== undefined) setShowWordOfTheDay(parsed.showWordOfTheDay);
+        if (parsed.showSuggestionBar !== undefined) setShowSuggestionBar(parsed.showSuggestionBar);
+        if (parsed.showKeyHints !== undefined) setShowKeyHints(parsed.showKeyHints);
+        if (parsed.showMicKey !== undefined) setShowMicKey(parsed.showMicKey);
+        if (parsed.keyTextSize !== undefined) setKeyTextSize(parsed.keyTextSize);
+        if (parsed.longPressDelay !== undefined) setLongPressDelay(parsed.longPressDelay);
+        if (parsed.keyAnimations !== undefined) setKeyAnimations(parsed.keyAnimations);
+        if (parsed.showNumberRow !== undefined) setShowNumberRow(parsed.showNumberRow);
+        if (parsed.toolbarStyle !== undefined) setToolbarStyle(parsed.toolbarStyle);
+        if (parsed.keyboardSpacing !== undefined) setKeyboardSpacing(parsed.keyboardSpacing);
+        // Merged over the defaults so a button added later starts visible.
+        if (parsed.visibleButtons !== undefined) setVisibleButtons({ ...DEFAULT_PREFS.visibleButtons, ...parsed.visibleButtons });
         if (parsed.doubleSpacePeriod !== undefined) setDoubleSpacePeriod(parsed.doubleSpacePeriod);
         if (parsed.oneHandedMode !== undefined) setOneHandedMode(parsed.oneHandedMode);
         if (parsed.autoSpace !== undefined) setAutoSpaceAfterPunctuation(parsed.autoSpace);
@@ -630,6 +631,22 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         if (parsed.language !== undefined) setLanguage(parsed.language);
         if (parsed.phonetic !== undefined) setPhonetic(parsed.phonetic);
       } catch (e) { console.error('Failed to load settings', e); }
+    }
+    // One-off migration from the keys these three used to have to themselves.
+    {
+      const parsed = (() => { try { return JSON.parse(savedSettings || '{}'); } catch { return {}; } })();
+      if (parsed.visibleButtons === undefined) {
+        const legacy = localStorage.getItem('akai_dynamic_buttons');
+        if (legacy) try { setVisibleButtons({ ...DEFAULT_PREFS.visibleButtons, ...JSON.parse(legacy) }); } catch { /* ignore */ }
+      }
+      if (parsed.toolbarStyle === undefined) {
+        const legacy = localStorage.getItem('akai_toolbar_style');
+        if (legacy === 'active' || legacy === 'all' || legacy === 'icons') setToolbarStyle(legacy);
+      }
+      if (parsed.keyboardSpacing === undefined) {
+        const legacy = localStorage.getItem('akai_keyboard_spacing');
+        if (legacy === 'compact' || legacy === 'normal' || legacy === 'spacious') setKeyboardSpacing(legacy);
+      }
     }
     const savedRecents = localStorage.getItem('akai-kb-recents');
     if (savedRecents) {
@@ -652,7 +669,19 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       sound: soundOnKeyPress,
       autoCap: autoCapitalization,
       kbHeight: keyboardHeight,
-      hapticStrength,
+      hapticLevel,
+      soundVolume,
+      showWordOfTheDay,
+      showSuggestionBar,
+      showKeyHints,
+      showMicKey,
+      keyTextSize,
+      longPressDelay,
+      keyAnimations,
+      showNumberRow,
+      toolbarStyle,
+      keyboardSpacing,
+      visibleButtons,
       doubleSpacePeriod,
       oneHandedMode,
       autoSpace: autoSpaceAfterPunctuation,
@@ -661,7 +690,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       theme,
       language,
     }));
-  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticStrength, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language, phonetic]);
+  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticLevel, soundVolume, showWordOfTheDay, showSuggestionBar, showKeyHints, showMicKey, keyTextSize, longPressDelay, keyAnimations, showNumberRow, toolbarStyle, keyboardSpacing, visibleButtons, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language, phonetic]);
 
   // Custom themes are stored separately: a saved theme of "custom_<id>"
   // resolves to THEMES.default unless the matching definition is restored
@@ -675,28 +704,60 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     localStorage.setItem('akai-kb-recents', JSON.stringify(recentEmojis));
   }, [recentEmojis]);
 
-  const playClickSound = useCallback(() => {
-    if (!soundOnKeyPress) return;
+  // One AudioContext for the life of the keyboard. This used to create a new
+  // one for every key press, and browsers only allow a handful to exist at
+  // once, so the click went silent a few keys in.
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const playClick = useCallback((volume: number) => {
+    if (volume <= 0) return;
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.1);
-    } catch (e) { /* Audio context might be blocked */ }
-  }, [soundOnKeyPress]);
+      let ctx = audioCtxRef.current;
+      if (!ctx) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const Ctor = window.AudioContext || (window as any).webkitAudioContext;
+        if (!Ctor) return;
+        ctx = new Ctor() as AudioContext;
+        audioCtxRef.current = ctx;
+      }
+      if (ctx.state === 'suspended') void ctx.resume();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      // A short, high, quickly-decaying tick rather than a 100ms beep.
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(1800, now);
+      gain.gain.setValueAtTime(0.35 * (volume / 100), now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } catch { /* audio blocked or unavailable */ }
+  }, []);
 
-  const doVibrate = useCallback((strength?: number) => {
-    if (!vibrateOnKeyPress || !window.navigator.vibrate) return;
-    const strengthMap = { light: 5, medium: 12, strong: 25 };
-    window.navigator.vibrate(strength ?? strengthMap[hapticStrength]);
-  }, [vibrateOnKeyPress, hapticStrength]);
+  const playClickSound = useCallback(() => {
+    if (soundOnKeyPress) playClick(soundVolume);
+  }, [soundOnKeyPress, soundVolume, playClick]);
+
+  useEffect(() => () => { void audioCtxRef.current?.close(); }, []);
+
+  // Inside the Android keyboard this has to go through the keyboard service:
+  // navigator.vibrate needs a permission the WebView does not have, so it
+  // used to fail silently and vibration did nothing at all. The browser
+  // fallback is only for the web build.
+  const vibrateAt = useCallback((level: number) => {
+    const clamped = Math.max(1, Math.min(5, Math.round(level)));
+    const bridge = window.AkaiKeyboard;
+    if (bridge?.playHaptic) {
+      bridge.playHaptic(clamped);
+      return;
+    }
+    window.navigator.vibrate?.(HAPTIC_MS[clamped]);
+  }, []);
+
+  const doVibrate = useCallback(() => {
+    if (vibrateOnKeyPress) vibrateAt(hapticLevel);
+  }, [vibrateOnKeyPress, hapticLevel, vibrateAt]);
 
   // Cleanup long press timer on unmount
   useEffect(() => {
@@ -829,8 +890,10 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     playClickSound();
 
     // Ripple effect
-    setRippleKey(key);
-    setTimeout(() => setRippleKey(null), 400);
+    if (keyAnimations) {
+      setRippleKey(key);
+      setTimeout(() => setRippleKey(null), 400);
+    }
 
     if (key === 'backspace') {
       updateText(text.slice(0, -1));
@@ -888,7 +951,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       updateText(newText);
       if (shiftActive) setShiftActive(false);
     }
-  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod, startVoiceRecognition, language, phonetic, handlePhoneticKey]);
+  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod, startVoiceRecognition, language, phonetic, handlePhoneticKey, keyAnimations]);
 
   const handleAmharicPress = useCallback((consonant: string) => {
     const vowels = AMHARIC_VOWELS[consonant];
@@ -897,9 +960,12 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       updateText(text + vowels[0]);
     }
     doVibrate();
-    setRippleKey(consonant);
-    setTimeout(() => setRippleKey(null), 400);
-  }, [text, updateText]);
+    playClickSound();
+    if (keyAnimations) {
+      setRippleKey(consonant);
+      setTimeout(() => setRippleKey(null), 400);
+    }
+  }, [text, updateText, doVibrate, playClickSound, keyAnimations]);
 
   const handleVowelSelect = useCallback((vowel: string) => {
     const lastChar = text.slice(-1);
@@ -935,8 +1001,8 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     if (!alternatesFor(key)) return;
     longPressTimerRef.current = setTimeout(() => {
       setLongPressKey(key);
-    }, 300);
-  }, [keyPopupOnLongPress, alternatesFor]);
+    }, LONG_PRESS_MS[longPressDelay]);
+  }, [keyPopupOnLongPress, alternatesFor, longPressDelay]);
 
   const handlePointerUp = useCallback(() => {
     if (longPressTimerRef.current) {
@@ -1280,7 +1346,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           <motion.span
             animate={isRippled ? { scale: [1, 1.22, 1] } : { scale: 1 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
-            className={isWide ? 'text-xs' : 'text-sm'}
+            className={isWide ? 'text-xs' : KEY_TEXT_CLASS[keyTextSize]}
           >
             {displayKey}
           </motion.span>
@@ -1290,7 +1356,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           <span className="absolute right-2 text-red-400 animate-pulse"><Mic className="w-3 h-3" /></span>
         )}
         {/* Symbol hint for long press */}
-        {language === 'english' && !isSpecial && LONG_PRESS_ALTERNATES[key] && (
+        {showKeyHints && language === 'english' && !isSpecial && LONG_PRESS_ALTERNATES[key] && (
           <span className="absolute top-0.5 right-1 text-[7px] opacity-40 font-bold pointer-events-none">
             {LONG_PRESS_ALTERNATES[key][0]}
           </span>
@@ -1325,7 +1391,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
   // ─── Render Panels ─────────────────────────────────────────────────
   const renderSuggestions = () => {
-    const showWotd = suggestions.length === 0 && nextWordSuggestions.length === 0 && text === '';
+    const showWotd = showWordOfTheDay && suggestions.length === 0 && nextWordSuggestions.length === 0 && text === '';
     const dayIndex = new Date().getDate() % 5;
     const wotd = language === 'english' ? WORD_OF_THE_DAY_EN[dayIndex] : WORD_OF_THE_DAY_AM[dayIndex];
 
@@ -1609,39 +1675,50 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   );
 
   // Change 6: Settings panel (NO theme picker - themes are in themes button)
+  // Every preference the settings panel can change, with its setter. Keeping
+  // them in one table is what lets the panel take a single object and lets
+  // "Reset to defaults" reach all of them.
+  const prefs: KeyboardPrefs = {
+    keyboardHeight, keyboardSpacing, keyTextSize, oneHandedMode, desktopView,
+    showSuggestionBar, showWordOfTheDay, showNumberRow, showKeyHints, showMicKey,
+    toolbarStyle, visibleButtons,
+    autoCapitalization, doubleSpacePeriod, autoSpaceAfterPunctuation, keyPopupOnLongPress, longPressDelay,
+    vibrateOnKeyPress, hapticLevel, soundOnKeyPress, soundVolume, keyAnimations,
+  };
+  const prefSetters: { [K in keyof KeyboardPrefs]: (v: KeyboardPrefs[K]) => void } = {
+    keyboardHeight: setKeyboardHeight, keyboardSpacing: setKeyboardSpacing, keyTextSize: setKeyTextSize,
+    oneHandedMode: setOneHandedMode, desktopView: setDesktopView,
+    showSuggestionBar: setShowSuggestionBar, showWordOfTheDay: setShowWordOfTheDay, showNumberRow: setShowNumberRow,
+    showKeyHints: setShowKeyHints, showMicKey: setShowMicKey,
+    toolbarStyle: setToolbarStyle, visibleButtons: setVisibleButtons,
+    autoCapitalization: setAutoCapitalization, doubleSpacePeriod: setDoubleSpacePeriod,
+    autoSpaceAfterPunctuation: setAutoSpaceAfterPunctuation, keyPopupOnLongPress: setKeyPopupOnLongPress,
+    longPressDelay: setLongPressDelay,
+    vibrateOnKeyPress: setVibrateOnKeyPress, hapticLevel: setHapticLevel, soundOnKeyPress: setSoundOnKeyPress,
+    soundVolume: setSoundVolume, keyAnimations: setKeyAnimations,
+  };
+  const setPref = <K extends keyof KeyboardPrefs>(key: K, value: KeyboardPrefs[K]) => {
+    prefSetters[key](value);
+  };
+  const resetPrefs = () => {
+    (Object.keys(DEFAULT_PREFS) as (keyof KeyboardPrefs)[]).forEach(key => {
+      // Each key is paired with its own setter, which TypeScript cannot see
+      // through a loop over the union of keys.
+      (prefSetters[key] as (v: unknown) => void)(DEFAULT_PREFS[key]);
+    });
+  };
+
   const renderSettings = () => (
     <Suspense fallback={null}>
       <KeyboardSettingsPanel
         t={t}
-        desktopView={desktopView}
-        setDesktopView={setDesktopView}
-        keyboardHeight={keyboardHeight}
-        setKeyboardHeight={setKeyboardHeight}
-        keyboardSpacing={keyboardSpacing}
-        setKeyboardSpacing={setKeyboardSpacing}
-        toolbarStyle={toolbarStyle}
-        setToolbarStyle={setToolbarStyle}
-        showNumberRow={showNumberRow}
-        setShowNumberRow={setShowNumberRow}
-        visibleButtons={visibleButtons}
-        setVisibleButtons={setVisibleButtons}
-        autoCapitalization={autoCapitalization}
-        setAutoCapitalization={setAutoCapitalization}
-        vibrateOnKeyPress={vibrateOnKeyPress}
-        setVibrateOnKeyPress={setVibrateOnKeyPress}
-        hapticStrength={hapticStrength}
-        setHapticStrength={setHapticStrength}
-        doVibrate={doVibrate}
-        soundOnKeyPress={soundOnKeyPress}
-        setSoundOnKeyPress={setSoundOnKeyPress}
-        doubleSpacePeriod={doubleSpacePeriod}
-        setDoubleSpacePeriod={setDoubleSpacePeriod}
-        autoSpaceAfterPunctuation={autoSpaceAfterPunctuation}
-        setAutoSpaceAfterPunctuation={setAutoSpaceAfterPunctuation}
-        keyPopupOnLongPress={keyPopupOnLongPress}
-        setKeyPopupOnLongPress={setKeyPopupOnLongPress}
-        oneHandedMode={oneHandedMode}
-        setOneHandedMode={setOneHandedMode}
+        prefs={prefs}
+        setPref={setPref}
+        isIme={isIme}
+        previewHaptic={vibrateAt}
+        previewSound={playClick}
+        onOpenThemes={() => handleModeChange('themes')}
+        onReset={resetPrefs}
       />
     </Suspense>
   );
@@ -2399,9 +2476,11 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         )}
 
         {/* Suggestions bar */}
-        <div className={`mt-1 ${t.tabBar} rounded-lg`}>
-          {renderSuggestions()}
-        </div>
+        {showSuggestionBar && (
+          <div className={`mt-1 ${t.tabBar} rounded-lg`}>
+            {renderSuggestions()}
+          </div>
+        )}
 
         {/* AkAI branding - improved */}
         <span className="desktop-branding desktop-branding-enhanced">
@@ -2560,15 +2639,15 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
                 <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Haptic Strength</p>
                 <div className="flex gap-2">
-                  {(['light', 'medium', 'strong'] as const).map(s => (
-                    <motion.button key={s}
+                  {([['light', 2], ['medium', 3], ['strong', 5]] as const).map(([label, level]) => (
+                    <motion.button key={label}
                       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                      onClick={() => { setHapticStrength(s); doVibrate({ light: 5, medium: 12, strong: 25 }[s]); }}
+                      onClick={() => { setHapticLevel(level); vibrateAt(level); }}
                       className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
-                        hapticStrength === s ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
+                        hapticLevel === level ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
                       }`}
-                      style={hapticStrength === s && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
-                      {s}
+                      style={hapticLevel === level && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
+                      {label}
                     </motion.button>
                   ))}
                 </div>
@@ -2946,7 +3025,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           )}
 
           {/* Suggestions Bar */}
-          {mode === 'keyboard' && (
+          {mode === 'keyboard' && showSuggestionBar && (
             <div className={`${t.isLive ? '' : t.tabBar} border-t border-b ${t.isLive ? 'border-white/10' : t.border} relative z-10`}
               style={t.isLive ? { backgroundColor: 'rgba(0,0,0,0.52)' } : {}}>
               {renderSuggestions()}
@@ -2994,7 +3073,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
               </motion.button>
             ))}
             {/* Theme Toggle */}
-            <motion.button
+            {visibleButtons.themes !== false && <motion.button
               whileTap={{ scale: 0.9 }}
               whileHover={{ scale: 1.08 }}
               onClick={() => handleModeChange('themes')}
@@ -3003,7 +3082,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
               title="Change theme"
             >
               <Palette className="w-3.5 h-3.5" />
-            </motion.button>
+            </motion.button>}
             {/* Dark Mode Toggle */}
             {!isIme && (
               <motion.button
@@ -3052,10 +3131,10 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12, width: { type: 'spring', stiffness: 300, damping: 30 }, marginLeft: { type: 'spring', stiffness: 300, damping: 30 }, marginRight: { type: 'spring', stiffness: 300, damping: 30 } }}
             >
-              <div className="flex flex-col gap-1 p-1.5">
+              <div className={`flex flex-col ${ROW_GAP_CLASS[keyboardSpacing]} p-1.5`}>
                 {/* ─── Number Row (conditionally visible based on settings) ─── */}
                 {!symbolsActive && showNumberRow && (
-                  <div className="flex gap-0.5 justify-center">
+                  <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                     {(language === 'english' || phonetic
                       ? ['1','2','3','4','5','6','7','8','9','0']
                       : ETHIOPIAN_NUM_ROW_1
@@ -3083,8 +3162,8 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 {(language === 'english' || (language === 'amharic' && phonetic && !symbolsActive))
                   && currentRows
                   && (language === 'amharic' && phonetic ? currentRows.slice(0, -1) : currentRows).map((row, ri) => (
-                  <div key={ri} className="flex gap-0.5 justify-center">
-                    {row.map(key => renderEnglishKey(key))}
+                  <div key={ri} className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                    {row.filter(key => showMicKey || key !== 'voice').map(key => renderEnglishKey(key))}
                   </div>
                 ))}
 
@@ -3092,7 +3171,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 {language === 'amharic' && !symbolsActive && (
                   <>
                     {!phonetic && AMHARIC_ROWS.map((row, ri) => (
-                      <div key={ri} className="flex gap-0.5 justify-center">
+                      <div key={ri} className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                         {row.map((consonant, ci) => {
                           const isHovered = hoveredKey === consonant;
                           const isSelected = selectedConsonant === consonant;
@@ -3111,7 +3190,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                               onPointerLeave={handlePointerUp}
                               className={`
                                 relative flex items-center justify-center flex-1 ${kbKeyHeight} rounded-lg font-medium
-                                transition-all duration-150 select-none text-sm overflow-visible
+                                transition-all duration-150 select-none ${KEY_TEXT_CLASS[keyTextSize]} overflow-visible
                                 ${isSelected ? `ring-2 ring-yellow-500/60` : ''}
                                 ${isHovered ? `${t.keyHover} shadow-md` : ''}
                                 ${t.key} ${t.keyText} ${t.border} border shadow-sm
@@ -3171,7 +3250,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                       </div>
                     ))}
                     {/* Amharic special keys bottom row mapping FIXED */}
-                    <div className="flex gap-0.5 justify-center">
+                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => { setSymbolsActive(true); setSelectedConsonant(null); }}
                         className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-xs font-medium`}>
                         ፩፪
@@ -3219,7 +3298,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 {/* ─── Amharic Symbols Mode (Ethiopian numbers + symbols) ─── */}
                 {language === 'amharic' && symbolsActive && (
                   <>
-                    <div className="flex gap-0.5 justify-center">
+                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                       {ETHIOPIAN_NUM_ROW_1.map((num, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + num)}
@@ -3228,7 +3307,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                         </motion.button>
                       ))}
                     </div>
-                    <div className="flex gap-0.5 justify-center">
+                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                       {ETHIOPIAN_NUM_ROW_2.map((num, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + num)}
@@ -3237,7 +3316,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                         </motion.button>
                       ))}
                     </div>
-                    <div className="flex gap-0.5 justify-center">
+                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                       {ETHIOPIAN_SYM_ROW.map((sym, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + sym)}
@@ -3248,7 +3327,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                       ))}
                     </div>
                     {/* More Ethiopian punctuation & common symbols */}
-                    <div className="flex gap-0.5 justify-center">
+                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                       {['′','″','«','»','—','…','·','⟐'].map((sym, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + sym)}
@@ -3258,7 +3337,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                       ))}
                     </div>
                     {/* Amharic symbols bottom row mapping FIXED */}
-                    <div className="flex gap-0.5 justify-center">
+                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => setSymbolsActive(false)}
                         className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-xs font-bold`}>
                         አማ

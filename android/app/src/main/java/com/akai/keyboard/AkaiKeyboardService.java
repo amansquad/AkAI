@@ -1,6 +1,11 @@
 package com.akai.keyboard;
 
+import android.content.Context;
 import android.inputmethodservice.InputMethodService;
+import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -128,6 +133,43 @@ public class AkaiKeyboardService extends InputMethodService {
         }
     }
 
+    /** Vibration length and amplitude per strength level. Index 0 is unused. */
+    private static final long[] HAPTIC_MS = {0, 8, 12, 18, 26, 36};
+    private static final int[] HAPTIC_AMPLITUDE = {0, 40, 80, 130, 190, 255};
+
+    private Vibrator vibrator;
+
+    private Vibrator vibrator() {
+        if (vibrator == null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                VibratorManager manager = (VibratorManager) getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+                if (manager != null) vibrator = manager.getDefaultVibrator();
+            } else {
+                vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            }
+        }
+        return vibrator;
+    }
+
+    private void vibrate(int level) {
+        int l = Math.max(1, Math.min(5, level));
+        Vibrator v = vibrator();
+        if (v == null || !v.hasVibrator()) {
+            // No motor: fall back to the system's own key-tap feedback.
+            if (webView != null) webView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Strength comes from amplitude where the motor supports it, and
+            // from length everywhere, so the levels still differ on phones
+            // that can only switch the motor on and off.
+            int amplitude = v.hasAmplitudeControl() ? HAPTIC_AMPLITUDE[l] : VibrationEffect.DEFAULT_AMPLITUDE;
+            v.vibrate(VibrationEffect.createOneShot(HAPTIC_MS[l], amplitude));
+        } else {
+            v.vibrate(HAPTIC_MS[l]);
+        }
+    }
+
     /**
      * Exposed to the WebView as `window.AkaiKeyboard`. Methods arrive on a
      * background (Binder) thread, so hop back to the main thread before
@@ -204,13 +246,21 @@ public class AkaiKeyboardService extends InputMethodService {
             });
         }
 
+        /** Kept for pages that call it without a strength. */
         @JavascriptInterface
         public void playHaptic() {
-            mainHandler.post(() -> {
-                if (webView != null) {
-                    webView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                }
-            });
+            playHaptic(3);
+        }
+
+        /**
+         * One key-press vibration at a strength from 1 (barely there) to 5.
+         * The page's own navigator.vibrate cannot do this: the WebView has no
+         * vibrate permission of its own, so before this existed key-press
+         * vibration silently did nothing.
+         */
+        @JavascriptInterface
+        public void playHaptic(final int level) {
+            mainHandler.post(() -> vibrate(level));
         }
     }
 }
