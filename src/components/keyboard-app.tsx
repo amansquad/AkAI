@@ -53,6 +53,76 @@ interface KeyboardAppProps {
 // are all imported from @/components/keyboard-data
 
 
+// ─── Theme picker card ────────────────────────────────────────────────────
+//
+// Defined at module scope, not inside the picker's render function. A
+// component declared during render is a new type on every render, so React
+// cannot reconcile it — it unmounts and remounts the whole grid. With every
+// theme on screen at once that meant tearing down and rebuilding ~170 cards
+// on each keystroke. Memoised so only the cards that actually change re-render,
+// and hover/press use CSS transforms rather than per-card animation state.
+
+interface ThemeCardProps {
+  tKey: string;
+  tData: ThemeDef;
+  t: ThemeDef;
+  isSelected: boolean;
+  customBgColor?: string;
+  onSelect: (key: string) => void;
+  onDelete: (key: string) => void;
+}
+
+const ThemeCard = React.memo(function ThemeCard({
+  tKey, tData, t, isSelected, customBgColor, onSelect, onDelete,
+}: ThemeCardProps) {
+  const isCustom = tKey.startsWith('custom_');
+  return (
+    <button
+      onClick={() => onSelect(tKey)}
+      className={`relative flex flex-col items-center gap-1 p-2 rounded-xl border overflow-hidden transition-transform duration-150 hover:scale-[1.06] hover:-translate-y-0.5 active:scale-[0.94] ${
+        isSelected ? `${t.accent} ${t.accentText} border-transparent shadow-md ring-2 ring-white/20` : `${t.card} ${t.border} border`
+      }`}
+    >
+      {tData.isLive && (
+        <>
+          <div className={`absolute inset-0 pointer-events-none ${tData.bg}`} />
+          <div className="absolute inset-0 pointer-events-none" style={{
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%)',
+            borderRadius: 'inherit',
+          }} />
+        </>
+      )}
+      {isCustom && customBgColor && (
+        <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: customBgColor, opacity: 0.3 }} />
+      )}
+      <span className="text-lg relative z-10">{tData.flag}</span>
+      <span className="text-[8px] font-semibold leading-tight relative z-10 text-center max-w-full truncate px-1">{tData.name}</span>
+      <div className="flex gap-0.5 mt-0.5 relative z-10">
+        <span className={`w-2 h-2 rounded-full ${tData.key.replace('hover:', '').split(' ')[0]}`} />
+        <span className={`w-2 h-2 rounded-full ${tData.accent.replace('hover:', '').split(' ')[0]}`} />
+        <span className={`w-2 h-2 rounded-full hidden sm:block ${tData.bg.replace('hover:', '').split(' ')[0]}`} />
+      </div>
+      {tData.isLive && (
+        <span className="absolute top-1 right-1 text-[7px] font-bold bg-white/20 text-white rounded px-0.5 z-10 pointer-events-none shadow-sm backdrop-blur-sm border border-white/20">LIVE</span>
+      )}
+      {isSelected && (
+        <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center z-20 pointer-events-none shadow-md">
+          <SquareCheck className="w-2.5 h-2.5" />
+        </div>
+      )}
+      {isCustom && (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={e => { e.stopPropagation(); onDelete(tKey); }}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onDelete(tKey); } }}
+          className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center bg-red-500/70 text-white rounded-full text-[8px] z-20 hover:bg-red-500 cursor-pointer"
+        >×</div>
+      )}
+    </button>
+  );
+});
+
 // ─── Main Component ───────────────────────────────────────────────────────
 export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardAppProps) {
   const [text, setText] = useState('');
@@ -1435,6 +1505,17 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   );
 
   // ─── Full-Screen Theme Picker ────────────────────────────────────────
+  // Stable identities so the memoised ThemeCard actually skips re-rendering.
+  const handleSelectTheme = useCallback((key: string) => {
+    setTheme(key);
+    setMode('keyboard');
+  }, []);
+
+  const handleDeleteCustomTheme = useCallback((key: string) => {
+    setCustomThemes(prev => prev.filter(ct => `custom_${ct.id}` !== key));
+    setTheme(prev => (prev === key ? 'default' : prev));
+  }, []);
+
   const renderThemePickerPanel = () => {
     const filteredThemes = Object.entries(allThemes).filter(([key, tData]) => {
       if (themeCategory === 'all') return true;
@@ -1447,60 +1528,6 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       return true;
     });
 
-    const ThemeCard = ({ tKey, tData }: { tKey: string; tData: typeof allThemes[string] }) => (
-      <motion.button
-        key={tKey}
-        whileHover={{ scale: 1.06, y: -2 }}
-        whileTap={{ scale: 0.94 }}
-        onClick={() => { setTheme(tKey); setMode('keyboard'); }}
-        className={`relative flex flex-col items-center gap-1 p-2 rounded-xl border transition-all overflow-hidden ${
-          theme === tKey ? `${t.accent} ${t.accentText} border-transparent shadow-md ring-2 ring-white/20` : `${t.card} ${t.border} border`
-        }`}
-      >
-        {/* Live theme canvas preview (optimized: replaced with static background gradient for performance) */}
-        {tData.isLive && (
-          <>
-            <div className={`absolute inset-0 pointer-events-none ${tData.bg}`} />
-            <div className="absolute inset-0 pointer-events-none" style={{
-              background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.45) 100%)',
-              borderRadius: 'inherit'
-            }} />
-          </>
-        )}
-        {/* Custom theme bg preview */}
-        {tKey.startsWith('custom_') && (() => {
-          const ct = customThemes.find(c => `custom_${c.id}` === tKey);
-          return ct ? (
-            <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: ct.bgColor, opacity: 0.3 }} />
-          ) : null;
-        })()}
-        <span className="text-lg relative z-10">{tData.flag}</span>
-        <span className="text-[8px] font-semibold leading-tight relative z-10 text-center max-w-full truncate px-1">{tData.name}</span>
-        <div className="flex gap-0.5 mt-0.5 relative z-10">
-          <span className={`w-2 h-2 rounded-full ${tData.key.replace('hover:', '').split(' ')[0]}`} />
-          <span className={`w-2 h-2 rounded-full ${tData.accent.replace('hover:', '').split(' ')[0]}`} />
-          <span className={`w-2 h-2 rounded-full hidden sm:block ${tData.bg.replace('hover:', '').split(' ')[0]}`} />
-        </div>
-        {tData.isLive && (
-          <span className="absolute top-1 right-1 text-[7px] font-bold bg-white/20 text-white rounded px-0.5 z-10 pointer-events-none shadow-sm backdrop-blur-sm border border-white/20">LIVE</span>
-        )}
-        {theme === tKey && (
-          <motion.div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center z-20 pointer-events-none shadow-md" initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }}>
-            <SquareCheck className="w-2.5 h-2.5" />
-          </motion.div>
-        )}
-        {/* Delete button for custom themes */}
-        {tKey.startsWith('custom_') && (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={e => { e.stopPropagation(); setCustomThemes(prev => prev.filter(ct => `custom_${ct.id}` !== tKey)); if (theme === tKey) setTheme('default'); }}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); setCustomThemes(prev => prev.filter(ct => `custom_${ct.id}` !== tKey)); if (theme === tKey) setTheme('default'); } }}
-            className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center bg-red-500/70 text-white rounded-full text-[8px] z-20 hover:bg-red-500 cursor-pointer"
-          >×</div>
-        )}
-      </motion.button>
-    );
 
     // Grouped sections for 'All' view
     const SECTION_ORDER = [
@@ -1639,7 +1666,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                     </div>
                     <div className="grid grid-cols-4 gap-2">
                       {sectionThemes.map(([key, tData]) => (
-                        <ThemeCard key={key} tKey={key} tData={tData} />
+                        <ThemeCard key={key} tKey={key} tData={tData} t={t} isSelected={theme === key} onSelect={handleSelectTheme} onDelete={handleDeleteCustomTheme} />
                       ))}
                     </div>
                   </div>
@@ -1656,7 +1683,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                   <div className="grid grid-cols-4 gap-2">
                     {customThemes.map(ct => {
                       const key = `custom_${ct.id}`;
-                      return <ThemeCard key={key} tKey={key} tData={allThemes[key]} />;
+                      return <ThemeCard key={key} tKey={key} tData={allThemes[key]} t={t} isSelected={theme === key} customBgColor={ct.bgColor} onSelect={handleSelectTheme} onDelete={handleDeleteCustomTheme} />;
                     })}
                   </div>
                 </div>
@@ -1665,7 +1692,16 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           ) : (
             <div className="grid grid-cols-4 gap-2">
               {filteredThemes.map(([key, tData]) => (
-                <ThemeCard key={key} tKey={key} tData={tData} />
+                <ThemeCard
+                  key={key}
+                  tKey={key}
+                  tData={tData}
+                  t={t}
+                  isSelected={theme === key}
+                  customBgColor={key.startsWith('custom_') ? customThemes.find(c => `custom_${c.id}` === key)?.bgColor : undefined}
+                  onSelect={handleSelectTheme}
+                  onDelete={handleDeleteCustomTheme}
+                />
               ))}
             </div>
           )}
