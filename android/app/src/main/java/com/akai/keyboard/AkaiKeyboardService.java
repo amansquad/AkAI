@@ -95,6 +95,30 @@ public class AkaiKeyboardService extends InputMethodService {
         return Math.max(px, (int) (24 * density));
     }
 
+    /**
+     * The WebView is created once and kept alive across IME sessions, so
+     * between sessions it is a live page that nothing is showing. Chromium
+     * stops delivering animation frames to a page it is not drawing, and a
+     * paused WebView that is never resumed leaves the live-theme wallpaper
+     * frozen on its last frame. Pausing and resuming it explicitly keeps the
+     * page's idea of whether it is visible in step with reality.
+     */
+    @Override
+    public void onWindowShown() {
+        super.onWindowShown();
+        if (webView != null) {
+            webView.onResume();
+        }
+    }
+
+    @Override
+    public void onWindowHidden() {
+        super.onWindowHidden();
+        if (webView != null) {
+            webView.onPause();
+        }
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();

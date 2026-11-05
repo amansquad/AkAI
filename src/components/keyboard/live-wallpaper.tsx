@@ -259,67 +259,128 @@ export default function LiveWallpaper({ theme, className = '', static: staticFra
 
     let running = true;
     let resizeObserver: ResizeObserver | null = null;
+    let frame = 0;
+    let watchdog: ReturnType<typeof setInterval> | null = null;
+    let lastFrameAt = performance.now();
+    let animFn: AnimationFn | null = null;
+    let startTime = performance.now();
+    // Last size we actually sized the canvas to, in CSS pixels. Assigning
+    // canvas.width clears the canvas and resets the context, so doing it for
+    // a resize notification that did not change the size would blank the
+    // frame and throw the animation back to its first moment — which is
+    // exactly what a keyboard that resizes itself as rows come and go would
+    // otherwise trigger over and over.
+    let sizedW = -1;
+    let sizedH = -1;
 
     const resizeCanvas = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const rect = parent.getBoundingClientRect();
+      // A hidden or not-yet-laid-out keyboard measures zero. Sizing to that
+      // would throw away the canvas and the animation state for nothing.
+      if (rect.width < 1 || rect.height < 1) return;
+      if (Math.abs(rect.width - sizedW) < 1 && Math.abs(rect.height - sizedH) < 1) return;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      sizedW = rect.width;
+      sizedH = rect.height;
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
-      // Reset state on resize
+      // A real size change invalidates anything the animation cached about
+      // the old one, such as particle positions.
       stateRef.current = {};
     };
 
-    resolveAnimationFn(theme).then((animFn) => {
-      if (!running || !animFn) return;
+    const drawFrame = (now: number) => {
+      // Record delivery, not drawing: the watchdog below is watching for
+      // frames to stop arriving, which is a different thing from a frame
+      // arriving with nothing to draw on.
+      lastFrameAt = now;
+      if (!animFn) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      if (w < 1 || h < 1) return;
+
+      const time = (now - startTime) / 1000;
+      ctx.save();
+      try {
+        animFn(ctx, w, h, time, mouseRef.current.x / dpr, mouseRef.current.y / dpr, stateRef.current);
+      } catch {
+        // One bad frame must not end the animation. Thrown out of a rAF
+        // callback the exception would skip the call that schedules the next
+        // frame, and the wallpaper would sit on its last painted frame for
+        // good. Drop whatever the animation cached and let it rebuild.
+        stateRef.current = {};
+      } finally {
+        ctx.restore();
+      }
+    };
+
+    const animate = (now: number) => {
+      if (!running) return;
+      frame = requestAnimationFrame(animate);
+      drawFrame(now);
+    };
+
+    const startLoop = () => {
+      if (!running || staticFrame || !animFn) return;
+      cancelAnimationFrame(frame);
+      lastFrameAt = performance.now();
+      frame = requestAnimationFrame(animate);
+      animFrameRef.current = frame;
+    };
+
+    resolveAnimationFn(theme).then((fn) => {
+      if (!running || !fn) return;
+      animFn = fn;
 
       resizeCanvas();
-      resizeObserver = new ResizeObserver(() => {
-        resizeCanvas();
-      });
+      resizeObserver = new ResizeObserver(resizeCanvas);
       if (canvas.parentElement) {
         resizeObserver.observe(canvas.parentElement);
       }
 
       if (staticFrame) {
         // One representative mid-animation frame, no rAF loop.
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const w = canvas.width / dpr;
-        const h = canvas.height / dpr;
-        ctx.save();
-        animFn(ctx, w, h, 3.5, -1000, -1000, stateRef.current);
-        ctx.restore();
+        startTime = performance.now() - 3500;
+        drawFrame(performance.now());
         return;
       }
 
-      const startTime = performance.now();
+      startTime = performance.now();
+      startLoop();
 
-      const animate = (now: number) => {
-        if (!running) return;
-
-        const time = (now - startTime) / 1000;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const w = canvas.width / dpr;
-        const h = canvas.height / dpr;
-
-        ctx.save();
-        animFn(ctx, w, h, time, mouseRef.current.x / dpr, mouseRef.current.y / dpr, stateRef.current);
-        ctx.restore();
-
-        animFrameRef.current = requestAnimationFrame(animate);
-      };
-
-      animFrameRef.current = requestAnimationFrame(animate);
+      // The browser stops delivering animation frames while the page is
+      // hidden, and this keyboard's WebView is kept alive and merely detached
+      // between sessions rather than torn down, so the loop can be left
+      // suspended with nothing to wake it. Restart it when the page comes
+      // back, and keep a watchdog for the cases where it simply stops.
+      watchdog = setInterval(() => {
+        if (!running || document.hidden) return;
+        if (performance.now() - lastFrameAt > 1000) startLoop();
+      }, 1000);
     });
+
+    const handleVisibility = () => {
+      if (!document.hidden) startLoop();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pageshow', handleVisibility);
 
     return () => {
       running = false;
+      cancelAnimationFrame(frame);
       cancelAnimationFrame(animFrameRef.current);
+      if (watchdog) clearInterval(watchdog);
       resizeObserver?.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handleVisibility);
     };
   }, [theme, staticFrame]);
 
