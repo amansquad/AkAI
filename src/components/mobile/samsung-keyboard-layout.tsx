@@ -4,6 +4,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Delete, CornerDownLeft, ArrowUp, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AMHARIC_ROWS, AMHARIC_VOWELS } from '@/components/keyboard-data';
 import type { ThemeDef } from '@/components/keyboard-data';
 import type { Language } from './mobile-keyboard-app';
 
@@ -25,12 +26,6 @@ const NUMBER_ROW = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 const SYMBOL_ROW_1 = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'];
 const SYMBOL_ROW_2 = ['-', '_', '+', '=', '/', '\\', '[', ']', '{', '}'];
 const SYMBOL_ROW_3 = [':', ';', '"', "'", '<', '>', ',', '.', '?'];
-
-const AMHARIC_ROWS = [
-  ['ሀ', 'ለ', 'ሐ', 'መ', 'ሠ', 'ረ', 'ሰ', 'ሸ', 'ቀ', 'በ'],
-  ['ተ', 'ቸ', 'ኀ', 'ነ', 'ኘ', 'አ', 'ከ', 'ኸ', 'ወ'],
-  ['ዐ', 'ዘ', 'ዠ', 'የ', 'ደ', 'ጀ', 'ገ', 'ጠ', 'ጨ']
-];
 
 // Long press alternates (Samsung style)
 const LONG_PRESS_ALTERNATES: Record<string, string[]> = {
@@ -57,6 +52,17 @@ const LONG_PRESS_ALTERNATES: Record<string, string[]> = {
   '=': ['≠', '≈', '∞'],
 };
 
+/**
+ * What a long press reveals. In Amharic that is the key's whole vowel family,
+ * so every order of a consonant is one gesture away — the pattern the
+ * best-reviewed Ge'ez keyboards use to keep all 200-odd fidel reachable
+ * without scrolling or a second board.
+ */
+function alternatesFor(key: string, language: Language): string[] | undefined {
+  if (language === 'amharic') return AMHARIC_VOWELS[key];
+  return LONG_PRESS_ALTERNATES[key];
+}
+
 export function SamsungKeyboardLayout({
   language,
   onKeyPress,
@@ -78,12 +84,12 @@ export function SamsungKeyboardLayout({
     const rect = event.currentTarget.getBoundingClientRect();
     setLongPressPosition({ x: rect.left, y: rect.top });
 
-    if (LONG_PRESS_ALTERNATES[key]) {
+    if (alternatesFor(key, language)) {
       longPressTimerRef.current = setTimeout(() => {
         setLongPressKey(key);
       }, 500);
     }
-  }, []);
+  }, [language]);
 
   const handlePointerUp = useCallback(() => {
     if (longPressTimerRef.current) {
@@ -137,7 +143,7 @@ export function SamsungKeyboardLayout({
 
   const renderKey = (key: string, extraClasses = '') => {
     const isRippling = rippleKey === key;
-    const hasAlternates = LONG_PRESS_ALTERNATES[key];
+    const hasAlternates = alternatesFor(key, language);
 
     return (
       <motion.div
@@ -236,10 +242,10 @@ export function SamsungKeyboardLayout({
         <div
           key={rowIdx}
           className="flex justify-center gap-1"
-          style={{
+          style={language === 'english' ? {
             paddingLeft: rowIdx === 1 ? '5%' : rowIdx === 2 ? '10%' : 0,
             paddingRight: rowIdx === 1 ? '5%' : rowIdx === 2 ? '10%' : 0
-          }}
+          } : undefined}
         >
           {row.map((key) => (
             <div key={key} className="flex-1">
@@ -286,7 +292,7 @@ export function SamsungKeyboardLayout({
 
       {/* Long press popup */}
       <AnimatePresence>
-        {longPressKey && LONG_PRESS_ALTERNATES[longPressKey] && (
+        {longPressKey && alternatesFor(longPressKey, language) && (
           <>
             {/* Backdrop */}
             <motion.div
@@ -314,7 +320,7 @@ export function SamsungKeyboardLayout({
               }}
             >
               <div className="flex gap-2">
-                {LONG_PRESS_ALTERNATES[longPressKey].map((alt) => (
+                {alternatesFor(longPressKey, language)!.map((alt) => (
                   <Button
                     key={alt}
                     onClick={() => handleAlternateSelect(alt)}

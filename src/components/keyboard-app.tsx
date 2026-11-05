@@ -855,15 +855,32 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     }
   }, [text, selectedConsonant, updateText]);
 
+  // The alternates a long press reveals. In Amharic that is the key's whole
+  // vowel family, so a consonant can be typed in any order with one gesture
+  // instead of committing the base form first and then correcting it from the
+  // vowel row — the gesture the best-reviewed Ge'ez keyboards are praised for.
+  const alternatesFor = useCallback((key: string): string[] | undefined => {
+    if (language === 'amharic') return AMHARIC_VOWELS[key];
+    return LONG_PRESS_ALTERNATES[key];
+  }, [language]);
+
+  // A vowel family is eight keys wide — almost the width of the board — so a
+  // popup centred on a key near either edge would hang off screen. Anchor it
+  // to whichever edge it is closest to instead.
+  const popupAnchor = (index: number, rowLength: number) => {
+    if (index <= 1) return 'left-0';
+    if (index >= rowLength - 2) return 'right-0';
+    return 'left-1/2 -translate-x-1/2';
+  };
+
   // Change 1: Long press handlers
   const handlePointerDown = useCallback((key: string) => {
-    if (language !== 'english') return;
     if (!keyPopupOnLongPress) return;
-    if (!LONG_PRESS_ALTERNATES[key]) return;
+    if (!alternatesFor(key)) return;
     longPressTimerRef.current = setTimeout(() => {
       setLongPressKey(key);
     }, 300);
-  }, [language, keyPopupOnLongPress]);
+  }, [keyPopupOnLongPress, alternatesFor]);
 
   const handlePointerUp = useCallback(() => {
     if (longPressTimerRef.current) {
@@ -874,12 +891,18 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
   const handleAlternateSelect = useCallback((alt: string) => {
     updateText(text + alt);
+    // In Amharic the popup is a vowel family, so remember which consonant it
+    // came from: the vowel row below then stays in sync with what was typed.
+    if (language === 'amharic') {
+      const base = Object.keys(AMHARIC_VOWELS).find(c => AMHARIC_VOWELS[c].includes(alt));
+      if (base) setSelectedConsonant(base);
+    }
     setLongPressKey(null);
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
-  }, [text, updateText]);
+  }, [text, updateText, language]);
 
   // ─── Handwriting Canvas ─────────────────────────────────────────────
   const redrawCanvas = useCallback((paths: { x: number; y: number }[][]) => {
@@ -1209,14 +1232,14 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           </span>
         )}
         {/* Change 1: Long press popup */}
-        {isLongPressed && LONG_PRESS_ALTERNATES[key] && (
+        {isLongPressed && alternatesFor(key) && (
           <motion.div
             initial={{ opacity: 0, y: 5, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.9 }}
             className={`absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 ${t.card} ${t.border} border rounded-lg shadow-2xl p-1 z-50 flex gap-0.5 min-w-max`}
           >
-            {LONG_PRESS_ALTERNATES[key].map((alt, i) => (
+            {alternatesFor(key)!.map((alt, i) => (
               <motion.div
                 key={i}
                 role="button"
@@ -2148,13 +2171,13 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           <span className={isWide ? 'text-xs' : 'text-sm'}>{displayKey}</span>
         )}
         {/* Long press popup */}
-        {isLongPressed && LONG_PRESS_ALTERNATES[key] && (
+        {isLongPressed && alternatesFor(key) && (
           <motion.div
             initial={{ opacity: 0, y: 5, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5, scale: 0.9 }}
             className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 ${t.card} ${t.border} border rounded-xl shadow-2xl p-1.5 z-50 flex gap-1 min-w-max`}>
-            {LONG_PRESS_ALTERNATES[key].map((alt, i) => (
+            {alternatesFor(key)!.map((alt, i) => (
               <motion.div
                 key={i}
                 role="button"
@@ -2248,18 +2271,41 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
             {/* Amharic keyboard rows */}
             {AMHARIC_ROWS.map((row, rowIdx) => (
               <div key={rowIdx} className="desktop-key-row desktop-letter-row">
-                {row.map(consonant => {
+                {row.map((consonant, ci) => {
                   return (
                     <motion.button
                       key={consonant}
                       whileTap={{ translateY: 1, boxShadow: '0 1px 0 0 rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1)' }}
-                      onClick={() => handleAmharicPress(consonant)}
+                      onClick={() => { if (longPressKey === consonant) return; handleAmharicPress(consonant); }}
+                      onPointerDown={() => handlePointerDown(consonant)}
+                      onPointerUp={handlePointerUp}
+                      onPointerLeave={handlePointerUp}
                       className={`desktop-key-3d flex-1 flex items-center justify-center text-sm font-medium select-none overflow-visible
                         ${selectedConsonant === consonant ? `${t.accent} ${t.accentText}` : `${t.key} ${t.keyText} ${t.border} border`}
                       `}
                       style={customThemeData && selectedConsonant !== consonant ? { backgroundColor: customThemeData.keyColor, color: customThemeData.keyTextColor } : customThemeData && selectedConsonant === consonant ? { backgroundColor: customThemeData.accentColor } : {}}
                     >
                       {consonant}
+                      {longPressKey === consonant && alternatesFor(consonant) && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 5, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          className={`absolute bottom-full mb-2 ${popupAnchor(ci, row.length)} ${t.card} ${t.border} border rounded-xl shadow-2xl p-1.5 z-50 flex gap-1 min-w-max`}>
+                          {alternatesFor(consonant)!.map((alt, ai) => (
+                            <motion.div
+                              key={ai}
+                              role="button"
+                              tabIndex={0}
+                              whileHover={{ scale: 1.15, y: -2 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={(e) => { e.stopPropagation(); handleAlternateSelect(alt); }}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleAlternateSelect(alt); } }}
+                              className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm cursor-pointer`}>
+                              {alt}
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                      )}
                     </motion.button>
                   );
                 })}
@@ -2966,7 +3012,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                   <>
                     {AMHARIC_ROWS.map((row, ri) => (
                       <div key={ri} className="flex gap-0.5 justify-center">
-                        {row.map(consonant => {
+                        {row.map((consonant, ci) => {
                           const isHovered = hoveredKey === consonant;
                           const isSelected = selectedConsonant === consonant;
                           const isRippled = rippleKey === consonant;
@@ -2978,7 +3024,10 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                               transition={{ type: 'spring', stiffness: 500, damping: 22, mass: 0.5 }}
                               onMouseEnter={() => setHoveredKey(consonant)}
                               onMouseLeave={() => setHoveredKey(null)}
-                              onClick={() => handleAmharicPress(consonant)}
+                              onClick={() => { if (longPressKey === consonant) return; handleAmharicPress(consonant); }}
+                              onPointerDown={() => handlePointerDown(consonant)}
+                              onPointerUp={handlePointerUp}
+                              onPointerLeave={handlePointerUp}
                               className={`
                                 relative flex items-center justify-center flex-1 ${kbKeyHeight} rounded-lg font-medium
                                 transition-all duration-150 select-none text-sm overflow-visible
@@ -3012,6 +3061,29 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                               >
                                 {consonant}
                               </motion.span>
+                              {/* Long press reveals the consonant's whole vowel
+                                  family, so any order can be typed in one
+                                  gesture without committing the base form. */}
+                              {longPressKey === consonant && alternatesFor(consonant) && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 5, scale: 0.9 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  className={`absolute bottom-full mb-2 ${popupAnchor(ci, row.length)} ${t.card} ${t.border} border rounded-xl shadow-2xl p-1.5 z-50 flex gap-1 min-w-max`}>
+                                  {alternatesFor(consonant)!.map((alt, ai) => (
+                                    <motion.div
+                                      key={ai}
+                                      role="button"
+                                      tabIndex={0}
+                                      whileHover={{ scale: 1.15, y: -2 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      onClick={(e) => { e.stopPropagation(); handleAlternateSelect(alt); }}
+                                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleAlternateSelect(alt); } }}
+                                      className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm cursor-pointer`}>
+                                      {alt}
+                                    </motion.div>
+                                  ))}
+                                </motion.div>
+                              )}
                             </motion.button>
                           );
                         })}

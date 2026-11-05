@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Globe, Sparkles, Delete, CornerDownLeft, Mic, Smile, Languages, ArrowLeftRight } from 'lucide-react';
+import { AMHARIC_ROWS as SHARED_AMHARIC_ROWS, AMHARIC_VOWELS } from '@/components/keyboard-data';
 
 /*
   DEMO KEYBOARD — Premium interactive showcase
@@ -21,13 +22,13 @@ const ENGLISH_ROWS = [
   ['shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace']
 ];
 
+// The same fidel the real keyboard ships, so the demo shows the whole
+// alphabet rather than a truncated sample of it. The last row keeps the
+// shift and backspace keys the demo's layout expects.
 const AMHARIC_ROWS = [
-  ['ሀ', 'ለ', 'ሐ', 'መ', 'ሠ', 'ረ', 'ሰ', 'ሸ', 'ቀ', 'በ'],
-  ['ተ', 'ቸ', 'ኀ', 'ነ', 'ኘ', 'አ', 'ከ', 'ኸ', 'ወ'],
-  ['shift', 'ዐ', 'ዘ', 'ዠ', 'የ', 'ደ', 'ጀ', 'ገ', 'backspace']
+  ...SHARED_AMHARIC_ROWS.slice(0, -1),
+  ['shift', ...SHARED_AMHARIC_ROWS[SHARED_AMHARIC_ROWS.length - 1], 'backspace'],
 ];
-
-const AMHARIC_VOWELS = ['ኡ', 'ኢ', 'ኣ', 'ኤ', 'እ', 'ኦ', 'ኧ'];
 
 const SUGGESTIONS_EN = ['the', 'and', 'for', 'you', 'are', 'not'];
 const SUGGESTIONS_AM = ['እንዴት', 'እንደምን', 'አመሰግናለሁ', 'እባክዎ', 'ሰላም', 'እሺ'];
@@ -78,6 +79,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
     setText(prev => prev + vowel);
     setSelectedConsonant(null);
   };
+
 
   const handleTranslate = async () => {
     setIsTranslating(true);
@@ -252,7 +254,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
           >
             <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 backdrop-blur-xl rounded-xl border border-emerald-500/30 p-3 shadow-2xl">
               <div className="flex gap-2 overflow-x-auto">
-                {AMHARIC_VOWELS.map((vowel, i) => (
+                {(AMHARIC_VOWELS[selectedConsonant] ?? []).map((vowel, i) => (
                   <motion.button
                     key={i}
                     whileHover={{ scale: 1.1, y: -2 }}

@@ -12,6 +12,8 @@ declare global {
       performEnter: () => void;
       performSpace: () => void;
       playHaptic: () => void;
+      // Added in 0.6.0; may be absent on an older host app.
+      setHeight?: (cssPx: number) => void;
     };
   }
 }
@@ -22,6 +24,82 @@ function isAndroidIme(): boolean {
 
 export default function KeyboardImeShell() {
   const [, forceUpdate] = useState(0);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+
+  // Tell the host how tall the keyboard actually is, and keep telling it as
+  // rows come and go (the Amharic vowel family row, the symbol board). The
+  // input view used to be a fixed height picked for the tallest layout, which
+  // left dead space below the keys for every layout shorter than that one.
+  //
+  // Resizing the input view resizes this page's viewport, so a naive observer
+  // can oscillate between two heights and hammer the JS bridge until the
+  // render process is killed. Three things prevent that: reports are
+  // coalesced to one per frame, small changes are ignored, and a burst of
+  // reports backs the observer off entirely rather than spinning.
+  useEffect(() => {
+    const el = rootRef.current;
+    // Keep the bridge object: an injected method pulled off it and called on
+    // its own throws "Java bridge method can't be invoked on a non-injected
+    // object", because the WebView requires the receiver to be the object it
+    // injected.
+    const bridge = window.AkaiKeyboard;
+    if (!el || !bridge?.setHeight) return;
+
+    // No scrollbars: one appearing and disappearing as the host resizes the
+    // input view is exactly what would make the measurement oscillate.
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.margin = '0';
+
+    const DEADBAND_PX = 6;
+    const BURST_LIMIT = 8;
+    const BURST_WINDOW_MS = 1000;
+    const BACKOFF_MS = 3000;
+
+    let lastReported = -1;
+    let frame = 0;
+    let recent: number[] = [];
+    let mutedUntil = 0;
+    let disposed = false;
+
+    const report = () => {
+      frame = 0;
+      if (disposed) return;
+
+      const now = Date.now();
+      if (now < mutedUntil) return;
+
+      recent = recent.filter(t => now - t < BURST_WINDOW_MS);
+      if (recent.length >= BURST_LIMIT) {
+        // The page and the host are chasing each other. Stop for a while and
+        // keep whatever height the host already has.
+        mutedUntil = now + BACKOFF_MS;
+        recent = [];
+        return;
+      }
+
+      const height = Math.ceil(el.getBoundingClientRect().height);
+      if (height <= 0 || Math.abs(height - lastReported) < DEADBAND_PX) return;
+
+      lastReported = height;
+      recent.push(now);
+      bridge.setHeight!(height);
+    };
+
+    const schedule = () => {
+      if (frame || disposed) return;
+      frame = requestAnimationFrame(report);
+    };
+
+    schedule();
+    const observer = new ResizeObserver(schedule);
+    observer.observe(el);
+    return () => {
+      disposed = true;
+      if (frame) cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     // Re-render after mount so isAndroidIme() can read window. Can't be a
@@ -37,9 +115,12 @@ export default function KeyboardImeShell() {
 
   return (
     <div
+      ref={rootRef}
       style={{
         width: '100vw',
-        height: '100vh',
+        // Deliberately not 100vh: the element hugs its content so the height
+        // reported above is the keyboard's real height, and the host can size
+        // the input view to it rather than to a fixed guess.
         overflow: 'hidden',
         background: 'transparent',
         // Hide the text preview area — only show the keyboard rows

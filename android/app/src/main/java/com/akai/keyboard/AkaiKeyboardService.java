@@ -24,6 +24,11 @@ public class AkaiKeyboardService extends InputMethodService {
 
     private static final String TAG = "AkaiKeyboardService";
 
+    /** Starting height, in dp, until the page reports its own. */
+    private static final int DEFAULT_HEIGHT_DP = 350;
+    private static final int MIN_HEIGHT_DP = 180;
+    private static final int MAX_HEIGHT_DP = 560;
+
     private FrameLayout container;
     private WebView webView;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -55,11 +60,11 @@ public class AkaiKeyboardService extends InputMethodService {
         // returns with its own MATCH_PARENT x WRAP_CONTENT LayoutParams,
         // discarding ours. So the container always measures WRAP_CONTENT and
         // the keyboard's real height comes from this fixed child height.
-        // Sized for the tallest layout: the Amharic/Ge'ez keyboard carries the
-        // Ethiopian numeral row plus, once a consonant is tapped, the vowel
-        // family row, which pushes everything below it down. At 350dp that
-        // last row clipped the space/enter row off the bottom.
-        int heightPx = (int) (400 * getResources().getDisplayMetrics().density);
+        // Only the starting height, used until the page measures itself and
+        // calls setHeight() below. From then on the input view tracks the
+        // keyboard's real height, so no layout leaves dead space under the
+        // keys and none has its bottom row clipped.
+        int heightPx = (int) (DEFAULT_HEIGHT_DP * getResources().getDisplayMetrics().density);
 
         WebView wv = AkaiWebAppView.create(this, "/keyboard-ime.html", new AkaiKeyboardBridge(), "AkaiKeyboard");
         wv.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, heightPx));
@@ -142,6 +147,35 @@ public class AkaiKeyboardService extends InputMethodService {
                 InputConnection ic = getCurrentInputConnection();
                 if (ic != null) {
                     ic.commitText(" ", 1);
+                }
+            });
+        }
+
+        /**
+         * Called by the page whenever its measured height changes, in CSS
+         * pixels (which map 1:1 to dp at the WebView's default scale).
+         */
+        @JavascriptInterface
+        public void setHeight(final int cssPx) {
+            mainHandler.post(() -> {
+                if (webView == null) return;
+                float density = getResources().getDisplayMetrics().density;
+                int px = Math.round(cssPx * density);
+                px = Math.max((int) (MIN_HEIGHT_DP * density),
+                        Math.min((int) (MAX_HEIGHT_DP * density), px));
+                ViewGroup.LayoutParams lp = webView.getLayoutParams();
+                // Ignore sub-pixel churn; only a real change is worth a relayout.
+                if (lp != null && Math.abs(lp.height - px) >= 4) {
+                    Log.d(TAG, "setHeight " + cssPx + "css -> " + px + "px (was " + lp.height + ")");
+                    lp.height = px;
+                    webView.setLayoutParams(lp);
+                    webView.requestLayout();
+                    if (container != null) {
+                        container.requestLayout();
+                    }
+                    // The framework sizes the input window from the view
+                    // hierarchy it last measured, so nudge it to measure again.
+                    updateInputViewShown();
                 }
             });
         }
