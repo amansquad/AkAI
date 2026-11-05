@@ -3,12 +3,14 @@ package com.akai.keyboard;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.Log;
+import android.webkit.ConsoleMessage;
 import android.webkit.MimeTypeMap;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebChromeClient;
 import android.webkit.WebViewClient;
 
 import androidx.webkit.WebViewAssetLoader;
@@ -61,6 +63,17 @@ final class AkaiWebAppView {
                     }
                 })
                 .build();
+
+        // Without a WebChromeClient the page's console output goes nowhere,
+        // which makes anything that only misbehaves inside the IME — where
+        // there are no devtools — very hard to see. Forward it to logcat.
+        wv.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage msg) {
+                Log.d(TAG, msg.message() + " (" + msg.sourceId() + ":" + msg.lineNumber() + ")");
+                return true;
+            }
+        });
 
         wv.setWebViewClient(new WebViewClient() {
             @Override

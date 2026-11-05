@@ -343,10 +343,45 @@ function drawOcean(ctx: CanvasRenderingContext2D, w: number, h: number, time: nu
 
 // ─── 4. Neon Pulse (Ultra Enhanced) ────────────────────────────────────────
 
+
+// ─── Cheap glow ─────────────────────────────────────────────────────────────
+//
+// shadowBlur runs a Gaussian blur for every draw call it is set on. In a
+// WebView inside an input method, which may well be software-rendered, a few
+// hundred of those a frame took Neon Pulse down to under one frame a second.
+// A wide, faint pass underneath the sharp one reads almost the same as a glow
+// and costs next to nothing.
+
+/** Halo under a stroked path. Call with the path built and lineWidth set,
+ * then stroke the path as normal. */
+function glowStroke(ctx: CanvasRenderingContext2D, color: string, spread: number) {
+  const width = ctx.lineWidth;
+  const style = ctx.strokeStyle;
+  const alpha = ctx.globalAlpha;
+  ctx.globalAlpha = alpha * 0.35;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width + spread;
+  ctx.stroke();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = style;
+  ctx.lineWidth = width;
+}
+
+/** Halo behind a dot; draw the dot itself afterwards. */
+function glowDot(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, spread: number) {
+  const alpha = ctx.globalAlpha;
+  ctx.globalAlpha = alpha * 0.3;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, Math.max(0, r) + spread * 0.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = alpha;
+}
+
 function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
   if (!state.init) {
     state.init = true;
-    state.sparks = Array.from({ length: 200 }, () =>
+    state.sparks = Array.from({ length: 80 }, () =>
       makeParticle({
         x: rand(0, w), y: rand(0, h),
         vx: rand(-2, 2), vy: rand(-2, 2),
@@ -424,13 +459,11 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
       const d = dist(x, y, mx, my);
       if (d < 150) {
         const a = (1 - d / 150) * 0.6 * pulse;
+        glowDot(ctx, x, y, 2 + a * 3, hsl(290, 100, 70, a), 8);
         ctx.beginPath();
         ctx.arc(x, y, 2 + a * 3, 0, Math.PI * 2);
         ctx.fillStyle = hsl(290, 100, 80, a);
-        ctx.shadowColor = hsl(290, 100, 70, a);
-        ctx.shadowBlur = 8;
         ctx.fill();
-        ctx.shadowBlur = 0;
       }
     }
   }
@@ -472,10 +505,8 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
       ctx.lineTo(w, beamY);
       ctx.strokeStyle = hsl(beam.hue, 100, 95, beamAlpha * 0.8);
       ctx.lineWidth = beam.width * beam.life;
-      ctx.shadowColor = hsl(beam.hue, 100, 80, 1);
-      ctx.shadowBlur = 15;
+      glowStroke(ctx, hsl(beam.hue, 100, 80, 1), 15);
       ctx.stroke();
-      ctx.shadowBlur = 0;
     } else {
       const beamX = beam.x + sweepProgress * w * 0.5 * Math.sin(time + beam.x * 0.01);
       const beamGrad = ctx.createLinearGradient(beamX - 20, 0, beamX + 20, 0);
@@ -491,10 +522,8 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
       ctx.lineTo(beamX, h);
       ctx.strokeStyle = hsl(beam.hue, 100, 95, beamAlpha * 0.8);
       ctx.lineWidth = beam.width * beam.life;
-      ctx.shadowColor = hsl(beam.hue, 100, 80, 1);
-      ctx.shadowBlur = 15;
+      glowStroke(ctx, hsl(beam.hue, 100, 80, 1), 15);
       ctx.stroke();
-      ctx.shadowBlur = 0;
     }
     ctx.restore();
   }
@@ -517,13 +546,11 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     const shapeAlpha = 0.5 + 0.3 * Math.sin(time * 3);
     ctx.strokeStyle = hsl(s.hue, 100, 60, shapeAlpha);
     ctx.lineWidth = 2.5;
-    ctx.shadowColor = hsl(s.hue, 100, 60, 0.9);
-    ctx.shadowBlur = 25;
+    glowStroke(ctx, hsl(s.hue, 100, 60, 0.9), 25);
     ctx.stroke();
     // Inner fill glow
     ctx.fillStyle = hsl(s.hue, 100, 50, 0.03 + 0.02 * Math.sin(time * 4));
     ctx.fill();
-    ctx.shadowBlur = 0;
     ctx.restore();
   }
   // Electric arcs between nearby shapes
@@ -540,10 +567,8 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
         ctx.quadraticCurveTo(midX, midY, shapes[j].x, shapes[j].y);
         ctx.strokeStyle = hsl(300, 100, 75, arcAlpha + 0.05 * Math.sin(time * 8));
         ctx.lineWidth = 1;
-        ctx.shadowColor = hsl(300, 100, 70, 0.5);
-        ctx.shadowBlur = 8;
+        glowStroke(ctx, hsl(300, 100, 70, 0.5), 8);
         ctx.stroke();
-        ctx.shadowBlur = 0;
       }
     }
   }
@@ -595,13 +620,11 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     }
     ctx.strokeStyle = hsl(bolt.hue, 60, 80, bolt.life * 0.3);
     ctx.lineWidth = 10 * bolt.life;
-    ctx.shadowColor = hsl(bolt.hue, 100, 80, 0.9);
-    ctx.shadowBlur = 30;
+    glowStroke(ctx, hsl(bolt.hue, 100, 80, 0.9), 30);
     ctx.stroke();
     ctx.strokeStyle = hsl(bolt.hue, 80, 95, bolt.life * 0.9);
     ctx.lineWidth = 2.5 * bolt.life;
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }
   state.lightningBolts = lightningBolts;
 
@@ -633,10 +656,8 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
     ctx.strokeStyle = hsl(sw.hue, 100, 70, sw.alpha);
     ctx.lineWidth = 2 + (1 - sw.r / sw.maxR) * 4;
-    ctx.shadowColor = hsl(sw.hue, 100, 60, sw.alpha * 0.5);
-    ctx.shadowBlur = 12;
+    glowStroke(ctx, hsl(sw.hue, 100, 60, sw.alpha * 0.5), 12);
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }
   if (shockwaves.length > 20) shockwaves.splice(0, shockwaves.length - 20);
   state.shockwaves = shockwaves;
@@ -659,10 +680,8 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     ctx.arc(nr.x, nr.y, nr.r, 0, Math.PI * 2);
     ctx.strokeStyle = hsl(nr.hue, 100, 80, nr.life * 0.5);
     ctx.lineWidth = 1.5 + nr.life * 2;
-    ctx.shadowColor = hsl(nr.hue, 100, 70, nr.life * 0.4);
-    ctx.shadowBlur = 8;
+    glowStroke(ctx, hsl(nr.hue, 100, 70, nr.life * 0.4), 8);
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }
   if (neonRings.length > 25) neonRings.splice(0, neonRings.length - 25);
   state.neonRings = neonRings;
@@ -690,13 +709,11 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     }
 
     const a = p.life * 0.7;
+    glowDot(ctx, p.x, p.y, p.size, hsl(p.hue, 100, 70, 0.6), 8);
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
     ctx.fillStyle = hsl(p.hue, 100, p.light, a);
-    ctx.shadowColor = hsl(p.hue, 100, 70, 0.6);
-    ctx.shadowBlur = 8;
     ctx.fill();
-    ctx.shadowBlur = 0;
   }
 
   // Connection lines between nearby sparks
@@ -732,13 +749,11 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
       const orbitR = 30 + 10 * Math.sin(time * 3 + i);
       const ox = mx + Math.cos(angle) * orbitR;
       const oy = my + Math.sin(angle) * orbitR;
+      glowDot(ctx, ox, oy, 2, hsl(270 + i * 15, 100, 70, 0.6), 6);
       ctx.beginPath();
       ctx.arc(ox, oy, 2, 0, Math.PI * 2);
       ctx.fillStyle = hsl(270 + i * 15, 100, 80, 0.5);
-      ctx.shadowColor = hsl(270 + i * 15, 100, 70, 0.6);
-      ctx.shadowBlur = 6;
       ctx.fill();
-      ctx.shadowBlur = 0;
     }
   }
 

@@ -196,6 +196,16 @@ const THEME_ANIMATION_REFS: Record<string, [AnimationGroup, string]> = {
 
 const resolvedAnimationCache: Record<string, AnimationFn> = {};
 
+/**
+ * Whether a theme is drawn by a canvas animation. Themes that are not are
+ * CSS-only (an animated gradient on a background layer), and the two should
+ * never be stacked: a CSS layer under a canvas is mostly hidden by it while
+ * still costing a full repaint every frame.
+ */
+export function hasLiveAnimation(theme: string): boolean {
+  return theme in THEME_ANIMATION_REFS;
+}
+
 async function resolveAnimationFn(theme: string): Promise<AnimationFn | undefined> {
   const cached = resolvedAnimationCache[theme];
   if (cached) return cached;

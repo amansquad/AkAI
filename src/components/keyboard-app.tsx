@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useSyncExternalStore, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LiveWallpaper } from '@/components/keyboard/live-wallpaper';
+import { LiveWallpaper, hasLiveAnimation } from '@/components/keyboard/live-wallpaper';
 import { getApiBaseUrl } from '@/lib/api-base-url';
 import { loadLiveThemeCSS } from '@/lib/css-loader';
 import { useInView } from '@/hooks/use-in-view';
@@ -1385,8 +1385,9 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     return (
       <div className={`overflow-x-auto no-scrollbar border-b py-2 px-1 ${t.border}`}
         style={{ 
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(10px)',
+          // No backdrop blur: over a live wallpaper it would be recomputed
+          // every frame. A darker tint does the same job for legibility.
+          backgroundColor: 'rgba(0,0,0,0.62)',
           minHeight: '52px' // Prevents height flickering
         }}>
         <div className="flex gap-1.5 px-1 min-w-max">
@@ -2868,7 +2869,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   };
 
   return (
-    <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''} ${t.liveClass || ''}`}
+    <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''}`}
       style={customBgStyle}>
       {/* Custom image/GIF background layer */}
       {customBgFile && (
@@ -2889,6 +2890,17 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       {/* Live theme interactive canvas wallpaper */}
       {t.isLive && (
         <>
+          {/* A live theme is either a canvas animation or an animated CSS
+              background, never both. The CSS one used to sit on the root of
+              the keyboard, where its animated filter and opacity forced every
+              key to be repainted every frame (and faded the keys along with
+              it); and on canvas themes it put a photograph under the
+              animation, which made them read as an image rather than as
+              something live. It now gets a layer of its own, and only when
+              there is no canvas. */}
+          {t.liveClass && !hasLiveAnimation(theme) && (
+            <div className={`absolute inset-0 pointer-events-none ${t.liveClass}`} style={{ borderRadius: 'inherit' }} aria-hidden="true" />
+          )}
           <LiveWallpaper theme={theme} className="absolute inset-0" />
           {/* Dark gradient overlay for readability */}
           <div className="absolute inset-0" style={{
@@ -2914,7 +2926,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           {!isIme && (
             <div className={`kb-text-area ${desktopView ? 'flex-1 min-h-[80px]' : 'h-[100px]'} p-2 relative z-10`}>
               <div className={`h-full rounded-lg ${t.isLive ? 'border-white/10' : t.border} border p-2 overflow-y-auto`}
-                style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '40' } : t.isLive ? { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)' } : {}}>
+                style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '40' } : t.isLive ? { backgroundColor: 'rgba(0,0,0,0.52)' } : {}}>
                 {text ? (
                   <motion.p
                     key={text.slice(-1)}
@@ -2936,14 +2948,14 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           {/* Suggestions Bar */}
           {mode === 'keyboard' && (
             <div className={`${t.isLive ? '' : t.tabBar} border-t border-b ${t.isLive ? 'border-white/10' : t.border} relative z-10`}
-              style={t.isLive ? { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' } : {}}>
+              style={t.isLive ? { backgroundColor: 'rgba(0,0,0,0.52)' } : {}}>
               {renderSuggestions()}
             </div>
           )}
 
           {/* Mode Tab Bar */}
           <div className={`flex items-center gap-0.5 px-2 py-1.5 border-t ${t.isLive ? 'border-white/10' : t.border} ${t.isLive ? '' : t.tabBar} relative z-10`}
-            style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '20' } : t.isLive ? { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' } : {}}>
+            style={customThemeData ? { backgroundColor: customThemeData.specialKeyColor + '20' } : t.isLive ? { backgroundColor: 'rgba(0,0,0,0.52)' } : {}}>
             {[
               { id: 'keyboard' as KeyboardMode, label: language === 'english' ? 'ABC' : 'አማ', icon: Keyboard, visible: true },
               { id: 'stickers' as KeyboardMode, label: 'Stickers', icon: Smile, visible: visibleButtons.stickers },
@@ -3024,7 +3036,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
           <div className={`kb-input-area ${t.isLive ? 'bg-transparent' : t.bg} border-t ${t.border} relative z-10`}
             style={{
               ...(customThemeData ? { backgroundColor: customThemeData.bgColor + '80' } : {}),
-              ...(t.isLive ? { backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' } : {})
+              ...(t.isLive ? { backgroundColor: 'rgba(0,0,0,0.45)' } : {})
             }}>
             <AnimatePresence mode="wait">
           {mode === 'keyboard' && (

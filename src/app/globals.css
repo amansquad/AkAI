@@ -1838,7 +1838,13 @@
 
 /* ─── Live Theme Keyboard Element Overrides ─────────────────────────────── */
 
-/* When live theme is active, keys and UI elements get frosted glass effect */
+/* When a live theme is active, keys and UI sit on a translucent tint.
+ *
+ * These used to be frosted with backdrop-filter, which had to be recomputed
+ * for every element whenever the wallpaper behind it changed — that is, every
+ * frame, around fifty times over. That capped every live theme at a few
+ * frames a second, so the wallpaper advanced in visible jumps. A slightly
+ * more opaque tint keeps the keys just as legible and costs nothing. */
 .live-keyboard-active [class*="bg-slate-8"],
 .live-keyboard-active [class*="bg-red-8"],
 .live-keyboard-active [class*="bg-blue-8"],
@@ -1848,9 +1854,7 @@
 .live-keyboard-active [class*="bg-purple-8"],
 .live-keyboard-active [class*="bg-teal-8"],
 .live-keyboard-active [class*="bg-pink-"] {
-  background-color: rgba(10, 10, 20, 0.55) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
+  background-color: rgba(10, 10, 20, 0.68) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
@@ -1868,9 +1872,7 @@
 .live-keyboard-active [class*="bg-orange-7"],
 .live-keyboard-active [class*="bg-purple-7"],
 .live-keyboard-active [class*="bg-teal-7"] {
-  background-color: rgba(20, 20, 35, 0.5) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
+  background-color: rgba(20, 20, 35, 0.64) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -1883,24 +1885,18 @@
 .live-keyboard-active [class*="bg-orange-9"],
 .live-keyboard-active [class*="bg-purple-9"],
 .live-keyboard-active [class*="bg-teal-9"] {
-  background-color: rgba(5, 5, 15, 0.5) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background-color: rgba(5, 5, 15, 0.62) !important;
 }
 
 /* Live theme text area */
 .live-keyboard-active .kb-text-area > div {
-  background-color: rgba(0, 0, 0, 0.4) !important;
-  backdrop-filter: blur(6px) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
+  background-color: rgba(0, 0, 0, 0.52) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Live theme input area */
 .live-keyboard-active .kb-input-area {
-  background-color: rgba(0, 0, 0, 0.35) !important;
-  backdrop-filter: blur(2px) !important;
-  -webkit-backdrop-filter: blur(2px) !important;
+  background-color: rgba(0, 0, 0, 0.45) !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -1911,16 +1907,12 @@
 
 /* Live theme suggestion bar */
 .live-keyboard-active .suggestion-bar {
-  background-color: rgba(0, 0, 0, 0.45) !important;
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
+  background-color: rgba(0, 0, 0, 0.55) !important;
 }
 
 /* Live theme desktop keyboard chassis */
 .live-keyboard-active .desktop-keyboard-chassis {
-  background-color: rgba(10, 10, 20, 0.5) !important;
-  backdrop-filter: blur(6px) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
+  background-color: rgba(10, 10, 20, 0.62) !important;
 }
 
 /* Live theme desktop keys */

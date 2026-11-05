@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LiveWallpaper } from '@/components/keyboard/live-wallpaper';
+import { LiveWallpaper, hasLiveAnimation } from '@/components/keyboard/live-wallpaper';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
   Delete, CornerDownLeft, Settings, Palette, Mic, MicOff,
@@ -237,13 +237,18 @@ export default function MobileKeyboardApp() {
 
       {/* Keyboard Area */}
       <div
-        className={`relative ${currentTheme.bg} ${currentTheme.liveClass || ''} border-t border-border/30`}
+        className={`relative ${currentTheme.bg} border-t border-border/30`}
         style={{
           height: mode === 'keyboard' ? 'auto' : '60vh',
           maxHeight: '70vh'
         }}
       >
         {/* Live Wallpaper Background */}
+        {/* Either a canvas animation or an animated CSS background on its
+            own layer, never both, and never on the container itself. */}
+        {currentTheme.isLive && currentTheme.liveClass && !hasLiveAnimation(theme) && (
+          <div className={`absolute inset-0 pointer-events-none ${currentTheme.liveClass}`} aria-hidden="true" />
+        )}
         {currentTheme.isLive && (
           <div className="absolute inset-0 pointer-events-none">
             <LiveWallpaper theme={theme} className="w-full h-full" />

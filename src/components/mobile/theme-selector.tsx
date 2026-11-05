@@ -12,6 +12,7 @@ import { loadLiveThemeCSS } from '@/lib/css-loader';
 // The animation module is ~4.7k lines; keep it out of the bundle for anyone
 // who never opens the theme picker, and only pay for it once per session.
 const LiveWallpaper = lazy(() => import('@/components/keyboard/live-wallpaper'));
+import { hasLiveAnimation } from '@/components/keyboard/live-wallpaper';
 
 interface ThemeSelectorProps {
   currentTheme: string;
@@ -85,7 +86,7 @@ function ThemeGridCard({ themeKey, theme, selected, onSelect }: ThemeGridCardPro
         )}
 
         {/* Theme Preview */}
-        <div ref={ref} className={`${theme.bg} ${theme.liveClass || ''} h-24 relative overflow-hidden`}>
+        <div ref={ref} className={`${theme.bg} ${theme.liveClass && !hasLiveAnimation(themeKey) ? theme.liveClass : ''} h-24 relative overflow-hidden`}>
           {/* Real per-theme canvas animation — one still frame, not a
               generic pulse, so the card shows what the theme actually is. */}
           {theme.isLive && inView && (
