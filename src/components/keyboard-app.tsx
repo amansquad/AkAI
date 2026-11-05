@@ -83,6 +83,9 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     () => true,
     () => false
   );
+  // Gates the persistence effects until saved settings have been restored,
+  // so they don't overwrite storage with defaults on mount.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   // Custom themes
   const [customThemes, setCustomThemes] = useState<CustomThemeData[]>([]);
   const [showCustomCreator, setShowCustomCreator] = useState(false);
@@ -469,6 +472,11 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
   // Load settings and recents from localStorage
   useEffect(() => {
+    const savedCustomThemes = localStorage.getItem('akai-kb-custom-themes');
+    if (savedCustomThemes) {
+      try { setCustomThemes(JSON.parse(savedCustomThemes)); }
+      catch (e) { console.error('Failed to load custom themes', e); }
+    }
     const savedSettings = localStorage.getItem('akai-kb-settings');
     if (savedSettings) {
       try {
@@ -494,10 +502,17 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       try { setRecentEmojis(JSON.parse(savedRecents)); }
       catch (e) { console.error('Failed to load recents', e); }
     }
+    setSettingsLoaded(true);
   }, []);
 
-  // Persist settings and recents
+  // Persist settings and recents.
+  //
+  // Gated on settingsLoaded: effects run in declaration order, so without
+  // the gate this one would run in the same flush as the load effect above,
+  // before its setState calls have committed — writing the *default* theme
+  // and language straight over what was just restored.
   useEffect(() => {
+    if (!settingsLoaded) return;
     localStorage.setItem('akai-kb-settings', JSON.stringify({
       vibrate: vibrateOnKeyPress,
       sound: soundOnKeyPress,
@@ -511,7 +526,15 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       theme,
       language,
     }));
-  }, [vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticStrength, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language]);
+  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticStrength, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language]);
+
+  // Custom themes are stored separately: a saved theme of "custom_<id>"
+  // resolves to THEMES.default unless the matching definition is restored
+  // alongside it, so a user's own theme would silently revert.
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    localStorage.setItem('akai-kb-custom-themes', JSON.stringify(customThemes));
+  }, [settingsLoaded, customThemes]);
 
   useEffect(() => {
     localStorage.setItem('akai-kb-recents', JSON.stringify(recentEmojis));
