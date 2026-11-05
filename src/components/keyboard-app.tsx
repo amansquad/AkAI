@@ -6,6 +6,7 @@ import { LiveWallpaper } from '@/components/keyboard/live-wallpaper';
 import { getApiBaseUrl } from '@/lib/api-base-url';
 import { loadLiveThemeCSS } from '@/lib/css-loader';
 import { useInView } from '@/hooks/use-in-view';
+import { pressKey as translitPress, pressBackspace as translitBackspace, EMPTY_TRANSLIT, type TranslitState } from '@/lib/amharic-translit';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
   Delete, CornerDownLeft, Copy, Trash2, Plus,
@@ -183,6 +184,14 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   const [mode, setMode] = useState<KeyboardMode>('keyboard');
   const [prevMode, setPrevMode] = useState<KeyboardMode>('keyboard');
   const [language, setLanguage] = useState<Language>('english');
+  // Phonetic Amharic: the QWERTY board, with what you type turned into fidel
+  // as you go ("selam" → ሰላም). The fidel board stays one tap away; this is a
+  // second way into Amharic, not a replacement for it.
+  const [phonetic, setPhonetic] = useState(false);
+  // The Latin spelling of the word being typed, and the fidel on screen for
+  // it. Held in a ref because it is bookkeeping for the next keystroke, not
+  // something the UI renders.
+  const translitRef = useRef<TranslitState>(EMPTY_TRANSLIT);
   const [shiftActive, setShiftActive] = useState(false);
   const [symbolsActive, setSymbolsActive] = useState(false);
   const [activeStickerCategory, setActiveStickerCategory] = useState('smileys');
@@ -619,6 +628,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         // chosen theme and Ge'ez layout reset on every single open.
         if (parsed.theme !== undefined) setTheme(parsed.theme);
         if (parsed.language !== undefined) setLanguage(parsed.language);
+        if (parsed.phonetic !== undefined) setPhonetic(parsed.phonetic);
       } catch (e) { console.error('Failed to load settings', e); }
     }
     const savedRecents = localStorage.getItem('akai-kb-recents');
@@ -647,10 +657,11 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       oneHandedMode,
       autoSpace: autoSpaceAfterPunctuation,
       keyPopup: keyPopupOnLongPress,
+      phonetic,
       theme,
       language,
     }));
-  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticStrength, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language]);
+  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticStrength, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language, phonetic]);
 
   // Custom themes are stored separately: a saved theme of "custom_<id>"
   // resolves to THEMES.default unless the matching definition is restored
@@ -767,7 +778,52 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     updateText(text + word + ' ');
   }, [text, updateText]);
 
+  /**
+   * One keystroke of phonetic Amharic. Returns true when it handled the key.
+   *
+   * Each keystroke re-renders the whole word rather than appending to it,
+   * which is what lets a vowel change the letter already on screen (s → ስ,
+   * then "se" → ሰ) and lets backspace walk back through the Latin spelling
+   * instead of deleting the syllable outright.
+   */
+  const handlePhoneticKey = useCallback((key: string): boolean => {
+    const apply = (step: { replaceLast: number; insert: string; next: TranslitState }) => {
+      const kept = step.replaceLast > 0 ? text.slice(0, text.length - step.replaceLast) : text;
+      updateText(kept + step.insert);
+      translitRef.current = step.next;
+    };
+
+    if (key === 'backspace') {
+      const step = translitBackspace(translitRef.current);
+      if (!step) return false; // Outside a word: let the normal backspace run.
+      apply(step);
+      return true;
+    }
+
+    if (key === 'enter') {
+      translitRef.current = EMPTY_TRANSLIT;
+      return false;
+    }
+
+    const char = key === 'space' ? ' ' : key;
+    if (char.length !== 1) return false;
+
+    // No auto-capitalisation here: a capital is meaningful in this scheme
+    // (T is ጠ, S is ጸ), so it has to mean exactly what was typed.
+    apply(translitPress(translitRef.current, shiftActive ? char.toUpperCase() : char));
+    if (shiftActive) setShiftActive(false);
+    return true;
+  }, [text, updateText, shiftActive]);
+
   const handleKeyPress = useCallback((key: string) => {
+    // Phonetic Amharic takes the letter keys over entirely; everything else
+    // (symbols, the language key, voice) falls through to the handling below.
+    if (language === 'amharic' && phonetic && !symbolsActive && handlePhoneticKey(key)) {
+      playClickSound();
+      doVibrate();
+      return;
+    }
+
     // Feedback
     doVibrate();
     playClickSound();
@@ -832,7 +888,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       updateText(newText);
       if (shiftActive) setShiftActive(false);
     }
-  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod, startVoiceRecognition]);
+  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod, startVoiceRecognition, language, phonetic, handlePhoneticKey]);
 
   const handleAmharicPress = useCallback((consonant: string) => {
     const vowels = AMHARIC_VOWELS[consonant];
@@ -1108,7 +1164,15 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   }, [text, translateOutput, updateText]);
 
   // Change 3: Language toggle handler (now from keyboard row)
+  const handlePhoneticToggle = () => {
+    setPhonetic(p => !p);
+    setSelectedConsonant(null);
+    setShiftActive(false);
+    translitRef.current = EMPTY_TRANSLIT;
+  };
+
   const handleLanguageToggle = () => {
+    translitRef.current = EMPTY_TRANSLIT;
     setLanguage(l => l === 'english' ? 'amharic' : 'english');
   };
 
@@ -2980,7 +3044,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 {/* ─── Number Row (conditionally visible based on settings) ─── */}
                 {!symbolsActive && showNumberRow && (
                   <div className="flex gap-0.5 justify-center">
-                    {(language === 'english'
+                    {(language === 'english' || phonetic
                       ? ['1','2','3','4','5','6','7','8','9','0']
                       : ETHIOPIAN_NUM_ROW_1
                     ).map((num, i) => (
@@ -3000,8 +3064,13 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 {/* ─── Vowel Family Row (when Amharic consonant selected) ─── */}
                 {renderAmharicVowelRow()}
 
-                {/* ─── English Keyboard ─── */}
-                {language === 'english' && currentRows && currentRows.map((row, ri) => (
+                {/* ─── English Keyboard, and the same board for phonetic Amharic ─── */}
+                {/* Phonetic Amharic drops QWERTY's own bottom row and keeps the
+                    Amharic one below, which carries the ፈደል toggle back to the
+                    fidel board and the Amharic space bar. */}
+                {(language === 'english' || (language === 'amharic' && phonetic && !symbolsActive))
+                  && currentRows
+                  && (language === 'amharic' && phonetic ? currentRows.slice(0, -1) : currentRows).map((row, ri) => (
                   <div key={ri} className="flex gap-0.5 justify-center">
                     {row.map(key => renderEnglishKey(key))}
                   </div>
@@ -3010,7 +3079,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 {/* ─── Amharic Letter Keyboard ─── */}
                 {language === 'amharic' && !symbolsActive && (
                   <>
-                    {AMHARIC_ROWS.map((row, ri) => (
+                    {!phonetic && AMHARIC_ROWS.map((row, ri) => (
                       <div key={ri} className="flex gap-0.5 justify-center">
                         {row.map((consonant, ci) => {
                           const isHovered = hoveredKey === consonant;
@@ -3099,6 +3168,15 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                         className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-[9px] font-bold`}>
                         🌐 EN
                       </motion.button>
+                      {/* Switches between the two ways of writing Amharic:
+                          the fidel board, and the QWERTY board with phonetic
+                          input. The label names the one it switches TO. */}
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                        onClick={handlePhoneticToggle}
+                        title={phonetic ? 'Switch to the fidel board' : 'Type Amharic phonetically'}
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${phonetic ? `${t.accent} ${t.accentText}` : `${t.specialKey} ${t.keyText}`} text-[9px] font-bold`}>
+                        {phonetic ? 'ፈደል' : 'ABC'}
+                      </motion.button>
                       {/* Unified space bar with long press voice recognition */}
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
                         onPointerDown={() => (window as any).__spaceDown = Date.now()}
@@ -3111,7 +3189,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                         className={`flex-[3.5] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}
                         style={customKeyStyle}
                       >
-                         {language === 'amharic' ? 'አማርኛ' : 'Space'}
+                         {language === 'amharic' ? (phonetic ? 'አማርኛ — selam → ሰላም' : 'አማርኛ') : 'Space'}
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('backspace')}
                         className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText}`}>

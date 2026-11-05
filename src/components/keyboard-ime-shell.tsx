@@ -155,20 +155,22 @@ function AndroidImeKeyboard() {
     if (!kb) return;
 
     const prev = textRef.current;
-    
-    if (newText.length > prev.length) {
-      // Characters were added
-      const added = newText.slice(prev.length);
-      kb.commitText(added);
-    } else if (newText.length < prev.length) {
-      // Characters were deleted
-      const deletedCount = prev.length - newText.length;
-      kb.deleteSurroundingText(deletedCount);
-    }
-    
-    // Update the ref to track current state WITHOUT resetting it to ''
-    // This ensures the next update calculates the correct delta
     textRef.current = newText;
+    if (prev === newText) return;
+
+    // Diff on the common prefix rather than on length alone. Phonetic Amharic
+    // rewrites the word as you type — "s" is ስ until the next key makes it ሰ —
+    // so a keystroke can replace a character without changing the length at
+    // all, which a length comparison would miss entirely.
+    const shared = Math.min(prev.length, newText.length);
+    let common = 0;
+    while (common < shared && prev[common] === newText[common]) common++;
+
+    const toDelete = prev.length - common;
+    if (toDelete > 0) kb.deleteSurroundingText(toDelete);
+
+    const toInsert = newText.slice(common);
+    if (toInsert) kb.commitText(toInsert);
   }, []);
 
   return (
