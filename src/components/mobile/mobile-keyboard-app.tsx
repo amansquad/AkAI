@@ -34,6 +34,8 @@ export default function MobileKeyboardApp() {
   const [soundOnKeyPress, setSoundOnKeyPress] = useState(true);
   const [autoCapitalization, setAutoCapitalization] = useState(true);
   const [showNumberRow, setShowNumberRow] = useState(true);
+  // Gates the save effect until stored settings have been restored.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const recognitionRef = useRef<any>(null);
 
@@ -68,10 +70,17 @@ export default function MobileKeyboardApp() {
         console.error('Failed to load settings', e);
       }
     }
+    setSettingsLoaded(true);
   }, []);
 
-  // Save settings
+  // Save settings.
+  //
+  // Gated on settingsLoaded: effects run in declaration order, so without
+  // the gate this would run in the same flush as the load above, before its
+  // setState calls have committed — writing the default theme and language
+  // straight over what was just restored.
   useEffect(() => {
+    if (!settingsLoaded) return;
     localStorage.setItem('akai_mobile_settings', JSON.stringify({
       vibrate: vibrateOnKeyPress,
       sound: soundOnKeyPress,
@@ -80,7 +89,7 @@ export default function MobileKeyboardApp() {
       theme,
       language
     }));
-  }, [vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, showNumberRow, theme, language]);
+  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, showNumberRow, theme, language]);
 
   const doVibrate = useCallback((strength = 10) => {
     if (vibrateOnKeyPress && window.navigator.vibrate) {

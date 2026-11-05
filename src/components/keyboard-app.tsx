@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LiveWallpaper } from '@/components/keyboard/live-wallpaper';
 import { getApiBaseUrl } from '@/lib/api-base-url';
 import { loadLiveThemeCSS } from '@/lib/css-loader';
+import { useInView } from '@/hooks/use-in-view';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
   Delete, CornerDownLeft, Copy, Trash2, Plus,
@@ -120,6 +121,59 @@ const ThemeCard = React.memo(function ThemeCard({
         >×</div>
       )}
     </button>
+  );
+});
+
+// A section of the "All" view. The full catalogue is ~170 cards, and
+// mounting every one up front costs far more than the few rows actually on
+// screen. Each section mounts its grid once it scrolls near the viewport and
+// stays mounted after; until then it reserves the height its rows will take
+// so the scrollbar doesn't jump.
+const THEME_GRID_COLUMNS = 4;
+const THEME_ROW_HEIGHT_PX = 84;
+
+interface ThemeSectionProps {
+  label: string;
+  themes: [string, ThemeDef][];
+  t: ThemeDef;
+  selectedTheme: string;
+  customBgColorFor?: (key: string) => string | undefined;
+  onSelect: (key: string) => void;
+  onDelete: (key: string) => void;
+}
+
+const ThemeSection = React.memo(function ThemeSection({
+  label, themes, t, selectedTheme, customBgColorFor, onSelect, onDelete,
+}: ThemeSectionProps) {
+  const { ref, inView } = useInView<HTMLDivElement>();
+  const reservedHeight = Math.ceil(themes.length / THEME_GRID_COLUMNS) * THEME_ROW_HEIGHT_PX;
+
+  return (
+    <div ref={ref}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`text-[9px] font-bold uppercase tracking-wider ${t.keyText} opacity-40`}>{label}</span>
+        <div className={`flex-1 h-px ${t.border} opacity-30`} />
+        <span className={`text-[9px] ${t.keyText} opacity-30`}>{themes.length}</span>
+      </div>
+      {inView ? (
+        <div className="grid grid-cols-4 gap-2">
+          {themes.map(([key, tData]) => (
+            <ThemeCard
+              key={key}
+              tKey={key}
+              tData={tData}
+              t={t}
+              isSelected={selectedTheme === key}
+              customBgColor={customBgColorFor?.(key)}
+              onSelect={onSelect}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      ) : (
+        <div style={{ height: reservedHeight }} />
+      )}
+    </div>
   );
 });
 
@@ -1658,18 +1712,15 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                 const sectionThemes = Object.entries(allThemes).filter(([, td]) => td.category === section.key);
                 if (sectionThemes.length === 0) return null;
                 return (
-                  <div key={section.key}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-[9px] font-bold uppercase tracking-wider ${t.keyText} opacity-40`}>{section.label}</span>
-                      <div className={`flex-1 h-px ${t.border} opacity-30`} />
-                      <span className={`text-[9px] ${t.keyText} opacity-30`}>{sectionThemes.length}</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {sectionThemes.map(([key, tData]) => (
-                        <ThemeCard key={key} tKey={key} tData={tData} t={t} isSelected={theme === key} onSelect={handleSelectTheme} onDelete={handleDeleteCustomTheme} />
-                      ))}
-                    </div>
-                  </div>
+                  <ThemeSection
+                    key={section.key}
+                    label={section.label}
+                    themes={sectionThemes}
+                    t={t}
+                    selectedTheme={theme}
+                    onSelect={handleSelectTheme}
+                    onDelete={handleDeleteCustomTheme}
+                  />
                 );
               })}
               {/* Custom section */}
