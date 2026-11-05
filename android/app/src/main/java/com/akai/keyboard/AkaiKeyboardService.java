@@ -55,17 +55,39 @@ public class AkaiKeyboardService extends InputMethodService {
         // returns with its own MATCH_PARENT x WRAP_CONTENT LayoutParams,
         // discarding ours. So the container always measures WRAP_CONTENT and
         // the keyboard's real height comes from this fixed child height.
-        // Sized for the tallest layout: the Amharic/Ge'ez keyboard carries an
-        // extra fidel row plus the Ethiopian numeral row, so it needs more
-        // room than the English QWERTY layout.
-        int heightPx = (int) (350 * getResources().getDisplayMetrics().density);
+        // Sized for the tallest layout: the Amharic/Ge'ez keyboard carries the
+        // Ethiopian numeral row plus, once a consonant is tapped, the vowel
+        // family row, which pushes everything below it down. At 350dp that
+        // last row clipped the space/enter row off the bottom.
+        int heightPx = (int) (400 * getResources().getDisplayMetrics().density);
 
         WebView wv = AkaiWebAppView.create(this, "/keyboard-ime.html", new AkaiKeyboardBridge(), "AkaiKeyboard");
         wv.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, heightPx));
         webView = wv;
 
         layout.addView(wv);
+
+        // Lift the keyboard clear of the system navigation bar. The IME window
+        // extends to the bottom of the screen, so without this the navigation
+        // bar's hide-keyboard arrow and IME-switcher globe sit on top of the
+        // keyboard's own bottom row. Padding on the container (which measures
+        // wrap_content) adds to the window height rather than shrinking the
+        // keyboard, so the layout above is unaffected.
+        layout.setPadding(0, 0, 0, navigationBarHeightPx());
+
         return layout;
+    }
+
+    /**
+     * The current navigation bar height, which differs between gesture
+     * navigation (a slim pill) and three-button navigation. Falls back to a
+     * gesture-sized gap if the platform resource is unavailable.
+     */
+    private int navigationBarHeightPx() {
+        float density = getResources().getDisplayMetrics().density;
+        int resId = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+        int px = resId > 0 ? getResources().getDimensionPixelSize(resId) : 0;
+        return Math.max(px, (int) (24 * density));
     }
 
     @Override

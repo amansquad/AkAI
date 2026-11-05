@@ -1437,11 +1437,18 @@ export const LONG_PRESS_ALTERNATES: Record<string, string[]> = {
 };
 
 // ─── Amharic Character Data ───────────────────────────────────────────────
+// The 34 letters of the standard Amharic fidel, in alphabetical order.
+// Deliberately excluded: the labialised forms (ሟ, ኟ, ዟ, ጟ) and the
+// combining mark ፟ that used to sit at the end of the last row — they render
+// as unfamiliar or empty glyphs, and the labialised ones are already reachable
+// as the eighth variant in their base letter's vowel row. ጘ (Ge'ez/Agaw, not
+// part of the Amharic fidel) is dropped for the same reason, and ጸ, which was
+// missing altogether, is now present.
 export const AMHARIC_ROWS: string[][] = [
-  ['ሀ', 'ለ', 'ሐ', 'መ', 'ሠ', 'ረ', 'ሰ', 'ሸ', 'ቀ', 'በ'],
-  ['ተ', 'ቸ', 'ኀ', 'ነ', 'ኘ', 'አ', 'ዐ', 'ከ', 'ኸ', 'ወ'],
-  ['ዘ', 'ዠ', 'የ', 'ደ', 'ጀ', 'ገ', 'ጘ', 'ጠ', 'ጨ', 'ጰ'],
-  ['ፀ', 'ፈ', 'ፐ', 'ቨ', 'ሟ', 'ኟ', 'ዟ', 'ጟ', '፟'],
+  ['ሀ', 'ለ', 'ሐ', 'መ', 'ሠ', 'ረ', 'ሰ', 'ሸ', 'ቀ'],
+  ['በ', 'ቨ', 'ተ', 'ቸ', 'ኀ', 'ነ', 'ኘ', 'አ', 'ከ'],
+  ['ኸ', 'ወ', 'ዐ', 'ዘ', 'ዠ', 'የ', 'ደ', 'ጀ'],
+  ['ገ', 'ጠ', 'ጨ', 'ጰ', 'ጸ', 'ፀ', 'ፈ', 'ፐ'],
 ];
 
 export const AMHARIC_VOWELS: Record<string, string[]> = {
@@ -1475,6 +1482,7 @@ export const AMHARIC_VOWELS: Record<string, string[]> = {
   'ጠ': ['ጠ', 'ጡ', 'ጢ', 'ጣ', 'ጤ', 'ጥ', 'ጦ', 'ጧ'],
   'ጨ': ['ጨ', 'ጩ', 'ጪ', 'ጫ', 'ጬ', 'ጭ', 'ጮ', 'ጯ'],
   'ጰ': ['ጰ', 'ጱ', 'ጲ', 'ጳ', 'ጴ', 'ጵ', 'ጶ', 'ጷ'],
+  'ጸ': ['ጸ', 'ጹ', 'ጺ', 'ጻ', 'ጼ', 'ጽ', 'ጾ', 'ጿ'],
   'ፀ': ['ፀ', 'ፁ', 'ፂ', 'ፃ', 'ፄ', 'ፅ', 'ፆ'],
   'ፈ': ['ፈ', 'ፉ', 'ፊ', 'ፋ', 'ፌ', 'ፍ', 'ፎ', 'ፏ'],
   'ፐ': ['ፐ', 'ፑ', 'ፒ', 'ፓ', 'ፔ', 'ፕ', 'ፖ', 'ፗ'],
