@@ -62,7 +62,10 @@ captures/
 .cxx/
 
 # Google Services (e.g. APIs or Firebase)
-# google-services.json
+# Nothing in the app uses Firebase; the plugin was removed because the
+# committed config was a placeholder for a different package and broke
+# every build. Re-add the plugin with a real config if Firebase is needed.
+google-services.json
 
 # Freeline
 freeline.py

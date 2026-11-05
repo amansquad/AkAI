@@ -482,6 +482,11 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         if (parsed.oneHandedMode !== undefined) setOneHandedMode(parsed.oneHandedMode);
         if (parsed.autoSpace !== undefined) setAutoSpaceAfterPunctuation(parsed.autoSpace);
         if (parsed.keyPopup !== undefined) setKeyPopupOnLongPress(parsed.keyPopup);
+        // Theme and language matter most as an IME: the keyboard is
+        // dismissed and reopened constantly, and without these the user's
+        // chosen theme and Ge'ez layout reset on every single open.
+        if (parsed.theme !== undefined) setTheme(parsed.theme);
+        if (parsed.language !== undefined) setLanguage(parsed.language);
       } catch (e) { console.error('Failed to load settings', e); }
     }
     const savedRecents = localStorage.getItem('akai-kb-recents');
@@ -503,8 +508,10 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       oneHandedMode,
       autoSpace: autoSpaceAfterPunctuation,
       keyPopup: keyPopupOnLongPress,
+      theme,
+      language,
     }));
-  }, [vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticStrength, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress]);
+  }, [vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticStrength, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language]);
 
   useEffect(() => {
     localStorage.setItem('akai-kb-recents', JSON.stringify(recentEmojis));

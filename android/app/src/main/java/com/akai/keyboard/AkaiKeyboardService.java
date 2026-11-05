@@ -1,6 +1,5 @@
 package com.akai.keyboard;
 
-import android.annotation.SuppressLint;
 import android.inputmethodservice.InputMethodService;
 import android.os.Handler;
 import android.os.Looper;
@@ -11,19 +10,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputConnection;
 import android.webkit.JavascriptInterface;
-import android.webkit.MimeTypeMap;
-import android.webkit.WebResourceError;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebResourceResponse;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
-
-import androidx.webkit.WebViewAssetLoader;
-
-import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * Hosts the real AkAI keyboard UI (the same React app at /keyboard-ime, built
@@ -59,13 +47,7 @@ public class AkaiKeyboardService extends InputMethodService {
         return container;
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
     private FrameLayout createContainer() {
-        // Inflated from XML (layout_height="300dp") rather than given
-        // programmatic LayoutParams — the IME window sizes itself to the
-        // input view's *measured* height, and a WebView's own measure pass
-        // can report a small transient value before its content settles,
-        // which an XML-fixed height isn't subject to.
         FrameLayout layout = (FrameLayout) getLayoutInflater().inflate(R.layout.ime_container, null);
 
         // The height has to live on the *child*, not the container:
@@ -78,52 +60,8 @@ public class AkaiKeyboardService extends InputMethodService {
         // room than the English QWERTY layout.
         int heightPx = (int) (350 * getResources().getDisplayMetrics().density);
 
-        WebView wv = new WebView(this);
+        WebView wv = AkaiWebAppView.create(this, "/keyboard-ime.html", new AkaiKeyboardBridge(), "AkaiKeyboard");
         wv.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, heightPx));
-        WebSettings settings = wv.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true); // keyboard-app.tsx relies on localStorage
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-
-        // Next.js's static export uses root-relative asset URLs
-        // (/_next/static/...). Under a plain file:// load those resolve
-        // against the filesystem root and 404. WebViewAssetLoader instead
-        // serves files from a virtual https:// origin — using a custom
-        // handler (not the stock AssetsPathHandler, which reads from the
-        // true assets/ root) so "assets/public/" acts as that origin's
-        // root, matching where `npx cap sync android` actually copies the
-        // Next.js export.
-        WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
-                .addPathHandler("/", path -> {
-                    try {
-                        InputStream stream = getAssets().open("public/" + path);
-                        String ext = MimeTypeMap.getFileExtensionFromUrl(path);
-                        String mime = ext.isEmpty() ? null : MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-                        return new WebResourceResponse(mime, null, stream);
-                    } catch (IOException e) {
-                        return null;
-                    }
-                })
-                .build();
-
-        wv.setWebViewClient(new WebViewClient() {
-            @Override
-            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return assetLoader.shouldInterceptRequest(request.getUrl());
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                Log.d(TAG, "onPageFinished: " + url);
-            }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                Log.e(TAG, "onReceivedError: " + request.getUrl() + " -> " + error.getDescription());
-            }
-        });
-        wv.addJavascriptInterface(new AkaiKeyboardBridge(), "AkaiKeyboard");
-        wv.loadUrl("https://appassets.androidplatform.net/keyboard-ime.html");
         webView = wv;
 
         layout.addView(wv);

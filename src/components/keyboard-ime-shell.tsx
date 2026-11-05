@@ -35,13 +35,6 @@ export default function KeyboardImeShell() {
     }
   }, []);
 
-  // Intercept text changes from the keyboard and relay to Android IME
-  const handleTextChange = useCallback((newText: string) => {
-    if (!isAndroidIme()) return;
-    // KeyboardApp accumulates text; we only want the *delta*
-    // We track the previous value in a ref to compute the diff
-  }, []);
-
   return (
     <div
       style={{
