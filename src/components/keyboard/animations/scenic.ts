@@ -371,18 +371,6 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
     // Neon rings from mouse
     state.neonRings = [] as { x: number; y: number; r: number; maxR: number; life: number; hue: number }[];
     state.lastRing = 0;
-    // Digital rain columns
-    const colW = 14;
-    const cols = Math.ceil(w / colW);
-    state.digitalColumns = Array.from({ length: cols }, () => ({
-      y: rand(-h, 0), speed: rand(0.5, 2), chars: [] as string[],
-    }));
-    const charSet = '01アイウエオカキクケコ⚡█▓▒░';
-    for (const col of (state.digitalColumns as { y: number; speed: number; chars: string[] }[])) {
-      col.chars = Array.from({ length: Math.ceil(h / 14) + 3 }, () => charSet[Math.floor(Math.random() * charSet.length)]);
-    }
-    state.charSet = charSet;
-    state.lastCharFlip = 0;
   }
   const sparks = state.sparks as Particle[];
   const shapes = state.shapes as { x: number; y: number; r: number; rot: number; speed: number; sides: number; hue: number }[];
@@ -390,46 +378,15 @@ function drawNeonPulse(ctx: CanvasRenderingContext2D, w: number, h: number, time
   const shockwaves = (state.shockwaves || []) as { x: number; y: number; r: number; maxR: number; alpha: number; hue: number }[];
   const energyBeams = (state.energyBeams || []) as { x: number; y: number; horizontal: boolean; life: number; hue: number; width: number }[];
   const neonRings = (state.neonRings || []) as { x: number; y: number; r: number; maxR: number; life: number; hue: number }[];
-  const digitalColumns = (state.digitalColumns || []) as { y: number; speed: number; chars: string[] }[];
-  const charSet = (state.charSet || '01アイウ') as string;
 
   // ── Background with bass pulse ──
   const bassPulse = 0.3 + 0.2 * Math.pow(Math.sin(time * 1.5), 2);
   ctx.fillStyle = `rgba(10,0,16,${0.95 - bassPulse * 0.15})`;
   ctx.fillRect(0, 0, w, h);
 
-  // ── Digital Rain Overlay (subtle) ──
-  if (time - (state.lastCharFlip as number) > 0.08) {
-    state.lastCharFlip = time;
-    for (const col of digitalColumns) {
-      if (Math.random() < 0.12) {
-        const idx = Math.floor(Math.random() * col.chars.length);
-        col.chars[idx] = charSet[Math.floor(Math.random() * charSet.length)];
-      }
-    }
-  }
-  const colW = 14;
-  for (let i = 0; i < digitalColumns.length; i++) {
-    const col = digitalColumns[i];
-    const colX = i * colW;
-    const d = Math.abs(colX - mx);
-    const speedMult = d < 80 ? 1 + (1 - d / 80) * 2 : 1;
-    col.y += col.speed * speedMult;
-    if (col.y > h + 80) { col.y = rand(-200, -50); col.speed = rand(0.5, 2); }
-
-    const startIdx = Math.floor(col.y / 14);
-    for (let j = 0; j < col.chars.length; j++) {
-      const charY = (startIdx + j) * 14;
-      if (charY < -14 || charY > h + 14) continue;
-      const isFirst = j === col.chars.length - 1;
-      if (!isFirst) {
-        const fade = clamp((charY - (col.y - col.chars.length * 14)) / (col.chars.length * 6), 0, 1);
-        ctx.fillStyle = `rgba(180,0,255,${fade * 0.08})`;
-        ctx.font = '12px monospace';
-        ctx.fillText(col.chars[j], colX, charY);
-      }
-    }
-  }
+  // A column of falling Katakana used to be drawn here. A theme called Neon
+  // Pulse has no business showing text at all, and at the opacity it was
+  // given it cost a character loop every frame to be very nearly invisible.
 
   // ── Grid ──
   const gridSize = 40;
@@ -895,7 +852,9 @@ function drawMatrix(ctx: CanvasRenderingContext2D, w: number, h: number, time: n
       y: rand(-h, 0), speed: rand(1, 4), chars: [] as string[],
     }));
     // Pre-fill characters
-    const charSet = 'ሀለሐመሠረሰሸቀበተቸኀነኘአከኸወዘየደጀገጠጨፀፈፐ0123456789ABCDEFZ@#$%&';
+    // Fidel and Ge'ez numerals only. The Latin letters and @#$%& that used to
+    // be mixed in read as words and punctuation rather than as rain.
+    const charSet = 'ሀለሐመሠረሰሸቀበተቸኀነኘአከኸወዘየደጀገጠጨፀፈፐ፩፪፫፬፭፮፯፰፱፲';
     for (const col of state.columns as { y: number; speed: number; chars: string[] }[]) {
       const count = Math.ceil(h / 16) + 5;
       col.chars = Array.from({ length: count }, () => charSet[Math.floor(Math.random() * charSet.length)]);
@@ -942,20 +901,16 @@ function drawMatrix(ctx: CanvasRenderingContext2D, w: number, h: number, time: n
 
       const isFirst = j === col.chars.length - 1;
       const fadeFromTop = clamp((charY - (col.y - col.chars.length * 16)) / (col.chars.length * 8), 0, 1);
-      const alpha = isFirst ? 1 : fadeFromTop * 0.7;
+      // Dimmer and smaller than it was. This sits behind the keys, so it has
+      // to read as falling texture rather than as something to be read: at
+      // full opacity in bold it competed with the letters on the keys.
+      const alpha = isFirst ? 0.55 : fadeFromTop * 0.3;
 
       ctx.fillStyle = isFirst
         ? `rgba(180,255,180,${alpha})`
         : `rgba(0,${150 + Math.floor(fadeFromTop * 105)},0,${alpha})`;
-      ctx.font = `${isFirst ? 'bold ' : ''}14px monospace`;
+      ctx.font = '12px monospace';
       ctx.fillText(col.chars[j], colX, charY);
-
-      if (isFirst) {
-        ctx.shadowColor = 'rgba(0,255,0,0.8)';
-        ctx.shadowBlur = 10;
-        ctx.fillText(col.chars[j], colX, charY);
-        ctx.shadowBlur = 0;
-      }
     }
   }
 }
@@ -3092,23 +3047,19 @@ function drawBinaryRain(ctx: CanvasRenderingContext2D, w: number, h: number, tim
   ctx.fillRect(0, 0, w, h);
 
   const colW = 18;
-  ctx.font = 'bold 16px monospace';
+  // Small and dim on purpose: the digits are what makes this Binary Rain, but
+  // behind a keyboard they have to stay texture. In bold at full opacity they
+  // were as legible as the keys in front of them.
+  ctx.font = '12px monospace';
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
     col.y += col.speed;
     if (col.y > h + 100) col.y = -100;
 
     const char = Math.random() > 0.5 ? '1' : '0';
-    const alpha = 0.5 + 0.5 * Math.sin(time * 5 + i);
+    const alpha = 0.16 + 0.14 * Math.sin(time * 5 + i);
     ctx.fillStyle = `rgba(0,255,255,${alpha})`;
     ctx.fillText(char, i * colW, col.y);
-
-    if (Math.random() < 0.1) {
-      ctx.shadowColor = 'cyan';
-      ctx.shadowBlur = 10;
-      ctx.fillText(char, i * colW, col.y);
-      ctx.shadowBlur = 0;
-    }
   }
 }
 
@@ -3781,18 +3732,63 @@ function drawPrism(ctx: CanvasRenderingContext2D, w: number, h: number, time: nu
   }
 }
 
-function drawMeskel(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
-  // Procedural Meskel fire theme
+function drawMeskel(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number, state: AnimState) {
+  // Meskel, as the Demera itself rather than as a caption: the bonfire, the
+  // bound stack it burns on, and the sparks going up from it.
+  //
+  // This used to print the word "Meskel" across the middle of the keyboard,
+  // which read as a label stuck on the background rather than as a theme.
+  // It also handed drawFire a fresh state object on every frame, so the
+  // flame particles were rebuilt from scratch sixty times a second and never
+  // actually rose anywhere.
+  if (!state.init) {
+    state.init = true;
+    state.fire = {};
+    state.embers = Array.from({ length: 48 }, () => ({
+      x: rand(w * 0.3, w * 0.7), y: rand(h * 0.55, h),
+      vx: rand(-0.25, 0.25), vy: rand(-1.4, -0.5),
+      r: rand(0.6, 2), life: rand(0, 1), hue: rand(20, 45),
+    }));
+  }
+  const embers = state.embers as { x: number; y: number; vx: number; vy: number; r: number; life: number; hue: number }[];
+
   const bg = ctx.createLinearGradient(0, 0, 0, h);
   bg.addColorStop(0, '#450a0a'); bg.addColorStop(1, '#000');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
-  drawFire(ctx, w, h, time, mx, my, {});
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctx.font = 'bold 24px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('🌼 Meskel 🌼', w/2, h * 0.8);
-}
 
+  drawFire(ctx, w, h, time, mx, my, state.fire as AnimState);
+
+  // The stack of bound branches the fire sits on.
+  const baseY = h * 0.94;
+  const spread = Math.min(w * 0.22, 70);
+  ctx.strokeStyle = 'rgba(60,32,20,0.85)';
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 7; i++) {
+    const lean = (i / 6 - 0.5) * 2;
+    ctx.lineWidth = 3 + (1 - Math.abs(lean)) * 2;
+    ctx.beginPath();
+    ctx.moveTo(w / 2 + lean * spread, baseY);
+    ctx.lineTo(w / 2 + lean * spread * 0.22, baseY - h * 0.17);
+    ctx.stroke();
+  }
+
+  // Sparks lifting off the fire.
+  for (const e of embers) {
+    e.x += e.vx + Math.sin(time * 1.6 + e.y * 0.05) * 0.3;
+    e.y += e.vy;
+    e.life -= 0.006;
+    if (e.life <= 0 || e.y < h * 0.25) {
+      e.x = w / 2 + rand(-spread * 0.6, spread * 0.6);
+      e.y = baseY - h * 0.1;
+      e.vy = rand(-1.4, -0.5);
+      e.life = 1;
+    }
+    ctx.fillStyle = `hsla(${e.hue}, 100%, ${55 + e.life * 25}%, ${e.life * 0.8})`;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
 function drawSabbath(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, mx: number, my: number) {
   // Peaceful purple theme
   const bg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w);
