@@ -1,613 +1,440 @@
 'use client';
 
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useEffect, useId, useState, lazy, Suspense } from 'react';
 import Image from 'next/image';
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
-import { useTheme } from 'next-themes';
-import {
-  Download, Globe, Sparkles, Keyboard, Check, ChevronRight,
-  Zap, Shield, Palette, Star, ArrowRight, Play, Pause
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowDown, Download, Languages, PenLine, ShieldCheck, Smile } from 'lucide-react';
+import './landing.css';
 
-// Lazy load heavy components
 const DemoKeyboard = lazy(() => import('@/components/demo-keyboard'));
 
-const TRANSLATION_PAIRS = [
-  { en: 'Hello', am: 'ሰላም', enFull: 'Hello, how are you?', amFull: 'ሰላም፣ እንዴት ነህ?' },
-  { en: 'Thank you', am: 'አመሰግናለሁ', enFull: 'Thank you very much', amFull: 'በጣም አመሰግናለሁ' },
-  { en: 'I love Ethiopia', am: 'ኢትዮጵያን እወዳለሁ', enFull: 'I love Ethiopia', amFull: 'ኢትዮጵያን እወዳለሁ' },
-  { en: 'Good morning', am: 'እንደምን አደሩ', enFull: 'Good morning', amFull: 'እንደምን አደሩ' },
+const APK = '/AkAI-keyboard.apk';
+
+const PAIRS = [
+  { en: 'Hello, how are you?', am: 'ሰላም፣ እንዴት ነህ?' },
+  { en: 'Thank you very much', am: 'በጣም አመሰግናለሁ' },
+  { en: 'I love Ethiopia', am: 'ኢትዮጵያን እወዳለሁ' },
+  { en: 'Good morning', am: 'እንደምን አደሩ' },
 ];
 
-const FEATURES = [
-  {
-    icon: Globe,
-    title: 'Native Bilingual',
-    description: 'Full QWERTY + complete Ge\'ez script. Neither language is the add-on.',
-    stat: '2 Scripts'
-  },
-  {
-    icon: Sparkles,
-    title: 'Inline AI Translation',
-    description: 'Translate between English and Amharic without leaving your keyboard.',
-    stat: 'Real-time'
-  },
-  {
-    icon: Palette,
-    title: 'Live Themes',
-    description: 'Animated backgrounds, team colors, cultural themes. Not screenshots.',
-    stat: '170+ Themes'
-  },
-  {
-    icon: Shield,
-    title: 'Privacy First',
-    description: 'On-device processing. No keylogging. Your words stay yours.',
-    stat: '0 Data Sent'
-  }
+/* The seven orders of the fidel, by their traditional names. */
+const ORDERS = ['ግዕዝ', 'ካዕብ', 'ሣልስ', 'ራብዕ', 'ኀምስ', 'ሳድስ', 'ሳብዕ'];
+const FIDEL: Record<string, string[]> = {
+  'ሀ': ['ሀ', 'ሁ', 'ሂ', 'ሃ', 'ሄ', 'ህ', 'ሆ'],
+  'ለ': ['ለ', 'ሉ', 'ሊ', 'ላ', 'ሌ', 'ል', 'ሎ'],
+  'መ': ['መ', 'ሙ', 'ሚ', 'ማ', 'ሜ', 'ም', 'ሞ'],
+  'ሰ': ['ሰ', 'ሱ', 'ሲ', 'ሳ', 'ሴ', 'ስ', 'ሶ'],
+  'ቀ': ['ቀ', 'ቁ', 'ቂ', 'ቃ', 'ቄ', 'ቅ', 'ቆ'],
+  'በ': ['በ', 'ቡ', 'ቢ', 'ባ', 'ቤ', 'ብ', 'ቦ'],
+};
+
+const THEMES = [
+  { name: 'Addis Ababa', src: '/themes/addis_ababa.png', tag: 'Ethiopian' },
+  { name: 'Nebula', src: '/themes/nebula_live.png', tag: 'Live' },
+  { name: 'Aurora', src: '/themes/aurora.png', tag: 'Theme' },
+  { name: 'St. George', src: '/themes/fb_stgeorge.png', tag: 'Club' },
+  { name: 'Starfield', src: '/themes/starfield_live.png', tag: 'Live' },
+  { name: 'Lava', src: '/themes/lava.png', tag: 'Theme' },
+  { name: 'Galaxy', src: '/themes/galaxy.png', tag: 'Theme' },
+  { name: 'Neon Pulse', src: '/themes/neon-pulse.png', tag: 'Theme' },
 ];
 
-const THEME_SHOWCASE = [
-  { name: 'Aurora', color: 'from-purple-600 to-blue-600', image: '/themes/aurora.png' },
-  { name: 'Lava', color: 'from-orange-600 to-red-600', image: '/themes/lava.png' },
-  { name: 'Ocean', color: 'from-blue-600 to-cyan-600', image: '/themes/ocean.png' },
-  { name: 'Galaxy', color: 'from-indigo-600 to-purple-600', image: '/themes/galaxy.png' },
-  { name: 'Neon', color: 'from-pink-600 to-purple-600', image: '/themes/neon-pulse.png' },
-  { name: 'Ethiopian', color: 'from-green-600 to-yellow-500', image: '/themes/addis_ababa.png' },
-];
+/* Circular postmark with bilingual ring text. `n` re-keys the drop animation. */
+function Postmark({ n, size = 150 }: { n: number; size?: number }) {
+  const id = useId();
+  return (
+    <svg
+      key={n}
+      className="land-postmark land-postmark--drop"
+      width={size}
+      height={size}
+      viewBox="0 0 160 160"
+      aria-hidden="true"
+    >
+      <defs>
+        <path id={id} d="M80,80 m-58,0 a58,58 0 1,1 116,0 a58,58 0 1,1 -116,0" />
+      </defs>
+      <circle cx="80" cy="80" r="74" fill="none" stroke="currentColor" strokeWidth="3" />
+      <circle cx="80" cy="80" r="42" fill="none" stroke="currentColor" strokeWidth="2" />
+      <text fill="currentColor" fontSize="13" fontWeight="800" letterSpacing="3.2" style={{ fontFamily: 'var(--f-display)' }}>
+        <textPath href={`#${id}`} startOffset="0">
+          AKAI · TRANSLATED · ትርጉም ·
+        </textPath>
+      </text>
+      <text x="80" y="76" textAnchor="middle" fill="currentColor" fontSize="21" fontWeight="900" style={{ fontFamily: 'var(--f-display)' }}>
+        EN→አማ
+      </text>
+      <path d="M52 94 q9 -8 18 0 t18 0 t18 0" fill="none" stroke="currentColor" strokeWidth="2.5" />
+    </svg>
+  );
+}
 
-export default function Home() {
-  const [activeTranslation, setActiveTranslation] = useState(0);
-  const [typingText, setTypingText] = useState('');
-  const [isTyping, setIsTyping] = useState(true);
-  const [showDemo, setShowDemo] = useState(false);
-  const { setTheme } = useTheme();
-  const heroRef = useRef(null);
-  const featuresRef = useRef(null);
-  const themesRef = useRef(null);
+function Hero() {
+  const [i, setI] = useState(0);
+  const [typed, setTyped] = useState(PAIRS[0].en);
+  const [sent, setSent] = useState(true);
+  const [mark, setMark] = useState(0);
 
-  const { scrollYProgress } = useScroll();
-  const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -100]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0]);
-
-  const featuresInView = useInView(featuresRef, { once: true, margin: '-100px' });
-  const themesInView = useInView(themesRef, { once: true, margin: '-100px' });
-
-  // Auto-cycle translations
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveTranslation((prev) => (prev + 1) % TRANSLATION_PAIRS.length);
-      setTypingText('');
-    }, 4000);
-    return () => clearInterval(interval);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const run = (idx: number) => {
+      if (!alive) return;
+      const text = PAIRS[idx].en;
+      setI(idx);
+      setSent(false);
+      setTyped('');
+      let n = 0;
+      const tick = () => {
+        if (!alive) return;
+        n += 1;
+        setTyped(text.slice(0, n));
+        if (n < text.length) {
+          timer = setTimeout(tick, 55);
+        } else {
+          timer = setTimeout(() => {
+            if (!alive) return;
+            setSent(true);
+            setMark((m) => m + 1);
+            timer = setTimeout(() => run((idx + 1) % PAIRS.length), 3600);
+          }, 450);
+        }
+      };
+      timer = setTimeout(tick, 500);
+    };
+    timer = setTimeout(() => run(1), 3200);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
   }, []);
 
-  // Typing animation
-  useEffect(() => {
-    if (!isTyping) return;
-    const text = TRANSLATION_PAIRS[activeTranslation].enFull;
-    let index = 0;
-
-    const timeout = setTimeout(() => {
-      const interval = setInterval(() => {
-        if (index <= text.length) {
-          setTypingText(text.slice(0, index));
-          index++;
-        } else {
-          clearInterval(interval);
-        }
-      }, 50);
-      return () => clearInterval(interval);
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [activeTranslation, isTyping]);
+  const pair = PAIRS[i];
 
   return (
-    <div className="min-h-screen bg-[rgb(18,18,20)] text-white overflow-x-hidden">
-      {/* Hero Section - Interactive Typing Demo */}
-      <motion.section
-        ref={heroRef}
-        style={{ y: heroY, opacity: heroOpacity }}
-        className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden"
-      >
-        {/* Emerald gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
+    <section className="land-wrap" style={{ paddingBlock: 'clamp(28px, 5vw, 56px) clamp(56px, 8vw, 112px)' }}>
+      <header className="flex items-center justify-between" style={{ marginBottom: 'clamp(36px, 6vw, 72px)' }}>
+        <a href="#top" className="flex items-center gap-3 no-underline" aria-label="AkAI home">
+          <Image src="/akai-icon.png" alt="" width={44} height={44} className="rounded-[10px]" priority />
+          <span className="land-display" style={{ fontSize: '2rem', fontStretch: '100%' }}>AkAI</span>
+        </a>
+        <a href={APK} download className="land-btn land-btn--ghost" style={{ minHeight: 44, padding: '0 1.1rem', fontSize: '0.9rem' }}>
+          <Download size={18} aria-hidden="true" /> Download
+        </a>
+      </header>
 
-        {/* Grid overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
-
-        <div className="relative z-10 max-w-7xl mx-auto w-full py-20 sm:py-32">
-          {/* Logo & Nav */}
-          <motion.nav
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="flex items-center justify-between mb-20"
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Image src="/akai-icon.png" alt="AkAI" width={48} height={48} className="rounded-xl" priority />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-[rgb(18,18,20)]" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">AkAI</h1>
-                <p className="text-[10px] text-white/40 tracking-widest">KEYBOARD</p>
-              </div>
-            </div>
-            <Button
-              asChild
-              size="sm"
-              className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
-            >
-              <a href="/AkAI-keyboard.apk" download>
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </a>
-            </Button>
-          </motion.nav>
-
-          {/* Main Hero Content */}
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-            {/* Left: Headline & CTA */}
-            <motion.div
-              initial={{ x: -50, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-medium text-emerald-400">Live AI Translation</span>
-              </div>
-
-              <h2 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[0.95] mb-6">
-                One keyboard.
-                <br />
-                <span className="text-emerald-500">Both languages.</span>
-                <br />
-                No compromise.
-              </h2>
-
-              <p className="text-lg sm:text-xl text-white/60 mb-8 max-w-xl leading-relaxed">
-                Native Ge'ez script + English QWERTY with AI translation built into the typing surface.
-                Made for Ethiopia's bilingual reality.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  onClick={() => setShowDemo(true)}
-                  size="lg"
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold h-14 px-8 text-base"
-                >
-                  <Play className="w-5 h-5 mr-2" />
-                  Try Interactive Demo
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  className="border-white/20 text-white hover:bg-white/5 h-14 px-8 text-base"
-                >
-                  <a href="/AkAI-keyboard.apk" download>
-                    <Download className="w-5 h-5 mr-2" />
-                    Download App
-                  </a>
-                </Button>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-6 mt-12 pt-12 border-t border-white/10">
-                <div>
-                  <div className="text-3xl font-bold text-emerald-500 mb-1">2</div>
-                  <div className="text-xs text-white/50">Scripts Native</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-emerald-500 mb-1">130+</div>
-                  <div className="text-xs text-white/50">Live Themes</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-emerald-500 mb-1">0</div>
-                  <div className="text-xs text-white/50">Data Sent</div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Right: Interactive Translation Demo */}
-            <motion.div
-              initial={{ x: 50, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="relative"
-            >
-              <div className="relative bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 p-8 overflow-hidden">
-                {/* Animated gradient orb */}
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl animate-pulse" />
-
-                <div className="relative space-y-6">
-                  {/* English Input */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                        <span className="text-sm font-bold">EN</span>
-                      </div>
-                      <span className="text-sm font-medium text-white/60">English</span>
-                    </div>
-                    <div className="bg-white/5 rounded-xl p-4 border border-white/10 min-h-[4rem] flex items-center">
-                      <p className="text-lg font-mono">
-                        {typingText}
-                        <motion.span
-                          animate={{ opacity: [1, 0] }}
-                          transition={{ repeat: Infinity, duration: 0.8 }}
-                          className="inline-block w-0.5 h-5 bg-emerald-500 ml-0.5"
-                        />
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Translation Arrow */}
-                  <div className="flex justify-center">
-                    <motion.div
-                      animate={{ y: [0, 5, 0] }}
-                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                      className="flex flex-col items-center gap-2"
-                    >
-                      <Sparkles className="w-6 h-6 text-amber-500" />
-                      <div className="h-8 w-px bg-gradient-to-b from-amber-500 to-transparent" />
-                      <span className="text-xs text-amber-400 font-medium">AI Translation</span>
-                    </motion.div>
-                  </div>
-
-                  {/* Amharic Output */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                        <span className="text-sm font-bold">አማ</span>
-                      </div>
-                      <span className="text-sm font-medium text-white/60">Amharic</span>
-                    </div>
-                    <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20 min-h-[4rem] flex items-center">
-                      <motion.p
-                        key={activeTranslation}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-lg font-mono"
-                      >
-                        {TRANSLATION_PAIRS[activeTranslation].amFull}
-                      </motion.p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating indicator */}
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                className="absolute -bottom-4 -right-4 bg-amber-500 text-black px-4 py-2 rounded-full text-xs font-bold shadow-lg shadow-amber-500/50"
-              >
-                <Zap className="w-3 h-3 inline mr-1" />
-                Instant
-              </motion.div>
-            </motion.div>
+      <div className="grid items-center gap-12 lg:grid-cols-[1.3fr_1fr] lg:gap-8" id="top">
+        <div>
+          <h1 className="land-display" style={{ fontSize: 'clamp(2.5rem, 7.6vw, 5.8rem)', fontStretch: '66%', textWrap: 'nowrap' }}>
+            One keyboard.
+            <br />
+            <span style={{ color: 'var(--yellow)' }}>Both languages.</span>
+            <br />
+            No compromise.
+          </h1>
+          <p className="land-lede" style={{ marginTop: 'clamp(20px, 3vw, 32px)' }}>
+            Native Ge&apos;ez script and English QWERTY, with AI translation built into the typing surface. Made for
+            Ethiopia&apos;s bilingual reality.
+          </p>
+          <div className="flex flex-wrap gap-3" style={{ marginTop: 32 }}>
+            <a href={APK} download className="land-btn land-btn--primary">
+              <Download size={20} aria-hidden="true" /> Download for Android
+            </a>
+            <a href="#try" className="land-btn land-btn--ghost">
+              Try it here <ArrowDown size={20} aria-hidden="true" />
+            </a>
           </div>
         </div>
-      </motion.section>
 
-      {/* Features Section */}
-      <section ref={featuresRef} className="relative py-32 px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/5 to-transparent" />
+        {/* The pair: one sentence, two scripts, equal weight. */}
+        <div className="relative mx-auto w-full max-w-[520px]" style={{ paddingBottom: 40 }}>
+          <p className="sr-only">
+            Example: &quot;{pair.en}&quot; becomes &quot;{pair.am}&quot;.
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:gap-5" aria-hidden="true">
+            <div className="land-stamp-shadow" style={{ transform: 'rotate(-3deg)' }}>
+              <div className="land-stamp">
+                <div
+                  className="land-stamp__art flex flex-col justify-between"
+                  style={{ background: 'var(--green)', color: '#fff', minHeight: 'clamp(220px, 34vw, 300px)', padding: 14 }}
+                >
+                  <span className="land-stamp__cap">English · QWERTY</span>
+                  <p className="land-display" style={{ fontSize: 'clamp(1.5rem, 4.2vw, 2.3rem)', fontStretch: '80%', lineHeight: 1 }}>
+                    {typed}
+                    <span className="land-caret" />
+                  </p>
+                </div>
+                <div className="flex items-end justify-between" style={{ marginTop: 10 }}>
+                  <span className="land-stamp__cap">Ethiopia</span>
+                  <span className="land-stamp__val" style={{ fontSize: '1.9rem' }}>EN</span>
+                </div>
+              </div>
+            </div>
+            <div className="land-stamp-shadow" style={{ transform: 'rotate(2.5deg) translateY(18px)' }}>
+              <div className="land-stamp">
+                <div
+                  className="land-stamp__art flex flex-col justify-between"
+                  style={{ background: 'var(--yellow)', color: 'var(--print)', minHeight: 'clamp(220px, 34vw, 300px)', padding: 14 }}
+                >
+                  <span className="land-stamp__cap">አማርኛ · ግዕዝ</span>
+                  <p
+                    className="land-geez"
+                    style={{
+                      fontSize: 'clamp(1.6rem, 4.6vw, 2.5rem)',
+                      lineHeight: 1.15,
+                      opacity: sent ? 1 : 0.18,
+                      transition: 'opacity 300ms var(--ease)',
+                    }}
+                  >
+                    {sent ? pair.am : '· · ·'}
+                  </p>
+                </div>
+                <div className="flex items-end justify-between" style={{ marginTop: 10 }}>
+                  <span className="land-stamp__cap">ኢትዮጵያ</span>
+                  <span className="land-stamp__val land-geez" style={{ fontSize: '1.9rem', fontStretch: '100%' }}>አማ</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2" style={{ marginLeft: 6 }}>
+            {sent && <Postmark n={mark} size={150} />}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-        <div className="relative z-10 max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={featuresInView ? { opacity: 1, y: 0 } : {}}
-            className="text-center mb-20"
-          >
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Built for bilingual speed
+function Fidel() {
+  const [pick, setPick] = useState('ሀ');
+  return (
+    <section style={{ background: 'var(--ink-soft)' }}>
+      <div className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
+        <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+          <div>
+            <h2 className="land-display land-h2">
+              Every fidel.
+              <br />
+              <span style={{ color: 'var(--yellow)' }}>All seven forms.</span>
             </h2>
-            <p className="text-lg text-white/60 max-w-2xl mx-auto">
-              Everything you need to type faster in both languages. No app switching.
+            <p className="land-lede" style={{ marginTop: 24 }}>
+              The complete Ge&apos;ez script, each consonant with its vowel forms, typed natively. Amharic is not a
+              layer on top of an English keyboard here. Pick a letter and see its family.
             </p>
-          </motion.div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map((feature, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                animate={featuresInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ delay: i * 0.1 }}
-                className="group relative bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-emerald-500/30 transition-all duration-300"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 to-emerald-500/0 group-hover:from-emerald-500/5 group-hover:to-emerald-500/0 rounded-2xl transition-all duration-300" />
-
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:bg-emerald-500/20 transition-colors">
-                    <feature.icon className="w-7 h-7 text-emerald-500" />
+            <div role="group" aria-label="Choose a consonant" className="flex flex-wrap gap-2" style={{ marginTop: 28 }}>
+              {Object.keys(FIDEL).map((c) => (
+                <button key={c} type="button" className="land-chip" aria-pressed={pick === c} onClick={() => setPick(c)}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7" key={pick}>
+            {FIDEL[pick].map((g, k) => (
+              <div key={k} className="land-stamp-shadow">
+                <div className="land-stamp" style={{ ['--s' as string]: '11px', ['--r' as string]: '3.5px', padding: 9 }}>
+                  <div
+                    className="land-stamp__art flex items-center justify-center"
+                    style={{
+                      aspectRatio: '4 / 5',
+                      background: k % 2 ? 'var(--green)' : 'var(--red)',
+                      color: '#fff',
+                    }}
+                  >
+                    <span className="land-geez" style={{ fontSize: 'clamp(2rem, 4.4vw, 3rem)' }}>{g}</span>
                   </div>
-
-                  <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                  <p className="text-white/60 text-sm mb-4 leading-relaxed">{feature.description}</p>
-
-                  <div className="pt-4 border-t border-white/10">
-                    <span className="text-2xl font-bold text-emerald-500">{feature.stat}</span>
+                  <div className="land-stamp__cap land-geez" style={{ marginTop: 7, textAlign: 'center', letterSpacing: '0.04em', fontSize: '0.8rem' }}>
+                    {ORDERS[k]}
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* Themes Showcase */}
-      <section ref={themesRef} className="relative py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={themesInView ? { opacity: 1, y: 0 } : {}}
-            className="text-center mb-20"
+function Stamp({
+  className = '',
+  bg,
+  fg,
+  cap,
+  val,
+  children,
+  mark,
+}: {
+  className?: string;
+  bg: string;
+  fg: string;
+  cap: string;
+  val: React.ReactNode;
+  children: React.ReactNode;
+  mark?: string;
+}) {
+  return (
+    <div className={`land-stamp-shadow ${className}`}>
+      <div className="land-stamp h-full">
+        <div className="land-stamp__art flex h-full flex-col justify-between gap-8" style={{ background: bg, color: fg, padding: 'clamp(18px, 3vw, 32px)' }}>
+          <div className="flex items-start justify-between gap-4">
+            <span className="land-stamp__cap">{cap}</span>
+            <span className="land-stamp__val" style={{ fontSize: 'clamp(2.4rem, 5vw, 3.6rem)' }}>{val}</span>
+          </div>
+          <div>{children}</div>
+        </div>
+        {mark ? <div className="land-stamp__cap" style={{ marginTop: 10 }}>{mark}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function Sheet() {
+  const h = { fontSize: 'clamp(1.9rem, 4.2vw, 3.1rem)', fontStretch: '70%' } as const;
+  const p = { marginTop: 14, maxWidth: '40ch', lineHeight: 1.5, fontSize: '1.02rem' } as const;
+  return (
+    <section className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
+      <h2 className="land-display land-h2" style={{ marginBottom: 'clamp(32px, 5vw, 56px)', maxWidth: '14ch' }}>
+        Built for <span style={{ color: 'var(--yellow)' }}>bilingual</span> speed
+      </h2>
+      <div className="grid gap-5 md:grid-cols-12 md:gap-7">
+        <Stamp className="md:col-span-7" bg="var(--green)" fg="#fff" cap="AI · Inline" val={<Languages size={46} aria-hidden="true" />} mark="Translation">
+          <h3 className="land-display" style={h}>Translate without leaving the keyboard</h3>
+          <p style={p}>English to Amharic and back, right where you type. No separate translator app, no copy and paste.</p>
+        </Stamp>
+        <Stamp className="md:col-span-5" bg="var(--yellow)" fg="var(--print)" cap="Canvas · AI" val={<PenLine size={46} aria-hidden="true" />} mark="Handwriting">
+          <h3 className="land-display" style={h}>Draw a letter, get the fidel</h3>
+          <p style={p}>Canvas handwriting recognition for the characters you don&apos;t want to hunt for.</p>
+        </Stamp>
+        <Stamp className="md:col-span-8" bg="var(--red)" fg="#fff" cap="Privacy" val={<ShieldCheck size={46} aria-hidden="true" />} mark="Sealed">
+          <h3 className="land-display" style={{ ...h, fontSize: 'clamp(2rem, 5vw, 3.8rem)' }}>
+            On-device. No keylogging. No data collection.
+          </h3>
+          <p style={p}>What you type is yours. That is a rule of the keyboard, not a feature on a list.</p>
+        </Stamp>
+        <Stamp className="md:col-span-4" bg="var(--ink)" fg="var(--on-ink)" cap="Stickers · GIFs" val={<Smile size={46} aria-hidden="true" />} mark="Expression">
+          <h3 className="land-display" style={h}>Say it with a sticker</h3>
+          <p style={p}>Ethiopian collections and Giphy GIFs, inside the keyboard.</p>
+        </Stamp>
+      </div>
+    </section>
+  );
+}
+
+function Themes() {
+  return (
+    <section style={{ background: 'var(--ink-soft)' }}>
+      <div className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
+        <div className="flex flex-wrap items-end justify-between gap-6" style={{ marginBottom: 'clamp(32px, 5vw, 56px)' }}>
+          <h2 className="land-display land-h2">
+            Themes that <span style={{ color: 'var(--yellow)' }}>move</span>
+          </h2>
+          <p className="land-lede" style={{ maxWidth: '38ch' }}>
+            Live-animated backgrounds, Ethiopian themes and club colors. Your keyboard, collected like stamps.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-6">
+          {THEMES.map((t, k) => (
+            <div key={t.name} className="land-stamp-shadow" style={{ transform: `rotate(${[-1.2, 0.8, -0.5, 1.1][k % 4]}deg)` }}>
+              <div className="land-stamp" style={{ padding: 10 }}>
+                <div className="land-stamp__art" style={{ aspectRatio: '3 / 4' }}>
+                  <Image src={t.src} alt={`${t.name} theme preview`} fill sizes="(max-width: 768px) 46vw, 22vw" className="object-cover" />
+                </div>
+                <div className="flex items-baseline justify-between" style={{ marginTop: 8 }}>
+                  <span className="land-display" style={{ fontSize: '1.05rem', fontStretch: '85%' }}>{t.name}</span>
+                  <span
+                    className="land-stamp__cap"
+                    style={t.tag === 'Live' ? { color: 'var(--red)', fontWeight: 700 } : undefined}
+                  >
+                    {t.tag}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Try() {
+  return (
+    <section id="try" className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
+      <div className="grid items-center gap-12 lg:grid-cols-[1fr_auto] lg:gap-24">
+        <div>
+          <h2 className="land-display land-h2">
+            Type a line <span style={{ color: 'var(--yellow)' }}>home</span>
+          </h2>
+          <p className="land-lede" style={{ marginTop: 24 }}>
+            This is the real keyboard layout running in your browser. Switch between English and Amharic, tap a
+            consonant for its vowel forms, and try the translate button.
+          </p>
+          <a href={APK} download className="land-btn land-btn--primary" style={{ marginTop: 32 }}>
+            <Download size={20} aria-hidden="true" /> Download for Android
+          </a>
+        </div>
+        <div className="land-phone" style={{ maxWidth: "calc(100vw - 32px)" }}>
+          <div className="land-phone__screen">
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center" style={{ color: 'var(--print)' }}>
+                  <span className="land-stamp__cap">Loading keyboard…</span>
+                </div>
+              }
+            >
+              <DemoKeyboard />
+            </Suspense>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Close() {
+  return (
+    <section className="land-wrap" style={{ paddingBlock: 'clamp(32px, 6vw, 80px) clamp(64px, 9vw, 120px)' }}>
+      <div className="land-stamp-shadow">
+        <div className="land-stamp" style={{ padding: 'clamp(14px, 2.4vw, 24px)', ['--s' as string]: '18px', ['--r' as string]: '6px' }}>
+          <div
+            className="land-stamp__art flex flex-col items-start justify-between gap-10 md:flex-row md:items-end"
+            style={{ background: 'var(--green)', color: '#fff', padding: 'clamp(24px, 5vw, 64px)' }}
           >
-            <h2 className="text-4xl sm:text-5xl font-bold mb-4">
-              Themes that move
+            <h2 className="land-display" style={{ fontSize: 'clamp(3rem, 9vw, 7rem)', fontStretch: '66%' }}>
+              Stop compromising.
+              <br />
+              Start typing.
             </h2>
-            <p className="text-lg text-white/60 max-w-2xl mx-auto">
-              Live-animated backgrounds, not static screenshots. Your keyboard, your style.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {THEME_SHOWCASE.map((theme, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={themesInView ? { opacity: 1, scale: 1 } : {}}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ scale: 1.05, y: -5 }}
-                className="group relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer"
-              >
-                <Image
-                  src={theme.image}
-                  alt={theme.name}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 33vw"
-                  className="object-cover"
-                  loading={i < 3 ? "eager" : "lazy"}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold">{theme.name}</span>
-                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${theme.color}`} />
-                  </div>
-                </div>
-
-                <div className="absolute inset-0 border-2 border-emerald-500/0 group-hover:border-emerald-500/50 rounded-2xl transition-all duration-300" />
-              </motion.div>
-            ))}
+            <a href={APK} download className="land-btn land-btn--primary shrink-0">
+              <Download size={20} aria-hidden="true" /> Download for Android
+            </a>
           </div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={themesInView ? { opacity: 1 } : {}}
-            transition={{ delay: 0.8 }}
-            className="text-center mt-12"
-          >
-            <Button
-              onClick={() => setShowDemo(true)}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/5"
-            >
-              Explore All Themes
-              <ChevronRight className="w-4 h-4 ml-2" />
-            </Button>
-          </motion.div>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* Phone Mockup Section */}
-      <section className="relative py-32 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="relative"
-          >
-            {/* Glow effect */}
-            <div className="absolute -inset-20 bg-emerald-500/20 rounded-full blur-3xl" />
-
-            {/* Phone frame */}
-            <div className="relative w-[340px] mx-auto bg-gradient-to-b from-zinc-700 to-zinc-900 rounded-[2.5rem] p-3 shadow-2xl border border-zinc-600/50">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-3xl z-10" />
-
-              <div className="relative bg-white rounded-[2rem] overflow-hidden" style={{ height: '640px' }}>
-                <Suspense fallback={
-                  <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-slate-600 text-sm">Loading keyboard...</p>
-                    </div>
-                  </div>
-                }>
-                  <DemoKeyboard />
-                </Suspense>
-              </div>
-
-              <div className="flex justify-center py-2">
-                <div className="w-32 h-1 rounded-full bg-zinc-600" />
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="relative py-32 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="relative bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-3xl p-12 sm:p-16 overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-
-            <div className="relative">
-              <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-                Stop compromising.
-                <br />
-                Start typing.
-              </h2>
-              <p className="text-lg text-white/90 mb-10 max-w-2xl mx-auto">
-                Join bilingual users who type faster and translate smarter with AkAI.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-white text-emerald-700 hover:bg-white/90 font-semibold h-14 px-8 text-base"
-                >
-                  <a href="/AkAI-keyboard.apk" download>
-                    <Download className="w-5 h-5 mr-2" />
-                    Download for Android
-                  </a>
-                </Button>
-                <Button
-                  onClick={() => setShowDemo(true)}
-                  size="lg"
-                  variant="outline"
-                  className="border-white/30 text-white hover:bg-white/10 h-14 px-8 text-base"
-                >
-                  <Play className="w-5 h-5 mr-2" />
-                  Try Demo First
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Interactive Demo Modal */}
-      <AnimatePresence>
-        {showDemo && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowDemo(false)}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[rgb(18,18,20)] rounded-3xl border border-white/10 overflow-hidden max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-            >
-              <div className="sticky top-0 bg-[rgb(18,18,20)]/95 backdrop-blur-xl border-b border-white/10 p-6 flex items-center justify-between z-10">
-                <div>
-                  <h3 className="text-2xl font-bold">Interactive Demo</h3>
-                  <p className="text-sm text-white/60 mt-1">Try the AkAI keyboard right here</p>
-                </div>
-                <Button
-                  onClick={() => setShowDemo(false)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white/60 hover:text-white"
-                >
-                  Close
-                </Button>
-              </div>
-
-              <div className="p-6">
-                <div className="bg-gradient-to-br from-white/5 to-white/[0.02] rounded-2xl border border-white/10 overflow-hidden">
-                  <div style={{ height: '600px' }}>
-                    <Suspense fallback={
-                      <div className="h-full flex items-center justify-center bg-gradient-to-br from-[rgb(18,18,20)] to-[rgb(25,25,28)]">
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                          <p className="text-white/60 text-sm">Loading demo keyboard...</p>
-                        </div>
-                      </div>
-                    }>
-                      <DemoKeyboard />
-                    </Suspense>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Footer */}
-      <footer className="border-t border-white/10 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <Image src="/akai-icon.png" alt="AkAI" width={40} height={40} className="rounded-lg" />
-                <div>
-                  <h4 className="font-bold">AkAI</h4>
-                  <p className="text-xs text-white/40">Keyboard</p>
-                </div>
-              </div>
-              <p className="text-sm text-white/60 max-w-xs">
-                The smartest bilingual keyboard for English and Amharic.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-3 text-sm">Features</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>AI Translation</li>
-                <li>Handwriting Input</li>
-                <li>Live Themes</li>
-                <li>Privacy First</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-3 text-sm">Languages</h4>
-              <ul className="space-y-2 text-sm text-white/60">
-                <li>English (QWERTY)</li>
-                <li>Amharic (Ge'ez)</li>
-                <li>Ethiopian Numbers</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-3 text-sm">Download</h4>
-              <Button
-                asChild
-                className="bg-emerald-500 hover:bg-emerald-600 text-white w-full"
-              >
-                <a href="/AkAI-keyboard.apk" download>
-                  <Download className="w-4 h-4 mr-2" />
-                  Android APK
-                </a>
-              </Button>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-white/40">
-            <p>&copy; 2026 AkAI Keyboard. All rights reserved.</p>
-            <div className="flex items-center gap-6">
-              <span className="flex items-center gap-2">
-                <Globe className="w-4 h-4" />
-                English & Amharic
-              </span>
-              <span className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                Privacy First
-              </span>
-            </div>
-          </div>
+export default function Home() {
+  return (
+    <main className="land">
+      <div className="land-chevron" aria-hidden="true" />
+      <Hero />
+      <Fidel />
+      <Sheet />
+      <Themes />
+      <Try />
+      <Close />
+      <footer>
+        <div className="land-chevron" aria-hidden="true" />
+        <div className="land-wrap flex flex-wrap items-center justify-between gap-4" style={{ paddingBlock: 28 }}>
+          <span className="land-display" style={{ fontSize: '1.5rem', fontStretch: '100%' }}>AkAI</span>
+          <span style={{ color: 'var(--on-ink-dim)', fontSize: '0.9rem' }}>
+            English &amp; Amharic keyboard · Privacy first · &copy; 2026 AkAI
+          </span>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }

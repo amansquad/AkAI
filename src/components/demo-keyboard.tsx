@@ -9,8 +9,8 @@ import { AMHARIC_ROWS as SHARED_AMHARIC_ROWS, AMHARIC_VOWELS } from '@/component
   DEMO KEYBOARD — Premium interactive showcase
 
   Design principles:
-  - Emerald green accents (Ethiopian Airlines signature)
-  - Smooth glassmorphism effects
+  - Stamp-yellow accents on ultramarine ink, matching the landing page
+  - Flat, stamp-like surfaces
   - Purposeful animations and hover states
   - Clear visual hierarchy
   - Both English and Amharic native support
@@ -113,7 +113,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => handleKeyPress(key)}
-          className="flex items-center justify-center h-12 px-3 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-emerald-500/40 transition-all shadow-lg backdrop-blur-sm"
+          className="flex items-center justify-center h-12 px-3 rounded-md bg-white/10 border border-white/10 hover:border-yellow-400/40 transition-all shadow-lg"
         >
           <Delete className="w-4 h-4 text-white/80" />
         </motion.button>
@@ -127,10 +127,10 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setShift(!shift)}
-          className={`flex items-center justify-center h-12 px-4 rounded-xl border transition-all shadow-lg backdrop-blur-sm ${
+          className={`flex items-center justify-center h-12 px-4 rounded-md border transition-all shadow-lg ${
             shift
-              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-              : 'bg-gradient-to-br from-white/10 to-white/5 border-white/10 hover:border-emerald-500/40 text-white/80'
+              ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300'
+              : 'bg-white/10 border-white/10 hover:border-yellow-400/40 text-white/80'
           }`}
         >
           <span className="text-xs font-bold">⇧</span>
@@ -144,10 +144,10 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
         whileHover={{ scale: 1.08, y: -2 }}
         whileTap={{ scale: 0.92 }}
         onClick={() => language === 'amharic' ? handleAmharicPress(key) : handleKeyPress(key)}
-        className={`flex-1 flex items-center justify-center h-12 rounded-xl border transition-all shadow-lg backdrop-blur-sm font-medium ${
+        className={`flex-1 flex items-center justify-center h-12 rounded-md border transition-all shadow-lg font-medium ${
           selectedConsonant === key
-            ? 'bg-emerald-500/30 border-emerald-500/60 text-white ring-2 ring-emerald-500/50'
-            : 'bg-gradient-to-br from-white/10 to-white/5 border-white/10 hover:border-emerald-500/40 text-white/90 hover:text-white hover:bg-white/15'
+            ? 'bg-yellow-400/30 border-yellow-400/60 text-white ring-2 ring-yellow-400/50'
+            : 'bg-white/10 border-white/10 hover:border-yellow-400/40 text-white/90 hover:text-white hover:bg-white/15'
         }`}
       >
         {shift && language === 'english' ? key.toUpperCase() : key}
@@ -156,19 +156,19 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
   };
 
   return (
-    <div className="h-full bg-gradient-to-br from-[rgb(18,18,20)] via-[rgb(25,25,28)] to-[rgb(18,18,20)] flex flex-col relative overflow-hidden">
+    <div className="h-full bg-[oklch(0.2_0.1_268)] flex flex-col relative overflow-hidden">
       {/* Background effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(16,185,129,0.1),transparent_50%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(250,204,21,0.10),transparent_50%)] pointer-events-none" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none" />
 
       {/* Text Display Area */}
       <div className="flex-1 p-6 relative z-10 flex flex-col">
-        <div className="bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-xl rounded-2xl border border-white/10 p-6 flex-1 flex flex-col shadow-2xl">
+        <div className="bg-white/10 rounded-lg border border-white/10 p-6 flex-1 flex flex-col shadow-2xl">
           {/* Header */}
           <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <Languages className="w-5 h-5 text-emerald-500" />
+              <div className="w-10 h-10 rounded-md bg-yellow-400/10 flex items-center justify-center">
+                <Languages className="w-5 h-5 text-yellow-400" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">
@@ -180,7 +180,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
 
             <button
               onClick={toggleLanguage}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all text-xs font-medium text-emerald-400"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-yellow-400/10 hover:bg-yellow-400/20 border border-yellow-400/20 transition-all text-xs font-medium text-yellow-300"
             >
               <Globe className="w-3.5 h-3.5" />
               Switch
@@ -204,10 +204,10 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
                 className="mt-4 pt-4 border-t border-white/10"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span className="text-xs font-medium text-amber-400">AI Translation</span>
+                  <Sparkles className="w-4 h-4 text-green-400" />
+                  <span className="text-xs font-medium text-green-300">AI Translation</span>
                 </div>
-                <div className="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
+                <div className="bg-yellow-400/10 rounded-md p-4 border border-yellow-400/20">
                   {isTranslating ? (
                     <div className="flex items-center gap-2 text-white/60">
                       <motion.div
@@ -234,7 +234,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setText(prev => prev + (prev ? ' ' : '') + suggestion)}
-                className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/30 text-sm text-white/80 hover:text-white whitespace-nowrap transition-all"
+                className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-400/30 text-sm text-white/80 hover:text-white whitespace-nowrap transition-all"
               >
                 {suggestion}
               </motion.button>
@@ -252,7 +252,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
             exit={{ opacity: 0, y: 20 }}
             className="px-6 pb-2"
           >
-            <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 backdrop-blur-xl rounded-xl border border-emerald-500/30 p-3 shadow-2xl">
+            <div className="bg-yellow-400/15 rounded-md border border-yellow-400/30 p-3 shadow-2xl">
               <div className="flex gap-2 overflow-x-auto">
                 {(AMHARIC_VOWELS[selectedConsonant] ?? []).map((vowel, i) => (
                   <motion.button
@@ -260,7 +260,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
                     whileHover={{ scale: 1.1, y: -2 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => handleVowelSelect(vowel)}
-                    className="flex-shrink-0 w-12 h-12 rounded-lg bg-white/10 hover:bg-white/20 border border-emerald-500/30 hover:border-emerald-500/60 flex items-center justify-center text-white font-medium transition-all"
+                    className="flex-shrink-0 w-12 h-12 rounded-lg bg-white/10 hover:bg-white/20 border border-yellow-400/30 hover:border-yellow-400/60 flex items-center justify-center text-white font-medium transition-all"
                   >
                     {vowel}
                   </motion.button>
@@ -273,7 +273,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
 
       {/* Keyboard */}
       <div className="px-6 pb-6 relative z-10">
-        <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.03] backdrop-blur-2xl rounded-2xl border border-white/10 p-4 shadow-2xl">
+        <div className="bg-white/[0.06] rounded-lg border border-white/10 p-4 shadow-2xl">
           {/* Keyboard rows */}
           <div className="space-y-2 mb-3">
             {currentRows.map((row, rowIndex) => (
@@ -289,7 +289,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setText('')}
-              className="h-12 px-4 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-red-500/40 text-white/80 hover:text-red-400 transition-all shadow-lg backdrop-blur-sm flex items-center gap-2 text-sm font-medium"
+              className="h-12 px-4 rounded-md bg-white/10 border border-white/10 hover:border-red-500/40 text-white/80 hover:text-red-400 transition-all shadow-lg flex items-center gap-2 text-sm font-medium"
             >
               Clear
             </motion.button>
@@ -298,7 +298,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => handleKeyPress('space')}
-              className="flex-1 h-12 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-emerald-500/40 text-white/60 hover:text-white/90 transition-all shadow-lg backdrop-blur-sm text-sm font-medium"
+              className="flex-1 h-12 rounded-md bg-white/10 border border-white/10 hover:border-yellow-400/40 text-white/60 hover:text-white/90 transition-all shadow-lg text-sm font-medium"
             >
               Space
             </motion.button>
@@ -308,7 +308,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
               whileTap={{ scale: 0.95 }}
               onClick={handleTranslate}
               disabled={!text || isTranslating}
-              className="h-12 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-semibold"
+              className="h-12 px-5 rounded-md bg-yellow-400 hover:bg-yellow-300 text-[#10104a] transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-semibold"
             >
               <Sparkles className="w-4 h-4" />
               AI Translate
@@ -318,7 +318,7 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleKeyPress('enter')}
-              className="h-12 px-4 rounded-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 hover:border-emerald-500/40 transition-all shadow-lg backdrop-blur-sm flex items-center"
+              className="h-12 px-4 rounded-md bg-white/10 border border-white/10 hover:border-yellow-400/40 transition-all shadow-lg flex items-center"
             >
               <CornerDownLeft className="w-4 h-4 text-white/80" />
             </motion.button>
@@ -331,10 +331,10 @@ export default function DemoKeyboard({ onTextChange }: DemoKeyboardProps) {
         <motion.div
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ repeat: Infinity, duration: 2 }}
-          className="px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 backdrop-blur-xl flex items-center gap-2"
+          className="px-3 py-1.5 rounded-full bg-yellow-400/20 border border-yellow-400/30 flex items-center gap-2"
         >
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-xs font-medium text-emerald-400">Live</span>
+          <div className="w-2 h-2 rounded-full bg-yellow-400" />
+          <span className="text-xs font-medium text-yellow-300">Live</span>
         </motion.div>
       </div>
     </div>

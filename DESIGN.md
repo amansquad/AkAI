@@ -1,295 +1,160 @@
-# Design System
+---
+name: AkAI
+description: A bilingual Amharic/English keyboard, presented as a letter home on an airmail sheet of perforated stamps.
+colors:
+  ultramarine-ink: "oklch(0.27 0.13 268)"
+  ultramarine-deep: "oklch(0.2 0.1 268)"
+  ultramarine-lifted: "oklch(0.36 0.15 268)"
+  stamp-paper: "oklch(0.965 0.02 95)"
+  print-ink: "oklch(0.22 0.06 268)"
+  highland-green: "oklch(0.52 0.14 152)"
+  teff-yellow: "oklch(0.86 0.17 92)"
+  signal-red: "oklch(0.58 0.21 27)"
+  on-ink: "oklch(0.96 0.015 95)"
+  on-ink-dim: "oklch(0.84 0.04 265)"
+typography:
+  display:
+    fontFamily: "Archivo, 'Arial Narrow', sans-serif"
+    fontSize: "clamp(2.5rem, 7.6vw, 5.8rem)"
+    fontWeight: 800
+    lineHeight: 0.88
+    letterSpacing: "-0.015em"
+  geez:
+    fontFamily: "Noto Serif Ethiopic, serif"
+    fontWeight: 700
+    lineHeight: 1.15
+  body:
+    fontFamily: "Geist, system-ui, sans-serif"
+    fontSize: "1.05rem"
+    fontWeight: 400
+    lineHeight: 1.55
+  label:
+    fontFamily: "Geist Mono, ui-monospace, monospace"
+    fontSize: "0.68rem"
+    fontWeight: 400
+    letterSpacing: "0.14em"
+rounded:
+  button: "4px"
+  phone: "38px"
+spacing:
+  gutter: "16px"
+  section: "clamp(64px, 9vw, 120px)"
+components:
+  button-primary:
+    backgroundColor: "{colors.teff-yellow}"
+    textColor: "{colors.print-ink}"
+    rounded: "{rounded.button}"
+    height: "56px"
+    padding: "0 1.6rem"
+  button-ghost:
+    backgroundColor: "transparent"
+    textColor: "{colors.on-ink}"
+    rounded: "{rounded.button}"
+    height: "56px"
+  stamp:
+    backgroundColor: "{colors.stamp-paper}"
+    textColor: "{colors.print-ink}"
+    padding: "14px"
+---
 
-<!-- impeccable:design-schema 1 -->
+# Design System: AkAI
 
-## Visual World
+## Overview
 
-**Ethiopian Airlines Confidence** — AkAI as Ethiopia's keyboard export. The same design confidence that made Ethiopian Airlines globally recognizable, applied to software that treats both scripts as equals from day one.
+**Creative North Star: "The Letter Home"**
 
-## Palette
+AkAI is for people who write in two scripts and often to someone far away. The landing world is an airmail sheet: a drenched ultramarine ground, a red/white/blue chevron border, and perforated postage stamps printed in the flag inks. English and Amharic are always set as equal stamps, never as a language and its translation. The one authoritative mark is a dark circular postmark, which is how translation is shown happening.
 
-**Ground:**
-- Deep charcoal: `rgb(18, 18, 20)` — near-black background, the stage for content
-- Subtle overlays: `white/5`, `white/10` for cards and surfaces
-- Gradients: emerald washes at 5% opacity for depth
+The page is bold and flat. Depth comes from overlap, tilt, and soft drop shadows under stamps, never from glass, glow, or gradient. Colour commits at page scale: whole bands and whole stamps are one ink.
 
-**Primary (Emerald):**
-- Main: `rgb(16, 185, 129)` / `emerald-500` — Ethiopian Airlines signature green
-- Hover: `rgb(5, 150, 105)` / `emerald-600`
-- Accent: emerald at 10% for surfaces, 20% for glows
+**Key Characteristics:**
+- Ultramarine ground carries the whole page; stamps are the only light objects on it.
+- Both scripts at identical weight and size.
+- Every container is either a stamp or a bare band; there are no generic cards.
+- One authored motion: the postmark dropping on the stamp pair.
 
-**Secondary (Gold):**
-- Accent: `rgb(251, 191, 36)` / `amber-500` — warm gold for AI/premium features
-- Used sparingly: AI indicators, premium badges, "instant" callouts
+## Colors
 
-**Text:**
-- Primary: `white` — high contrast on dark ground
-- Secondary: `white/60` — body text, descriptions
-- Tertiary: `white/40` — labels, metadata
-- On emerald: `white` for maximum contrast
+Drenched ultramarine with three flag inks on cream stamp paper.
 
-**Borders:**
-- Subtle: `white/10` — default card borders
-- Interactive: `white/20` — hover states
-- Emerald: `emerald-500/20` to `emerald-500/50` — active/focused states
+### Primary
+- **Ultramarine Ink** (oklch(0.27 0.13 268)): the page ground. **Ultramarine Lifted** (oklch(0.36 0.15 268)) alternates as a band background (fidel and themes sections). **Ultramarine Deep** (oklch(0.2 0.1 268)): phone bezel, postmark, demo keyboard ground.
+- **Teff Yellow** (oklch(0.86 0.17 92)): the action colour. Primary buttons, headline emphasis, selected chips.
+
+### Secondary
+- **Highland Green** (oklch(0.52 0.14 152)) and **Signal Red** (oklch(0.58 0.21 27)): stamp print fields, alternating. Text on them is white.
+
+### Neutral
+- **Stamp Paper** (oklch(0.965 0.02 95)): stamp surface and chevron stripes only. **Print Ink** (oklch(0.22 0.06 268)): text on paper and on yellow. **On-Ink** (oklch(0.96 0.015 95)) and **On-Ink Dim** (oklch(0.84 0.04 265)): text on the ground.
+
+### Named Rules
+**The Flag-Ink Rule.** Green, yellow, and red appear only as stamp print fields or the yellow action colour, never as a tinted wash, glow, or gradient.
+
+**The Yellow-Means-Act Rule.** Yellow marks things to press or choose; do not use it as decoration beyond one emphasised phrase per headline.
 
 ## Typography
 
-**Font Stack:**
-```css
-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
-```
-Clean geometric sans. System fonts ensure instant load and native feel on every platform.
+**Display Font:** Archivo (width axis, set condensed to about 66–72%)
+**Body Font:** Geist
+**Ge'ez Font:** Noto Serif Ethiopic for display Ge'ez, Noto Sans Ethiopic in UI text
+**Label Font:** Geist Mono, for stamp inscriptions only
 
-**Scale:**
-- Display (hero): `text-5xl` (48px) → `text-7xl` (72px) on desktop
-- Heading: `text-4xl` (36px) → `text-5xl` (48px)
-- Subheading: `text-xl` (20px) → `text-2xl` (24px)
-- Body: `text-base` (16px) → `text-lg` (18px)
-- Small: `text-sm` (14px)
-- Metadata: `text-xs` (12px)
+**Character:** Tall condensed capitals read like stamp denominations; the engraved serif Ge'ez holds its own beside them.
 
-**Tracking:**
-- Display text: `tracking-tight` (-0.025em) — confident, no letterspacing gaps
-- Uppercase labels: `tracking-widest` (0.1em) — "KEYBOARD", "AI TRANSLATION"
+### Hierarchy
+- **Display** (800, clamp(2.5rem, 7.6vw, 5.8rem), 0.88): hero headline, uppercase, nowrap lines.
+- **Headline** (800, clamp(2.6rem, 7vw, 5.2rem), 0.88): section titles.
+- **Stamp title** (800, clamp(1.9rem, 4.2vw, 3.1rem), width 70%): feature stamps.
+- **Body** (400, 1.05–1.25rem, 1.55): 54ch maximum; dim ink colour.
+- **Label** (400, 0.68rem, 0.14em, uppercase): stamp captions such as language and category.
 
-**Weight:**
-- Bold: `font-bold` (700) — headlines, stats, CTAs
-- Semibold: `font-semibold` (600) — subheadings, labels
-- Medium: `font-medium` (500) — interactive elements
-- Regular: (400) — body text
+### Named Rules
+**The Equal Script Rule.** English and Ge'ez appear at the same size and weight wherever both are shown. Ge'ez is never smaller, dimmer, or captioned as secondary.
 
-## Material & Depth
+## Layout
 
-**Surfaces:**
-- Cards: `bg-gradient-to-br from-white/[0.07] to-white/[0.02]` with `backdrop-blur-sm`
-- Elevated: add `border border-white/10`
-- Interactive: `hover:border-emerald-500/30` transition
+A 1240px max container with a 16px minimum gutter. Sections are full-bleed bands alternating Ultramarine Ink and Ultramarine Lifted, with `clamp(64px, 9vw, 120px)` vertical padding. The hero is a 1.3fr / 1fr split on desktop and stacks on mobile with the download button above the stamps. Feature stamps sit on a 12-column grid with unequal spans (7/5, 8/4). Theme stamps are 4 across on desktop, 2 on mobile, each tilted by about 1°.
 
-**Shadows:**
-- Soft depth: `shadow-2xl` with `shadow-black/60` for phone mockups
-- Glow effects: `blur-3xl` with emerald or amber at 20% opacity
-- Card lift: `shadow-md` on hover for interactive cards
+## Elevation & Depth
 
-**Corners:**
-- Hero elements: `rounded-3xl` (24px)
-- Cards: `rounded-2xl` (16px)
-- Buttons: `rounded-lg` (8px)
-- Pills/badges: `rounded-full`
+Flat objects lifted by overlap. Stamps carry a two-part `drop-shadow` (a 1px contact line plus a 14px/18px soft shadow in deep ultramarine). The page has no glass, blur, or glow. Hover on a stamp lifts it 6px and tilts it 1.2°.
 
-## Motion
+### Named Rules
+**The Stamp-Only Shadow Rule.** Only stamps and the phone bezel cast shadows. Bands and text never do.
 
-**Philosophy:** Confident, purposeful transitions. Motion shows engineering quality, not decoration.
+## Shapes
 
-**Timing:**
-- Fast interactions: 150ms — hover, active states
-- Smooth reveals: 300ms — card hovers, border transitions
-- Section reveals: 600-800ms — scroll-triggered animations
-- Typewriter: 50ms per character — interactive demo
-
-**Easing:**
-- Default: ease-out — deceleration feels natural
-- Spring: `type: 'spring', stiffness: 300, damping: 30` — button interactions
-- Smooth: `ease: 'easeInOut'` — floating elements, pulse effects
-
-**Patterns:**
-- Scroll-parallax: hero moves at 0.3x scroll speed, fades at 0.25 viewport
-- Stagger: features reveal with 100ms delay per item
-- Pulse: 1.5-3s infinite loops for live indicators
-- Float: `y: [0, -10, 0]` over 3s for accent elements
-
-**Prohibited:**
-- No scattered entrance effects (everything fading/sliding from same direction)
-- No motion on every section (one authored moment per page region)
-- No bouncy/elastic springs on large elements
+Stamps have a perforated edge made from four tiled half-circle masks (5px radius, 15px pitch; 3.5px/11px on small fidel stamps), an inset 1.5px keyline around the print area, and a caption row beneath. Buttons are almost square (4px). The phone bezel is the single large radius (38px). The page is framed top and bottom by a 14px red/cream/blue/cream chevron border.
 
 ## Components
 
-**Buttons:**
-- Primary CTA: emerald-500 background, white text, h-14 height, px-8 padding
-- Secondary: outline with white/20 border, hover:bg-white/5
-- Ghost: text-only, hover:bg-white/5
-- All buttons: font-semibold, rounded-lg, smooth transitions
+### Buttons
+- **Primary:** Teff Yellow, Print Ink text, Archivo uppercase 800, 56px high, 4px corners, a 2px darker-yellow underside. Hover lifts 2px; active presses to 1px.
+- **Ghost:** transparent with a 2px on-ink inset outline; hover adds an 8% white fill.
+- **Focus:** 3px yellow outline, 3px offset, on every interactive element.
 
-**Cards (Features):**
-- Gradient background: `from-white/[0.07] to-white/[0.02]`
-- Border: `border-white/10` → `hover:border-emerald-500/30`
-- Icon container: 56px square, rounded-xl, emerald-500/10 background
-- Stat display: emerald-500 color, 2xl font size, bottom section
+### Stamps
+Stamp paper, 14px padding, a print field in one flag ink, a mono caption top-left, an Archivo denomination or icon top-right, and a caption line beneath. A stamp is the only container on the page.
 
-**Interactive Demo:**
-- Split sections: English input (white/5 bg) → AI arrow (amber spark) → Amharic output (emerald-500/10 bg)
-- Typewriter cursor: 0.5px width, emerald-500, blink every 0.8s
-- Language badges: 32px square, rounded-lg, emerald/10 background
+### Postmark
+A dark circular SVG cancel with ring text ("AKAI · TRANSLATED · ትርጉም ·"), set in multiply blend. It drops from above with a 700ms exponential ease-out and settles at -14°.
 
-**Theme Cards:**
-- Aspect ratio: 4:3
-- Gradient overlay: `from-black/80 via-black/20 to-transparent`
-- Hover: scale(1.05), lift -5px, emerald-500/50 border ring
-- Color dot: 32px circle showing theme gradient
+### Chips
+52px square Ge'ez glyph buttons with a 2px outline; selected state fills yellow with Print Ink text.
 
-**Phone Mockup:**
-- Frame: zinc-700 to zinc-900 gradient, 2.5rem border radius
-- Notch: 32px width, black, rounded-b-3xl
-- Screen: white background (hardcoded light — phones don't follow visitor OS theme)
-- Glow: emerald-500/20 blur-3xl, -inset-20
+### Phone
+Deep-ultramarine bezel with a 2px light ring around a 640px screen that hosts the live demo keyboard, styled with yellow accents on ultramarine ink to match.
 
-## Layout & Spacing
+## Do's and Don'ts
 
-**Max widths:**
-- Hero content: 7xl (1280px)
-- Feature sections: 7xl (1280px)
-- CTA sections: 4xl (896px)
-- Phone mockup: 5xl (1024px)
+### Do:
+- **Do** show English and Amharic as a matched pair of stamps.
+- **Do** make the stamp the only container; vary stamp size and span rather than repeating identical cards.
+- **Do** keep reduced-motion users on static stamps: the postmark and caret animations switch off.
+- **Do** keep content visible by default; scroll animations are enhancement only.
 
-**Section padding:**
-- Vertical: py-32 (128px) on desktop, py-20 (80px) on mobile
-- Horizontal: px-4 (16px) mobile → px-6 (24px) tablet → px-8 (32px) desktop
-
-**Grid systems:**
-- Features: 4 columns on desktop, 2 on tablet, 1 on mobile, gap-6
-- Themes: 3 columns on desktop, 2 on tablet, 2 on mobile, gap-4
-- Stats: 3 columns always, gap-6
-
-**Rhythm:**
-- Tight groups: mb-2 to mb-4 for labels and paired text
-- Section separation: mb-20 between major blocks
-- Generous breathing room: sections never touch
-
-## Modes & States
-
-**Hero States:**
-- Translation auto-cycles every 4 seconds
-- Typewriter animation: 50ms per character, 500ms initial delay
-- Scroll-parallax: content moves and fades as user scrolls
-
-**Interactive States:**
-- Hover: scale(1.05) for theme cards, border color shift for feature cards
-- Active: scale(0.95) for buttons, brightness-90 for keyboard keys
-- Focus: visible focus rings (default browser) on all interactive elements
-- Loading: pulse animation on live indicator badges
-
-**Modal (Demo):**
-- Backdrop: black/80 with backdrop-blur-sm
-- Enter: scale from 0.9 to 1, opacity 0 to 1
-- Exit: reverse animation
-- Sticky header: backdrop-blur-xl, maintains context while scrolling
-
-## Responsive Behavior
-
-**Breakpoints:**
-- Mobile: < 640px (sm)
-- Tablet: 640px - 1024px (sm - lg)
-- Desktop: > 1024px (lg+)
-
-**Hero:**
-- Mobile: single column, text then demo
-- Desktop: two-column grid (text | interactive demo)
-- Headline: 48px → 72px scale
-
-**Features:**
-- Mobile: 1 column stack
-- Tablet: 2 columns
-- Desktop: 4 columns in row
-
-**Themes:**
-- Mobile/Tablet: 2 columns
-- Desktop: 3 columns
-
-**Phone Mockup:**
-- Fixed 340px width, scales down proportionally on narrow viewports
-- Centered always
-
-## Copy Voice
-
-**Headlines:** Direct, confident claims. No hedging.
-- "One keyboard. Both languages. No compromise."
-- "Stop compromising. Start typing."
-
-**Body:** Technical clarity, bilingual reality.
-- "Native Ge'ez script + English QWERTY with AI translation built into the typing surface."
-- "Made for Ethiopia's bilingual reality."
-
-**CTAs:** Action verbs, immediate value.
-- "Try Interactive Demo"
-- "Download for Android"
-- Not: "Learn more", "Get started"
-
-**Stats:** Numbers with context.
-- "2 Scripts Native" not "Dual Language"
-- "0 Data Sent" not "Private"
-
-## Patterns to Refuse
-
-**Generic SaaS defaults:**
-- ❌ Purple-cyan gradients (unless in real theme showcase)
-- ❌ "Get started" CTAs
-- ❌ Scattered fade-up entrances
-- ❌ Three-column feature grids (we use 4)
-
-**AI tells:**
-- ❌ Soft/rounded everything
-- ❌ Gradient on every surface
-- ❌ Motion on every element
-- ❌ Placeholder "Lorem ipsum" content
-
-**What we do instead:**
-- ✅ Emerald green (Ethiopian Airlines signature)
-- ✅ Confident, specific CTAs ("Try Interactive Demo", "Download App")
-- ✅ One authored scroll-parallax moment (hero only)
-- ✅ Real product content (actual translations, real theme names)
-
-## Assets
-
-**Logo:**
-- `akai-icon.png` — 512x512 app icon
-- Used: 48px in nav (desktop), 40px in footer
-
-**Theme Screenshots:**
-- Located: `/public/themes/*.png`
-- Format: actual keyboard screenshots, not mockups
-- Used: theme showcase grid at 4:3 aspect ratio
-
-**No placeholder imagery.** Every visual is real product artifact.
-
-## Surface Brief: Homepage (`src/app/page.tsx`)
-
-**Mode:** Persuade
-
-**Goal:** Drive Play Store downloads by proving bilingual is the mechanism, not a feature checkbox.
-
-**Key Proof Points:**
-1. Interactive typing demo shows both scripts live
-2. AI translation happens inline (not separate app)
-3. 20+ themes are real (screenshots shown)
-4. Privacy (0 data sent) is measurable
-
-**First Viewport:**
-- Headline + interactive translation demo side-by-side
-- Immediate CTA (Try Demo + Download)
-- Stats row (2 scripts, 20+ themes, 0 data)
-
-**Scroll Flow:**
-- Hero (proof) → Features (depth) → Themes (variety) → Phone mockup (real product) → Final CTA
-
-**Success Metric:**
-- Visitor understands "native bilingual" within 3 seconds
-- Primary action: Download APK or try demo
-
-## Technical Notes
-
-**Framework:** Next.js 16 with TypeScript, Tailwind CSS, Framer Motion
-**Theme:** Custom dark mode (hardcoded, not system-dependent for this marketing page)
-**Fonts:** System font stack (instant load, native feel)
-**Performance:** Static generation, minimal JavaScript, optimized images
-
-**Component Structure:**
-- Single-file page component (`src/app/page.tsx`)
-- Uses `KeyboardApp` component for embedded demo
-- No route splitting (marketing page is one scroll story)
-
----
-
-**Seed:** 0b120b1b (Global Tech Confidence)  
-**Last updated:** 2026-08-13  
-**Status:** Production-ready
+### Don't:
+- **Don't** return to the old emerald-on-charcoal gradient look or glassmorphism.
+- **Don't** add eyebrows or kickers above headings; the stamp's own caption is the only small label.
+- **Don't** put a coloured wash, glow, or gradient text anywhere.
+- **Don't** invent counts, ratings, or testimonials; theme and feature claims must be real.

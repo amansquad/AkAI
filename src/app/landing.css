@@ -1,0 +1,259 @@
+/* AkAI landing — the airmail stamp sheet.
+   Scoped to .land so the keyboard routes keep their own tokens. */
+
+.land {
+  --ink: oklch(0.27 0.13 268);          /* ultramarine ground */
+  --ink-deep: oklch(0.2 0.1 268);
+  --ink-soft: oklch(0.36 0.15 268);
+  --paper: oklch(0.965 0.02 95);         /* stamp paper */
+  --paper-edge: oklch(0.88 0.03 90);
+  --print: oklch(0.22 0.06 268);         /* text printed on paper */
+  --green: oklch(0.52 0.14 152);
+  --yellow: oklch(0.86 0.17 92);
+  --red: oklch(0.58 0.21 27);
+  --postmark: oklch(0.2 0.08 268);
+  --on-ink: oklch(0.96 0.015 95);
+  --on-ink-dim: oklch(0.84 0.04 265);
+
+  --f-display: var(--font-archivo), 'Arial Narrow', sans-serif;
+  --f-geez: var(--font-noto-serif-ethiopic), serif;
+  --f-geez-ui: var(--font-noto-ethiopic), sans-serif;
+  --f-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  background: var(--ink);
+  color: var(--on-ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  min-height: 100dvh;
+  overflow-x: clip;
+  position: relative;
+}
+
+.land * { box-sizing: border-box; }
+.land a { color: inherit; }
+
+/* ---------- airmail chevron border ---------- */
+.land-chevron {
+  height: 14px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--red) 0 18px,
+    var(--paper) 18px 36px,
+    oklch(0.5 0.2 262) 36px 54px,
+    var(--paper) 54px 72px
+  );
+}
+
+/* ---------- page frame ---------- */
+.land-wrap {
+  width: min(100% - 32px, 1240px);
+  margin-inline: auto;
+}
+
+/* ---------- display type ---------- */
+.land-display {
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-stretch: 72%;
+  line-height: 0.88;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  text-transform: uppercase;
+}
+.land-h2 {
+  font-size: clamp(2.6rem, 7vw, 5.2rem);
+}
+.land-lede {
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  line-height: 1.55;
+  color: var(--on-ink-dim);
+  max-width: 54ch;
+}
+.land-geez { font-family: var(--f-geez); font-weight: 700; }
+
+/* ---------- buttons ---------- */
+.land-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 56px;
+  padding: 0 1.6rem;
+  font-family: var(--f-display);
+  font-stretch: 100%;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 180ms var(--ease), background-color 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+.land-btn:focus-visible,
+.land-chip:focus-visible,
+.land-stamp-btn:focus-visible {
+  outline: 3px solid var(--yellow);
+  outline-offset: 3px;
+}
+.land-btn--primary {
+  background: var(--yellow);
+  color: var(--print);
+  box-shadow: 0 2px 0 oklch(0.62 0.15 85), 0 14px 28px -10px oklch(0.1 0.1 268 / 0.6);
+}
+.land-btn--primary:hover { transform: translateY(-2px); background: oklch(0.9 0.17 94); }
+.land-btn--primary:active { transform: translateY(1px); box-shadow: 0 0 0 oklch(0.62 0.15 85); }
+.land-btn--ghost {
+  background: transparent;
+  color: var(--on-ink);
+  box-shadow: inset 0 0 0 2px oklch(0.96 0.015 95 / 0.55);
+}
+.land-btn--ghost:hover { background: oklch(1 0 0 / 0.08); box-shadow: inset 0 0 0 2px var(--on-ink); }
+
+/* ---------- the stamp ---------- */
+.land-stamp-shadow {
+  filter: drop-shadow(0 1px 0 oklch(0.1 0.08 268 / 0.5))
+          drop-shadow(0 14px 18px oklch(0.1 0.1 268 / 0.45));
+}
+.land-stamp {
+  --r: 5px;
+  --s: 15px;
+  position: relative;
+  background: var(--paper);
+  color: var(--print);
+  padding: 14px;
+}
+/* perforated edge: four half-circle tiled masks, intersected */
+@supports (mask-composite: intersect) {
+  .land-stamp {
+    mask-image:
+      radial-gradient(circle var(--r) at 50% 0, #0000 97%, #000),
+      radial-gradient(circle var(--r) at 50% 100%, #0000 97%, #000),
+      radial-gradient(circle var(--r) at 0 50%, #0000 97%, #000),
+      radial-gradient(circle var(--r) at 100% 50%, #0000 97%, #000);
+    mask-size: var(--s) 100%, var(--s) 100%, 100% var(--s), 100% var(--s);
+    mask-position: 0 0, 0 0, 0 0, 0 0;
+    mask-repeat: round no-repeat, round no-repeat, no-repeat round, no-repeat round;
+    mask-composite: intersect;
+    -webkit-mask-image:
+      radial-gradient(circle var(--r) at 50% 0, #0000 97%, #000),
+      radial-gradient(circle var(--r) at 50% 100%, #0000 97%, #000),
+      radial-gradient(circle var(--r) at 0 50%, #0000 97%, #000),
+      radial-gradient(circle var(--r) at 100% 50%, #0000 97%, #000);
+    -webkit-mask-size: var(--s) 100%, var(--s) 100%, 100% var(--s), 100% var(--s);
+    -webkit-mask-position: 0 0, 0 0, 0 0, 0 0;
+    -webkit-mask-repeat: round no-repeat, round no-repeat, no-repeat round, no-repeat round;
+    -webkit-mask-composite: source-in;
+  }
+}
+.land-stamp__art {
+  position: relative;
+  overflow: hidden;
+  outline: 1.5px solid currentColor;
+  outline-offset: 3px;
+}
+.land-stamp__val {
+  font-family: var(--f-display);
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 0.85;
+  text-transform: uppercase;
+}
+.land-stamp__cap {
+  font-family: var(--f-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ---------- postmark ---------- */
+.land-postmark {
+  color: var(--postmark);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.land-postmark--drop { animation: pm-drop 700ms var(--ease) both; }
+@keyframes pm-drop {
+  0% { transform: translateY(-34px) scale(1.5) rotate(-24deg); opacity: 0; }
+  55% { transform: translateY(2px) scale(0.97) rotate(-12deg); opacity: 0.95; }
+  100% { transform: translateY(0) scale(1) rotate(-14deg); opacity: 0.88; }
+}
+
+/* ---------- caret ---------- */
+.land-caret {
+  display: inline-block;
+  width: 0.09em;
+  height: 1em;
+  margin-left: 0.06em;
+  vertical-align: -0.12em;
+  background: currentColor;
+  animation: land-blink 1s steps(1) infinite;
+}
+@keyframes land-blink { 50% { opacity: 0; } }
+
+/* ---------- fidel chooser ---------- */
+.land-chip {
+  min-width: 52px;
+  min-height: 52px;
+  font-family: var(--f-geez);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--on-ink);
+  background: transparent;
+  border: 2px solid oklch(0.96 0.015 95 / 0.4);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 160ms var(--ease), color 160ms var(--ease), transform 160ms var(--ease);
+}
+.land-chip:hover { transform: translateY(-2px); border-color: var(--on-ink); }
+.land-chip[aria-pressed='true'] { background: var(--yellow); color: var(--print); border-color: var(--yellow); }
+
+/* ---------- theme sheet ---------- */
+.land-stamp-btn {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  transition: transform 260ms var(--ease);
+}
+.land-stamp-btn:hover { transform: translateY(-6px) rotate(-1.2deg); }
+
+/* ---------- phone (flat ink bezel) ---------- */
+.land-phone {
+  width: min(100%, 360px);
+  min-width: 0;
+  margin-inline: auto;
+  padding: 12px;
+  background: var(--ink-deep);
+  border-radius: 38px;
+  box-shadow:
+    0 0 0 2px oklch(0.96 0.015 95 / 0.5),
+    0 30px 50px -18px oklch(0.08 0.1 268 / 0.8);
+}
+.land-phone__screen {
+  height: 640px;
+  background: #fff;
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+/* ---------- reveal (content visible by default) ---------- */
+.land-rise { animation: land-rise 800ms var(--ease) both; animation-timeline: view(); animation-range: entry 0% entry 40%; }
+@supports not (animation-timeline: view()) { .land-rise { animation: none; } }
+@keyframes land-rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+
+/* ---------- perforation rule ---------- */
+.land-perf {
+  height: 10px;
+  background: radial-gradient(circle 4px at 50% 50%, var(--ink) 98%, transparent) 0 0 / 18px 10px repeat-x var(--paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .land-postmark--drop, .land-caret, .land-rise { animation: none !important; }
+  .land-stamp-btn, .land-btn, .land-chip { transition: none; }
+}
