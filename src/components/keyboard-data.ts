@@ -1451,6 +1451,35 @@ export const AMHARIC_ROWS: string[][] = [
   ['ገ', 'ጠ', 'ጨ', 'ጰ', 'ጸ', 'ፀ', 'ፈ', 'ፐ'],
 ];
 
+// Frequency layout: most-used Amharic consonants in the top/home rows so the
+// letters typed most often need the least finger travel.
+export const AMHARIC_FREQUENCY_ROWS: string[][] = [
+  ['ነ', 'አ', 'ወ', 'ተ', 'ደ', 'ሰ', 'ለ', 'ቀ', 'መ'],
+  ['ፈ', 'የ', 'ሐ', 'ሸ', 'ቸ', 'ከ', 'ዘ', 'በ', 'ሀ'],
+  ['ኘ', 'ረ', 'ጀ', 'ዐ', 'ቨ', 'ሠ', 'ኀ', 'ፐ'],
+  ['ኸ', 'ዠ', 'ጠ', 'ጨ', 'ጰ', 'ጸ', 'ፀ', 'ገ'],
+];
+
+// Phonetic layout: consonants placed at positions that mirror their Latin
+// phonetic equivalents on a QWERTY keyboard, making the layout intuitive for
+// users who also type Amharic using romanised transliteration.
+// Row 0 (q-p): ቀ ወ ረ ተ የ ሐ ሸ ኀ ፐ
+// Row 1 (a-l): አ ሰ ደ ፈ ገ ሀ ጀ ከ ለ
+// Row 2 (z-m): ዘ ፀ ቸ ቨ በ ነ መ ሠ
+// Row 3 (extras): ዐ ዠ ኸ ጠ ጨ ጰ ጸ ኘ
+export const AMHARIC_PHONETIC_ROWS: string[][] = [
+  ['ቀ', 'ወ', 'ረ', 'ተ', 'የ', 'ሐ', 'ሸ', 'ኀ', 'ፐ'],
+  ['አ', 'ሰ', 'ደ', 'ፈ', 'ገ', 'ሀ', 'ጀ', 'ከ', 'ለ'],
+  ['ዘ', 'ፀ', 'ቸ', 'ቨ', 'በ', 'ነ', 'መ', 'ሠ'],
+  ['ዐ', 'ዠ', 'ኸ', 'ጠ', 'ጨ', 'ጰ', 'ጸ', 'ኘ'],
+];
+
+export const AMHARIC_LAYOUT_ROWS: Record<string, string[][]> = {
+  traditional: AMHARIC_ROWS,
+  frequency:   AMHARIC_FREQUENCY_ROWS,
+  phonetic:    AMHARIC_PHONETIC_ROWS,
+};
+
 export const AMHARIC_VOWELS: Record<string, string[]> = {
   'ሀ': ['ሀ', 'ሁ', 'ሂ', 'ሃ', 'ሄ', 'ህ', 'ሆ'],
   'ለ': ['ለ', 'ሉ', 'ሊ', 'ላ', 'ሌ', 'ል', 'ሎ', 'ሏ'],
@@ -1740,6 +1769,48 @@ export const ENGLISH_ROWS = [
   ['shift', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace'],
   ['symbols', 'language', 'voice', 'space', 'enter'],
 ];
+
+// Dvorak: home row (aoeui / dhtns) is the most common letters, minimising finger travel.
+// Row 1 has 10 keys (home row is 10 in Dvorak), row 2 has shift + 9 + backspace.
+export const DVORAK_ROWS = [
+  ["'", ',', '.', 'p', 'y', 'f', 'g', 'c', 'r', 'l'],
+  ['a', 'o', 'e', 'u', 'i', 'd', 'h', 't', 'n', 's'],
+  ['shift', 'z', 'v', 'q', 'j', 'k', 'x', 'b', 'm', 'w', 'backspace'],
+  ['symbols', 'language', 'voice', 'space', 'enter'],
+];
+
+// AZERTY: French layout — a/z swapped, q on home row, w on bottom.
+export const AZERTY_ROWS = [
+  ['a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+  ['q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm'],
+  ['shift', 'w', 'x', 'c', 'v', 'b', 'n', 'backspace'],
+  ['symbols', 'language', 'voice', 'space', 'enter'],
+];
+
+// Colemak: ergonomic English layout. Only 2 keys differ from QWERTY per hand.
+// Row 1 has 10 keys (o stays on top row); ';' sits where QWERTY's p is.
+export const COLEMAK_ROWS = [
+  ['q', 'w', 'f', 'p', 'g', 'j', 'l', 'u', 'y', ';'],
+  ['a', 'r', 's', 't', 'd', 'h', 'n', 'e', 'i', 'o'],
+  ['shift', 'z', 'x', 'c', 'v', 'b', 'k', 'm', 'backspace'],
+  ['symbols', 'language', 'voice', 'space', 'enter'],
+];
+
+// QWERTZ: German / Central-European layout — y and z are swapped vs QWERTY.
+export const QWERTZ_ROWS = [
+  ['q', 'w', 'e', 'r', 't', 'z', 'u', 'i', 'o', 'p'],
+  ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+  ['shift', 'y', 'x', 'c', 'v', 'b', 'n', 'm', 'backspace'],
+  ['symbols', 'language', 'voice', 'space', 'enter'],
+];
+
+export const LAYOUT_ROWS: Record<string, string[][]> = {
+  qwerty: ENGLISH_ROWS,
+  dvorak: DVORAK_ROWS,
+  azerty: AZERTY_ROWS,
+  colemak: COLEMAK_ROWS,
+  qwertz: QWERTZ_ROWS,
+};
 
 export const SYMBOL_ROWS = [
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],

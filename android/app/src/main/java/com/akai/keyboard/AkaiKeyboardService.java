@@ -217,6 +217,23 @@ public class AkaiKeyboardService extends InputMethodService {
             });
         }
 
+        /** Moves the host app's caret. dir is left, right, up or down. */
+        @JavascriptInterface
+        public void moveCursor(final String dir) {
+            final int code;
+            if ("left".equals(dir)) code = KeyEvent.KEYCODE_DPAD_LEFT;
+            else if ("right".equals(dir)) code = KeyEvent.KEYCODE_DPAD_RIGHT;
+            else if ("up".equals(dir)) code = KeyEvent.KEYCODE_DPAD_UP;
+            else if ("down".equals(dir)) code = KeyEvent.KEYCODE_DPAD_DOWN;
+            else return;
+            mainHandler.post(() -> {
+                InputConnection ic = getCurrentInputConnection();
+                if (ic == null) return;
+                ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, code));
+                ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, code));
+            });
+        }
+
         /**
          * Called by the page whenever its measured height changes, in CSS
          * pixels (which map 1:1 to dp at the WebView's default scale).
