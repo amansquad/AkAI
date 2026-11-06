@@ -89,7 +89,7 @@ public class KeyboardSettingsActivity extends Activity {
         TextView mark = new TextView(this);
         mark.setText("AkAI");
         mark.setTextSize(24);
-        mark.setTypeface(Typeface.create("sans-serif-black", Typeface.NORMAL));
+        mark.setTypeface(AkaiFonts.display(this));
         mark.setLetterSpacing(-0.02f);
         mark.setTextColor(PAPER);
         header.addView(mark);

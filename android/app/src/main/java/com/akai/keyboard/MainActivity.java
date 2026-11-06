@@ -175,7 +175,7 @@ public class MainActivity extends Activity {
         TextView title = new TextView(this);
         title.setText("AkAI");
         title.setTextSize(52);
-        title.setTypeface(Typeface.create("sans-serif-black", Typeface.NORMAL));
+        title.setTypeface(AkaiFonts.display(this));
         title.setTextColor(PAPER);
         title.setLetterSpacing(-0.02f);
         title.setGravity(Gravity.CENTER);
@@ -290,7 +290,7 @@ public class MainActivity extends Activity {
         TextView t = new TextView(this);
         t.setText(text);
         t.setTextSize(24);
-        t.setTypeface(Typeface.create("sans-serif-black", Typeface.NORMAL));
+        t.setTypeface(AkaiFonts.display(this));
         t.setTextColor(INK);
         t.setPadding(0, 0, 0, dp(8));
         panel.addView(t);
@@ -421,7 +421,7 @@ public class MainActivity extends Activity {
             paint.setColor(Color.WHITE);
             paint.setTextAlign(Paint.Align.CENTER);
             paint.setTypeface(geez ? Typeface.create(Typeface.SERIF, Typeface.BOLD)
-                    : Typeface.create("sans-serif-black", Typeface.NORMAL));
+                    : AkaiFonts.display(getContext()));
             paint.setTextSize(46 * d);
             float cy = (m + (h - m - 20 * d)) / 2f;
             c.drawText(glyph, w / 2f, cy + 16 * d, paint);
