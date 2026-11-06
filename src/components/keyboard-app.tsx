@@ -341,6 +341,12 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   // Tracks whether the spacebar was swiped this gesture (suppresses tap-to-space).
   const spaceSwipeRef = useRef<{ x: number; y: number } | null>(null);
   const spaceWasSwipedRef = useRef(false);
+  // Inside the Android keyboard, character keys type on touch-down rather than
+  // on release (as every stock keyboard does). The click that follows is then
+  // ignored, and the text from before the press is kept so that choosing a
+  // long-press alternate can replace the letter that was just typed.
+  const downHandledRef = useRef<string | null>(null);
+  const preDownTextRef = useRef<string | null>(null);
 
   // visibleButtons, toolbarStyle and keyboardSpacing used to be saved under
   // keys of their own, by effects that ran before the saved values had been
@@ -799,9 +805,13 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   const updateText = useCallback((newText: string) => {
     setText(newText);
     onTextChange?.(newText);
-    // Trigger bounce animation
-    setTextBounce(true);
-    setTimeout(() => setTextBounce(false), 300);
+    // Bounce animation for the text preview. The Android keyboard has no
+    // preview, and the two extra renders it costs per tap are what make
+    // typing there feel slow.
+    if (!isIme) {
+      setTextBounce(true);
+      setTimeout(() => setTextBounce(false), 300);
+    }
     // Update suggestions
     const words = newText.trim().split(/\s+/);
     const lastWord = words[words.length - 1]?.toLowerCase() || '';
@@ -814,7 +824,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       const prevWord = words.length > 1 ? words[words.length - 2] || '' : '';
       setNextWordSuggestions(prevWord ? (NEXT_WORD_AM[prevWord] || []) : []);
     }
-  }, [onTextChange, language]);
+  }, [onTextChange, language, isIme]);
 
   const EMOJI_KEYWORDS: Record<string, string[]> = {
     '😀': ['happy','smile','grin','joy','glad'],
@@ -1055,6 +1065,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
 
   // Change 1: Long press handlers
   const handlePointerDown = useCallback((key: string) => {
+    preDownTextRef.current = null;
     if (!keyPopupOnLongPress) return;
     if (!alternatesFor(key)) return;
     longPressTimerRef.current = setTimeout(() => {
@@ -1070,7 +1081,9 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   }, []);
 
   const handleAlternateSelect = useCallback((alt: string) => {
-    updateText(text + alt);
+    const base = isIme && preDownTextRef.current !== null ? preDownTextRef.current : text;
+    preDownTextRef.current = null;
+    updateText(base + alt);
     // In Amharic the popup is a vowel family, so remember which consonant it
     // came from: the vowel row below then stays in sync with what was typed.
     if (language === 'amharic') {
@@ -1082,7 +1095,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
-  }, [text, updateText, language]);
+  }, [text, updateText, language, isIme]);
 
   // ─── Handwriting Canvas ─────────────────────────────────────────────
   const redrawCanvas = useCallback((paths: { x: number; y: number }[][]) => {
@@ -1345,6 +1358,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         onMouseEnter={() => !isIme && setHoveredKey(key)}
         onMouseLeave={() => { !isIme && setHoveredKey(null); handlePointerUp(); }}
         onClick={() => {
+          if (downHandledRef.current === key) { downHandledRef.current = null; return; }
           if (key === 'space') {
             const held = Date.now() - ((window as any).__spaceDown || 0);
             if (held > 600 || spaceWasSwipedRef.current) {
@@ -1363,6 +1377,11 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
             if (spacebarCursorControl) spaceSwipeRef.current = { x: e.clientX, y: e.clientY };
           }
           handlePointerDown(key);
+          if (isIme && key.length === 1) {
+            downHandledRef.current = key;
+            preDownTextRef.current = text;
+            handleKeyPress(key);
+          }
         }}
         onPointerMove={key === 'space' && spacebarCursorControl ? (e) => {
           if (!spaceSwipeRef.current) return;
