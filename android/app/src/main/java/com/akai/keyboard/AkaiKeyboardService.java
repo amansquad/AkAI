@@ -34,7 +34,9 @@ public class AkaiKeyboardService extends InputMethodService {
     /** Starting height, in dp, until the page reports its own. */
     private static final int DEFAULT_HEIGHT_DP = 350;
     private static final int MIN_HEIGHT_DP = 180;
-    private static final int MAX_HEIGHT_DP = 560;
+    private static final int MAX_HEIGHT_DP = 900;
+    /** The keyboard never takes more than this share of the screen, however tall the user sets it. */
+    private static final float MAX_SCREEN_SHARE = 0.7f;
 
     private FrameLayout container;
     private WebView webView;
@@ -271,8 +273,9 @@ public class AkaiKeyboardService extends InputMethodService {
                 if (webView == null) return;
                 float density = getResources().getDisplayMetrics().density;
                 int px = Math.round(cssPx * density);
-                px = Math.max((int) (MIN_HEIGHT_DP * density),
-                        Math.min((int) (MAX_HEIGHT_DP * density), px));
+                int maxPx = Math.min((int) (MAX_HEIGHT_DP * density),
+                        (int) (getResources().getDisplayMetrics().heightPixels * MAX_SCREEN_SHARE));
+                px = Math.max((int) (MIN_HEIGHT_DP * density), Math.min(maxPx, px));
                 ViewGroup.LayoutParams lp = webView.getLayoutParams();
                 // Ignore sub-pixel churn; only a real change is worth a relayout.
                 if (lp != null && Math.abs(lp.height - px) >= 4) {

@@ -420,15 +420,14 @@ public class MainActivity extends Activity {
             // Glyph.
             paint.setColor(Color.WHITE);
             paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTypeface(geez ? Typeface.create(Typeface.SERIF, Typeface.BOLD)
-                    : AkaiFonts.display(getContext()));
+            paint.setTypeface(geez ? AkaiFonts.geez(getContext()) : AkaiFonts.display(getContext()));
             paint.setTextSize(46 * d);
             float cy = (m + (h - m - 20 * d)) / 2f;
             c.drawText(glyph, w / 2f, cy + 16 * d, paint);
 
             // Caption on the paper.
             paint.setColor(INK);
-            paint.setTypeface(geez ? Typeface.create(Typeface.SERIF, Typeface.BOLD) : Typeface.MONOSPACE);
+            paint.setTypeface(geez ? AkaiFonts.geez(getContext()) : Typeface.MONOSPACE);
             paint.setTextSize(10 * d);
             paint.setLetterSpacing(geez ? 0f : 0.14f);
             c.drawText(caption, w / 2f, h - m + 1 * d, paint);

@@ -6,7 +6,11 @@ import { LiveWallpaper, hasLiveAnimation } from '@/components/keyboard/live-wall
 import { getApiBaseUrl } from '@/lib/api-base-url';
 import { loadLiveThemeCSS } from '@/lib/css-loader';
 import { useInView } from '@/hooks/use-in-view';
-import { DEFAULT_PREFS, LONG_PRESS_MS, HAPTIC_MS, KEY_TEXT_CLASS, KEY_GAP_CLASS, ROW_GAP_CLASS, KEY_SHAPE_CLASS, KEY_FONT_CLASS, type KeyboardPrefs } from '@/components/keyboard/prefs';
+import {
+  DEFAULT_PREFS, HAPTIC_MS, KEY_TEXT_CLASS, KEY_GAP_CLASS, ROW_GAP_CLASS, KEY_SHAPE_CLASS, KEY_FONT_CLASS,
+  KEY_HEIGHT_CLASS, PANEL_HEIGHT_CLASS, PANEL_HEIGHT_TALL_CLASS, PANEL_HEIGHT_XL_CLASS,
+  NUMBER_LIMITS, clampPref, readNumericPref, keyboardCssVars, type KeyboardPrefs,
+} from '@/components/keyboard/prefs';
 import { pressKey as translitPress, pressBackspace as translitBackspace, EMPTY_TRANSLIT, type TranslitState } from '@/lib/amharic-translit';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
@@ -284,7 +288,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
 
   // New state for Change 6: Settings
   const [keyPressFeedback, setKeyPressFeedback] = useState(true);
-  const [keyboardHeight, setKeyboardHeight] = useState<'compact' | 'normal' | 'tall'>('normal');
+  const [keyHeight, setKeyHeight] = useState(DEFAULT_PREFS.keyHeight);
   const [showNumberRow, setShowNumberRow] = useState(DEFAULT_PREFS.showNumberRow);
   const [autoSpaceAfterPunctuation, setAutoSpaceAfterPunctuation] = useState(true);
   const [keyPopupOnLongPress, setKeyPopupOnLongPress] = useState(true);
@@ -301,11 +305,12 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   const [showSuggestionBar, setShowSuggestionBar] = useState(DEFAULT_PREFS.showSuggestionBar);
   const [showKeyHints, setShowKeyHints] = useState(DEFAULT_PREFS.showKeyHints);
   const [showMicKey, setShowMicKey] = useState(DEFAULT_PREFS.showMicKey);
-  const [keyTextSize, setKeyTextSize] = useState<KeyboardPrefs['keyTextSize']>(DEFAULT_PREFS.keyTextSize);
-  const [longPressDelay, setLongPressDelay] = useState<KeyboardPrefs['longPressDelay']>(DEFAULT_PREFS.longPressDelay);
+  const [keyTextSize, setKeyTextSize] = useState(DEFAULT_PREFS.keyTextSize);
+  const [longPressDelay, setLongPressDelay] = useState(DEFAULT_PREFS.longPressDelay);
   const [keyAnimations, setKeyAnimations] = useState(DEFAULT_PREFS.keyAnimations);
   const [doubleSpacePeriod, setDoubleSpacePeriod] = useState(true);
   const [oneHandedMode, setOneHandedMode] = useState<'off' | 'left' | 'right'>('off');
+  const [oneHandedWidth, setOneHandedWidth] = useState(DEFAULT_PREFS.oneHandedWidth);
   const lastSpaceTapRef = useRef<number>(0);
 
   // Animation state for Change 7
@@ -327,13 +332,13 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   
   const [visibleButtons, setVisibleButtons] = useState<Record<string, boolean>>(DEFAULT_PREFS.visibleButtons);
   const [toolbarStyle, setToolbarStyle] = useState<KeyboardPrefs['toolbarStyle']>(DEFAULT_PREFS.toolbarStyle);
-  const [keyboardSpacing, setKeyboardSpacing] = useState<KeyboardPrefs['keyboardSpacing']>(DEFAULT_PREFS.keyboardSpacing);
+  const [keyGap, setKeyGap] = useState(DEFAULT_PREFS.keyGap);
 
   // New customisation prefs
   const [englishLayout, setEnglishLayout] = useState<KeyboardPrefs['englishLayout']>(DEFAULT_PREFS.englishLayout);
   const [amharicLayout, setAmharicLayout] = useState<KeyboardPrefs['amharicLayout']>(DEFAULT_PREFS.amharicLayout);
-  const [keyShape, setKeyShape] = useState<KeyboardPrefs['keyShape']>(DEFAULT_PREFS.keyShape);
-  const [keyFontWeight, setKeyFontWeight] = useState<KeyboardPrefs['keyFontWeight']>(DEFAULT_PREFS.keyFontWeight);
+  const [keyRadius, setKeyRadius] = useState(DEFAULT_PREFS.keyRadius);
+  const [keyWeight, setKeyWeight] = useState(DEFAULT_PREFS.keyWeight);
   const [showKeyBorders, setShowKeyBorders] = useState(DEFAULT_PREFS.showKeyBorders);
   const [showCursorRow, setShowCursorRow] = useState(DEFAULT_PREFS.showCursorRow);
   const [spacebarCursorControl, setSpacebarCursorControl] = useState(DEFAULT_PREFS.spacebarCursorControl);
@@ -628,7 +633,9 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
         if (parsed.vibrate !== undefined) setVibrateOnKeyPress(parsed.vibrate);
         if (parsed.sound !== undefined) setSoundOnKeyPress(parsed.sound);
         if (parsed.autoCap !== undefined) setAutoCapitalization(parsed.autoCap);
-        if (parsed.kbHeight !== undefined) setKeyboardHeight(parsed.kbHeight);
+        // These used to be a choice of three words and are now numbers; a
+        // saved word still loads, as the number it meant.
+        if (parsed.keyHeight !== undefined || parsed.kbHeight !== undefined) setKeyHeight(readNumericPref('keyHeight', parsed.keyHeight ?? parsed.kbHeight));
         if (parsed.hapticLevel !== undefined) setHapticLevel(parsed.hapticLevel);
         else if (parsed.hapticStrength !== undefined) setHapticLevel({ light: 2, medium: 3, strong: 5 }[parsed.hapticStrength as 'light' | 'medium' | 'strong'] ?? DEFAULT_PREFS.hapticLevel);
         if (parsed.soundVolume !== undefined) setSoundVolume(parsed.soundVolume);
@@ -636,16 +643,17 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
         if (parsed.showSuggestionBar !== undefined) setShowSuggestionBar(parsed.showSuggestionBar);
         if (parsed.showKeyHints !== undefined) setShowKeyHints(parsed.showKeyHints);
         if (parsed.showMicKey !== undefined) setShowMicKey(parsed.showMicKey);
-        if (parsed.keyTextSize !== undefined) setKeyTextSize(parsed.keyTextSize);
-        if (parsed.longPressDelay !== undefined) setLongPressDelay(parsed.longPressDelay);
+        if (parsed.keyTextSize !== undefined) setKeyTextSize(readNumericPref('keyTextSize', parsed.keyTextSize));
+        if (parsed.longPressDelay !== undefined) setLongPressDelay(readNumericPref('longPressDelay', parsed.longPressDelay));
         if (parsed.keyAnimations !== undefined) setKeyAnimations(parsed.keyAnimations);
         if (parsed.showNumberRow !== undefined) setShowNumberRow(parsed.showNumberRow);
         if (parsed.toolbarStyle !== undefined) setToolbarStyle(parsed.toolbarStyle);
-        if (parsed.keyboardSpacing !== undefined) setKeyboardSpacing(parsed.keyboardSpacing);
+        if (parsed.keyGap !== undefined || parsed.keyboardSpacing !== undefined) setKeyGap(readNumericPref('keyGap', parsed.keyGap ?? parsed.keyboardSpacing));
         // Merged over the defaults so a button added later starts visible.
         if (parsed.visibleButtons !== undefined) setVisibleButtons({ ...DEFAULT_PREFS.visibleButtons, ...parsed.visibleButtons });
         if (parsed.doubleSpacePeriod !== undefined) setDoubleSpacePeriod(parsed.doubleSpacePeriod);
         if (parsed.oneHandedMode !== undefined) setOneHandedMode(parsed.oneHandedMode);
+        if (parsed.oneHandedWidth !== undefined) setOneHandedWidth(readNumericPref('oneHandedWidth', parsed.oneHandedWidth));
         if (parsed.autoSpace !== undefined) setAutoSpaceAfterPunctuation(parsed.autoSpace);
         if (parsed.keyPopup !== undefined) setKeyPopupOnLongPress(parsed.keyPopup);
         // Theme and language matter most as an IME: the keyboard is
@@ -656,8 +664,8 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
         if (parsed.phonetic !== undefined) setPhonetic(parsed.phonetic);
         if (parsed.englishLayout !== undefined) setEnglishLayout(parsed.englishLayout);
         if (parsed.amharicLayout !== undefined) setAmharicLayout(parsed.amharicLayout);
-        if (parsed.keyShape !== undefined) setKeyShape(parsed.keyShape);
-        if (parsed.keyFontWeight !== undefined) setKeyFontWeight(parsed.keyFontWeight);
+        if (parsed.keyRadius !== undefined || parsed.keyShape !== undefined) setKeyRadius(readNumericPref('keyRadius', parsed.keyRadius ?? parsed.keyShape));
+        if (parsed.keyWeight !== undefined || parsed.keyFontWeight !== undefined) setKeyWeight(readNumericPref('keyWeight', parsed.keyWeight ?? parsed.keyFontWeight));
         if (parsed.showKeyBorders !== undefined) setShowKeyBorders(parsed.showKeyBorders);
         if (parsed.showCursorRow !== undefined) setShowCursorRow(parsed.showCursorRow);
         if (parsed.spacebarCursorControl !== undefined) setSpacebarCursorControl(parsed.spacebarCursorControl);
@@ -674,9 +682,9 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
         const legacy = localStorage.getItem('akai_toolbar_style');
         if (legacy === 'active' || legacy === 'all' || legacy === 'icons') setToolbarStyle(legacy);
       }
-      if (parsed.keyboardSpacing === undefined) {
+      if (parsed.keyboardSpacing === undefined && parsed.keyGap === undefined) {
         const legacy = localStorage.getItem('akai_keyboard_spacing');
-        if (legacy === 'compact' || legacy === 'normal' || legacy === 'spacious') setKeyboardSpacing(legacy);
+        if (legacy) setKeyGap(readNumericPref('keyGap', legacy));
       }
     }
     const savedRecents = localStorage.getItem('akai-kb-recents');
@@ -699,7 +707,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
       vibrate: vibrateOnKeyPress,
       sound: soundOnKeyPress,
       autoCap: autoCapitalization,
-      kbHeight: keyboardHeight,
+      keyHeight,
       hapticLevel,
       soundVolume,
       showWordOfTheDay,
@@ -711,10 +719,11 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
       keyAnimations,
       showNumberRow,
       toolbarStyle,
-      keyboardSpacing,
+      keyGap,
       visibleButtons,
       doubleSpacePeriod,
       oneHandedMode,
+      oneHandedWidth,
       autoSpace: autoSpaceAfterPunctuation,
       keyPopup: keyPopupOnLongPress,
       phonetic,
@@ -722,13 +731,13 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
       language,
       englishLayout,
       amharicLayout,
-      keyShape,
-      keyFontWeight,
+      keyRadius,
+      keyWeight,
       showKeyBorders,
       showCursorRow,
       spacebarCursorControl,
     }));
-  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticLevel, soundVolume, showWordOfTheDay, showSuggestionBar, showKeyHints, showMicKey, keyTextSize, longPressDelay, keyAnimations, showNumberRow, toolbarStyle, keyboardSpacing, visibleButtons, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language, phonetic, englishLayout, amharicLayout, keyShape, keyFontWeight, showKeyBorders, showCursorRow, spacebarCursorControl]);
+  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyHeight, hapticLevel, soundVolume, showWordOfTheDay, showSuggestionBar, showKeyHints, showMicKey, keyTextSize, longPressDelay, keyAnimations, showNumberRow, toolbarStyle, keyGap, visibleButtons, doubleSpacePeriod, oneHandedMode, oneHandedWidth, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language, phonetic, englishLayout, amharicLayout, keyRadius, keyWeight, showKeyBorders, showCursorRow, spacebarCursorControl]);
 
   // Custom themes are stored separately: a saved theme of "custom_<id>"
   // resolves to THEMES.default unless the matching definition is restored
@@ -1072,7 +1081,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
     if (!alternatesFor(key)) return;
     longPressTimerRef.current = setTimeout(() => {
       setLongPressKey(key);
-    }, LONG_PRESS_MS[longPressDelay]);
+    }, longPressDelay);
   }, [keyPopupOnLongPress, alternatesFor, longPressDelay]);
 
   const handlePointerUp = useCallback(() => {
@@ -1417,7 +1426,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
           handlePointerUp();
         }}
         className={`
-          relative flex items-center justify-center ${KEY_SHAPE_CLASS[keyShape]} ${KEY_FONT_CLASS[keyFontWeight]} text-xs
+          relative flex items-center justify-center ${KEY_SHAPE_CLASS} ${KEY_FONT_CLASS} text-xs
           transition-all duration-75 select-none overflow-visible
           ${isWide ? 'flex-[3.5]' : isMedium ? 'flex-[1.4]' : 'flex-1'} ${kbKeyHeight}
           ${!isIme && isHovered ? `${t.keyHover} shadow-md` : ''}
@@ -1456,7 +1465,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
           <motion.span
             animate={isRippled ? { scale: [1, 1.22, 1] } : { scale: 1 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
-            className={isWide ? 'text-xs' : KEY_TEXT_CLASS[keyTextSize]}
+            className={isWide ? 'text-xs' : KEY_TEXT_CLASS}
           >
             {displayKey}
           </motion.span>
@@ -1789,23 +1798,23 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   // them in one table is what lets the panel take a single object and lets
   // "Reset to defaults" reach all of them.
   const prefs: KeyboardPrefs = {
-    keyboardHeight, keyboardSpacing, keyTextSize, oneHandedMode, desktopView,
+    keyHeight, keyGap, keyTextSize, oneHandedMode, oneHandedWidth, desktopView,
     englishLayout, amharicLayout,
     showSuggestionBar, showWordOfTheDay, showNumberRow, showKeyHints, showMicKey,
     toolbarStyle, visibleButtons, showCursorRow,
-    keyShape, keyFontWeight, showKeyBorders,
+    keyRadius, keyWeight, showKeyBorders,
     autoCapitalization, doubleSpacePeriod, autoSpaceAfterPunctuation, keyPopupOnLongPress, longPressDelay,
     spacebarCursorControl,
     vibrateOnKeyPress, hapticLevel, soundOnKeyPress, soundVolume, keyAnimations,
   };
   const prefSetters: { [K in keyof KeyboardPrefs]: (v: KeyboardPrefs[K]) => void } = {
-    keyboardHeight: setKeyboardHeight, keyboardSpacing: setKeyboardSpacing, keyTextSize: setKeyTextSize,
-    oneHandedMode: setOneHandedMode, desktopView: setDesktopView,
+    keyHeight: setKeyHeight, keyGap: setKeyGap, keyTextSize: setKeyTextSize,
+    oneHandedMode: setOneHandedMode, oneHandedWidth: setOneHandedWidth, desktopView: setDesktopView,
     englishLayout: setEnglishLayout, amharicLayout: setAmharicLayout,
     showSuggestionBar: setShowSuggestionBar, showWordOfTheDay: setShowWordOfTheDay, showNumberRow: setShowNumberRow,
     showKeyHints: setShowKeyHints, showMicKey: setShowMicKey,
     toolbarStyle: setToolbarStyle, visibleButtons: setVisibleButtons, showCursorRow: setShowCursorRow,
-    keyShape: setKeyShape, keyFontWeight: setKeyFontWeight, showKeyBorders: setShowKeyBorders,
+    keyRadius: setKeyRadius, keyWeight: setKeyWeight, showKeyBorders: setShowKeyBorders,
     autoCapitalization: setAutoCapitalization, doubleSpacePeriod: setDoubleSpacePeriod,
     autoSpaceAfterPunctuation: setAutoSpaceAfterPunctuation, keyPopupOnLongPress: setKeyPopupOnLongPress,
     longPressDelay: setLongPressDelay, spacebarCursorControl: setSpacebarCursorControl,
@@ -2104,9 +2113,10 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   };
 
   // Keyboard height class - optimized for phone frame (300px width)
-  const kbHeightClass = keyboardHeight === 'compact' ? 'min-h-[180px]' : keyboardHeight === 'tall' ? 'min-h-[280px]' : 'min-h-[220px]';
-  const kbPanelHeight = keyboardHeight === 'compact' ? 'h-[200px]' : keyboardHeight === 'tall' ? 'h-[300px]' : 'h-[240px]';
-  const kbKeyHeight = keyboardHeight === 'compact' ? 'h-8' : keyboardHeight === 'tall' ? 'h-11' : 'h-9';
+  // Sizes come from CSS variables on the keyboard's root, set from the
+  // numeric settings, so any value works.
+  const kbPanelHeight = PANEL_HEIGHT_CLASS;
+  const kbKeyHeight = KEY_HEIGHT_CLASS;
 
   // ─── Desktop Render Functions ─────────────────────────────────────────
 
@@ -2680,23 +2690,16 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
           {/* Modal content */}
           <div className="p-4 overflow-y-auto max-h-[60vh] flex flex-col gap-3"
             style={customThemeData ? { color: customThemeData.keyTextColor } : {}}>
-            {/* Keyboard height selector */}
+            {/* Keyboard height */}
             <div className={`p-3 rounded-xl ${t.key} ${t.border} border`}
               style={customThemeData ? { backgroundColor: customThemeData.keyColor + '60' } : {}}>
-              <p className={`text-xs font-medium mb-2 ${t.keyText}`}>Keyboard Height</p>
-              <div className="flex gap-2">
-                {(['compact', 'normal', 'tall'] as const).map(h => (
-                  <motion.button key={h}
-                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                    onClick={() => setKeyboardHeight(h)}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
-                      keyboardHeight === h ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
-                    }`}
-                    style={keyboardHeight === h && customThemeData ? { backgroundColor: customThemeData.accentColor } : {}}>
-                    {h}
-                  </motion.button>
-                ))}
+              <div className="flex items-center justify-between mb-2">
+                <p className={`text-xs font-medium ${t.keyText}`}>Key height</p>
+                <span className={`text-xs tabular-nums ${t.keyText}`}>{keyHeight}px</span>
               </div>
+              <input type="range" aria-label="Key height" className="w-full cursor-pointer"
+                min={NUMBER_LIMITS.keyHeight.min} max={NUMBER_LIMITS.keyHeight.max} step={NUMBER_LIMITS.keyHeight.step}
+                value={keyHeight} onChange={e => setKeyHeight(clampPref('keyHeight', Number(e.target.value)))} />
             </div>
             {/* Show number row */}
             <div className={`flex items-center justify-between p-3 rounded-xl ${t.key} ${t.border} border`}
@@ -3082,7 +3085,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
 
   return (
     <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''}`}
-      style={customBgStyle}>
+      style={{ ...customBgStyle, ...(keyboardCssVars({ keyHeight, keyGap, keyTextSize, keyRadius, keyWeight }) as React.CSSProperties) }}>
       {/* Custom image/GIF background layer */}
       {customBgFile && (
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -3282,17 +3285,17 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
               initial={{ opacity: 0 }}
               animate={{
                 opacity: 1,
-                width: oneHandedMode === 'off' ? '100%' : '72%',
-                marginLeft: oneHandedMode === 'right' ? '28%' : '0%',
-                marginRight: oneHandedMode === 'left' ? '28%' : '0%',
+                width: oneHandedMode === 'off' ? '100%' : `${oneHandedWidth}%`,
+                marginLeft: oneHandedMode === 'right' ? `${100 - oneHandedWidth}%` : '0%',
+                marginRight: oneHandedMode === 'left' ? `${100 - oneHandedWidth}%` : '0%',
               }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12, width: { type: 'spring', stiffness: 300, damping: 30 }, marginLeft: { type: 'spring', stiffness: 300, damping: 30 }, marginRight: { type: 'spring', stiffness: 300, damping: 30 } }}
             >
-              <div className={`flex flex-col ${ROW_GAP_CLASS[keyboardSpacing]} p-1.5`}>
+              <div className={`flex flex-col ${ROW_GAP_CLASS} p-1.5`}>
                 {/* ─── Number Row (conditionally visible based on settings) ─── */}
                 {!symbolsActive && showNumberRow && (
-                  <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                  <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                     {(language === 'english' || phonetic
                       ? ['1','2','3','4','5','6','7','8','9','0']
                       : ETHIOPIAN_NUM_ROW_1
@@ -3325,11 +3328,11 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                       <React.Fragment key={ri}>
                         {/* Cursor navigation row injected just before the control row */}
                         {showCursorRow && ri === displayRows.length - 1 && !symbolsActive && (
-                          <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                          <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                             {(['arrowleft', 'arrowup', 'arrowdown', 'arrowright'] as const).map(k => renderEnglishKey(k))}
                           </div>
                         )}
-                        <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                        <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                           {row.filter(k => k !== 'voice').map(k => renderEnglishKey(k))}
                         </div>
                       </React.Fragment>
@@ -3340,7 +3343,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                 {language === 'amharic' && !symbolsActive && (
                   <>
                     {!phonetic && (AMHARIC_LAYOUT_ROWS[amharicLayout] ?? AMHARIC_ROWS).map((row, ri) => (
-                      <div key={ri} className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                      <div key={ri} className={`flex ${KEY_GAP_CLASS} justify-center`}>
                         {row.map((consonant, ci) => {
                           const isHovered = hoveredKey === consonant;
                           const isSelected = selectedConsonant === consonant;
@@ -3358,8 +3361,8 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                               onPointerUp={handlePointerUp}
                               onPointerLeave={handlePointerUp}
                               className={`
-                                relative flex items-center justify-center flex-1 ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${KEY_FONT_CLASS[keyFontWeight]}
-                                transition-all duration-150 select-none ${KEY_TEXT_CLASS[keyTextSize]} overflow-visible
+                                relative flex items-center justify-center flex-1 ${kbKeyHeight} ${KEY_SHAPE_CLASS} ${KEY_FONT_CLASS}
+                                transition-all duration-150 select-none ${KEY_TEXT_CLASS} overflow-visible
                                 ${isSelected ? `ring-2 ring-yellow-500/60` : ''}
                                 ${isHovered ? `${t.keyHover} shadow-md` : ''}
                                 ${t.key} ${t.keyText} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm
@@ -3369,7 +3372,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                               {/* Glow effect on active consonant */}
                               {isSelected && (
                                 <motion.div
-                                  className={`absolute inset-0 ${KEY_SHAPE_CLASS[keyShape]}`}
+                                  className={`absolute inset-0 ${KEY_SHAPE_CLASS}`}
                                   animate={{ boxShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 12px rgba(234,179,8,0.4)', '0 0 0px rgba(234,179,8,0)'] }}
                                   transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
                                 />
@@ -3379,7 +3382,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                                   initial={{ scale: 0.4, opacity: 0.55 }}
                                   animate={{ scale: 1.9, opacity: 0 }}
                                   transition={{ duration: 0.38, ease: 'easeOut' }}
-                                  className={`absolute inset-0 ${KEY_SHAPE_CLASS[keyShape]} ${t.accent} pointer-events-none blur-[2px]`}
+                                  className={`absolute inset-0 ${KEY_SHAPE_CLASS} ${t.accent} pointer-events-none blur-[2px]`}
                                   style={{ mixBlendMode: 'screen' }}
                                 />
                               )}
@@ -3407,7 +3410,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                                       whileTap={{ scale: 0.9 }}
                                       onClick={(e) => { e.stopPropagation(); handleAlternateSelect(alt); }}
                                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleAlternateSelect(alt); } }}
-                                      className={`flex items-center justify-center w-9 h-9 ${KEY_SHAPE_CLASS[keyShape]} text-sm ${KEY_FONT_CLASS[keyFontWeight]} ${t.key} ${t.keyText} ${t.keyHover} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm cursor-pointer`}>
+                                      className={`flex items-center justify-center w-9 h-9 ${KEY_SHAPE_CLASS} text-sm ${KEY_FONT_CLASS} ${t.key} ${t.keyText} ${t.keyHover} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm cursor-pointer`}>
                                       {alt}
                                     </motion.div>
                                   ))}
@@ -3420,19 +3423,19 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                     ))}
                     {/* Cursor navigation row (Amharic fidel board) */}
                     {showCursorRow && (
-                      <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                      <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                         {(['arrowleft', 'arrowup', 'arrowdown', 'arrowright'] as const).map(k => renderEnglishKey(k))}
                       </div>
                     )}
 
                     {/* Amharic special keys bottom row */}
-                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                    <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => { setSymbolsActive(true); setSelectedConsonant(null); }}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.specialKey} ${t.keyText} text-xs font-medium`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS} ${t.specialKey} ${t.keyText} text-xs font-medium`}>
                         ፩፪
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={handleLanguageToggle}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.specialKey} ${t.keyText} text-[9px] font-bold`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS} ${t.specialKey} ${t.keyText} text-[9px] font-bold`}>
                         🌐 EN
                       </motion.button>
                       {/* Switches between the two ways of writing Amharic:
@@ -3441,7 +3444,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
                         onClick={handlePhoneticToggle}
                         title={phonetic ? 'Switch to the fidel board' : 'Type Amharic phonetically'}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${phonetic ? `${t.accent} ${t.accentText}` : `${t.specialKey} ${t.keyText}`} text-[9px] font-bold`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS} ${phonetic ? `${t.accent} ${t.accentText}` : `${t.specialKey} ${t.keyText}`} text-[9px] font-bold`}>
                         {phonetic ? 'ፈደል' : 'ABC'}
                       </motion.button>
                       {/* Spacebar with cursor-swipe and long-press voice */}
@@ -3481,17 +3484,17 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                           spaceWasSwipedRef.current = false;
                           (window as any).__spaceDown = 0;
                         }}
-                        className={`flex-[3.5] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.key} ${t.keyText} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm text-xs ${KEY_FONT_CLASS[keyFontWeight]}`}
+                        className={`flex-[3.5] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS} ${t.key} ${t.keyText} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm text-xs ${KEY_FONT_CLASS}`}
                         style={customKeyStyle}
                       >
                          {language === 'amharic' ? (phonetic ? 'አማርኛ — selam → ሰላም' : 'አማርኛ') : 'Space'}
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('backspace')}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.specialKey} ${t.keyText}`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS} ${t.specialKey} ${t.keyText}`}>
                         <Delete className="w-3.5 h-3.5" />
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('enter')}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.specialKey} ${t.keyText}`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS} ${t.specialKey} ${t.keyText}`}>
                         <CornerDownLeft className="w-3.5 h-3.5" />
                       </motion.button>
                     </div>
@@ -3502,7 +3505,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                 {/* ─── Amharic Symbols Mode (Ethiopian numbers + symbols) ─── */}
                 {language === 'amharic' && symbolsActive && (
                   <>
-                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                    <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                       {ETHIOPIAN_NUM_ROW_1.map((num, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + num)}
@@ -3511,7 +3514,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                         </motion.button>
                       ))}
                     </div>
-                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                    <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                       {ETHIOPIAN_NUM_ROW_2.map((num, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + num)}
@@ -3520,7 +3523,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                         </motion.button>
                       ))}
                     </div>
-                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                    <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                       {ETHIOPIAN_SYM_ROW.map((sym, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.08, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + sym)}
@@ -3531,7 +3534,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                       ))}
                     </div>
                     {/* More Ethiopian punctuation & common symbols */}
-                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                    <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                       {['′','″','«','»','—','…','·','⟐'].map((sym, i) => (
                         <motion.button key={i} whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.92 }}
                           onClick={() => updateText(text + sym)}
@@ -3541,7 +3544,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                       ))}
                     </div>
                     {/* Amharic symbols bottom row mapping FIXED */}
-                    <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                    <div className={`flex ${KEY_GAP_CLASS} justify-center`}>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => setSymbolsActive(false)}
                         className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-xs font-bold`}>
                         አማ
@@ -3607,17 +3610,17 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
             </motion.div>
           )}
           {mode === 'translate' && (
-            <motion.div key="translate" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={keyboardHeight === 'compact' ? 'h-[260px]' : keyboardHeight === 'tall' ? 'h-[360px]' : 'h-[300px]'}>
+            <motion.div key="translate" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={PANEL_HEIGHT_TALL_CLASS}>
               {renderTranslate()}
             </motion.div>
           )}
           {mode === 'handwriting' && (
-            <motion.div key="handwriting" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={keyboardHeight === 'compact' ? 'h-[280px]' : keyboardHeight === 'tall' ? 'h-[380px]' : 'h-[320px]'}>
+            <motion.div key="handwriting" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={PANEL_HEIGHT_XL_CLASS}>
               {renderHandwriting()}
             </motion.div>
           )}
           {mode === 'settings' && (
-            <motion.div key="settings" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={keyboardHeight === 'compact' ? 'h-[280px]' : keyboardHeight === 'tall' ? 'h-[380px]' : 'h-[320px]'}>
+            <motion.div key="settings" variants={getPanelVariants(getDirection())} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className={PANEL_HEIGHT_XL_CLASS}>
               {renderSettings()}
             </motion.div>
           )}
