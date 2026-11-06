@@ -13,6 +13,8 @@ declare global {
       performSpace: () => void;
       // Added after 0.6.0; absent on an older host app. dir: left|right|up|down.
       moveCursor?: (dir: string) => void;
+      // Opens the app's settings screen. Absent on an older host app.
+      openSettings?: () => void;
       /** Strength 1–5; omitted means medium. */
       playHaptic: (level?: number) => void;
       // Added in 0.6.0; may be absent on an older host app.
@@ -115,6 +117,11 @@ export default function KeyboardImeShell() {
       // Optionally signal readiness
     }
   }, []);
+
+  // The app's settings screen loads this same page with ?view=settings.
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('view') === 'settings') {
+    return <KeyboardApp isIme={true} settingsOnly />;
+  }
 
   return (
     <div

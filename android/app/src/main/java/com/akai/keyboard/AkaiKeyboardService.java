@@ -1,6 +1,7 @@
 package com.akai.keyboard;
 
 import android.content.Context;
+import android.content.Intent;
 import android.inputmethodservice.InputMethodService;
 import android.os.Build;
 import android.os.VibrationEffect;
@@ -13,6 +14,7 @@ import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
@@ -116,6 +118,20 @@ public class AkaiKeyboardService extends InputMethodService {
         }
     }
 
+    /**
+     * Settings are saved from the settings screen, a different WebView from
+     * this one. The keyboard only reads them when its page loads, so when the
+     * settings screen has been used, reload the page to pick the changes up.
+     */
+    @Override
+    public void onStartInputView(EditorInfo info, boolean restarting) {
+        super.onStartInputView(info, restarting);
+        if (KeyboardSettingsActivity.settingsTouched && webView != null) {
+            KeyboardSettingsActivity.settingsTouched = false;
+            webView.reload();
+        }
+    }
+
     @Override
     public void onWindowHidden() {
         super.onWindowHidden();
@@ -214,6 +230,17 @@ public class AkaiKeyboardService extends InputMethodService {
                 if (ic != null) {
                     ic.commitText(" ", 1);
                 }
+            });
+        }
+
+        /** Opens the app's settings screen and tucks the keyboard away. */
+        @JavascriptInterface
+        public void openSettings() {
+            mainHandler.post(() -> {
+                Intent intent = new Intent(AkaiKeyboardService.this, KeyboardSettingsActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+                requestHideSelf(0);
             });
         }
 

@@ -46,6 +46,8 @@ export type ThemeName = string;
 interface KeyboardAppProps {
   onTextChange?: (text: string) => void;
   isIme?: boolean;
+  /** Show only the settings (and theme picker), full screen: the app's own settings screen. */
+  settingsOnly?: boolean;
 }
 
 // ─── Data imported from keyboard-data.ts ──────────────────────────────────
@@ -181,7 +183,7 @@ const ThemeSection = React.memo(function ThemeSection({
 });
 
 // ─── Main Component ───────────────────────────────────────────────────────
-export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardAppProps) {
+export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly = false }: KeyboardAppProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<KeyboardMode>('keyboard');
   const [prevMode, setPrevMode] = useState<KeyboardMode>('keyboard');
@@ -2078,6 +2080,12 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   });
 
   const handleModeChange = useCallback((newMode: KeyboardMode) => {
+    // In the Android keyboard the Settings button opens the app itself, on its
+    // settings screen, rather than squeezing them into the keyboard panel.
+    if (newMode === 'settings' && isIme && !settingsOnly && window.AkaiKeyboard?.openSettings) {
+      window.AkaiKeyboard.openSettings();
+      return;
+    }
     const oldIdx = modeOrder.indexOf(mode);
     const newIdx = modeOrder.indexOf(newMode);
     const direction = newIdx > oldIdx ? 1 : -1;
@@ -2089,7 +2097,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       setSymbolsActive(false);
       setSelectedConsonant(null);
     }
-  }, [mode]);
+  }, [mode, isIme, settingsOnly]);
 
   const getDirection = () => {
     return (window as unknown as Record<string, number>).__panelDirection || 1;
@@ -3059,6 +3067,18 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       transform: 'scale(1.1)', // Prevents edges showing when blurred
     };
   };
+
+  // The app's own settings screen: just the settings, or the theme picker
+  // they link to, filling the screen.
+  if (settingsOnly) {
+    return (
+      <div className={`flex flex-col ${t.bg} relative overflow-hidden`} style={{ height: '100dvh', ...customBgStyle }}>
+        <div className="flex-1 min-h-0 relative z-10">
+          {mode === 'themes' ? renderThemePickerPanel() : renderSettings()}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''}`}

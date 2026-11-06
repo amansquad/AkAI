@@ -141,32 +141,10 @@ public class MainActivity extends Activity {
 
     /** The red / white / blue airmail stripe along the top. */
     private void addChevronBorder() {
-        View band = new View(this) {
-            private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-            private final Path path = new Path();
-
-            @Override
-            protected void onDraw(Canvas c) {
-                int[] colors = {RED, PAPER, BLUE, PAPER};
-                float h = getHeight();
-                float w = h * 2.2f;
-                int i = 0;
-                for (float x = -h; x < getWidth() + h; x += w, i++) {
-                    p.setColor(colors[i % colors.length]);
-                    path.reset();
-                    path.moveTo(x, h);
-                    path.lineTo(x + h, 0);
-                    path.lineTo(x + h + w, 0);
-                    path.lineTo(x + w, h);
-                    path.close();
-                    c.drawPath(path, p);
-                }
-            }
-        };
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(12));
         lp.setMargins(0, 0, 0, dp(28));
-        content.addView(band, lp);
+        content.addView(new ChevronBand(this), lp);
     }
 
     /** English and Amharic as two equal stamps, slightly tilted. */
@@ -239,7 +217,6 @@ public class MainActivity extends Activity {
     /** Step 1: explain the benefit, then let the user add AkAI to the system's keyboard list. */
     private void renderEnableStep() {
         LinearLayout panel = panel();
-        panelStep(panel, "STEP 1 OF 2");
         panelHeading(panel, "Add AkAI to your keyboards");
         panelBody(panel, "Android asks you to allow a new keyboard before any app can use it. " +
                 "Open your keyboard list and switch AkAI on.");
@@ -252,7 +229,6 @@ public class MainActivity extends Activity {
     /** Step 2: keyboard is enabled but not the active default yet. */
     private void renderActivateStep() {
         LinearLayout panel = panel();
-        panelStep(panel, "STEP 2 OF 2");
         panelHeading(panel, "Switch to AkAI");
         panelBody(panel, "AkAI is switched on. One more tap: choose it from the picker so it is " +
                 "the keyboard that opens when you type.");
@@ -263,7 +239,6 @@ public class MainActivity extends Activity {
     /** Step 3: fully set up. */
     private void renderReadyStep() {
         LinearLayout panel = panel();
-        panelStep(panel, "ALL SET");
         panelHeading(panel, "You're ready to type");
         panelBody(panel, "AkAI is your active keyboard. Open any app and write in Amharic or English. " +
                 "Tap the globe key to switch between them.");
@@ -311,12 +286,6 @@ public class MainActivity extends Activity {
         return p;
     }
 
-    private void panelStep(LinearLayout panel, String text) {
-        TextView t = label(text, GREEN);
-        t.setPadding(0, 0, 0, dp(6));
-        panel.addView(t);
-    }
-
     private void panelHeading(LinearLayout panel, String text) {
         TextView t = new TextView(this);
         t.setText(text);
@@ -342,13 +311,29 @@ public class MainActivity extends Activity {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(0, 0, 0, dp(8));
 
-        TextView tick = new TextView(this);
-        tick.setText("✓");
-        tick.setTextSize(15);
-        tick.setTypeface(Typeface.DEFAULT_BOLD);
-        tick.setTextColor(GREEN);
-        tick.setPadding(0, 0, dp(10), 0);
-        row.addView(tick);
+        View tick = new View(this) {
+            private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+            private final Path path = new Path();
+
+            @Override
+            protected void onDraw(Canvas c) {
+                float w = getWidth();
+                float h = getHeight();
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeCap(Paint.Cap.ROUND);
+                p.setStrokeJoin(Paint.Join.ROUND);
+                p.setStrokeWidth(dp(2.2f));
+                p.setColor(GREEN);
+                path.reset();
+                path.moveTo(w * 0.16f, h * 0.54f);
+                path.lineTo(w * 0.42f, h * 0.78f);
+                path.lineTo(w * 0.84f, h * 0.26f);
+                c.drawPath(path, p);
+            }
+        };
+        LinearLayout.LayoutParams tickLp = new LinearLayout.LayoutParams(dp(20), dp(20));
+        tickLp.setMargins(0, dp(1), dp(10), 0);
+        row.addView(tick, tickLp);
 
         TextView t = new TextView(this);
         t.setText(text);
