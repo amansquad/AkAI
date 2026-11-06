@@ -257,3 +257,11 @@
   .land-postmark--drop, .land-caret, .land-rise { animation: none !important; }
   .land-stamp-btn, .land-btn, .land-chip { transition: none; }
 }
+
+/* Version, size and minimum Android, under a download button. */
+.land-version {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: var(--on-ink-dim);
+}
