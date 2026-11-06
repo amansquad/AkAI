@@ -6,6 +6,7 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "build:android": "node scripts/build-android.mjs",
+    "apk:info": "node scripts/apk-info.mjs",
     "analyze": "ANALYZE=true npm run build",
     "start": "NODE_ENV=production node .next/standalone/server.js",
     "lint": "eslint .",

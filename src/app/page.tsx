@@ -3,6 +3,7 @@
 import React, { useEffect, useId, useState, lazy, Suspense } from 'react';
 import Image from 'next/image';
 import { ArrowDown, Download, Languages, PenLine, ShieldCheck, Smile } from 'lucide-react';
+import apkInfo from '@/lib/apk-info.json';
 import './landing.css';
 
 // The demo is the shipping keyboard itself, not a lookalike, so every tab,
@@ -10,6 +11,19 @@ import './landing.css';
 const DemoKeyboard = lazy(() => import('@/components/keyboard-app'));
 
 const APK = '/AkAI-keyboard.apk';
+// The saved file is named with its version, so it can be told apart from an
+// older download in the phone's Downloads folder.
+const APK_FILE = `AkAI-keyboard-v${apkInfo.version}.apk`;
+const APK_SIZE_MB = Math.round(apkInfo.sizeBytes / 1_000_000);
+
+/** What the visitor is about to download: the version, the size, and what it runs on. */
+function ApkNote({ style }: { style?: React.CSSProperties }) {
+  return (
+    <p className="land-version" style={style}>
+      Version {apkInfo.version} · {APK_SIZE_MB} MB · Android {apkInfo.minAndroid}+
+    </p>
+  );
+}
 
 const PAIRS = [
   { en: 'Hello, how are you?', am: 'ሰላም፣ እንዴት ነህ?' },
@@ -120,7 +134,7 @@ function Hero() {
           <Image src="/akai-icon.png" alt="" width={44} height={44} className="rounded-[10px]" priority />
           <span className="land-display" style={{ fontSize: '2rem', fontStretch: '100%' }}>AkAI</span>
         </a>
-        <a href={APK} download className="land-btn land-btn--ghost" style={{ minHeight: 44, padding: '0 1.1rem', fontSize: '0.9rem' }}>
+        <a href={APK} download={APK_FILE} title={`AkAI ${apkInfo.version} for Android`} className="land-btn land-btn--ghost" style={{ minHeight: 44, padding: '0 1.1rem', fontSize: '0.9rem' }}>
           <Download size={18} aria-hidden="true" /> Download
         </a>
       </header>
@@ -139,13 +153,14 @@ function Hero() {
             Ethiopia&apos;s bilingual reality.
           </p>
           <div className="flex flex-wrap gap-3" style={{ marginTop: 32 }}>
-            <a href={APK} download className="land-btn land-btn--primary">
+            <a href={APK} download={APK_FILE} className="land-btn land-btn--primary">
               <Download size={20} aria-hidden="true" /> Download for Android
             </a>
             <a href="#try" className="land-btn land-btn--ghost">
               Try it here <ArrowDown size={20} aria-hidden="true" />
             </a>
           </div>
+          <ApkNote style={{ marginTop: 14 }} />
         </div>
 
         {/* The pair: one sentence, two scripts, equal weight. */}
@@ -372,9 +387,10 @@ function Try() {
             This is the real AkAI keyboard running in your browser, not a mock-up. Switch between English and
             Amharic, tap a consonant for its vowel forms, then try the themes, stickers, GIFs and AI translate tabs.
           </p>
-          <a href={APK} download className="land-btn land-btn--primary" style={{ marginTop: 32 }}>
+          <a href={APK} download={APK_FILE} className="land-btn land-btn--primary" style={{ marginTop: 32 }}>
             <Download size={20} aria-hidden="true" /> Download for Android
           </a>
+          <ApkNote style={{ marginTop: 14 }} />
         </div>
         <div className="land-phone" style={{ maxWidth: "calc(100vw - 32px)" }}>
           <div className="land-phone__screen">
@@ -408,9 +424,12 @@ function Close() {
               <br />
               Start typing.
             </h2>
-            <a href={APK} download className="land-btn land-btn--primary shrink-0">
-              <Download size={20} aria-hidden="true" /> Download for Android
-            </a>
+            <div className="shrink-0">
+              <a href={APK} download={APK_FILE} className="land-btn land-btn--primary">
+                <Download size={20} aria-hidden="true" /> Download for Android
+              </a>
+              <ApkNote style={{ marginTop: 14, color: '#fff' }} />
+            </div>
           </div>
         </div>
       </div>
