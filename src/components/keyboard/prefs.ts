@@ -10,6 +10,10 @@ export interface KeyboardPrefs {
   keyTextSize: 'small' | 'medium' | 'large';
   oneHandedMode: 'off' | 'left' | 'right';
   desktopView: boolean;
+  /** English key layout: QWERTY, Dvorak, AZERTY, Colemak, or QWERTZ. */
+  englishLayout: 'qwerty' | 'dvorak' | 'azerty' | 'colemak' | 'qwertz';
+  /** Amharic fidel layout: traditional Ge'ez order, frequency-based, or phonetic. */
+  amharicLayout: 'traditional' | 'frequency' | 'phonetic';
 
   // What is shown
   showSuggestionBar: boolean;
@@ -20,6 +24,13 @@ export interface KeyboardPrefs {
   toolbarStyle: 'active' | 'all' | 'icons';
   /** Toolbar buttons that can be hidden. Keyboard and Settings always show. */
   visibleButtons: Record<string, boolean>;
+  /** Show a row of arrow keys above the control row for cursor movement. */
+  showCursorRow: boolean;
+
+  // Key appearance
+  keyShape: 'rounded' | 'square' | 'pill';
+  keyFontWeight: 'light' | 'normal' | 'bold';
+  showKeyBorders: boolean;
 
   // Typing
   autoCapitalization: boolean;
@@ -27,6 +38,8 @@ export interface KeyboardPrefs {
   autoSpaceAfterPunctuation: boolean;
   keyPopupOnLongPress: boolean;
   longPressDelay: 'short' | 'normal' | 'long';
+  /** Swipe left/right on the spacebar to move the cursor. */
+  spacebarCursorControl: boolean;
 
   // Feedback
   vibrateOnKeyPress: boolean;
@@ -44,6 +57,8 @@ export const DEFAULT_PREFS: KeyboardPrefs = {
   keyTextSize: 'medium',
   oneHandedMode: 'off',
   desktopView: false,
+  englishLayout: 'qwerty',
+  amharicLayout: 'traditional',
 
   showSuggestionBar: true,
   showWordOfTheDay: true,
@@ -59,12 +74,18 @@ export const DEFAULT_PREFS: KeyboardPrefs = {
     handwriting: true,
     themes: true,
   },
+  showCursorRow: false,
+
+  keyShape: 'rounded',
+  keyFontWeight: 'normal',
+  showKeyBorders: true,
 
   autoCapitalization: true,
   doubleSpacePeriod: true,
   autoSpaceAfterPunctuation: true,
   keyPopupOnLongPress: true,
   longPressDelay: 'normal',
+  spacebarCursorControl: false,
 
   vibrateOnKeyPress: true,
   hapticLevel: 3,
@@ -104,4 +125,16 @@ export const ROW_GAP_CLASS: Record<KeyboardPrefs['keyboardSpacing'], string> = {
   compact: 'gap-0.5',
   normal: 'gap-1',
   spacious: 'gap-2',
+};
+
+export const KEY_SHAPE_CLASS: Record<KeyboardPrefs['keyShape'], string> = {
+  rounded: 'rounded-lg',
+  square: 'rounded',
+  pill: 'rounded-2xl',
+};
+
+export const KEY_FONT_CLASS: Record<KeyboardPrefs['keyFontWeight'], string> = {
+  light: 'font-light',
+  normal: 'font-medium',
+  bold: 'font-bold',
 };

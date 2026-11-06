@@ -174,6 +174,89 @@ export default function KeyboardSettingsPanel({
           </Row>
         </Section>
 
+        {/* ── Key Style ── */}
+        <Section t={t} title="Key style">
+          <div className="pt-2.5">
+            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>Key shape</p>
+            <Choice
+              t={t}
+              value={prefs.keyShape}
+              onChange={v => setPref('keyShape', v)}
+              options={[
+                { id: 'rounded', label: 'Rounded' },
+                { id: 'square', label: 'Square' },
+                { id: 'pill', label: 'Pill' },
+              ] as const}
+            />
+          </div>
+          <div className="pt-2.5">
+            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>Label weight</p>
+            <Choice
+              t={t}
+              value={prefs.keyFontWeight}
+              onChange={v => setPref('keyFontWeight', v)}
+              options={[
+                { id: 'light', label: 'Light' },
+                { id: 'normal', label: 'Normal' },
+                { id: 'bold', label: 'Bold' },
+              ] as const}
+            />
+          </div>
+          <Row t={t} label="Key borders" hint="Outline on each letter key">
+            <Toggle t={t} label="Key borders" on={prefs.showKeyBorders} onChange={v => setPref('showKeyBorders', v)} />
+          </Row>
+        </Section>
+
+        {/* ── Layout ── */}
+        <Section t={t} title="Keyboard layout">
+          <div className="pt-2.5">
+            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>English layout</p>
+            <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>Applies only to the English keyboard</p>
+            {/* Row 1: QWERTY / Dvorak / AZERTY */}
+            <Choice
+              t={t}
+              value={prefs.englishLayout}
+              onChange={v => setPref('englishLayout', v)}
+              options={[
+                { id: 'qwerty', label: 'QWERTY' },
+                { id: 'dvorak', label: 'Dvorak' },
+                { id: 'azerty', label: 'AZERTY' },
+              ] as const}
+            />
+          </div>
+          {/* Row 2: Colemak / QWERTZ */}
+          <div className="pb-1">
+            <Choice
+              t={t}
+              value={prefs.englishLayout}
+              onChange={v => setPref('englishLayout', v)}
+              options={[
+                { id: 'colemak', label: 'Colemak' },
+                { id: 'qwertz', label: 'QWERTZ' },
+              ] as const}
+            />
+          </div>
+
+          {/* Amharic fidel layout */}
+          <div className="pt-2.5">
+            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>አማርኛ (Amharic) layout</p>
+            <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>Applies to the Ge'ez fidel keyboard</p>
+            <Choice
+              t={t}
+              value={prefs.amharicLayout}
+              onChange={v => setPref('amharicLayout', v)}
+              options={[
+                { id: 'traditional', label: 'Traditional' },
+                { id: 'frequency',   label: 'Frequency' },
+                { id: 'phonetic',    label: 'Phonetic' },
+              ] as const}
+            />
+          </div>
+          <div className={`px-3 pb-3 text-[10px] leading-relaxed ${t.keyText} opacity-40`}>
+            Traditional: Ge'ez alphabetical order · Frequency: most-used letters first · Phonetic: QWERTY-mapped sounds
+          </div>
+        </Section>
+
         {/* ── Top bar ── */}
         <Section t={t} title="Top bar">
           <Row t={t} label="Suggestion bar" hint="Word suggestions above the keys">
@@ -264,6 +347,9 @@ export default function KeyboardSettingsPanel({
           <Row t={t} label="Microphone key" hint="Voice typing stays on a long press of space">
             <Toggle t={t} label="Microphone key" on={prefs.showMicKey} onChange={v => setPref('showMicKey', v)} />
           </Row>
+          <Row t={t} label="Cursor row" hint="Arrow keys above the bottom row for precise cursor movement">
+            <Toggle t={t} label="Cursor row" on={prefs.showCursorRow} onChange={v => setPref('showCursorRow', v)} />
+          </Row>
           <div className="pt-2.5">
             <p className={`px-3 text-xs font-medium ${t.keyText}`}>One-handed mode</p>
             <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>Shrink the keyboard towards one thumb</p>
@@ -290,6 +376,9 @@ export default function KeyboardSettingsPanel({
           </Row>
           <Row t={t} label="Space after punctuation" hint="After . ! ? ; :">
             <Toggle t={t} label="Space after punctuation" on={prefs.autoSpaceAfterPunctuation} onChange={v => setPref('autoSpaceAfterPunctuation', v)} />
+          </Row>
+          <Row t={t} label="Spacebar cursor control" hint="Swipe left/right on the spacebar to move the cursor">
+            <Toggle t={t} label="Spacebar cursor control" on={prefs.spacebarCursorControl} onChange={v => setPref('spacebarCursorControl', v)} />
           </Row>
           <Row t={t} label="Long-press popup" hint="Hold a key for accents, or for every vowel form of a fidel">
             <Toggle t={t} label="Long-press popup" on={prefs.keyPopupOnLongPress} onChange={v => setPref('keyPopupOnLongPress', v)} />

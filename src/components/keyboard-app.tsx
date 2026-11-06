@@ -6,7 +6,7 @@ import { LiveWallpaper, hasLiveAnimation } from '@/components/keyboard/live-wall
 import { getApiBaseUrl } from '@/lib/api-base-url';
 import { loadLiveThemeCSS } from '@/lib/css-loader';
 import { useInView } from '@/hooks/use-in-view';
-import { DEFAULT_PREFS, LONG_PRESS_MS, HAPTIC_MS, KEY_TEXT_CLASS, KEY_GAP_CLASS, ROW_GAP_CLASS, type KeyboardPrefs } from '@/components/keyboard/prefs';
+import { DEFAULT_PREFS, LONG_PRESS_MS, HAPTIC_MS, KEY_TEXT_CLASS, KEY_GAP_CLASS, ROW_GAP_CLASS, KEY_SHAPE_CLASS, KEY_FONT_CLASS, type KeyboardPrefs } from '@/components/keyboard/prefs';
 import { pressKey as translitPress, pressBackspace as translitBackspace, EMPTY_TRANSLIT, type TranslitState } from '@/lib/amharic-translit';
 import {
   Keyboard, Smile, Image, ClipboardList, Languages,
@@ -26,6 +26,7 @@ import {
   WORD_OF_THE_DAY_EN, WORD_OF_THE_DAY_AM,
   ENGLISH_ROWS, SYMBOL_ROWS, ETHIOPIAN_NUM_ROW_1, ETHIOPIAN_NUM_ROW_2,
   ETHIOPIAN_SYM_ROW, NUMBER_SHIFT_CHARS, DESKTOP_QWERTY_ROWS, DESKTOP_SYMBOL_ROWS,
+  LAYOUT_ROWS, AMHARIC_LAYOUT_ROWS,
   type ThemeDef, type CustomThemeData, type GiphyGif,
 } from '@/components/keyboard-data';
 import { trendingGifCatalog, searchGifCatalog } from '@/components/giphy-catalog';
@@ -325,6 +326,21 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   const [visibleButtons, setVisibleButtons] = useState<Record<string, boolean>>(DEFAULT_PREFS.visibleButtons);
   const [toolbarStyle, setToolbarStyle] = useState<KeyboardPrefs['toolbarStyle']>(DEFAULT_PREFS.toolbarStyle);
   const [keyboardSpacing, setKeyboardSpacing] = useState<KeyboardPrefs['keyboardSpacing']>(DEFAULT_PREFS.keyboardSpacing);
+
+  // New customisation prefs
+  const [englishLayout, setEnglishLayout] = useState<KeyboardPrefs['englishLayout']>(DEFAULT_PREFS.englishLayout);
+  const [amharicLayout, setAmharicLayout] = useState<KeyboardPrefs['amharicLayout']>(DEFAULT_PREFS.amharicLayout);
+  const [keyShape, setKeyShape] = useState<KeyboardPrefs['keyShape']>(DEFAULT_PREFS.keyShape);
+  const [keyFontWeight, setKeyFontWeight] = useState<KeyboardPrefs['keyFontWeight']>(DEFAULT_PREFS.keyFontWeight);
+  const [showKeyBorders, setShowKeyBorders] = useState(DEFAULT_PREFS.showKeyBorders);
+  const [showCursorRow, setShowCursorRow] = useState(DEFAULT_PREFS.showCursorRow);
+  const [spacebarCursorControl, setSpacebarCursorControl] = useState(DEFAULT_PREFS.spacebarCursorControl);
+
+  // Cursor position within text. null = end of text (default append behaviour).
+  const [cursorPos, setCursorPos] = useState<number | null>(null);
+  // Tracks whether the spacebar was swiped this gesture (suppresses tap-to-space).
+  const spaceSwipeRef = useRef<{ x: number; y: number } | null>(null);
+  const spaceWasSwipedRef = useRef(false);
 
   // visibleButtons, toolbarStyle and keyboardSpacing used to be saved under
   // keys of their own, by effects that ran before the saved values had been
@@ -630,6 +646,13 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         if (parsed.theme !== undefined) setTheme(parsed.theme);
         if (parsed.language !== undefined) setLanguage(parsed.language);
         if (parsed.phonetic !== undefined) setPhonetic(parsed.phonetic);
+        if (parsed.englishLayout !== undefined) setEnglishLayout(parsed.englishLayout);
+        if (parsed.amharicLayout !== undefined) setAmharicLayout(parsed.amharicLayout);
+        if (parsed.keyShape !== undefined) setKeyShape(parsed.keyShape);
+        if (parsed.keyFontWeight !== undefined) setKeyFontWeight(parsed.keyFontWeight);
+        if (parsed.showKeyBorders !== undefined) setShowKeyBorders(parsed.showKeyBorders);
+        if (parsed.showCursorRow !== undefined) setShowCursorRow(parsed.showCursorRow);
+        if (parsed.spacebarCursorControl !== undefined) setSpacebarCursorControl(parsed.spacebarCursorControl);
       } catch (e) { console.error('Failed to load settings', e); }
     }
     // One-off migration from the keys these three used to have to themselves.
@@ -689,8 +712,15 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       phonetic,
       theme,
       language,
+      englishLayout,
+      amharicLayout,
+      keyShape,
+      keyFontWeight,
+      showKeyBorders,
+      showCursorRow,
+      spacebarCursorControl,
     }));
-  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticLevel, soundVolume, showWordOfTheDay, showSuggestionBar, showKeyHints, showMicKey, keyTextSize, longPressDelay, keyAnimations, showNumberRow, toolbarStyle, keyboardSpacing, visibleButtons, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language, phonetic]);
+  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyboardHeight, hapticLevel, soundVolume, showWordOfTheDay, showSuggestionBar, showKeyHints, showMicKey, keyTextSize, longPressDelay, keyAnimations, showNumberRow, toolbarStyle, keyboardSpacing, visibleButtons, doubleSpacePeriod, oneHandedMode, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language, phonetic, englishLayout, amharicLayout, keyShape, keyFontWeight, showKeyBorders, showCursorRow, spacebarCursorControl]);
 
   // Custom themes are stored separately: a saved theme of "custom_<id>"
   // resolves to THEMES.default unless the matching definition is restored
@@ -896,21 +926,46 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     }
 
     if (key === 'backspace') {
-      updateText(text.slice(0, -1));
+      const pos = cursorPos ?? text.length;
+      if (pos > 0) {
+        updateText(text.slice(0, pos - 1) + text.slice(pos));
+        if (cursorPos !== null) setCursorPos(pos - 1);
+      }
+    } else if ((key === 'arrowleft' || key === 'arrowright' || key === 'arrowup' || key === 'arrowdown') && isIme && window.AkaiKeyboard?.moveCursor) {
+      // In the Android keyboard the host app owns the cursor; move that one.
+      window.AkaiKeyboard.moveCursor(key.slice(5));
+    } else if (key === 'arrowleft') {
+      const pos = cursorPos ?? text.length;
+      setCursorPos(pos > 0 ? pos - 1 : 0);
+    } else if (key === 'arrowright') {
+      if (cursorPos !== null) {
+        setCursorPos(cursorPos + 1 >= text.length ? null : cursorPos + 1);
+      }
+    } else if (key === 'arrowup') {
+      setCursorPos(0);
+    } else if (key === 'arrowdown') {
+      setCursorPos(null);
     } else if (key === 'space') {
+      const pos = cursorPos ?? text.length;
+      const before = text.slice(0, pos);
+      const after = text.slice(pos);
       const now = Date.now();
       const isQuickDoubleTap = now - lastSpaceTapRef.current < 350;
-      const endsWithSingleSpace = text.length > 0 && text.endsWith(' ') && !text.endsWith('  ');
-      const hasWordBeforeSpace = /\S $/.test(text);
+      const endsWithSingleSpace = before.length > 0 && before.endsWith(' ') && !before.endsWith('  ');
+      const hasWordBeforeSpace = /\S $/.test(before);
       if (doubleSpacePeriod && isQuickDoubleTap && endsWithSingleSpace && hasWordBeforeSpace) {
-        updateText(text.slice(0, -1) + '. ');
+        updateText(before.slice(0, -1) + '. ' + after);
+        if (cursorPos !== null) setCursorPos(pos + 1);
         lastSpaceTapRef.current = 0;
       } else {
-        updateText(text + ' ');
+        updateText(before + ' ' + after);
+        if (cursorPos !== null) setCursorPos(pos + 1);
         lastSpaceTapRef.current = now;
       }
     } else if (key === 'enter') {
-      updateText(text + '\n');
+      const pos = cursorPos ?? text.length;
+      updateText(text.slice(0, pos) + '\n' + text.slice(pos));
+      if (cursorPos !== null) setCursorPos(pos + 1);
     } else if (key === 'shift') {
       setShiftActive(!shiftActive);
     } else if (key === 'symbols') {
@@ -924,12 +979,13 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
       setShiftActive(false);
       setSymbolsActive(false);
       setSelectedConsonant(null);
+      setCursorPos(null);
     } else if (key === 'voice') {
       startVoiceRecognition();
     } else {
       let char = key;
-      // Auto-capitalization logic
-      if (autoCapitalization && char.length === 1 && char.match(/[a-z]/)) {
+      // Auto-capitalisation only applies when typing at the end of text
+      if (autoCapitalization && cursorPos === null && char.length === 1 && char.match(/[a-z]/)) {
         const trimmed = text.trim();
         const shouldCap = text === '' ||
                          trimmed.endsWith('.') ||
@@ -943,15 +999,17 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         char = key.toUpperCase();
       }
 
-      let newText = text + char;
+      const pos = cursorPos ?? text.length;
+      let insertedText = char;
       // Auto-space after punctuation
       if (autoSpaceAfterPunctuation && key.length === 1 && ['.','!','?',';',':'].includes(key)) {
-        newText = text + char + ' ';
+        insertedText = char + ' ';
       }
-      updateText(newText);
+      updateText(text.slice(0, pos) + insertedText + text.slice(pos));
+      if (cursorPos !== null) setCursorPos(pos + insertedText.length);
       if (shiftActive) setShiftActive(false);
     }
-  }, [text, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod, startVoiceRecognition, language, phonetic, handlePhoneticKey, keyAnimations]);
+  }, [text, cursorPos, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod, startVoiceRecognition, language, phonetic, handlePhoneticKey, keyAnimations, isIme]);
 
   const handleAmharicPress = useCallback((consonant: string) => {
     const vowels = AMHARIC_VOWELS[consonant];
@@ -1261,7 +1319,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   }, [mode]);
 
   const renderEnglishKey = (key: string) => {
-    const isSpecial = ['shift', 'backspace', 'symbols', 'space', 'enter', 'language', 'voice'].includes(key);
+    const isSpecial = ['shift', 'backspace', 'symbols', 'space', 'enter', 'language', 'voice', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key);
     const isWide = key === 'space';
     const isMedium = key === 'shift' || key === 'backspace' || key === 'symbols' || key === 'enter' || key === 'language' || key === 'voice';
     let displayKey = key;
@@ -1270,6 +1328,10 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
     if (key === 'space') displayKey = language === 'amharic' ? 'አማርኛ' : 'English';
     if (key === 'enter') displayKey = '↵';
     if (key === 'language') displayKey = language === 'english' ? '🌐 አማ' : '🌐 EN';
+    if (key === 'arrowleft') displayKey = '◀';
+    if (key === 'arrowright') displayKey = '▶';
+    if (key === 'arrowup') displayKey = '▲';
+    if (key === 'arrowdown') displayKey = '▼';
     if (shiftActive && !isSpecial && key.length === 1 && key.match(/[a-z]/)) displayKey = key.toUpperCase();
     const isHovered = hoveredKey === key;
     const isLongPressed = longPressKey === key;
@@ -1285,19 +1347,43 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
         onClick={() => {
           if (key === 'space') {
             const held = Date.now() - ((window as any).__spaceDown || 0);
-            if (held > 600) {
-              // startVoiceRecognition is called in handlePointerUp
+            if (held > 600 || spaceWasSwipedRef.current) {
+              // voice recognition or cursor swipe — don't insert space
             } else {
               handleKeyPress(key);
             }
+            spaceWasSwipedRef.current = false;
           } else {
             handleKeyPress(key);
           }
         }}
         onPointerDown={(e) => {
-          if (key === 'space') (window as any).__spaceDown = Date.now();
+          if (key === 'space') {
+            (window as any).__spaceDown = Date.now();
+            if (spacebarCursorControl) spaceSwipeRef.current = { x: e.clientX, y: e.clientY };
+          }
           handlePointerDown(key);
         }}
+        onPointerMove={key === 'space' && spacebarCursorControl ? (e) => {
+          if (!spaceSwipeRef.current) return;
+          const dx = e.clientX - spaceSwipeRef.current.x;
+          if (Math.abs(dx) > 8) {
+            const delta = Math.sign(dx);
+            spaceSwipeRef.current = { x: e.clientX, y: spaceSwipeRef.current.y };
+            spaceWasSwipedRef.current = true;
+            if (isIme && window.AkaiKeyboard?.moveCursor) {
+              window.AkaiKeyboard.moveCursor(delta < 0 ? 'left' : 'right');
+              return;
+            }
+            setCursorPos(prev => {
+              const p = prev ?? text.length;
+              const newP = p + delta;
+              if (newP <= 0) return 0;
+              if (newP >= text.length) return null;
+              return newP;
+            });
+          }
+        } : undefined}
         onPointerUp={(e) => {
           if (key === 'space') {
             const held = Date.now() - ((window as any).__spaceDown || 0);
@@ -1305,15 +1391,18 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
               startVoiceRecognition();
               (window as any).__spaceDown = 0;
             }
+            spaceSwipeRef.current = null;
           }
           handlePointerUp();
         }}
         className={`
-          relative flex items-center justify-center rounded-lg font-medium text-xs
+          relative flex items-center justify-center ${KEY_SHAPE_CLASS[keyShape]} ${KEY_FONT_CLASS[keyFontWeight]} text-xs
           transition-all duration-75 select-none overflow-visible
           ${isWide ? 'flex-[3.5]' : isMedium ? 'flex-[1.4]' : 'flex-1'} ${kbKeyHeight}
           ${!isIme && isHovered ? `${t.keyHover} shadow-md` : ''}
-          ${isSpecial ? `${t.specialKey} ${t.keyText}` : `${t.key} ${t.keyText} ${t.border} border shadow-sm`}
+          ${isSpecial
+            ? `${t.specialKey} ${t.keyText}`
+            : `${t.key} ${t.keyText} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm`}
           active:brightness-90
         `}
         style={customKeyStyle}
@@ -1680,20 +1769,25 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   // "Reset to defaults" reach all of them.
   const prefs: KeyboardPrefs = {
     keyboardHeight, keyboardSpacing, keyTextSize, oneHandedMode, desktopView,
+    englishLayout, amharicLayout,
     showSuggestionBar, showWordOfTheDay, showNumberRow, showKeyHints, showMicKey,
-    toolbarStyle, visibleButtons,
+    toolbarStyle, visibleButtons, showCursorRow,
+    keyShape, keyFontWeight, showKeyBorders,
     autoCapitalization, doubleSpacePeriod, autoSpaceAfterPunctuation, keyPopupOnLongPress, longPressDelay,
+    spacebarCursorControl,
     vibrateOnKeyPress, hapticLevel, soundOnKeyPress, soundVolume, keyAnimations,
   };
   const prefSetters: { [K in keyof KeyboardPrefs]: (v: KeyboardPrefs[K]) => void } = {
     keyboardHeight: setKeyboardHeight, keyboardSpacing: setKeyboardSpacing, keyTextSize: setKeyTextSize,
     oneHandedMode: setOneHandedMode, desktopView: setDesktopView,
+    englishLayout: setEnglishLayout, amharicLayout: setAmharicLayout,
     showSuggestionBar: setShowSuggestionBar, showWordOfTheDay: setShowWordOfTheDay, showNumberRow: setShowNumberRow,
     showKeyHints: setShowKeyHints, showMicKey: setShowMicKey,
-    toolbarStyle: setToolbarStyle, visibleButtons: setVisibleButtons,
+    toolbarStyle: setToolbarStyle, visibleButtons: setVisibleButtons, showCursorRow: setShowCursorRow,
+    keyShape: setKeyShape, keyFontWeight: setKeyFontWeight, showKeyBorders: setShowKeyBorders,
     autoCapitalization: setAutoCapitalization, doubleSpacePeriod: setDoubleSpacePeriod,
     autoSpaceAfterPunctuation: setAutoSpaceAfterPunctuation, keyPopupOnLongPress: setKeyPopupOnLongPress,
-    longPressDelay: setLongPressDelay,
+    longPressDelay: setLongPressDelay, spacebarCursorControl: setSpacebarCursorControl,
     vibrateOnKeyPress: setVibrateOnKeyPress, hapticLevel: setHapticLevel, soundOnKeyPress: setSoundOnKeyPress,
     soundVolume: setSoundVolume, keyAnimations: setKeyAnimations,
   };
@@ -2933,7 +3027,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
   };
 
   // ─── Main Render ────────────────────────────────────────────────────
-  const currentRows = symbolsActive ? SYMBOL_ROWS : ENGLISH_ROWS;
+  const currentRows = symbolsActive ? SYMBOL_ROWS : (LAYOUT_ROWS[englishLayout] ?? ENGLISH_ROWS);
 
   const getDynamicLayerStyle = () => {
     if (!customBgFile) return {};
@@ -3014,7 +3108,15 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                     transition={{ duration: 0.2 }}
                     className={`text-sm whitespace-pre-wrap break-words leading-relaxed ${t.keyText}`}
                     style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
-                  >{text}</motion.p>
+                  >
+                    {cursorPos !== null ? (
+                      <>
+                        {text.slice(0, cursorPos)}
+                        <span className="inline-block w-px h-[1em] bg-current align-middle animate-pulse mx-px" aria-hidden="true" />
+                        {text.slice(cursorPos)}
+                      </>
+                    ) : text}
+                  </motion.p>
                 ) : (
                   <p className={`text-sm italic opacity-40 ${t.keyText}`}
                     style={customThemeData ? { color: customThemeData.keyTextColor } : {}}
@@ -3161,16 +3263,27 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                     fidel board and the Amharic space bar. */}
                 {(language === 'english' || (language === 'amharic' && phonetic && !symbolsActive))
                   && currentRows
-                  && (language === 'amharic' && phonetic ? currentRows.slice(0, -1) : currentRows).map((row, ri) => (
-                  <div key={ri} className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
-                    {row.filter(key => showMicKey || key !== 'voice').map(key => renderEnglishKey(key))}
-                  </div>
-                ))}
+                  && (() => {
+                    const displayRows = language === 'amharic' && phonetic ? currentRows.slice(0, -1) : currentRows;
+                    return displayRows.map((row, ri) => (
+                      <React.Fragment key={ri}>
+                        {/* Cursor navigation row injected just before the control row */}
+                        {showCursorRow && ri === displayRows.length - 1 && !symbolsActive && (
+                          <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                            {(['arrowleft', 'arrowup', 'arrowdown', 'arrowright'] as const).map(k => renderEnglishKey(k))}
+                          </div>
+                        )}
+                        <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                          {row.filter(k => showMicKey || k !== 'voice').map(k => renderEnglishKey(k))}
+                        </div>
+                      </React.Fragment>
+                    ));
+                  })()}
 
                 {/* ─── Amharic Letter Keyboard ─── */}
                 {language === 'amharic' && !symbolsActive && (
                   <>
-                    {!phonetic && AMHARIC_ROWS.map((row, ri) => (
+                    {!phonetic && (AMHARIC_LAYOUT_ROWS[amharicLayout] ?? AMHARIC_ROWS).map((row, ri) => (
                       <div key={ri} className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                         {row.map((consonant, ci) => {
                           const isHovered = hoveredKey === consonant;
@@ -3189,18 +3302,18 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                               onPointerUp={handlePointerUp}
                               onPointerLeave={handlePointerUp}
                               className={`
-                                relative flex items-center justify-center flex-1 ${kbKeyHeight} rounded-lg font-medium
+                                relative flex items-center justify-center flex-1 ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${KEY_FONT_CLASS[keyFontWeight]}
                                 transition-all duration-150 select-none ${KEY_TEXT_CLASS[keyTextSize]} overflow-visible
                                 ${isSelected ? `ring-2 ring-yellow-500/60` : ''}
                                 ${isHovered ? `${t.keyHover} shadow-md` : ''}
-                                ${t.key} ${t.keyText} ${t.border} border shadow-sm
+                                ${t.key} ${t.keyText} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm
                                 `}
                                 style={customKeyStyle}
                               >
-                              {/* Change 7: Glow effect on active consonant */}
+                              {/* Glow effect on active consonant */}
                               {isSelected && (
                                 <motion.div
-                                  className="absolute inset-0 rounded-lg"
+                                  className={`absolute inset-0 ${KEY_SHAPE_CLASS[keyShape]}`}
                                   animate={{ boxShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 12px rgba(234,179,8,0.4)', '0 0 0px rgba(234,179,8,0)'] }}
                                   transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
                                 />
@@ -3210,7 +3323,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                                   initial={{ scale: 0.4, opacity: 0.55 }}
                                   animate={{ scale: 1.9, opacity: 0 }}
                                   transition={{ duration: 0.38, ease: 'easeOut' }}
-                                  className={`absolute inset-0 rounded-lg ${t.accent} pointer-events-none blur-[2px]`}
+                                  className={`absolute inset-0 ${KEY_SHAPE_CLASS[keyShape]} ${t.accent} pointer-events-none blur-[2px]`}
                                   style={{ mixBlendMode: 'screen' }}
                                 />
                               )}
@@ -3238,7 +3351,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                                       whileTap={{ scale: 0.9 }}
                                       onClick={(e) => { e.stopPropagation(); handleAlternateSelect(alt); }}
                                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); handleAlternateSelect(alt); } }}
-                                      className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium ${t.key} ${t.keyText} ${t.keyHover} ${t.border} border shadow-sm cursor-pointer`}>
+                                      className={`flex items-center justify-center w-9 h-9 ${KEY_SHAPE_CLASS[keyShape]} text-sm ${KEY_FONT_CLASS[keyFontWeight]} ${t.key} ${t.keyText} ${t.keyHover} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm cursor-pointer`}>
                                       {alt}
                                     </motion.div>
                                   ))}
@@ -3249,14 +3362,21 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                         })}
                       </div>
                     ))}
-                    {/* Amharic special keys bottom row mapping FIXED */}
+                    {/* Cursor navigation row (Amharic fidel board) */}
+                    {showCursorRow && (
+                      <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
+                        {(['arrowleft', 'arrowup', 'arrowdown', 'arrowright'] as const).map(k => renderEnglishKey(k))}
+                      </div>
+                    )}
+
+                    {/* Amharic special keys bottom row */}
                     <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => { setSymbolsActive(true); setSelectedConsonant(null); }}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-xs font-medium`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.specialKey} ${t.keyText} text-xs font-medium`}>
                         ፩፪
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={handleLanguageToggle}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText} text-[9px] font-bold`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.specialKey} ${t.keyText} text-[9px] font-bold`}>
                         🌐 EN
                       </motion.button>
                       {/* Switches between the two ways of writing Amharic:
@@ -3265,29 +3385,57 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
                         onClick={handlePhoneticToggle}
                         title={phonetic ? 'Switch to the fidel board' : 'Type Amharic phonetically'}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${phonetic ? `${t.accent} ${t.accentText}` : `${t.specialKey} ${t.keyText}`} text-[9px] font-bold`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${phonetic ? `${t.accent} ${t.accentText}` : `${t.specialKey} ${t.keyText}`} text-[9px] font-bold`}>
                         {phonetic ? 'ፈደል' : 'ABC'}
                       </motion.button>
-                      {/* Unified space bar with long press voice recognition */}
+                      {/* Spacebar with cursor-swipe and long-press voice */}
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
-                        onPointerDown={() => (window as any).__spaceDown = Date.now()}
+                        onPointerDown={(e) => {
+                          (window as any).__spaceDown = Date.now();
+                          if (spacebarCursorControl) spaceSwipeRef.current = { x: e.clientX, y: e.clientY };
+                        }}
+                        onPointerMove={spacebarCursorControl ? (e) => {
+                          if (!spaceSwipeRef.current) return;
+                          const dx = e.clientX - spaceSwipeRef.current.x;
+                          if (Math.abs(dx) > 8) {
+                            const delta = Math.sign(dx);
+                            spaceSwipeRef.current = { x: e.clientX, y: spaceSwipeRef.current.y };
+                            spaceWasSwipedRef.current = true;
+                            if (isIme && window.AkaiKeyboard?.moveCursor) {
+                              window.AkaiKeyboard.moveCursor(delta < 0 ? 'left' : 'right');
+                              return;
+                            }
+                            setCursorPos(prev => {
+                              const p = prev ?? text.length;
+                              const newP = p + delta;
+                              if (newP <= 0) return 0;
+                              if (newP >= text.length) return null;
+                              return newP;
+                            });
+                          }
+                        } : undefined}
                         onPointerUp={() => {
                           const held = Date.now() - ((window as any).__spaceDown || 0);
-                          if (held > 600) startVoiceRecognition();
-                          else handleKeyPress('space');
+                          spaceSwipeRef.current = null;
+                          if (held > 600) {
+                            startVoiceRecognition();
+                          } else if (!spaceWasSwipedRef.current) {
+                            handleKeyPress('space');
+                          }
+                          spaceWasSwipedRef.current = false;
                           (window as any).__spaceDown = 0;
                         }}
-                        className={`flex-[3.5] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.key} ${t.keyText} ${t.border} border shadow-sm text-xs font-medium`}
+                        className={`flex-[3.5] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.key} ${t.keyText} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm text-xs ${KEY_FONT_CLASS[keyFontWeight]}`}
                         style={customKeyStyle}
                       >
                          {language === 'amharic' ? (phonetic ? 'አማርኛ — selam → ሰላም' : 'አማርኛ') : 'Space'}
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('backspace')}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText}`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.specialKey} ${t.keyText}`}>
                         <Delete className="w-3.5 h-3.5" />
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('enter')}
-                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText}`}>
+                        className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS[keyShape]} ${t.specialKey} ${t.keyText}`}>
                         <CornerDownLeft className="w-3.5 h-3.5" />
                       </motion.button>
                     </div>
