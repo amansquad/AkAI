@@ -5,7 +5,9 @@ import Image from 'next/image';
 import { ArrowDown, Download, Languages, PenLine, ShieldCheck, Smile } from 'lucide-react';
 import './landing.css';
 
-const DemoKeyboard = lazy(() => import('@/components/demo-keyboard'));
+// The demo is the shipping keyboard itself, not a lookalike, so every tab,
+// theme and setting behaves exactly as it does in the app.
+const DemoKeyboard = lazy(() => import('@/components/keyboard-app'));
 
 const APK = '/AkAI-keyboard.apk';
 
@@ -367,8 +369,8 @@ function Try() {
             Type a line <span style={{ color: 'var(--yellow)' }}>home</span>
           </h2>
           <p className="land-lede" style={{ marginTop: 24 }}>
-            This is the real keyboard layout running in your browser. Switch between English and Amharic, tap a
-            consonant for its vowel forms, and try the translate button.
+            This is the real AkAI keyboard running in your browser, not a mock-up. Switch between English and
+            Amharic, tap a consonant for its vowel forms, then try the themes, stickers, GIFs and AI translate tabs.
           </p>
           <a href={APK} download className="land-btn land-btn--primary" style={{ marginTop: 32 }}>
             <Download size={20} aria-hidden="true" /> Download for Android
