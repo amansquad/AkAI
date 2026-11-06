@@ -32,9 +32,9 @@
 
     <!-- Settings Theme -->
     <style name="SettingsTheme" parent="Theme.AppCompat.NoActionBar">
-        <item name="android:windowBackground">@color/app_background</item>
-        <item name="android:statusBarColor">@color/app_background</item>
-        <item name="android:navigationBarColor">@color/app_background</item>
+        <item name="android:windowBackground">@color/akai_ground</item>
+        <item name="android:statusBarColor">@color/akai_ground</item>
+        <item name="android:navigationBarColor">@color/akai_ground</item>
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
