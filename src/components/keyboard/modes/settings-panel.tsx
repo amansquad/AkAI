@@ -6,7 +6,7 @@ import {
   ClipboardList, Image, Palette, PenTool, RotateCcw, Smile, Sparkles,
 } from 'lucide-react';
 import type { ThemeDef } from '@/components/keyboard-data';
-import { DEFAULT_PREFS, type KeyboardPrefs } from '@/components/keyboard/prefs';
+import { DEFAULT_PREFS, NUMBER_LIMITS, clampPref, type KeyboardPrefs, type NumericPref } from '@/components/keyboard/prefs';
 
 interface KeyboardSettingsPanelProps {
   t: ThemeDef;
@@ -119,6 +119,73 @@ function Slider({ t, value, min, max, step = 1, onChange, onCommit, label, forma
   );
 }
 
+/**
+ * A number the user can set to any value in its range: drag the slider, tap
+ * − / +, or type it. Typing is only applied once they finish (leave the box
+ * or press Enter), so half-typed numbers never reach the keyboard.
+ */
+function NumberSetting({ t, label, hint, pref, value, onChange }: {
+  t: ThemeDef; label: string; hint?: string; pref: NumericPref; value: number;
+  onChange: (v: number) => void;
+}) {
+  const { min, max, step, unit } = NUMBER_LIMITS[pref];
+  const [draft, setDraft] = React.useState<string | null>(null);
+  const changed = value !== DEFAULT_PREFS[pref];
+  const set = (v: number) => onChange(clampPref(pref, v));
+  const commit = () => {
+    if (draft !== null && draft.trim() !== '' && Number.isFinite(Number(draft))) set(Number(draft));
+    setDraft(null);
+  };
+  const stepBtn = `w-7 h-7 rounded-lg text-sm font-semibold ${t.suggestion} ${t.keyText} disabled:opacity-30`;
+
+  return (
+    <div className="px-3 py-2.5 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className={`text-xs font-medium ${t.keyText}`}>{label}</p>
+          {hint && <p className={`text-[10px] leading-snug ${t.keyText} opacity-50`}>{hint}</p>}
+        </div>
+        <div className="shrink-0 flex items-center gap-1">
+          <button type="button" aria-label={`Decrease ${label}`} className={stepBtn}
+            disabled={value <= min} onClick={() => set(value - step)}>−</button>
+          <input
+            type="text"
+            inputMode="numeric"
+            aria-label={label}
+            value={draft ?? String(value)}
+            onFocus={e => e.currentTarget.select()}
+            onChange={e => setDraft(e.target.value.replace(/[^0-9]/g, ''))}
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+            className={`w-12 h-7 text-center text-xs font-semibold tabular-nums rounded-lg bg-transparent border ${t.border} ${t.keyText}`}
+          />
+          <span className={`w-5 text-[10px] ${t.keyText} opacity-50`}>{unit}</span>
+          <button type="button" aria-label={`Increase ${label}`} className={stepBtn}
+            disabled={value >= max} onClick={() => set(value + step)}>+</button>
+        </div>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        aria-label={`${label} slider`}
+        onChange={e => set(Number(e.target.value))}
+        className="w-full h-1.5 cursor-pointer"
+        style={{ accentColor: 'currentColor' }}
+      />
+      <div className={`flex items-center justify-between text-[10px] ${t.keyText} opacity-50`}>
+        <span>{min}{unit}</span>
+        {changed
+          ? <button type="button" className="underline" onClick={() => onChange(DEFAULT_PREFS[pref] as number)}>Reset to {DEFAULT_PREFS[pref]}{unit}</button>
+          : <span>Default</span>}
+        <span>{max}{unit}</span>
+      </div>
+    </div>
+  );
+}
+
 const HAPTIC_LABELS = ['', 'Very light', 'Light', 'Medium', 'Strong', 'Very strong'];
 
 const TOOLBAR_BUTTONS = [
@@ -176,32 +243,22 @@ export default function KeyboardSettingsPanel({
 
         {/* ── Key Style ── */}
         <Section t={t} title="Key style">
-          <div className="pt-2.5">
-            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>Key shape</p>
-            <Choice
-              t={t}
-              value={prefs.keyShape}
-              onChange={v => setPref('keyShape', v)}
-              options={[
-                { id: 'rounded', label: 'Rounded' },
-                { id: 'square', label: 'Square' },
-                { id: 'pill', label: 'Pill' },
-              ] as const}
-            />
-          </div>
-          <div className="pt-2.5">
-            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>Label weight</p>
-            <Choice
-              t={t}
-              value={prefs.keyFontWeight}
-              onChange={v => setPref('keyFontWeight', v)}
-              options={[
-                { id: 'light', label: 'Light' },
-                { id: 'normal', label: 'Normal' },
-                { id: 'bold', label: 'Bold' },
-              ] as const}
-            />
-          </div>
+          <NumberSetting
+            t={t}
+            label="Corner roundness"
+            hint="0 is square; higher is rounder"
+            pref="keyRadius"
+            value={prefs.keyRadius}
+            onChange={v => setPref('keyRadius', v)}
+          />
+          <NumberSetting
+            t={t}
+            label="Label weight"
+            hint="100 thin, 500 medium, 900 black"
+            pref="keyWeight"
+            value={prefs.keyWeight}
+            onChange={v => setPref('keyWeight', v)}
+          />
           <Row t={t} label="Key borders" hint="Outline on each letter key">
             <Toggle t={t} label="Key borders" on={prefs.showKeyBorders} onChange={v => setPref('showKeyBorders', v)} />
           </Row>
@@ -299,45 +356,30 @@ export default function KeyboardSettingsPanel({
 
         {/* ── Keys ── */}
         <Section t={t} title="Keys">
-          <div className="pt-2.5">
-            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>Keyboard height</p>
-            <Choice
-              t={t}
-              value={prefs.keyboardHeight}
-              onChange={v => setPref('keyboardHeight', v)}
-              options={[
-                { id: 'compact', label: 'Compact' },
-                { id: 'normal', label: 'Normal' },
-                { id: 'tall', label: 'Tall' },
-              ] as const}
-            />
-          </div>
-          <div className="pt-2.5">
-            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>Space between keys</p>
-            <Choice
-              t={t}
-              value={prefs.keyboardSpacing}
-              onChange={v => setPref('keyboardSpacing', v)}
-              options={[
-                { id: 'compact', label: 'Tight' },
-                { id: 'normal', label: 'Normal' },
-                { id: 'spacious', label: 'Roomy' },
-              ] as const}
-            />
-          </div>
-          <div className="pt-2.5">
-            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>Key label size</p>
-            <Choice
-              t={t}
-              value={prefs.keyTextSize}
-              onChange={v => setPref('keyTextSize', v)}
-              options={[
-                { id: 'small', label: 'Small' },
-                { id: 'medium', label: 'Medium' },
-                { id: 'large', label: 'Large' },
-              ] as const}
-            />
-          </div>
+          <NumberSetting
+            t={t}
+            label="Key height"
+            hint="Height of each row of keys. The whole keyboard grows with it"
+            pref="keyHeight"
+            value={prefs.keyHeight}
+            onChange={v => setPref('keyHeight', v)}
+          />
+          <NumberSetting
+            t={t}
+            label="Space between keys"
+            hint="The gap around every key"
+            pref="keyGap"
+            value={prefs.keyGap}
+            onChange={v => setPref('keyGap', v)}
+          />
+          <NumberSetting
+            t={t}
+            label="Key label size"
+            hint="Size of the letters on the keys"
+            pref="keyTextSize"
+            value={prefs.keyTextSize}
+            onChange={v => setPref('keyTextSize', v)}
+          />
           <Row t={t} label="Number row" hint="A row of numbers above the letters">
             <Toggle t={t} label="Number row" on={prefs.showNumberRow} onChange={v => setPref('showNumberRow', v)} />
           </Row>
@@ -364,6 +406,16 @@ export default function KeyboardSettingsPanel({
               ] as const}
             />
           </div>
+          {prefs.oneHandedMode !== 'off' && (
+            <NumberSetting
+              t={t}
+              label="One-handed width"
+              hint="How much of the screen width the keyboard takes"
+              pref="oneHandedWidth"
+              value={prefs.oneHandedWidth}
+              onChange={v => setPref('oneHandedWidth', v)}
+            />
+          )}
         </Section>
 
         {/* ── Typing ── */}
@@ -384,19 +436,14 @@ export default function KeyboardSettingsPanel({
             <Toggle t={t} label="Long-press popup" on={prefs.keyPopupOnLongPress} onChange={v => setPref('keyPopupOnLongPress', v)} />
           </Row>
           {prefs.keyPopupOnLongPress && (
-            <div className="pt-2.5">
-              <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>How long to hold</p>
-              <Choice
-                t={t}
-                value={prefs.longPressDelay}
-                onChange={v => setPref('longPressDelay', v)}
-                options={[
-                  { id: 'short', label: 'Short' },
-                  { id: 'normal', label: 'Normal' },
-                  { id: 'long', label: 'Long' },
-                ] as const}
-              />
-            </div>
+            <NumberSetting
+              t={t}
+              label="How long to hold"
+              hint="Time before the popup opens"
+              pref="longPressDelay"
+              value={prefs.longPressDelay}
+              onChange={v => setPref('longPressDelay', v)}
+            />
           )}
         </Section>
 
