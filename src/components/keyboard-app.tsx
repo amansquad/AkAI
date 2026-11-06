@@ -3146,8 +3146,24 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
               { id: 'handwriting' as KeyboardMode, label: 'Draw', icon: Pen, visible: visibleButtons.handwriting },
               { id: 'settings' as KeyboardMode, label: 'Set', icon: Settings, visible: true },
             ].filter(t => t.visible).map(tab => (
+              <React.Fragment key={tab.id}>
+              {/* Voice typing lives in the toolbar, just before Settings */}
+              {tab.id === 'settings' && showMicKey && (
+                <motion.button
+                  whileTap={{ scale: 0.92 }}
+                  whileHover={{ scale: 1.05 }}
+                  onClick={startVoiceRecognition}
+                  aria-label={isListening ? 'Stop voice typing' : 'Start voice typing'}
+                  className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-all duration-200 ${isListening ? 'text-red-500' : `${t.keyText} opacity-60 hover:opacity-100`}`}
+                  style={customThemeData && !isListening ? { color: customThemeData.keyTextColor } : {}}
+                >
+                  {isListening
+                    ? <MicOff className="w-5 h-5 animate-pulse" />
+                    : <Mic className={toolbarStyle === 'icons' ? 'w-5 h-5' : 'w-4 h-4 opacity-70'} />}
+                  {toolbarStyle === 'all' && <span className="text-[9px] font-medium">Voice</span>}
+                </motion.button>
+              )}
               <motion.button
-                key={tab.id}
                 whileTap={{ scale: 0.92 }}
                 whileHover={{ scale: 1.05 }}
                 onClick={() => handleModeChange(tab.id)}
@@ -3173,6 +3189,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                   <tab.icon className="w-4 h-4 opacity-70 relative z-10" />
                 )}
               </motion.button>
+              </React.Fragment>
             ))}
             {/* Theme Toggle */}
             {visibleButtons.themes !== false && <motion.button
@@ -3274,7 +3291,7 @@ export default function KeyboardApp({ onTextChange, isIme = false }: KeyboardApp
                           </div>
                         )}
                         <div className={`flex ${KEY_GAP_CLASS[keyboardSpacing]} justify-center`}>
-                          {row.filter(k => showMicKey || k !== 'voice').map(k => renderEnglishKey(k))}
+                          {row.filter(k => k !== 'voice').map(k => renderEnglishKey(k))}
                         </div>
                       </React.Fragment>
                     ));

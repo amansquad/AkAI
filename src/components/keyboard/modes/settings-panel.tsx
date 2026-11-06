@@ -344,7 +344,7 @@ export default function KeyboardSettingsPanel({
           <Row t={t} label="Symbol hints" hint="Small symbols in the corner of letter keys">
             <Toggle t={t} label="Symbol hints" on={prefs.showKeyHints} onChange={v => setPref('showKeyHints', v)} />
           </Row>
-          <Row t={t} label="Microphone key" hint="Voice typing stays on a long press of space">
+          <Row t={t} label="Microphone button" hint="Sits in the toolbar before Settings. A long press of space also starts voice typing">
             <Toggle t={t} label="Microphone key" on={prefs.showMicKey} onChange={v => setPref('showMicKey', v)} />
           </Row>
           <Row t={t} label="Cursor row" hint="Arrow keys above the bottom row for precise cursor movement">
