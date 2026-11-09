@@ -188,6 +188,30 @@ class Ui(val context: Context, val p: Palette) {
         }
     }
 
+    /** Cards rise and fade in one after another when a screen opens. */
+    fun animateIn(column: LinearLayout) {
+        for (i in 0 until column.childCount) {
+            val v = column.getChildAt(i)
+            v.alpha = 0f
+            v.translationY = dp(18f).toFloat()
+            v.animate().alpha(1f).translationY(0f).setStartDelay((i * 45L).coerceAtMost(500L)).setDuration(320)
+                .setInterpolator(android.view.animation.DecelerateInterpolator(1.8f)).start()
+        }
+    }
+
+    /** A card that shrinks a little under the finger, like the keys. */
+    fun pressable(v: View): View {
+        v.setOnTouchListener { view, e ->
+            when (e.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> view.animate().scaleX(0.97f).scaleY(0.97f).setDuration(90).start()
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
+                    view.animate().scaleX(1f).scaleY(1f).setDuration(220).setInterpolator(android.view.animation.OvershootInterpolator(2.2f)).start()
+            }
+            false // the click still goes through
+        }
+        return v
+    }
+
     fun section(t: String) = label(t.uppercase(), 12f, p.accent, bold = true, spacing = 0.15f).apply {
         setPadding(dp(4f), dp(22f), 0, dp(8f))
     }
@@ -235,6 +259,7 @@ abstract class ThemedActivity : Activity() {
     protected fun show(content: View, scroll: Boolean = true) {
         val root = FrameLayout(this)
         root.addView(GlowBackground(this, palette), FrameLayout.LayoutParams(-1, -1))
+        if (content is LinearLayout) ui.animateIn(content)
         val body: View = if (scroll) ScrollView(this).apply { isFillViewport = true; addView(content) } else content
         root.addView(body, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
