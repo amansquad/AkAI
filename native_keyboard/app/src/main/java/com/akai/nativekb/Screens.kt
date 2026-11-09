@@ -229,6 +229,7 @@ class HomeActivity : ThemedActivity() {
                 ui.label(name, 16f, palette.text, bold = true), ui.label(sub, 12f, ui.dim),
             )
             if (go != null) card.setOnClickListener { startActivity(Intent(this, go)) }
+            ui.pressable(card)
             grid.addView(card, GridLayout.LayoutParams(
                 GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f),
             ).apply { width = 0; setMargins(ui.dp(5f), ui.dp(5f), ui.dp(5f), ui.dp(5f)) })

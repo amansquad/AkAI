@@ -16,6 +16,8 @@ import android.os.VibratorManager
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.Toast
@@ -193,7 +195,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         padDismissed = false
         symbols = false
         translit = Translit.EMPTY
-        closePanel()
+        closePanel(animate = false)
         loadPrefs()
         refreshLayout()
         updateAutoCaps()
@@ -526,14 +528,30 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         val h = if (keys.height > 0) keys.height else keys.measuredHeight
         panel.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, h)
         panel.open(tab, recents, clipList())
+        val rise = 18 * resources.displayMetrics.density
+        panel.animate().cancel(); keys.animate().cancel()
+        panel.alpha = 0f
+        panel.translationY = rise
         panel.visibility = View.VISIBLE
-        keys.visibility = View.INVISIBLE
+        // The panel rises and fades in while the keys fade out beneath it.
+        panel.animate().alpha(1f).translationY(0f).setDuration(190).setInterpolator(DecelerateInterpolator(1.6f)).start()
+        keys.animate().alpha(0f).setDuration(130).withEndAction { keys.visibility = View.INVISIBLE; keys.alpha = 1f }.start()
     }
 
-    private fun closePanel() {
+    private fun closePanel(animate: Boolean = true) {
         if (!::panel.isInitialized || panel.visibility != View.VISIBLE) return
-        panel.visibility = View.GONE
+        panel.animate().cancel(); keys.animate().cancel()
+        if (!animate) {
+            panel.visibility = View.GONE; panel.alpha = 1f; panel.translationY = 0f
+            keys.visibility = View.VISIBLE; keys.alpha = 1f
+            return
+        }
+        val drop = 14 * resources.displayMetrics.density
+        keys.alpha = 0f
         keys.visibility = View.VISIBLE
+        keys.animate().alpha(1f).setDuration(170).start()
+        panel.animate().alpha(0f).translationY(drop).setDuration(140).setInterpolator(AccelerateInterpolator())
+            .withEndAction { panel.visibility = View.GONE; panel.alpha = 1f; panel.translationY = 0f }.start()
     }
 
     override fun onPanelClose() = closePanel()

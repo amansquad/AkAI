@@ -120,6 +120,7 @@ class SettingsActivity : ThemedActivity() {
             },
         )
         themeCard.setOnClickListener { startActivity(Intent(this, ThemesActivity::class.java)) }
+        ui.pressable(themeCard)
         c.addView(themeCard, wrap)
         c.addView(ui.gap(10f))
         c.addView(ui.card(

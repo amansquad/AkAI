@@ -122,6 +122,7 @@ class PanelView(context: Context) : View(context) {
 
     private fun enter(t: Tab) {
         tab = t
+        tabAt = android.os.SystemClock.uptimeMillis()
         resetScroll()
         when (t) {
             Tab.GIF -> if (gifs.isEmpty()) loadGifs()
@@ -217,11 +218,19 @@ class PanelView(context: Context) : View(context) {
         label(canvas, s, rect.centerX(), rect.centerY(), dp(14f), if (accent) palette.accentText else palette.text, bold = true)
     }
 
+    /** When the tab last changed, so its content can fade in. */
+    private var tabAt = 0L
+
     override fun onDraw(canvas: Canvas) {
         drawTabs(canvas)
         if (hasCategoryRow()) drawCategories(canvas)
+        val now = android.os.SystemClock.uptimeMillis()
+        val k = ((now - tabAt) / 150f).coerceIn(0f, 1f)
         canvas.save()
         canvas.clipRect(0f, contentTop(), width.toFloat(), height.toFloat())
+        // A tab's content fades in rather than snapping, and rises a few pixels as it does.
+        val layer = if (k < 1f) canvas.saveLayerAlpha(0f, contentTop(), width.toFloat(), height.toFloat(), ((1f - (1f - k) * (1f - k)) * 255f).toInt()) else -1
+        if (k < 1f) canvas.translate(0f, (1f - k) * dp(8f))
         when (tab) {
             Tab.EMOJI -> drawEmoji(canvas)
             Tab.GIF -> drawGifs(canvas)
@@ -230,7 +239,9 @@ class PanelView(context: Context) : View(context) {
             Tab.TRANSLATE -> drawTranslate(canvas)
             Tab.THEMES -> drawThemes(canvas)
         }
+        if (layer >= 0) canvas.restoreToCount(layer)
         canvas.restore()
+        if (k < 1f) postInvalidateOnAnimation()
     }
 
     private val tabNames = arrayOf("ABC", "😀", "GIF", "📋", "✍️", "🌐", "🎨")

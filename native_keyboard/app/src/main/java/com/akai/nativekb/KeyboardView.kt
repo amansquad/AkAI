@@ -2,7 +2,13 @@ package com.akai.nativekb
 
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.PorterDuff
+import android.graphics.Region
+import android.os.Build
+import android.os.SystemClock
+import androidx.core.graphics.ColorUtils
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -90,11 +96,14 @@ class KeyboardView(context: Context) : View(context) {
         theme: String, heightPercent: Int, hints: Boolean, oneHand: Int,
         pressAnimation: Boolean = true, longPress: Boolean = true, live: Boolean = true,
     ) {
+        // A different theme fades in over the old one instead of snapping.
+        if (theme != themeName) beginCrossfade(240L)
         liveOn = live
         pressAnim = pressAnimation
         longPressOn = longPress
         themeName = theme
         palette = Themes.palette(context, theme)
+        cacheValid = false
         heightScale = heightPercent.coerceIn(70, 140) / 100f
         showHints = hints
         oneHanded = oneHand
@@ -107,18 +116,18 @@ class KeyboardView(context: Context) : View(context) {
     /** 0 off, 1 next letter, 2 caps lock. */
     var shiftState = 0
         set(value) {
-            if (field != value) { field = value; invalidate() }
+            if (field != value) { field = value; invalidateCache() }
         }
 
     /** The vowel forms offered in the Amharic vowel row. */
     private var vowels: List<String> = emptyList()
     fun setVowels(list: List<String>) {
-        if (vowels != list) { vowels = list; invalidate() }
+        if (vowels != list) { vowels = list; invalidateCache() }
     }
 
     private var suggestions: List<String> = emptyList()
     fun setSuggestions(list: List<String>) {
-        if (suggestions != list) { suggestions = list; invalidate() }
+        if (suggestions != list) { suggestions = list; suggestionsAt = SystemClock.uptimeMillis(); invalidate() }
     }
 
     private var showStrip = true
@@ -156,6 +165,12 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         touches.clear()
+        pressAnims.clear()
+        // Switching boards (letters, symbols, number pad) fades rather than flashes.
+        // Only when the height is unchanged, or the old picture would not fit.
+        val prev = layout
+        if (prev != null && (prev.id != next.id || strip != showStrip) && heightFor(next, strip) == height) beginCrossfade(150L)
+        cacheValid = false
         layout = next
         showStrip = strip
         // Height depends on the layout, so ask the parent to measure again.
@@ -168,22 +183,25 @@ class KeyboardView(context: Context) : View(context) {
         super.onConfigurationChanged(newConfig)
         palette = Themes.palette(context, themeName)
         setBackgroundColor(palette.background)
-        invalidate()
+        invalidateCache()
     }
 
     private fun stripHeight() = if (showStrip) stripH else 0f
 
+    /** The height this layout needs, which is also how tall the keyboard will measure. */
+    private fun heightFor(l: Layout, strip: Boolean): Int {
+        val rows = l.rows.size
+        return ((if (strip) stripH else 0f) + padTop + rows * dp(l.rowHeightDp) * heightScale + (rows - 1) * gapY + padBottom).toInt()
+    }
+
     override fun onMeasure(widthSpec: Int, heightSpec: Int) {
         val w = MeasureSpec.getSize(widthSpec)
         val l = layout
-        val h = if (l == null) 0 else {
-            val rows = l.rows.size
-            (stripHeight() + padTop + rows * dp(l.rowHeightDp) * heightScale + (rows - 1) * gapY + padBottom).toInt()
-        }
-        setMeasuredDimension(w, h)
+        setMeasuredDimension(w, if (l == null) 0 else heightFor(l, showStrip))
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        cacheValid = false
         computeGeometry(w)
     }
 
@@ -215,64 +233,216 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     // ─── Drawing ─────────────────────────────────────────────────────────
+    //
+    // Everything that does not change while you type (the strip's buttons and
+    // every key at rest) is drawn once into a bitmap, and that bitmap is all a
+    // frame has to blit. Only what is moving is drawn live: a key being pressed,
+    // the long-press bubble, the suggestions fading in, and any crossfade. That
+    // keeps a frame cheap enough to animate at the display's full rate, and it
+    // is why a tap costs the same however many keys the board has.
+
+    private var cache: Bitmap? = null
+    private var cacheCanvas: Canvas? = null
+    private var cacheValid = false
+
+    private fun invalidateCache() {
+        cacheValid = false
+        invalidate()
+    }
+
+    // ── Easing, the same curves the Flutter keys use ──
+    private fun easeOutCubic(t: Float): Float { val u = 1f - t; return 1f - u * u * u }
+    private fun easeOutBack(t: Float): Float { val u = t - 1f; return 1f + 2.70158f * u * u * u + 1.70158f * u * u }
+
+    /** One key's press animation: 0 at rest, 1 fully pressed. */
+    private class PressAnim(val r: Int, val c: Int, var start: Long, var from: Float, var to: Float)
+    private val pressAnims = ArrayList<PressAnim>(4)
+
+    private fun pressValue(a: PressAnim, now: Long): Float {
+        val rising = a.to > a.from
+        // Down: 100 ms ease-out. Up: 180 ms ease-out-back, so the key springs past rest and settles.
+        val t = ((now - a.start) / (if (rising) 100f else 180f)).coerceIn(0f, 1f)
+        return a.from + (a.to - a.from) * (if (rising) easeOutCubic(t) else easeOutBack(t))
+    }
+
+    private fun startPress(r: Int, c: Int) {
+        val now = SystemClock.uptimeMillis()
+        val a = pressAnims.firstOrNull { it.r == r && it.c == c }
+        if (a != null) { a.from = pressValue(a, now); a.start = now; a.to = 1f }
+        else pressAnims.add(PressAnim(r, c, now, 0f, 1f))
+    }
+
+    private fun endPress(r: Int, c: Int) {
+        val a = pressAnims.firstOrNull { it.r == r && it.c == c } ?: return
+        val now = SystemClock.uptimeMillis()
+        a.from = pressValue(a, now); a.start = now; a.to = 0f
+    }
+
+    // ── Crossfade between layouts and themes ──
+    private var fadeBitmap: Bitmap? = null
+    private var fadeStart = 0L
+    private var fadeDur = 0L
+    private val fadePaint = Paint()
+
+    /** Freezes what is on screen now, so it can fade out over whatever replaces it. */
+    private fun beginCrossfade(dur: Long) {
+        val src = cache ?: return
+        if (!cacheValid || width <= 0 || src.width != width || src.height != height) return
+        var fb = fadeBitmap
+        if (fb == null || fb.width != src.width || fb.height != src.height) {
+            fb?.recycle()
+            fb = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+            fadeBitmap = fb
+        }
+        val cv = Canvas(fb)
+        cv.drawColor(palette.background)
+        cv.drawBitmap(src, 0f, 0f, null)
+        fadeStart = SystemClock.uptimeMillis()
+        fadeDur = dur
+    }
+
+    private var suggestionsAt = 0L
+
+    private fun ensureCache() {
+        val w = width; val h = height
+        if (w <= 0 || h <= 0) return
+        var bmp = cache
+        if (bmp == null || bmp.width != w || bmp.height != h) {
+            bmp?.recycle()
+            bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            cache = bmp
+            cacheCanvas = Canvas(bmp)
+            cacheValid = false
+        }
+        if (!cacheValid) {
+            val cv = cacheCanvas ?: return
+            cv.drawColor(0, PorterDuff.Mode.CLEAR)
+            val l = layout
+            if (l != null) {
+                if (showStrip) drawStripIcons(cv)
+                for ((r, row) in l.rows.withIndex()) for ((c, key) in row.withIndex()) {
+                    if (key.kind != KeyKind.SPACER) drawKeyBase(cv, key, r, c, 0f)
+                }
+                drawVowelHint(cv, l)
+            }
+            cacheValid = true
+        }
+    }
 
     override fun onDraw(canvas: Canvas) {
         val l = layout ?: return
+        val now = SystemClock.uptimeMillis()
+        var animating = false
+
         if (liveOn && palette.isLive) {
-            val now = android.os.SystemClock.uptimeMillis()
             // The Flutter scenes loop every 20 seconds and are drawn in logical pixels.
             canvas.save()
             canvas.scale(density, density)
             LiveScenes.paint(canvas, width / density, height / density, (now % 20000L) / 20000f, palette.def.live)
             canvas.restore()
-            // Animate only while the keyboard is idle: a frame never competes with a keystroke.
+            // Scene frames wait while you type, so one never competes with a keystroke.
             val idle = now - lastTouchAt > 700
             postInvalidateDelayed(if (idle) 50L else (lastTouchAt + 700 - now).coerceAtLeast(50L))
         }
-        if (showStrip) drawStrip(canvas)
-        for ((r, row) in l.rows.withIndex()) {
-            for ((c, key) in row.withIndex()) {
-                if (key.kind == KeyKind.SPACER) continue
-                drawKey(canvas, key, r, c, isPressed(r, c))
+
+        ensureCache()
+        val bmp = cache
+        if (bmp != null) {
+            // The resting keys, with the ones that are moving cut out so they are not drawn twice.
+            val cut = pressAnims.isNotEmpty()
+            if (cut) {
+                canvas.save()
+                for (a in pressAnims) {
+                    if (a.r >= lefts.size || a.c >= lefts[a.r].size) continue
+                    rect.set(lefts[a.r][a.c] - 2f, rowTop[a.r] - 2f, rights[a.r][a.c] + 2f, rowTop[a.r] + rowH + 2f)
+                    if (Build.VERSION.SDK_INT >= 26) canvas.clipOutRect(rect)
+                    else @Suppress("DEPRECATION") canvas.clipRect(rect, Region.Op.DIFFERENCE)
+                }
+            }
+            canvas.drawBitmap(bmp, 0f, 0f, null)
+            if (cut) canvas.restore()
+        }
+
+        // Keys being pressed, drawn live and a little smaller, as in the Flutter keyboard.
+        if (pressAnims.isNotEmpty()) {
+            val it = pressAnims.iterator()
+            while (it.hasNext()) {
+                val a = it.next()
+                val key = l.rows.getOrNull(a.r)?.getOrNull(a.c)
+                if (key == null || a.c >= lefts[a.r].size) { it.remove(); continue }
+                val p = pressValue(a, now)
+                val finished = a.to == 0f && now - a.start >= 180L
+                if (finished) { it.remove(); invalidateCacheKeepFrame(); continue }
+                val cx = (lefts[a.r][a.c] + rights[a.r][a.c]) / 2f
+                val cy = rowTop[a.r] + rowH / 2f
+                val s = if (pressAnim) 1f - 0.07f * p else 1f
+                canvas.save()
+                canvas.scale(s, s, cx, cy)
+                drawKeyBase(canvas, key, a.r, a.c, p.coerceIn(0f, 1f))
+                canvas.restore()
+                // A key still held has settled at fully pressed; only a moving one needs frames.
+                if (!(a.to == 1f && now - a.start >= 100L)) animating = true
             }
         }
-        // The vowel row is reserved so the board never changes height; until a
-        // letter is tapped, say what it is for instead of leaving a blank band.
-        if (l.id == LayoutId.FIDEL && vowels.isEmpty()) {
-            text.textAlign = Paint.Align.CENTER
-            text.textSize = rowH * 0.3f
-            text.color = palette.hint
-            text.typeface = Typeface.DEFAULT
-            canvas.drawText("Tap a letter to see its vowel forms", (areaLeft + areaRight) / 2f,
-                rowTop[0] + rowH / 2f - (text.descent() + text.ascent()) / 2f, text)
+
+        if (showStrip && suggestions.isNotEmpty()) {
+            val ft = ((now - suggestionsAt) / 120f).coerceIn(0f, 1f)
+            drawSuggestions(canvas, 0.35f + 0.65f * easeOutCubic(ft))
+            if (ft < 1f) animating = true
         }
-        // The long-press bubble is drawn last so it sits over the keys.
-        for (i in 0 until touches.size()) touches.valueAt(i).let { if (it.popup != null) drawPopup(canvas, it) }
+
+        for (i in 0 until touches.size()) {
+            val t = touches.valueAt(i)
+            if (t.popup != null && drawPopup(canvas, t, now)) animating = true
+        }
+
+        if (fadeDur > 0L) {
+            val ft = (now - fadeStart) / fadeDur.toFloat()
+            val fb = fadeBitmap
+            if (ft < 1f && fb != null) {
+                fadePaint.alpha = ((1f - easeOutCubic(ft)) * 255f).toInt().coerceIn(0, 255)
+                canvas.drawBitmap(fb, 0f, 0f, fadePaint)
+                animating = true
+            } else fadeDur = 0L
+        }
+
+        if (animating) postInvalidateOnAnimation()
     }
+
+    /** A key finished animating: nothing to rebuild, the bitmap already shows it at rest. */
+    private fun invalidateCacheKeepFrame() { /* the cached bitmap is unchanged */ }
 
     private val toolIcons = arrayOf("😀", "🎤", "⚙️")
 
-    private fun drawStrip(canvas: Canvas) {
+    private fun drawStripIcons(canvas: Canvas) {
         text.typeface = Typeface.DEFAULT
         text.textSize = stripH * 0.5f
         text.color = palette.text
+        text.alpha = 255
         val cell = dp(40f)
         for ((i, icon) in toolIcons.withIndex()) {
             val cx = padSide + cell * (i + 0.5f)
             canvas.drawText(icon, cx, stripH / 2f - (text.descent() + text.ascent()) / 2f, text)
         }
-        if (suggestions.isEmpty()) return
+    }
+
+    private fun drawSuggestions(canvas: Canvas, alpha: Float) {
+        val cell = dp(40f)
         val start = padSide + cell * toolIcons.size
-        val width = this.width - padSide - start
-        val each = width / 3f
+        val each = (this.width - padSide - start) / 3f
+        text.typeface = Typeface.DEFAULT
         text.textSize = stripH * 0.4f
+        text.color = palette.text
+        text.alpha = (alpha * 255f).toInt()
         fill.color = palette.hint
+        fill.alpha = (alpha * 255f * 0.6f).toInt()
         for ((i, word) in suggestions.withIndex()) {
             val cx = start + each * (i + 0.5f)
             if (i > 0) canvas.drawRect(start + each * i - 0.5f, stripH * 0.25f, start + each * i + 0.5f, stripH * 0.75f, fill)
-            val shown = ellipsize(word, each - dp(8f))
-            canvas.drawText(shown, cx, stripH / 2f - (text.descent() + text.ascent()) / 2f, text)
+            canvas.drawText(ellipsize(word, each - dp(8f)), cx, stripH / 2f - (text.descent() + text.ascent()) / 2f, text)
         }
+        text.alpha = 255
+        fill.alpha = 255
     }
 
     private fun ellipsize(s: String, maxWidth: Float): String {
@@ -282,21 +452,28 @@ class KeyboardView(context: Context) : View(context) {
         return s.substring(0, n) + "…"
     }
 
-    private fun drawKey(canvas: Canvas, key: Key, r: Int, c: Int, pressed: Boolean) {
+    /** The empty vowel row says what it is for, until a letter is tapped. */
+    private fun drawVowelHint(canvas: Canvas, l: Layout) {
+        if (l.id != LayoutId.FIDEL || vowels.isNotEmpty()) return
+        text.textAlign = Paint.Align.CENTER
+        text.textSize = rowH * 0.3f
+        text.color = palette.hint
+        text.typeface = Typeface.DEFAULT
+        canvas.drawText("Tap a letter to see its vowel forms", (areaLeft + areaRight) / 2f,
+            rowTop[0] + rowH / 2f - (text.descent() + text.ascent()) / 2f, text)
+    }
+
+    /** Draws one key. [mix] blends its colour toward the pressed colour (0 at rest, 1 pressed). */
+    private fun drawKeyBase(canvas: Canvas, key: Key, r: Int, c: Int, mix: Float) {
         val vowelLabel = if (key.kind == KeyKind.VOWEL) vowels.getOrNull(c).orEmpty() else null
         if (vowelLabel != null && vowelLabel.isEmpty()) return // an empty vowel slot is just a gap
 
         rect.set(lefts[r][c], rowTop[r], rights[r][c], rowTop[r] + rowH)
-        // The Flutter keyboard shrinks a pressed key to 93%. Doing it here, as a
-        // plain inset at draw time, costs nothing and never delays the letter.
-        if (pressed && pressAnim) rect.inset(rect.width() * 0.035f, rect.height() * 0.035f)
         val accent = key.kind == KeyKind.ENTER
         // Same three kinds of key as the Flutter keyboard: ordinary, function, and the Enter key.
-        fill.color = when {
-            accent -> if (pressed) palette.accentPressed else palette.keyAccent
-            key.special -> if (pressed) palette.specialPressed else palette.special
-            else -> if (pressed) palette.pressed else palette.key
-        }
+        val rest = when { accent -> palette.keyAccent; key.special -> palette.special; else -> palette.key }
+        val down = when { accent -> palette.accentPressed; key.special -> palette.specialPressed; else -> palette.pressed }
+        fill.color = if (mix > 0f) ColorUtils.blendARGB(rest, down, mix) else rest
         canvas.drawRoundRect(rect, radius, radius, fill)
 
         var label = vowelLabel ?: key.label
@@ -305,6 +482,8 @@ class KeyboardView(context: Context) : View(context) {
 
         val pad = layout?.isPad == true
         val big = key.kind == KeyKind.CHAR && pad && !key.special
+        text.textAlign = Paint.Align.CENTER
+        text.alpha = 255
         text.textSize = when {
             key.kind == KeyKind.SPACE -> rowH * 0.26f
             key.kind == KeyKind.VOWEL -> rowH * 0.5f
@@ -334,23 +513,36 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
-    private fun drawPopup(canvas: Canvas, t: Touch) {
-        val alts = t.popup ?: return
-        rect.set(t.popupLeft, rowTop[t.popupRow], t.popupLeft + t.popupCell * alts.size, rowTop[t.popupRow] + rowH)
+    /** Draws the long-press bubble, popping in. Returns true while it is still moving. */
+    private fun drawPopup(canvas: Canvas, t: Touch, now: Long): Boolean {
+        val alts = t.popup ?: return false
+        val k = easeOutCubic(((now - t.popupAt) / 110f).coerceIn(0f, 1f))
+        val top = rowTop[t.popupRow]
+        val cx = t.popupLeft + t.popupCell * alts.size / 2f
+        canvas.save()
+        // Grows from the key it came from, and fades in as it goes.
+        canvas.scale(0.86f + 0.14f * k, 0.86f + 0.14f * k, cx, top + rowH)
+        rect.set(t.popupLeft - 2f, top - 2f, t.popupLeft + t.popupCell * alts.size + 2f, top + rowH + 2f)
+        val layer = canvas.saveLayerAlpha(rect, (k * 255f).toInt().coerceIn(0, 255))
+        rect.set(t.popupLeft, top, t.popupLeft + t.popupCell * alts.size, top + rowH)
         fill.color = palette.popup
         canvas.drawRoundRect(rect, radius, radius, fill)
         for ((i, alt) in alts.withIndex()) {
-            val cx = t.popupLeft + t.popupCell * (i + 0.5f)
+            val ax = t.popupLeft + t.popupCell * (i + 0.5f)
             if (i == t.popupSel) {
-                rect.set(cx - t.popupCell / 2f + dp(2f), rowTop[t.popupRow] + dp(3f), cx + t.popupCell / 2f - dp(2f), rowTop[t.popupRow] + rowH - dp(3f))
+                rect.set(ax - t.popupCell / 2f + dp(2f), top + dp(3f), ax + t.popupCell / 2f - dp(2f), top + rowH - dp(3f))
                 fill.color = palette.accent
                 canvas.drawRoundRect(rect, radius, radius, fill)
             }
             text.color = if (i == t.popupSel) palette.accentText else palette.text
             text.textSize = rowH * 0.46f
             text.typeface = Typeface.DEFAULT
-            canvas.drawText(alt, cx, rowTop[t.popupRow] + rowH / 2f - (text.descent() + text.ascent()) / 2f, text)
+            text.alpha = 255
+            canvas.drawText(alt, ax, top + rowH / 2f - (text.descent() + text.ascent()) / 2f, text)
         }
+        canvas.restoreToCount(layer)
+        canvas.restore()
+        return k < 1f
     }
 
     // ─── Touch ───────────────────────────────────────────────────────────
@@ -365,19 +557,12 @@ class KeyboardView(context: Context) : View(context) {
         var popupRow = 0
         var popupLeft = 0f
         var popupCell = 0f
+        var popupAt = 0L
         var longPress: Runnable? = null
         var repeat: Runnable? = null
     }
 
     private val touches = SparseArray<Touch>()
-
-    private fun isPressed(r: Int, c: Int): Boolean {
-        for (i in 0 until touches.size()) {
-            val t = touches.valueAt(i)
-            if (t.row == r && t.col == c) return true
-        }
-        return false
-    }
 
     /** Finds the key under a point. Gaps belong to the nearest key, so there are no dead zones. */
     private fun findRow(y: Float): Int {
@@ -438,6 +623,7 @@ class KeyboardView(context: Context) : View(context) {
         val key = l.rows[r][c]
         val t = Touch(id).also { it.row = r; it.col = c; it.lastX = x }
         touches.put(id, t)
+        if (key.kind != KeyKind.SPACER) startPress(r, c)
 
         var feedback = true
         val shifted = key.cased && shiftState > 0
@@ -534,6 +720,7 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         touches.remove(id)
+        endPress(t.row, t.col)
         invalidate()
     }
 
@@ -550,6 +737,7 @@ class KeyboardView(context: Context) : View(context) {
         // The bubble covers the row above the key, or its own row at the top.
         t.popupRow = max(r - 1, 0)
         t.popupSel = -1
+        t.popupAt = SystemClock.uptimeMillis()
         listener?.onKeyFeedback()
         invalidate()
     }
