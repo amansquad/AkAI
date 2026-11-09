@@ -202,6 +202,14 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   const translitRef = useRef<TranslitState>(EMPTY_TRANSLIT);
   const [shiftActive, setShiftActive] = useState(false);
   const [symbolsActive, setSymbolsActive] = useState(false);
+  // The kind of digit field the Android keyboard is in, and whether the user
+  // chose to leave the pad for the full keyboard.
+  type PadKind = 'number' | 'phone' | 'datetime';
+  const [padKind, setPadKind] = useState<PadKind | null>(null);
+  const [padDismissed, setPadDismissed] = useState(false);
+  // Email, address and password fields: no auto-capitalisation, no suggestions.
+  const [plainField, setPlainField] = useState(false);
+  const padActive = isIme && padKind !== null && !padDismissed && !settingsOnly;
   const [activeStickerCategory, setActiveStickerCategory] = useState('smileys');
   const [activeGifCategory, setActiveGifCategory] = useState('hello');
   const [clipboardItems, setClipboardItems] = useState<{ id: string; text: string; timestamp: number }[]>([
@@ -342,6 +350,12 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   const [showKeyBorders, setShowKeyBorders] = useState(DEFAULT_PREFS.showKeyBorders);
   const [showCursorRow, setShowCursorRow] = useState(DEFAULT_PREFS.showCursorRow);
   const [spacebarCursorControl, setSpacebarCursorControl] = useState(DEFAULT_PREFS.spacebarCursorControl);
+  const [holdBackspaceClearsSentence, setHoldBackspaceClearsSentence] = useState(DEFAULT_PREFS.holdBackspaceClearsSentence);
+  const [backspaceHoldDelay, setBackspaceHoldDelay] = useState(DEFAULT_PREFS.backspaceHoldDelay);
+  // Timer for a held backspace, and a flag so the release that follows a
+  // sentence-clear does not also delete a single letter.
+  const backspaceHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backspaceHoldFiredRef = useRef(false);
 
   // Cursor position within text. null = end of text (default append behaviour).
   const [cursorPos, setCursorPos] = useState<number | null>(null);
@@ -669,6 +683,8 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
         if (parsed.showKeyBorders !== undefined) setShowKeyBorders(parsed.showKeyBorders);
         if (parsed.showCursorRow !== undefined) setShowCursorRow(parsed.showCursorRow);
         if (parsed.spacebarCursorControl !== undefined) setSpacebarCursorControl(parsed.spacebarCursorControl);
+        if (parsed.holdBackspaceClearsSentence !== undefined) setHoldBackspaceClearsSentence(parsed.holdBackspaceClearsSentence);
+        if (parsed.backspaceHoldDelay !== undefined) setBackspaceHoldDelay(readNumericPref('backspaceHoldDelay', parsed.backspaceHoldDelay));
       } catch (e) { console.error('Failed to load settings', e); }
     }
     // One-off migration from the keys these three used to have to themselves.
@@ -736,8 +752,10 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
       showKeyBorders,
       showCursorRow,
       spacebarCursorControl,
+      holdBackspaceClearsSentence,
+      backspaceHoldDelay,
     }));
-  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyHeight, hapticLevel, soundVolume, showWordOfTheDay, showSuggestionBar, showKeyHints, showMicKey, keyTextSize, longPressDelay, keyAnimations, showNumberRow, toolbarStyle, keyGap, visibleButtons, doubleSpacePeriod, oneHandedMode, oneHandedWidth, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language, phonetic, englishLayout, amharicLayout, keyRadius, keyWeight, showKeyBorders, showCursorRow, spacebarCursorControl]);
+  }, [settingsLoaded, vibrateOnKeyPress, soundOnKeyPress, autoCapitalization, keyHeight, hapticLevel, soundVolume, showWordOfTheDay, showSuggestionBar, showKeyHints, showMicKey, keyTextSize, longPressDelay, keyAnimations, showNumberRow, toolbarStyle, keyGap, visibleButtons, doubleSpacePeriod, oneHandedMode, oneHandedWidth, autoSpaceAfterPunctuation, keyPopupOnLongPress, theme, language, phonetic, englishLayout, amharicLayout, keyRadius, keyWeight, showKeyBorders, showCursorRow, spacebarCursorControl, holdBackspaceClearsSentence, backspaceHoldDelay]);
 
   // Custom themes are stored separately: a saved theme of "custom_<id>"
   // resolves to THEMES.default unless the matching definition is restored
@@ -930,25 +948,31 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   const handleKeyPress = useCallback((key: string) => {
     // Phonetic Amharic takes the letter keys over entirely; everything else
     // (symbols, the language key, voice) falls through to the handling below.
+    // Feedback (vibration, click) goes through synchronous bridge/audio calls,
+    // so in the Android keyboard it runs after the letter has been sent.
+    const feedback = () => { doVibrate(); playClickSound(); };
+    const deferFeedback = () => { if (isIme) setTimeout(feedback, 0); else feedback(); };
+
     if (language === 'amharic' && phonetic && !symbolsActive && handlePhoneticKey(key)) {
-      playClickSound();
-      doVibrate();
+      deferFeedback();
       return;
     }
 
-    // Feedback
-    doVibrate();
-    playClickSound();
+    deferFeedback();
 
-    // Ripple effect
-    if (keyAnimations) {
+    // Ripple effect (skipped in the Android keyboard: a blurred blend-mode
+    // layer plus two extra renders per tap is what made typing feel laggy)
+    if (keyAnimations && !isIme) {
       setRippleKey(key);
       setTimeout(() => setRippleKey(null), 400);
     }
 
     if (key === 'backspace') {
       const pos = cursorPos ?? text.length;
-      if (pos > 0) {
+      if (isIme && text.length === 0) {
+        // Text that was already in the field is not in the page's copy.
+        window.AkaiKeyboard?.deleteSurroundingText(1);
+      } else if (pos > 0) {
         updateText(text.slice(0, pos - 1) + text.slice(pos));
         if (cursorPos !== null) setCursorPos(pos - 1);
       }
@@ -1006,7 +1030,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
     } else {
       let char = key;
       // Auto-capitalisation only applies when typing at the end of text
-      if (autoCapitalization && cursorPos === null && char.length === 1 && char.match(/[a-z]/)) {
+      if (autoCapitalization && !plainField && cursorPos === null && char.length === 1 && char.match(/[a-z]/)) {
         const trimmed = text.trim();
         const shouldCap = text === '' ||
                          trimmed.endsWith('.') ||
@@ -1030,7 +1054,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
       if (cursorPos !== null) setCursorPos(pos + insertedText.length);
       if (shiftActive) setShiftActive(false);
     }
-  }, [text, cursorPos, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, playClickSound, doVibrate, doubleSpacePeriod, startVoiceRecognition, language, phonetic, handlePhoneticKey, keyAnimations, isIme]);
+  }, [text, cursorPos, shiftActive, symbolsActive, updateText, autoSpaceAfterPunctuation, autoCapitalization, plainField, playClickSound, doVibrate, doubleSpacePeriod, startVoiceRecognition, language, phonetic, handlePhoneticKey, keyAnimations, isIme]);
 
   const handleAmharicPress = useCallback((consonant: string) => {
     const vowels = AMHARIC_VOWELS[consonant];
@@ -1038,13 +1062,13 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
       setSelectedConsonant(consonant);
       updateText(text + vowels[0]);
     }
-    doVibrate();
-    playClickSound();
-    if (keyAnimations) {
+    if (isIme) setTimeout(() => { doVibrate(); playClickSound(); }, 0);
+    else { doVibrate(); playClickSound(); }
+    if (keyAnimations && !isIme) {
       setRippleKey(consonant);
       setTimeout(() => setRippleKey(null), 400);
     }
-  }, [text, updateText, doVibrate, playClickSound, keyAnimations]);
+  }, [text, updateText, doVibrate, playClickSound, keyAnimations, isIme]);
 
   const handleVowelSelect = useCallback((vowel: string) => {
     const lastChar = text.slice(-1);
@@ -1074,22 +1098,80 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
     return 'left-1/2 -translate-x-1/2';
   };
 
+  // Delete the sentence the cursor sits in: walk back over any trailing
+  // spaces, then back to the end of the previous sentence (a terminator or a
+  // line break), and drop everything in between. With nothing before the
+  // cursor to a terminator, the whole run of text goes. Covers the Amharic
+  // full stop (።) and question mark (፧) alongside the Latin ones.
+  const deleteCurrentSentence = useCallback(() => {
+    const pos = cursorPos ?? text.length;
+    const before = text.slice(0, pos);
+    const after = text.slice(pos);
+    if (before.length === 0) return;
+    let i = before.length;
+    while (i > 0 && /\s/.test(before[i - 1])) i--;
+    let j = i;
+    while (j > 0 && !/[.!?።፧\n]/.test(before[j - 1])) j--;
+    const kept = before.slice(0, j);
+    // Phonetic Amharic rewrites the current word from a running state; after
+    // wiping text out from under it, start that state fresh.
+    translitRef.current = EMPTY_TRANSLIT;
+    updateText(kept + after);
+    if (cursorPos !== null) setCursorPos(kept.length);
+  }, [text, cursorPos, updateText]);
+
+  const endBackspaceHold = useCallback(() => {
+    if (backspaceHoldTimerRef.current) {
+      clearTimeout(backspaceHoldTimerRef.current);
+      backspaceHoldTimerRef.current = null;
+    }
+  }, []);
+
+  // A held backspace clears a whole sentence instead of one letter, and keeps
+  // clearing sentence by sentence while it stays down. Started on pointer-down
+  // of any backspace key and cancelled on release.
+  const startBackspaceHold = useCallback(() => {
+    backspaceHoldFiredRef.current = false;
+    if (backspaceHoldTimerRef.current) clearTimeout(backspaceHoldTimerRef.current);
+    if (!holdBackspaceClearsSentence) return;
+    const fire = () => {
+      backspaceHoldFiredRef.current = true;
+      deleteCurrentSentence();
+      doVibrate();
+      backspaceHoldTimerRef.current = setTimeout(fire, backspaceHoldDelay);
+    };
+    backspaceHoldTimerRef.current = setTimeout(fire, backspaceHoldDelay);
+  }, [holdBackspaceClearsSentence, backspaceHoldDelay, deleteCurrentSentence, doVibrate]);
+
+  // The release after a held backspace that already cleared a sentence should
+  // not also delete a letter. Returns true when it swallowed that release.
+  const consumeBackspaceHold = useCallback(() => {
+    endBackspaceHold();
+    if (backspaceHoldFiredRef.current) {
+      backspaceHoldFiredRef.current = false;
+      return true;
+    }
+    return false;
+  }, [endBackspaceHold]);
+
   // Change 1: Long press handlers
   const handlePointerDown = useCallback((key: string) => {
     preDownTextRef.current = null;
+    if (key === 'backspace') { startBackspaceHold(); return; }
     if (!keyPopupOnLongPress) return;
     if (!alternatesFor(key)) return;
     longPressTimerRef.current = setTimeout(() => {
       setLongPressKey(key);
     }, longPressDelay);
-  }, [keyPopupOnLongPress, alternatesFor, longPressDelay]);
+  }, [keyPopupOnLongPress, alternatesFor, longPressDelay, startBackspaceHold]);
 
   const handlePointerUp = useCallback(() => {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
-  }, []);
+    endBackspaceHold();
+  }, [endBackspaceHold]);
 
   const handleAlternateSelect = useCallback((alt: string) => {
     const base = isIme && preDownTextRef.current !== null ? preDownTextRef.current : text;
@@ -1336,11 +1418,122 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
     }
   };
 
+  // The Android keyboard follows the field it is typing into: digits for a
+  // number or phone field, the Latin board for an email, address or password.
+  // What was changed is remembered so a plain text field puts it back, and
+  // text fields otherwise leave the user's own choices alone.
+  const languageRef = useRef(language);
+  languageRef.current = language;
+  const autoInputRef = useRef<{ language: Language | null }>({ language: null });
+  useEffect(() => {
+    if (!isIme || settingsOnly) return;
+    const apply = (kind: string | undefined) => {
+      const auto = autoInputRef.current;
+      const wantsPad = kind === 'number' || kind === 'phone' || kind === 'datetime';
+      const wantsLatin = wantsPad || kind === 'email' || kind === 'url' || kind === 'password';
+      if (wantsLatin) {
+        if (languageRef.current === 'amharic' && auto.language === null) auto.language = 'amharic';
+        setLanguage('english');
+        setSelectedConsonant(null);
+        setShiftActive(false);
+      } else if (auto.language) {
+        setLanguage(auto.language);
+        auto.language = null;
+      }
+      // A fresh digit field always opens on the pad, even if the user went to
+      // the full keyboard in the previous one.
+      setPlainField(kind === 'email' || kind === 'url' || kind === 'password');
+      // A new field: the page's copy of the old one's text no longer applies.
+      setText('');
+      translitRef.current = EMPTY_TRANSLIT;
+      setSuggestions([]);
+      setNextWordSuggestions([]);
+      setPadKind(wantsPad ? kind as PadKind : null);
+      setPadDismissed(false);
+    };
+    apply(window.AkaiKeyboard?.getInputKind?.() ?? window.__akaiInputKind);
+    const onKind = (e: Event) => apply((e as CustomEvent<string>).detail);
+    window.addEventListener('akai-input-kind', onKind);
+    return () => window.removeEventListener('akai-input-kind', onKind);
+  }, [isIme, settingsOnly]);
+
+  // ─── Number pad ─────────────────────────────────────────────────────
+  // Big digit keys for number, phone and date fields. Keys type on touch-down
+  // and the backspace repeats while held, like the main board.
+  const padHoldRef = useRef<{ delay?: ReturnType<typeof setTimeout>; rep?: ReturnType<typeof setInterval> }>({});
+  const stopPadHold = useCallback(() => {
+    clearTimeout(padHoldRef.current.delay);
+    clearInterval(padHoldRef.current.rep);
+    padHoldRef.current = {};
+  }, []);
+  useEffect(() => stopPadHold, [stopPadHold]);
+
+  // Latest handlers, so a repeating key never acts on a stale `text`.
+  const padActionRef = useRef<(id: string) => void>(() => {});
+  padActionRef.current = (id: string) => {
+    if (id === 'backspace' || id === 'enter') { handleKeyPress(id); return; }
+    if (id === 'abc') { setPadDismissed(true); return; }
+    doVibrate();
+    playClickSound();
+    updateText(text + (id === 'space' ? ' ' : id));
+  };
+
+  const renderNumberPad = () => {
+    const kind = padKind ?? 'number';
+    const left = kind === 'phone' ? '*' : kind === 'datetime' ? '/' : ',';
+    const right = kind === 'phone' ? '#' : kind === 'datetime' ? ':' : '.';
+    const sign = kind === 'phone' ? '+' : '-';
+    const grid: { id: string; label: React.ReactNode; special?: boolean }[] = [
+      { id: '1', label: '1' }, { id: '2', label: '2' }, { id: '3', label: '3' },
+      { id: 'backspace', label: <Delete className="w-6 h-6" />, special: true },
+      { id: '4', label: '4' }, { id: '5', label: '5' }, { id: '6', label: '6' },
+      { id: sign, label: sign, special: true },
+      { id: '7', label: '7' }, { id: '8', label: '8' }, { id: '9', label: '9' },
+      { id: 'abc', label: 'ABC', special: true },
+      { id: left, label: left, special: true }, { id: '0', label: '0' }, { id: right, label: right, special: true },
+      { id: 'enter', label: <CornerDownLeft className="w-6 h-6" />, special: true },
+    ];
+    return (
+      <div className={`grid grid-cols-4 ${KEY_GAP_CLASS} p-1.5`} style={{ touchAction: 'manipulation' }}>
+        {grid.map(k => (
+          <button
+            key={k.id}
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              padActionRef.current(k.id);
+              if (k.id === 'backspace') {
+                stopPadHold();
+                padHoldRef.current.delay = setTimeout(() => {
+                  padHoldRef.current.rep = setInterval(() => padActionRef.current('backspace'), 55);
+                }, 380);
+              }
+            }}
+            onPointerUp={stopPadHold}
+            onPointerLeave={stopPadHold}
+            onPointerCancel={stopPadHold}
+            className={`flex items-center justify-center h-[3.6rem] ${KEY_SHAPE_CLASS} ${KEY_FONT_CLASS} select-none transition-none active:scale-95 active:brightness-90 ${
+              k.special ? `${t.specialKey} text-lg` : `${t.key} text-2xl shadow-sm`
+            } ${t.keyText}`}
+            style={customKeyStyle}
+          >
+            {k.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   const handleLanguageToggleEffect = useCallback(() => {
     setSelectedConsonant(null);
     setSymbolsActive(false);
     if (mode !== 'keyboard') setMode('keyboard');
   }, [mode]);
+
+  // In the Android keyboard keys are plain buttons: framer-motion's per-key
+  // gesture and animation machinery costs real time across 30+ keys.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const KeyBtn: any = isIme ? 'button' : motion.button;
 
   const renderEnglishKey = (key: string) => {
     const isSpecial = ['shift', 'backspace', 'symbols', 'space', 'enter', 'language', 'voice', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key);
@@ -1360,12 +1553,12 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
     const isHovered = hoveredKey === key;
     const isLongPressed = longPressKey === key;
     const isRippled = rippleKey === key;
+    const hasHint = showKeyHints && language === 'english' && !isSpecial && !!LONG_PRESS_ALTERNATES[key];
 
     return (
-      <motion.button
+      <KeyBtn
         key={key}
-        whileTap={{ scale: 0.93, y: 1 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 22, mass: 0.5 }}
+        {...(isIme ? {} : { whileTap: { scale: 0.93, y: 1 }, transition: { type: 'spring', stiffness: 500, damping: 22, mass: 0.5 } })}
         onMouseEnter={() => !isIme && setHoveredKey(key)}
         onMouseLeave={() => { !isIme && setHoveredKey(null); handlePointerUp(); }}
         onClick={() => {
@@ -1378,6 +1571,9 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
               handleKeyPress(key);
             }
             spaceWasSwipedRef.current = false;
+          } else if (key === 'backspace') {
+            if (consumeBackspaceHold()) return;
+            handleKeyPress(key);
           } else {
             handleKeyPress(key);
           }
@@ -1427,7 +1623,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
         }}
         className={`
           relative flex items-center justify-center ${KEY_SHAPE_CLASS} ${KEY_FONT_CLASS} text-xs
-          transition-all duration-75 select-none overflow-visible
+          ${isIme ? 'transition-none active:scale-95' : 'transition-all duration-75'} select-none overflow-visible
           ${isWide ? 'flex-[3.5]' : isMedium ? 'flex-[1.4]' : 'flex-1'} ${kbKeyHeight}
           ${!isIme && isHovered ? `${t.keyHover} shadow-md` : ''}
           ${isSpecial
@@ -1462,13 +1658,17 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
         {key === 'voice' && (isListening ? <MicOff className="w-4 h-4 text-red-500" /> : <Mic className="w-4 h-4" />)}
         {key === 'language' && <span className="text-[10px] font-bold">{displayKey}</span>}
         {key !== 'shift' && key !== 'backspace' && key !== 'enter' && key !== 'language' && key !== 'voice' && (
+          isIme ? (
+            <span className={`${isWide ? 'text-xs' : KEY_TEXT_CLASS} ${hasHint ? 'translate-y-[2px]' : ''}`}>{displayKey}</span>
+          ) : (
           <motion.span
             animate={isRippled ? { scale: [1, 1.22, 1] } : { scale: 1 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
-            className={isWide ? 'text-xs' : KEY_TEXT_CLASS}
+            className={`${isWide ? 'text-xs' : KEY_TEXT_CLASS} ${hasHint ? 'translate-y-[2px]' : ''}`}
           >
             {displayKey}
           </motion.span>
+          )
         )}
         {/* Spacebar: listening indicator */}
         {key === 'space' && isListening && (
@@ -1476,7 +1676,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
         )}
         {/* Symbol hint for long press */}
         {showKeyHints && language === 'english' && !isSpecial && LONG_PRESS_ALTERNATES[key] && (
-          <span className="absolute top-0.5 right-1 text-[7px] opacity-40 font-bold pointer-events-none">
+          <span className="absolute top-[1px] right-[3px] text-[7px] leading-none opacity-40 font-bold pointer-events-none">
             {LONG_PRESS_ALTERNATES[key][0]}
           </span>
         )}
@@ -1504,7 +1704,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
             ))}
           </motion.div>
         )}
-      </motion.button>
+      </KeyBtn>
     );
   };
 
@@ -1804,7 +2004,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
     toolbarStyle, visibleButtons, showCursorRow,
     keyRadius, keyWeight, showKeyBorders,
     autoCapitalization, doubleSpacePeriod, autoSpaceAfterPunctuation, keyPopupOnLongPress, longPressDelay,
-    spacebarCursorControl,
+    spacebarCursorControl, holdBackspaceClearsSentence, backspaceHoldDelay,
     vibrateOnKeyPress, hapticLevel, soundOnKeyPress, soundVolume, keyAnimations,
   };
   const prefSetters: { [K in keyof KeyboardPrefs]: (v: KeyboardPrefs[K]) => void } = {
@@ -1818,6 +2018,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
     autoCapitalization: setAutoCapitalization, doubleSpacePeriod: setDoubleSpacePeriod,
     autoSpaceAfterPunctuation: setAutoSpaceAfterPunctuation, keyPopupOnLongPress: setKeyPopupOnLongPress,
     longPressDelay: setLongPressDelay, spacebarCursorControl: setSpacebarCursorControl,
+    holdBackspaceClearsSentence: setHoldBackspaceClearsSentence, backspaceHoldDelay: setBackspaceHoldDelay,
     vibrateOnKeyPress: setVibrateOnKeyPress, hapticLevel: setHapticLevel, soundOnKeyPress: setSoundOnKeyPress,
     soundVolume: setSoundVolume, keyAnimations: setKeyAnimations,
   };
@@ -2390,6 +2591,9 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
             // Do nothing or close panel
           } else if (key === 'caps') {
             setShiftActive(!shiftActive);
+          } else if (key === 'backspace') {
+            if (consumeBackspaceHold()) return;
+            handleKeyPress(key);
           } else {
             handleKeyPress(key);
           }
@@ -3169,7 +3373,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
           )}
 
           {/* Suggestions Bar */}
-          {mode === 'keyboard' && showSuggestionBar && (
+          {mode === 'keyboard' && showSuggestionBar && !plainField && (
             <div className={`${t.isLive ? '' : t.tabBar} border-t border-b ${t.isLive ? 'border-white/10' : t.border} relative z-10`}
               style={t.isLive ? { backgroundColor: 'rgba(0,0,0,0.52)' } : {}}>
               {renderSuggestions()}
@@ -3292,6 +3496,14 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12, width: { type: 'spring', stiffness: 300, damping: 30 }, marginLeft: { type: 'spring', stiffness: 300, damping: 30 }, marginRight: { type: 'spring', stiffness: 300, damping: 30 } }}
             >
+              {padActive ? renderNumberPad() : (
+              <>
+              {isIme && padKind !== null && padDismissed && (
+                <button type="button" onPointerDown={(e) => { e.preventDefault(); setPadDismissed(false); }}
+                  className={`w-full mb-1 py-1.5 ${KEY_SHAPE_CLASS} ${t.specialKey} ${t.keyText} text-xs font-semibold`}>
+                  123 · Number pad
+                </button>
+              )}
               <div className={`flex flex-col ${ROW_GAP_CLASS} p-1.5`}>
                 {/* ─── Number Row (conditionally visible based on settings) ─── */}
                 {!symbolsActive && showNumberRow && (
@@ -3349,20 +3561,30 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                           const isSelected = selectedConsonant === consonant;
                           const isRippled = rippleKey === consonant;
                           return (
-                            <motion.button
+                            <KeyBtn
                               key={consonant}
-                              whileTap={{ scale: 0.9, y: 1 }}
-                              whileHover={{ scale: 1.08, y: -1 }}
-                              transition={{ type: 'spring', stiffness: 500, damping: 22, mass: 0.5 }}
-                              onMouseEnter={() => setHoveredKey(consonant)}
-                              onMouseLeave={() => setHoveredKey(null)}
-                              onClick={() => { if (longPressKey === consonant) return; handleAmharicPress(consonant); }}
-                              onPointerDown={() => handlePointerDown(consonant)}
+                              {...(isIme ? {} : { whileTap: { scale: 0.9, y: 1 }, whileHover: { scale: 1.08, y: -1 }, transition: { type: 'spring', stiffness: 500, damping: 22, mass: 0.5 } })}
+                              onMouseEnter={() => !isIme && setHoveredKey(consonant)}
+                              onMouseLeave={() => !isIme && setHoveredKey(null)}
+                              onClick={() => {
+                                if (downHandledRef.current === consonant) { downHandledRef.current = null; return; }
+                                if (longPressKey === consonant) return;
+                                handleAmharicPress(consonant);
+                              }}
+                              onPointerDown={() => {
+                                handlePointerDown(consonant);
+                                // Type on touch-down in the Android keyboard, like the English keys.
+                                if (isIme) {
+                                  downHandledRef.current = consonant;
+                                  preDownTextRef.current = text;
+                                  handleAmharicPress(consonant);
+                                }
+                              }}
                               onPointerUp={handlePointerUp}
                               onPointerLeave={handlePointerUp}
                               className={`
                                 relative flex items-center justify-center flex-1 ${kbKeyHeight} ${KEY_SHAPE_CLASS} ${KEY_FONT_CLASS}
-                                transition-all duration-150 select-none ${KEY_TEXT_CLASS} overflow-visible
+                                ${isIme ? 'transition-none active:scale-95 active:brightness-90' : 'transition-all duration-150'} select-none ${KEY_TEXT_CLASS} overflow-visible
                                 ${isSelected ? `ring-2 ring-yellow-500/60` : ''}
                                 ${isHovered ? `${t.keyHover} shadow-md` : ''}
                                 ${t.key} ${t.keyText} ${showKeyBorders ? `${t.border} border` : ''} shadow-sm
@@ -3416,7 +3638,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                                   ))}
                                 </motion.div>
                               )}
-                            </motion.button>
+                            </KeyBtn>
                           );
                         })}
                       </div>
@@ -3489,7 +3711,11 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                       >
                          {language === 'amharic' ? (phonetic ? 'አማርኛ — selam → ሰላም' : 'አማርኛ') : 'Space'}
                       </motion.button>
-                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('backspace')}
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                        onPointerDown={startBackspaceHold}
+                        onPointerUp={endBackspaceHold}
+                        onPointerLeave={endBackspaceHold}
+                        onClick={() => { if (consumeBackspaceHold()) return; handleKeyPress('backspace'); }}
                         className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} ${KEY_SHAPE_CLASS} ${t.specialKey} ${t.keyText}`}>
                         <Delete className="w-3.5 h-3.5" />
                       </motion.button>
@@ -3566,7 +3792,11 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                       >
                         Space
                       </motion.button>
-                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => handleKeyPress('backspace')}
+                      <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}
+                        onPointerDown={startBackspaceHold}
+                        onPointerUp={endBackspaceHold}
+                        onPointerLeave={endBackspaceHold}
+                        onClick={() => { if (consumeBackspaceHold()) return; handleKeyPress('backspace'); }}
                         className={`flex-[1.4] flex items-center justify-center ${kbKeyHeight} rounded-lg ${t.specialKey} ${t.keyText}`}>
                         <Delete className="w-3.5 h-3.5" />
                       </motion.button>
@@ -3591,6 +3821,8 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
                   </div>
                 )}
               </div>
+              </>
+              )}
             </motion.div>
           )}
 

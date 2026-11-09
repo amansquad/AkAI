@@ -8,6 +8,7 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.os.VibratorManager;
 import android.os.Handler;
+import android.text.InputType;
 import android.os.Looper;
 import android.util.Log;
 import android.view.HapticFeedbackConstants;
@@ -128,10 +129,53 @@ public class AkaiKeyboardService extends InputMethodService {
     @Override
     public void onStartInputView(EditorInfo info, boolean restarting) {
         super.onStartInputView(info, restarting);
+        inputKind = classifyInput(info);
         if (KeyboardSettingsActivity.settingsTouched && webView != null) {
             KeyboardSettingsActivity.settingsTouched = false;
+            // The reloaded page asks for the kind itself once it has mounted.
             webView.reload();
+        } else {
+            publishInputKind();
         }
+    }
+
+    /** What the focused field wants: text, number, phone, datetime, email, url, password or none. */
+    private volatile String inputKind = "text";
+
+    private static String classifyInput(EditorInfo info) {
+        if (info == null) return "text";
+        int type = info.inputType;
+        switch (type & InputType.TYPE_MASK_CLASS) {
+            case InputType.TYPE_CLASS_NUMBER:
+                // A numeric password (a PIN) is still just digits.
+                return "number";
+            case InputType.TYPE_CLASS_PHONE:
+                return "phone";
+            case InputType.TYPE_CLASS_DATETIME:
+                return "datetime";
+            case InputType.TYPE_CLASS_TEXT: {
+                int variation = type & InputType.TYPE_MASK_VARIATION;
+                if (variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+                        || variation == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS) return "email";
+                if (variation == InputType.TYPE_TEXT_VARIATION_URI) return "url";
+                if (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD
+                        || variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+                        || variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) return "password";
+                return "text";
+            }
+            default:
+                return type == InputType.TYPE_NULL ? "none" : "text";
+        }
+    }
+
+    /** Tells the keyboard page which kind of field just got focus. */
+    private void publishInputKind() {
+        if (webView == null) return;
+        final String kind = inputKind;
+        webView.evaluateJavascript(
+                "window.__akaiInputKind='" + kind + "';"
+                + "window.dispatchEvent(new CustomEvent('akai-input-kind',{detail:'" + kind + "'}));",
+                null);
     }
 
     @Override
@@ -233,6 +277,12 @@ public class AkaiKeyboardService extends InputMethodService {
                     ic.commitText(" ", 1);
                 }
             });
+        }
+
+        /** The kind of field the keyboard is typing into; read by the page when it loads. */
+        @JavascriptInterface
+        public String getInputKind() {
+            return inputKind;
         }
 
         /** Opens the app's settings screen and tucks the keyboard away. */

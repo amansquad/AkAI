@@ -6,11 +6,15 @@ import KeyboardApp from '@/components/keyboard-app';
 // Detect the native Android JavascriptInterface injected by AkaiImeService
 declare global {
   interface Window {
+    __akaiInputKind?: string;
     AkaiKeyboard?: {
       commitText: (text: string) => void;
       deleteSurroundingText: (count: number) => void;
       performEnter: () => void;
       performSpace: () => void;
+      // What the focused field wants: text, number, phone, datetime, email,
+      // url, password or none. Absent on an older host app.
+      getInputKind?: () => string;
       // Added after 0.6.0; absent on an older host app. dir: left|right|up|down.
       moveCursor?: (dir: string) => void;
       // Opens the app's settings screen. Absent on an older host app.
@@ -159,6 +163,13 @@ function AndroidImeKeyboard() {
   // we diff it against the previous value and send only what changed.
 
   const textRef = React.useRef('');
+
+  // The keyboard page starts a fresh copy of the text for each field.
+  useEffect(() => {
+    const reset = () => { textRef.current = ''; };
+    window.addEventListener('akai-input-kind', reset);
+    return () => window.removeEventListener('akai-input-kind', reset);
+  }, []);
 
   const handleTextChange = useCallback((newText: string) => {
     const kb = window.AkaiKeyboard;

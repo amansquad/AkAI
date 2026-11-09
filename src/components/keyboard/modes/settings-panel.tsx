@@ -445,6 +445,19 @@ export default function KeyboardSettingsPanel({
               onChange={v => setPref('longPressDelay', v)}
             />
           )}
+          <Row t={t} label="Hold backspace to clear" hint="Press and hold backspace to erase the whole sentence, not one letter">
+            <Toggle t={t} label="Hold backspace to clear" on={prefs.holdBackspaceClearsSentence} onChange={v => setPref('holdBackspaceClearsSentence', v)} />
+          </Row>
+          {prefs.holdBackspaceClearsSentence && (
+            <NumberSetting
+              t={t}
+              label="Hold time to clear"
+              hint="How long to hold backspace before the sentence is erased"
+              pref="backspaceHoldDelay"
+              value={prefs.backspaceHoldDelay}
+              onChange={v => setPref('backspaceHoldDelay', v)}
+            />
+          )}
         </Section>
 
         {/* ── Feedback ── */}

@@ -48,6 +48,10 @@ export interface KeyboardPrefs {
   longPressDelay: number;
   /** Swipe left/right on the spacebar to move the cursor. */
   spacebarCursorControl: boolean;
+  /** Holding backspace clears the whole sentence rather than one letter. */
+  holdBackspaceClearsSentence: boolean;
+  /** How long backspace is held before it clears the sentence, in ms. */
+  backspaceHoldDelay: number;
 
   // Feedback
   vibrateOnKeyPress: boolean;
@@ -95,6 +99,8 @@ export const DEFAULT_PREFS: KeyboardPrefs = {
   keyPopupOnLongPress: true,
   longPressDelay: 300,
   spacebarCursorControl: false,
+  holdBackspaceClearsSentence: true,
+  backspaceHoldDelay: 600,
 
   vibrateOnKeyPress: true,
   hapticLevel: 3,
@@ -121,6 +127,7 @@ export const NUMBER_LIMITS = {
   keyRadius: { min: 0, max: 28, step: 1, unit: 'px' },
   keyWeight: { min: 100, max: 900, step: 50, unit: '' },
   longPressDelay: { min: 100, max: 1000, step: 10, unit: 'ms' },
+  backspaceHoldDelay: { min: 200, max: 2000, step: 50, unit: 'ms' },
   oneHandedWidth: { min: 50, max: 95, step: 1, unit: '%' },
 } as const;
 
@@ -144,6 +151,7 @@ const LEGACY_WORDS: Record<NumericPref, Record<string, number>> = {
   keyRadius: { square: 4, rounded: 8, pill: 16 },
   keyWeight: { light: 300, normal: 500, bold: 700 },
   longPressDelay: { short: 200, normal: 300, long: 500 },
+  backspaceHoldDelay: { short: 400, normal: 600, long: 1000 },
   oneHandedWidth: {},
 };
 
