@@ -83,7 +83,6 @@ class KeyboardView(context: Context) : View(context) {
 
     private var pressAnim = true
     private var liveOn = true
-    private val backdrop = LiveBackdrop()
     private var lastTouchAt = 0L
     private var longPressOn = true
 
@@ -221,10 +220,14 @@ class KeyboardView(context: Context) : View(context) {
         val l = layout ?: return
         if (liveOn && palette.isLive) {
             val now = android.os.SystemClock.uptimeMillis()
-            backdrop.draw(canvas, width.toFloat(), height.toFloat(), now, palette, density)
+            // The Flutter scenes loop every 20 seconds and are drawn in logical pixels.
+            canvas.save()
+            canvas.scale(density, density)
+            LiveScenes.paint(canvas, width / density, height / density, (now % 20000L) / 20000f, palette.def.live)
+            canvas.restore()
             // Animate only while the keyboard is idle: a frame never competes with a keystroke.
             val idle = now - lastTouchAt > 700
-            postInvalidateDelayed(if (idle) 66L else (lastTouchAt + 700 - now).coerceAtLeast(66L))
+            postInvalidateDelayed(if (idle) 50L else (lastTouchAt + 700 - now).coerceAtLeast(50L))
         }
         if (showStrip) drawStrip(canvas)
         for ((r, row) in l.rows.withIndex()) {
