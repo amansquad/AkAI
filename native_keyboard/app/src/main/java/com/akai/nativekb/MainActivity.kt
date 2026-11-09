@@ -50,13 +50,20 @@ class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE) }
     private val d by lazy { resources.displayMetrics.density }
 
+    // This screen is always light, with explicit colours. Taking them from the
+    // phone's theme made some text invisible on phones that mix light and dark
+    // modes (the dropdowns showed no selected value).
+    private val ink = android.graphics.Color.parseColor("#1B1B1F")
+
     private fun label(text: String, size: Float = 15f) = TextView(this).apply {
+        setTextColor(ink)
         this.text = text
         textSize = size
         setPadding(0, (10 * d).toInt(), 0, (4 * d).toInt())
     }
 
     private fun toggle(title: String, key: String, default: Boolean) = Switch(this).apply {
+        setTextColor(ink)
         text = title
         isChecked = prefs.getBoolean(key, default)
         setPadding(0, (6 * d).toInt(), 0, (6 * d).toInt())
@@ -88,7 +95,16 @@ class MainActivity : Activity() {
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         box.addView(label(title))
         box.addView(Spinner(this).apply {
-            adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, options)
+            adapter = object : ArrayAdapter<String>(context, android.R.layout.simple_spinner_dropdown_item, options) {
+                override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View =
+                    (super.getView(position, convertView, parent) as TextView).apply { setTextColor(ink) }
+
+                override fun getDropDownView(position: Int, convertView: View?, parent: android.view.ViewGroup): View =
+                    (super.getDropDownView(position, convertView, parent) as TextView).apply {
+                        setTextColor(ink)
+                        setBackgroundColor(android.graphics.Color.WHITE)
+                    }
+            }
             setSelection(current)
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?, v: View?, pos: Int, id: Long) = save(pos)
@@ -104,6 +120,7 @@ class MainActivity : Activity() {
         box.addView(label(title))
         box.addView(EditText(this).apply {
             this.hint = hint
+            setTextColor(ink)
             setText(prefs.getString(key, ""))
             setSingleLine()
             inputType = InputType.TYPE_CLASS_TEXT or
@@ -116,7 +133,7 @@ class MainActivity : Activity() {
                 override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             })
         })
-        if (note != null) box.addView(TextView(this).apply { text = note; textSize = 12f })
+        if (note != null) box.addView(TextView(this).apply { text = note; textSize = 12f; setTextColor(ink) })
         return box
     }
 
@@ -128,6 +145,7 @@ class MainActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad, pad, pad)
+            setBackgroundColor(android.graphics.Color.WHITE)
 
             addView(label("AkAI Native Keyboard", 22f))
             addView(label("Drawn natively for speed: letters are typed the moment you touch a key."))
