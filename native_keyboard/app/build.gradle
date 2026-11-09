@@ -15,9 +15,31 @@ android {
         versionName = "0.1.0"
     }
 
+    // Release signing reads keystore.properties (git-ignored) when it exists:
+    //   storeFile=../my-release.jks  storePassword=...  keyAlias=...  keyPassword=...
+    // Without it a release build is produced unsigned, never with a made-up key.
+    def keystoreFile = rootProject.file('keystore.properties')
+    def keystoreProps = new Properties()
+    if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }
+
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            release {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled false
+            // Shrinks the app and removes unused resources; the keyboard has no reflection to protect.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            if (keystoreFile.exists()) signingConfig signingConfigs.release
         }
     }
     compileOptions {
@@ -31,5 +53,6 @@ android {
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.17.0'
+    implementation 'androidx.customview:customview:1.1.0'
     testImplementation 'junit:junit:4.13.2'
 }

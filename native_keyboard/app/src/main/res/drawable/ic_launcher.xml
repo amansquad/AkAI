@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A keyboard: a dark rounded tile with three rows of keys. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#1B1B1F"
+        android:pathData="M20,0 H88 A20,20 0 0 1 108,20 V88 A20,20 0 0 1 88,108 H20 A20,20 0 0 1 0,88 V20 A20,20 0 0 1 20,0 Z" />
+    <!-- Top row -->
+    <path android:fillColor="#6C8CFF" android:pathData="M20,30 h12 v12 h-12 z M38,30 h12 v12 h-12 z M56,30 h12 v12 h-12 z M74,30 h12 v12 h-12 z" />
+    <!-- Middle row -->
+    <path android:fillColor="#EDEDED" android:pathData="M26,48 h12 v12 h-12 z M44,48 h12 v12 h-12 z M62,48 h12 v12 h-12 z" />
+    <!-- Space bar -->
+    <path android:fillColor="#EDEDED" android:pathData="M26,66 h56 v12 h-56 z" />
+</vector>

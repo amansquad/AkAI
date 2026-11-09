@@ -10,7 +10,13 @@ import android.os.Handler
 import android.os.Looper
 import android.util.SparseArray
 import android.view.MotionEvent
+import android.graphics.Rect
+import android.os.Bundle
 import android.view.View
+import android.view.accessibility.AccessibilityNodeInfo
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import androidx.customview.widget.ExploreByTouchHelper
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -37,6 +43,8 @@ interface KeyListener {
     /** A letter from the Amharic vowel row: replace the consonant just typed. */
     fun onVowel(vowel: String)
     fun onSuggestion(word: String)
+    /** Backspace was held long enough to wipe the current sentence. */
+    fun onClearSentence()
     fun onToolbar(action: Int)
     /** Called after the letter has been sent, so feedback never delays it. */
     fun onKeyFeedback()
@@ -103,6 +111,9 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     private var showStrip = true
+
+    /** Hold backspace this long to delete the sentence; 0 turns it off. */
+    var holdClearMs = 0L
 
     private val stripH = dp(40f)
     private val gapX = dp(5f)
@@ -400,8 +411,15 @@ class KeyboardView(context: Context) : View(context) {
             KeyKind.BACKSPACE -> {
                 listener?.onBackspace()
                 var delay = REPEAT_START_MS
+                val heldSince = System.currentTimeMillis()
                 val run = object : Runnable {
                     override fun run() {
+                        if (holdClearMs > 0 && System.currentTimeMillis() - heldSince >= holdClearMs) {
+                            // Held long enough: wipe the sentence once and stop repeating.
+                            listener?.onClearSentence()
+                            listener?.onKeyFeedback()
+                            return
+                        }
                         listener?.onBackspace()
                         listener?.onKeyFeedback()
                         // Speeds up the longer it is held.
@@ -489,6 +507,115 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
+    // ─── Accessibility (TalkBack) ────────────────────────────────────────
+    // The keys are drawn, not views, so describe them to the screen reader.
+
+    private val a11y = object : ExploreByTouchHelper(this) {
+        private fun stripId(i: Int) = STRIP_ID + i
+
+        override fun getVirtualViewAt(x: Float, y: Float): Int {
+            val l = layout ?: return INVALID_ID
+            if (showStrip && y < stripH + padTop / 2f) {
+                val cell = dp(40f)
+                val tools = padSide + cell * toolIcons.size
+                return if (x < tools) {
+                    stripId(((x - padSide) / cell).toInt().coerceIn(0, toolIcons.size - 1))
+                } else if (suggestions.isNotEmpty()) {
+                    val each = (width - padSide - tools) / 3f
+                    stripId(toolIcons.size + ((x - tools) / each).toInt().coerceIn(0, suggestions.size - 1))
+                } else INVALID_ID
+            }
+            val r = findRow(y)
+            val c = findCol(r, x)
+            return if (l.rows[r][c].kind == KeyKind.SPACER) INVALID_ID else r * 100 + c
+        }
+
+        override fun getVisibleVirtualViews(ids: MutableList<Int>) {
+            val l = layout ?: return
+            if (showStrip) {
+                for (i in toolIcons.indices) ids.add(stripId(i))
+                for (i in suggestions.indices) ids.add(stripId(toolIcons.size + i))
+            }
+            for ((r, row) in l.rows.withIndex()) for ((c, k) in row.withIndex()) {
+                val emptyVowel = k.kind == KeyKind.VOWEL && vowels.getOrNull(c).isNullOrEmpty()
+                if (k.kind != KeyKind.SPACER && !emptyVowel) ids.add(r * 100 + c)
+            }
+        }
+
+        override fun onPopulateNodeForVirtualView(id: Int, node: AccessibilityNodeInfoCompat) {
+            val b = Rect()
+            if (id >= STRIP_ID) {
+                val i = id - STRIP_ID
+                val cell = dp(40f)
+                if (i < toolIcons.size) {
+                    node.contentDescription = arrayOf("Emoji, GIFs and more", "Voice typing", "Keyboard settings")[i]
+                    b.set((padSide + cell * i).toInt(), 0, (padSide + cell * (i + 1)).toInt(), stripH.toInt())
+                } else {
+                    val tools = padSide + cell * toolIcons.size
+                    val each = (width - padSide - tools) / 3f
+                    val k = i - toolIcons.size
+                    node.contentDescription = "Suggestion: " + suggestions.getOrElse(k) { "" }
+                    b.set((tools + each * k).toInt(), 0, (tools + each * (k + 1)).toInt(), stripH.toInt())
+                }
+            } else {
+                val l = layout
+                if (l != null) {
+                    val r = id / 100
+                    val c = id % 100
+                    node.contentDescription = describe(l.rows[r][c], c)
+                    b.set(lefts[r][c].toInt(), rowTop[r].toInt(), rights[r][c].toInt(), (rowTop[r] + rowH).toInt())
+                }
+            }
+            node.setBoundsInParent(b)
+            node.addAction(AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_CLICK)
+        }
+
+        override fun onPerformActionForVirtualView(id: Int, action: Int, args: Bundle?): Boolean {
+            if (action != AccessibilityNodeInfo.ACTION_CLICK) return false
+            val l = layout ?: return false
+            if (id >= STRIP_ID) {
+                val i = id - STRIP_ID
+                if (i < toolIcons.size) listener?.onToolbar(i)
+                else suggestions.getOrNull(i - toolIcons.size)?.let { listener?.onSuggestion(it) }
+            } else {
+                val r = id / 100
+                val c = id % 100
+                down(A11Y_TOUCH, (lefts[r][c] + rights[r][c]) / 2f, rowTop[r] + rowH / 2f, l)
+                up(A11Y_TOUCH, l, cancelled = false)
+            }
+            return true
+        }
+    }
+
+    private fun describe(key: Key, col: Int): String = when (key.kind) {
+        KeyKind.CHAR -> (if (key.cased && shiftState > 0) key.label.uppercase() else key.label).let {
+            when (it) {
+                "," -> "comma"
+                "." -> "period"
+                "።" -> "Amharic full stop"
+                "፣" -> "Amharic comma"
+                else -> it
+            }
+        }
+        KeyKind.SHIFT -> when (shiftState) { 0 -> "Shift"; 1 -> "Shift, on for next letter"; else -> "Caps lock on" }
+        KeyKind.BACKSPACE -> "Backspace"
+        KeyKind.ENTER -> if (key.label == "↵") "Enter" else key.label
+        KeyKind.SPACE -> "Space"
+        KeyKind.SYMBOLS -> if (key.label == "ABC" || key.label == "አማ") "Letters" else "Numbers and symbols"
+        KeyKind.LANGUAGE -> "Switch language"
+        KeyKind.PAD_ABC -> if (key.label == "123") "Number pad" else "Letters"
+        KeyKind.PHONETIC -> if (key.label == "ABC") "Phonetic Amharic" else "Fidel board"
+        KeyKind.VOWEL -> vowels.getOrNull(col).orEmpty()
+        KeyKind.SPACER -> ""
+    }
+
+    init {
+        ViewCompat.setAccessibilityDelegate(this, a11y)
+    }
+
+    override fun dispatchHoverEvent(event: MotionEvent): Boolean =
+        a11y.dispatchHoverEvent(event) || super.dispatchHoverEvent(event)
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         handler.removeCallbacksAndMessages(null)
@@ -500,5 +627,7 @@ class KeyboardView(context: Context) : View(context) {
         const val REPEAT_FIRST_MS = 380L
         const val REPEAT_START_MS = 70L
         const val REPEAT_MIN_MS = 28L
+        const val STRIP_ID = 10000
+        const val A11Y_TOUCH = -1000
     }
 }

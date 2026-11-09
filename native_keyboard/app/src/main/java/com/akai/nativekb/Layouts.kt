@@ -39,6 +39,10 @@ class LayoutOptions(
     val numberRow: Boolean = false,
     /** Offer a key that goes back to the number pad (digit fields only). */
     val backToPad: Boolean = false,
+    /** qwerty, dvorak, azerty, colemak or qwertz. */
+    val englishLayout: String = "qwerty",
+    /** traditional or frequency. */
+    val amharicLayout: String = "traditional",
 )
 
 object Layouts {
@@ -65,17 +69,25 @@ object Layouts {
     private fun enter(label: String, w: Float) = Key(KeyKind.ENTER, label, w)
     private fun chars(s: String) = s.map { ch(it.toString()) }
 
-    private fun qwerty(make: (String) -> Key) = listOf(
-        "qwertyuiop".map { make(it.toString()) },
-        listOf(spacer(0.5f)) + "asdfghjkl".map { make(it.toString()) } + spacer(0.5f),
-        listOf(Key(KeyKind.SHIFT, "⇧", 1.5f)) + "zxcvbnm".map { make(it.toString()) } + backspace(1.5f),
-    )
+    private val qwertyLetters = listOf("qwertyuiop", "asdfghjkl", "zxcvbnm").map { r -> r.map { it.toString() } }
+
+    /** Three letter rows for the chosen layout, with shift and backspace filling the third. */
+    private fun letterRows(name: String, make: (String) -> Key): List<List<Key>> {
+        val rows = KeyboardData.englishLayouts[name] ?: qwertyLetters
+        val first = rows[0].map(make)
+        val missing = 10 - rows[1].size
+        val second = (if (missing > 0) listOf(spacer(missing / 2f)) else emptyList()) +
+            rows[1].map(make) + (if (missing > 0) listOf(spacer(missing / 2f)) else emptyList())
+        val side = maxOf(1f, (10 - rows[2].size) / 2f)
+        val third = listOf(Key(KeyKind.SHIFT, "⇧", side)) + rows[2].map(make) + backspace(side)
+        return listOf(first, second, third)
+    }
 
     private fun numberRow() = chars("1234567890")
 
     fun build(id: LayoutId, amharicSymbols: Boolean, o: LayoutOptions): Layout = when (id) {
         LayoutId.LETTERS -> {
-            val rows = qwerty(::letter).toMutableList()
+            val rows = letterRows(o.englishLayout, ::letter).toMutableList()
             if (o.numberRow) rows.add(0, numberRow())
             rows.add(
                 listOf(
@@ -91,7 +103,7 @@ object Layouts {
         }
 
         LayoutId.PHONETIC -> {
-            val rows = qwerty(::plainLetter).toMutableList()
+            val rows = letterRows(o.englishLayout, ::plainLetter).toMutableList()
             if (o.numberRow) rows.add(0, numberRow())
             rows.add(
                 listOf(
@@ -108,7 +120,8 @@ object Layouts {
 
         LayoutId.FIDEL -> {
             val vowelRow = List(8) { Key(KeyKind.VOWEL, "", 1f, special = true) }
-            val rows = KeyboardData.amharicRows.map { r ->
+            val source = if (o.amharicLayout == "frequency") KeyboardData.amharicFrequencyRows else KeyboardData.amharicRows
+            val rows = source.map { r ->
                 val keys = r.map { fidel(it) }
                 // Shorter rows are centred rather than stretched.
                 val pad = (9 - keys.size) / 2f
