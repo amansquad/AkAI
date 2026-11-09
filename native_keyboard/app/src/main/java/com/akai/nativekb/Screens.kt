@@ -254,15 +254,14 @@ class HomeActivity : ThemedActivity() {
 
 // ─── Themes ─────────────────────────────────────────────────────────────────
 
-/** A tiny keyboard drawn in a theme's colours, so themes can be judged at a glance. */
-class ThemePreview(context: Context, private val def: PaletteDef) : View(context) {
-    private val pal = Themes.palette(context, def.id)
+/** Draws a tiny keyboard in a theme's colours, so themes can be judged at a glance. */
+object MiniKeyboard {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val r = RectF()
-    override fun onDraw(canvas: Canvas) {
-        val w = width.toFloat(); val h = height.toFloat()
+
+    fun draw(canvas: Canvas, left: Float, top: Float, w: Float, h: Float, pal: Palette) {
         paint.color = pal.background
-        r.set(0f, 0f, w, h)
+        r.set(left, top, left + w, top + h)
         canvas.drawRoundRect(r, h * 0.1f, h * 0.1f, paint)
         val pad = w * 0.05f
         val rows = 4
@@ -278,13 +277,18 @@ class ThemePreview(context: Context, private val def: PaletteDef) : View(context
                     row == 2 && (k == 0 || k == n - 1) -> pal.special
                     else -> pal.key
                 }
-                val x = pad + k * (kw + gap)
-                val y = pad + row * (rh + gap)
+                val x = left + pad + k * (kw + gap)
+                val y = top + pad + row * (rh + gap)
                 r.set(x, y, x + kw, y + rh)
                 canvas.drawRoundRect(r, rh * 0.3f, rh * 0.3f, paint)
             }
         }
     }
+}
+
+class ThemePreview(context: Context, def: PaletteDef) : View(context) {
+    private val pal = Themes.palette(context, def.id)
+    override fun onDraw(canvas: Canvas) = MiniKeyboard.draw(canvas, 0f, 0f, width.toFloat(), height.toFloat(), pal)
 }
 
 class ThemesActivity : ThemedActivity() {

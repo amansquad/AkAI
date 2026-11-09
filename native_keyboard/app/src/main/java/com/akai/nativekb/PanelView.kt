@@ -38,6 +38,8 @@ interface PanelHost {
     fun panelAmharic(): Boolean
     /** The clipboard history as it is right now, including anything copied since the panel opened. */
     fun panelClips(): List<Clip>
+    /** The user picked a theme in the Themes tab. */
+    fun onPanelTheme(id: String)
 }
 
 /**
@@ -47,7 +49,7 @@ interface PanelHost {
  */
 class PanelView(context: Context) : View(context) {
 
-    enum class Tab { EMOJI, GIF, CLIPBOARD, WRITE, TRANSLATE }
+    enum class Tab { EMOJI, GIF, CLIPBOARD, WRITE, TRANSLATE, THEMES }
 
     var host: PanelHost? = null
 
@@ -83,6 +85,14 @@ class PanelView(context: Context) : View(context) {
     private var emojiCategory = 0 // 0 is "recent"
     private var recents: List<String> = emptyList()
     private var clips: List<Clip> = emptyList()
+
+    /** The theme in use, so the Themes tab can mark it. */
+    var themeId = Themes.DEFAULT
+    private var themeFilter = 0
+    private val themeFilters = listOf("all" to "All", "live" to "Live", "solid" to "Solid", "cultural" to "Cultural", "faith" to "Faith", "football" to "Football")
+    private val miniPalettes = HashMap<String, Palette>()
+    private fun themeList() = Themes.all.filter { themeFilters[themeFilter].first == "all" || it.category == themeFilters[themeFilter].first }
+    private fun miniPalette(def: PaletteDef) = miniPalettes.getOrPut(def.id) { Themes.palette(context, def.id) }
 
     private var gifCategory = 0
     private var gifs: List<GifItem> = emptyList()
@@ -163,7 +173,7 @@ class PanelView(context: Context) : View(context) {
         scroller.forceFinished(true)
     }
 
-    private fun hasCategoryRow() = tab == Tab.EMOJI || tab == Tab.GIF
+    private fun hasCategoryRow() = tab == Tab.EMOJI || tab == Tab.GIF || tab == Tab.THEMES
     private fun contentTop() = tabH + if (hasCategoryRow()) catH else 0f
 
     private fun emojiList(): List<String> =
@@ -171,11 +181,13 @@ class PanelView(context: Context) : View(context) {
 
     private fun gifCell() = width / 3f
     private fun clipRowH() = dp(52f)
+    private fun themeCellH() = width / 3f * 0.74f + dp(24f)
 
     private fun contentHeight(): Float = when (tab) {
         Tab.EMOJI -> ((emojiList().size + 7) / 8) * (width / 8f)
         Tab.GIF -> ((gifs.size + 2) / 3) * gifCell()
         Tab.CLIPBOARD -> clips.size * clipRowH()
+        Tab.THEMES -> ((themeList().size + 2) / 3) * themeCellH()
         else -> 0f
     }
 
@@ -216,15 +228,16 @@ class PanelView(context: Context) : View(context) {
             Tab.CLIPBOARD -> drawClips(canvas)
             Tab.WRITE -> drawWrite(canvas)
             Tab.TRANSLATE -> drawTranslate(canvas)
+            Tab.THEMES -> drawThemes(canvas)
         }
         canvas.restore()
     }
 
-    private val tabNames = arrayOf("ABC", "😀", "GIF", "📋", "✍️", "🌐")
-    private fun tabAt(i: Int) = when (i) { 1 -> Tab.EMOJI; 2 -> Tab.GIF; 3 -> Tab.CLIPBOARD; 4 -> Tab.WRITE; 5 -> Tab.TRANSLATE; else -> null }
+    private val tabNames = arrayOf("ABC", "😀", "GIF", "📋", "✍️", "🌐", "🎨")
+    private fun tabAt(i: Int) = when (i) { 1 -> Tab.EMOJI; 2 -> Tab.GIF; 3 -> Tab.CLIPBOARD; 4 -> Tab.WRITE; 5 -> Tab.TRANSLATE; 6 -> Tab.THEMES; else -> null }
 
     private fun drawTabs(canvas: Canvas) {
-        val cell = width / 7f
+        val cell = width / 8f
         for (i in tabNames.indices) {
             val active = tabAt(i) == tab
             if (active) {
@@ -237,8 +250,8 @@ class PanelView(context: Context) : View(context) {
         }
         // The last cell: backspace on emoji, "Clear" on the clipboard.
         when (tab) {
-            Tab.EMOJI, Tab.GIF -> label(canvas, "⌫", cell * 6.5f, tabH / 2f, dp(18f), palette.text)
-            Tab.CLIPBOARD -> if (clips.isNotEmpty()) label(canvas, "Clear", cell * 6.5f, tabH / 2f, dp(12f), palette.hint)
+            Tab.EMOJI, Tab.GIF -> label(canvas, "⌫", cell * 7.5f, tabH / 2f, dp(18f), palette.text)
+            Tab.CLIPBOARD -> if (clips.isNotEmpty()) label(canvas, "Clear", cell * 7.5f, tabH / 2f, dp(12f), palette.hint)
             else -> {}
         }
     }
@@ -254,6 +267,16 @@ class PanelView(context: Context) : View(context) {
                     canvas.drawRoundRect(rect, radius, radius, fill)
                 }
                 label(canvas, icon, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(18f), palette.text)
+            }
+        } else if (tab == Tab.THEMES) {
+            val cell = width.toFloat() / themeFilters.size
+            for ((i, f) in themeFilters.withIndex()) {
+                if (i == themeFilter) {
+                    rect.set(cell * i + dp(2f), tabH, cell * (i + 1) - dp(2f), tabH + catH - dp(3f))
+                    fill.color = palette.key
+                    canvas.drawRoundRect(rect, radius, radius, fill)
+                }
+                label(canvas, f.second, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == themeFilter)
             }
         } else {
             val cell = width.toFloat() / Gifs.categories.size
@@ -317,6 +340,35 @@ class PanelView(context: Context) : View(context) {
             fill.color = palette.popup
             canvas.drawRect(0f, height - dp(26f), width.toFloat(), height.toFloat(), fill)
             label(canvas, note, width / 2f, height - dp(13f), dp(11f), palette.hint)
+        }
+    }
+
+    private fun drawThemes(canvas: Canvas) {
+        val top = contentTop()
+        val list = themeList()
+        val cell = width / 3f
+        val ch = themeCellH()
+        val first = max(0, (scrollY / ch).toInt())
+        val last = min((list.size + 2) / 3, first + ((height - top) / ch).toInt() + 2)
+        for (r in first until last) for (c in 0 until 3) {
+            val i = r * 3 + c
+            if (i >= list.size) break
+            val def = list[i]
+            val x = cell * c + dp(5f)
+            val y = top + r * ch - scrollY + dp(4f)
+            val w = cell - dp(10f)
+            val h = cell * 0.74f - dp(8f)
+            MiniKeyboard.draw(canvas, x, y, w, h, miniPalette(def))
+            if (def.id == themeId) {
+                fill.style = Paint.Style.STROKE
+                fill.strokeWidth = dp(2.5f)
+                fill.color = palette.accent
+                rect.set(x, y, x + w, y + h)
+                canvas.drawRoundRect(rect, h * 0.1f, h * 0.1f, fill)
+                fill.style = Paint.Style.FILL
+            }
+            val name = TextUtils.ellipsize((if (def.live.isNotEmpty()) "● " else "") + def.name, TextPaint(text), w, TextUtils.TruncateAt.END).toString()
+            label(canvas, name, x + w / 2f, y + h + dp(10f), dp(11f), if (def.id == themeId) palette.accent else palette.text, bold = def.id == themeId)
         }
     }
 
@@ -593,10 +645,10 @@ class PanelView(context: Context) : View(context) {
     }
 
     private fun headerTap(x: Float) {
-        val i = (x / (width / 7f)).toInt()
+        val i = (x / (width / 8f)).toInt()
         when {
             i == 0 -> host?.onPanelClose()
-            i in 1..5 -> if (tabAt(i) != tab) enter(tabAt(i)!!)
+            i in 1..6 -> if (tabAt(i) != tab) enter(tabAt(i)!!)
             tab == Tab.CLIPBOARD -> host?.onPanelClearClipboard()
             tab == Tab.EMOJI || tab == Tab.GIF -> host?.onPanelText("\b", false)
         }
@@ -606,6 +658,9 @@ class PanelView(context: Context) : View(context) {
         if (tab == Tab.EMOJI) {
             val n = EmojiData.categories.size + 1
             emojiCategory = (x / (width.toFloat() / n)).toInt().coerceIn(0, n - 1)
+            resetScroll()
+        } else if (tab == Tab.THEMES) {
+            themeFilter = (x / (width.toFloat() / themeFilters.size)).toInt().coerceIn(0, themeFilters.size - 1)
             resetScroll()
         } else {
             gifCategory = (x / (width.toFloat() / Gifs.categories.size)).toInt().coerceIn(0, Gifs.categories.size - 1)
@@ -631,6 +686,11 @@ class PanelView(context: Context) : View(context) {
                 val c = (x / cell).toInt().coerceIn(0, 2)
                 val r = ((y - top + scrollY) / cell).toInt()
                 gifs.getOrNull(r * 3 + c)?.let { host?.onPanelGif(it) }
+            }
+            Tab.THEMES -> {
+                val c = (x / (width / 3f)).toInt().coerceIn(0, 2)
+                val r = ((y - top + scrollY) / themeCellH()).toInt()
+                themeList().getOrNull(r * 3 + c)?.let { themeId = it.id; host?.onPanelTheme(it.id); invalidate() }
             }
             Tab.CLIPBOARD -> {
                 val i = ((y - top + scrollY) / clipRowH()).toInt()

@@ -173,6 +173,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
             panel.serverUrl = serverUrl
             panel.giphyKey = giphyKey
             panel.skinTone = skinTone
+            panel.themeId = Themes.find(theme).id
             keys.applySettings(theme, heightPercent, hints, oneHand, pressAnim, longPress)
             panel.applyTheme(theme)
             container.setBackgroundColor(Themes.palette(this, theme).background)
@@ -581,6 +582,17 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     }
 
     override fun panelAmharic() = amharic
+
+    /** A theme was picked in the keyboard's Themes tab: save it and recolour right away. */
+    override fun onPanelTheme(id: String) {
+        savePref { putString(Prefs.THEME, id) }
+        theme = id
+        keys.applySettings(theme, heightPercent, hints, oneHand, pressAnim, longPress)
+        panel.applyTheme(theme)
+        panel.themeId = id
+        container.setBackgroundColor(Themes.palette(this, theme).background)
+        onKeyFeedback()
+    }
 
     override fun panelClips(): List<Clip> {
         readClipboard()
