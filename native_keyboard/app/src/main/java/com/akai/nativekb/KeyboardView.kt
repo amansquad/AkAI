@@ -82,12 +82,16 @@ class KeyboardView(context: Context) : View(context) {
     private var oneHanded = 0
 
     private var pressAnim = true
+    private var liveOn = true
+    private val backdrop = LiveBackdrop()
+    private var lastTouchAt = 0L
     private var longPressOn = true
 
     fun applySettings(
         theme: String, heightPercent: Int, hints: Boolean, oneHand: Int,
-        pressAnimation: Boolean = true, longPress: Boolean = true,
+        pressAnimation: Boolean = true, longPress: Boolean = true, live: Boolean = true,
     ) {
+        liveOn = live
         pressAnim = pressAnimation
         longPressOn = longPress
         themeName = theme
@@ -215,6 +219,13 @@ class KeyboardView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         val l = layout ?: return
+        if (liveOn && palette.isLive) {
+            val now = android.os.SystemClock.uptimeMillis()
+            backdrop.draw(canvas, width.toFloat(), height.toFloat(), now, palette, density)
+            // Animate only while the keyboard is idle: a frame never competes with a keystroke.
+            val idle = now - lastTouchAt > 700
+            postInvalidateDelayed(if (idle) 66L else (lastTouchAt + 700 - now).coerceAtLeast(66L))
+        }
         if (showStrip) drawStrip(canvas)
         for ((r, row) in l.rows.withIndex()) {
             for ((c, key) in row.withIndex()) {
@@ -382,6 +393,7 @@ class KeyboardView(context: Context) : View(context) {
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
         val l = layout ?: return false
+        lastTouchAt = android.os.SystemClock.uptimeMillis()
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
                 val i = e.actionIndex

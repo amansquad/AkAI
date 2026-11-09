@@ -50,15 +50,18 @@ object Themes {
     // that animation is painted, blend them onto a dark base so they are solid.
     private val base = 0xFF0B0B12.toInt()
     private fun solid(c: Int): Int = ColorUtils.compositeColors(c, base)
+    private fun keep(c: Int, bg: Int, live: Boolean): Int = if (live) c else ColorUtils.compositeColors(c, bg)
 
     fun palette(@Suppress("UNUSED_PARAMETER") context: Context, id: String): Palette {
         val d = find(id)
         val bg = solid(d.background)
+        val live = d.live.isNotEmpty()
         return Palette(
             background = bg, surface = solid(d.surface), surfaceVariant = solid(d.surfaceVariant),
-            key = ColorUtils.compositeColors(d.key, bg), pressed = ColorUtils.compositeColors(d.keyPressed, bg),
-            special = ColorUtils.compositeColors(d.keySecondary, bg),
-            specialPressed = ColorUtils.compositeColors(d.keySecondaryPressed, bg),
+            // A live theme's keys stay translucent so its animation shows through them.
+            key = keep(d.key, bg, live), pressed = keep(d.keyPressed, bg, live),
+            special = keep(d.keySecondary, bg, live),
+            specialPressed = keep(d.keySecondaryPressed, bg, live),
             keyAccent = d.keyAccent, accentPressed = d.keyAccentPressed, accent = d.accent,
             text = d.keyText, specialText = d.keySecondaryText,
             accentMuted = d.accentMuted, glow = d.glow,

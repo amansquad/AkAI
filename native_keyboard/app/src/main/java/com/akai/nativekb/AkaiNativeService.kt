@@ -62,6 +62,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     private var autoCap = true
     private var doubleSpace = true
     private var pressAnim = true
+    private var liveBg = true
     private var longPress = true
     private var learnOn = true
     private var englishLayout = "qwerty"
@@ -148,6 +149,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         autoCap = p.getBoolean(Prefs.AUTOCAP, true)
         doubleSpace = p.getBoolean(Prefs.DOUBLE_SPACE, true)
         pressAnim = p.getBoolean(Prefs.PRESS_ANIM, true)
+        liveBg = p.getBoolean(Prefs.LIVE_BG, true)
         longPress = p.getBoolean(Prefs.LONG_PRESS, true)
         englishLayout = p.getString(Prefs.ENGLISH_LAYOUT, "qwerty") ?: "qwerty"
         amharicLayout = p.getString(Prefs.AMHARIC_LAYOUT, "traditional") ?: "traditional"
@@ -174,7 +176,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
             panel.giphyKey = giphyKey
             panel.skinTone = skinTone
             panel.themeId = Themes.find(theme).id
-            keys.applySettings(theme, heightPercent, hints, oneHand, pressAnim, longPress)
+            keys.applySettings(theme, heightPercent, hints, oneHand, pressAnim, longPress, liveBg)
             panel.applyTheme(theme)
             container.setBackgroundColor(Themes.palette(this, theme).background)
         }
@@ -587,7 +589,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     override fun onPanelTheme(id: String) {
         savePref { putString(Prefs.THEME, id) }
         theme = id
-        keys.applySettings(theme, heightPercent, hints, oneHand, pressAnim, longPress)
+        keys.applySettings(theme, heightPercent, hints, oneHand, pressAnim, longPress, liveBg)
         panel.applyTheme(theme)
         panel.themeId = id
         container.setBackgroundColor(Themes.palette(this, theme).background)
@@ -701,6 +703,7 @@ object Prefs {
     /** The user's own Giphy API key. Blank uses the built-in GIF catalogue. */
     const val GIPHY_KEY = "giphy_key"
     const val ONBOARDED = "onboarded"
+    const val LIVE_BG = "live_backgrounds"
     const val LONG_PRESS = "long_press_popup"
     const val PRESS_ANIM = "press_animation"
     const val AUTOCAP = "auto_capitalize"

@@ -128,6 +128,7 @@ class SettingsActivity : ThemedActivity() {
             ui.switchRow("Number row", "Always visible in text mode", prefs.getBoolean(Prefs.NUMBER_ROW, false)) { put(Prefs.NUMBER_ROW, it) },
             ui.switchRow("Corner hints", "Show the digit or symbol on letter keys", prefs.getBoolean(Prefs.HINTS, true)) { put(Prefs.HINTS, it) },
             ui.switchRow("Smooth key press", "Keys shrink slightly when pressed", prefs.getBoolean(Prefs.PRESS_ANIM, true)) { put(Prefs.PRESS_ANIM, it) },
+            ui.switchRow("Animated backgrounds", "Live themes move behind the keys (pauses while you type)", prefs.getBoolean(Prefs.LIVE_BG, true)) { put(Prefs.LIVE_BG, it) },
         ), wrap)
 
         // ── Layouts
