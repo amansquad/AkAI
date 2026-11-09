@@ -34,6 +34,11 @@ object KeyboardData {
     /** Long-press alternates on the English board. */
     val englishAlternates: Map<String, List<String>> = ${map(grab('LONG_PRESS_ALTERNATES'))}
 
+    val suggestionsEn: Map<String, List<String>> = ${map(grab('ENGLISH_SUGGESTIONS'))}
+    val suggestionsAm: Map<String, List<String>> = ${map(grab('AMHARIC_SUGGESTIONS'))}
+    val nextWordEn: Map<String, List<String>> = ${map(grab('NEXT_WORD_EN'))}
+    val nextWordAm: Map<String, List<String>> = ${map(grab('NEXT_WORD_AM'))}
+
     val ethiopicNumerals: List<String> = listOf(${grab('ETHIOPIAN_NUM_ROW_1').map(c => q(c)).join(', ')})
     val ethiopicPunctuation: List<String> = listOf(${grab('ETHIOPIAN_SYM_ROW').map(c => q(c)).join(', ')})
 }

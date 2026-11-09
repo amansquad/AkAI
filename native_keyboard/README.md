@@ -9,20 +9,30 @@ finds its key from plain arrays and the letter is committed on touch-down;
 vibration and sound come after. No WebView, JavaScript, React or bridge.
 
 ## What it has
-- English QWERTY, Amharic fidel board, symbols board (English and Amharic)
-- Number, phone and date pads, chosen from the focused field's type
-- Email, URL and password fields: English only, no auto-capitals
+- English QWERTY, Amharic fidel board (with the vowel row), phonetic Amharic
+  (type "selam", get ሰላም), and symbols boards for both languages
+- Number, phone and date pads, chosen from the focused field's type, with a
+  "123" key to come back to the pad after leaving it
+- Email, URL and password fields: English only, no auto-capitals, no suggestions
+- Toolbar and suggestion strip: emoji, voice typing, settings, three word
+  suggestions (same word lists as the web keyboard)
+- Emoji panel (categories, recents, scrolling) and clipboard history
 - Long-press bubble: a letter's accents, or a consonant's whole vowel family
   (slide to one and let go)
 - Shift, double-tap caps lock, auto-capitals, double-space period
 - Hold-to-repeat backspace that speeds up, space-bar swipe to move the cursor
 - Enter shows the field's action (Go, Search, Send, Next, Done)
-- Light and dark, following the system
+- Settings screen: theme (system, light, dark, ocean, forest, rose), key
+  height, one-handed mode, number row, corner hints, suggestions, vibration
+  strength, click sound
 
-## Not yet
-Phonetic Amharic typing, the vowel row, suggestions, emoji/GIF/clipboard
-panels, voice, handwriting, themes, one-handed mode, and a size/layout
-settings screen. Those live in the web keyboard for now.
+## Not here
+Handwriting, GIFs, translation and live-wallpaper themes. Handwriting needs a
+recognition service and GIFs need an online catalogue; both live in the web
+keyboard.
+
+Voice typing opens the system speech recogniser (a keyboard cannot use the
+microphone itself), so it needs a recogniser app such as Google's installed.
 
 ## Build
 Needs the Android SDK and a JDK 17-21 (Gradle 8.14 does not run on Java 26;
@@ -34,6 +44,12 @@ Android Studio's bundled JDK works).
 
 The APK is `app/build/outputs/apk/debug/app-debug.apk`. Install it, open the
 app, turn the keyboard on, then choose it.
+
+## Tests
+
+    ./gradlew.bat :app:testDebugUnitTest
+
+Covers the phonetic transliteration engine.
 
 ## Amharic data
 `KeyboardData.kt` is generated from the web keyboard's `keyboard-data.ts`:

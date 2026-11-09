@@ -1,6 +1,12 @@
 package com.akai.nativekb
 
-enum class KeyKind { CHAR, SHIFT, BACKSPACE, ENTER, SPACE, SYMBOLS, LANGUAGE, PAD_ABC, SPACER }
+enum class KeyKind {
+    CHAR, SHIFT, BACKSPACE, ENTER, SPACE, SYMBOLS, LANGUAGE, PAD_ABC, SPACER,
+    /** A slot in the Amharic vowel row; its letter comes from the view. */
+    VOWEL,
+    /** Switches between the fidel board and phonetic (Latin-in) Amharic. */
+    PHONETIC,
+}
 
 /**
  * One key. [output] is what a tap types; [label] is what is drawn. They differ
@@ -21,9 +27,19 @@ data class Key(
     val cased: Boolean = false,
 )
 
-enum class LayoutId { LETTERS, FIDEL, SYMBOLS, NUMBER, PHONE, DATETIME }
+enum class LayoutId { LETTERS, PHONETIC, FIDEL, SYMBOLS, NUMBER, PHONE, DATETIME }
 
-class Layout(val id: LayoutId, val rows: List<List<Key>>, val rowHeightDp: Float)
+class Layout(val id: LayoutId, val rows: List<List<Key>>, val rowHeightDp: Float) {
+    val isPad get() = id == LayoutId.NUMBER || id == LayoutId.PHONE || id == LayoutId.DATETIME
+}
+
+class LayoutOptions(
+    val enterLabel: String = "↵",
+    /** A row of digits above the letters. */
+    val numberRow: Boolean = false,
+    /** Offer a key that goes back to the number pad (digit fields only). */
+    val backToPad: Boolean = false,
+)
 
 object Layouts {
 
@@ -38,38 +54,60 @@ object Layouts {
         return Key(KeyKind.CHAR, c, alternates = alts, hint = hint, cased = true)
     }
 
+    /** A letter with no accents or hints, for phonetic typing. */
+    private fun plainLetter(c: String) = Key(KeyKind.CHAR, c, cased = true)
+
     private fun fidel(c: String) =
         Key(KeyKind.CHAR, c, alternates = KeyboardData.amharicVowels[c].orEmpty())
 
     private fun spacer(w: Float) = Key(KeyKind.SPACER, weight = w)
-
     private fun backspace(w: Float) = Key(KeyKind.BACKSPACE, "⌫", w)
-
     private fun enter(label: String, w: Float) = Key(KeyKind.ENTER, label, w)
-
     private fun chars(s: String) = s.map { ch(it.toString()) }
 
-    fun build(id: LayoutId, amharicSymbols: Boolean, enterLabel: String): Layout = when (id) {
-        LayoutId.LETTERS -> Layout(
-            id,
-            listOf(
-                "qwertyuiop".map { letter(it.toString()) },
-                listOf(spacer(0.5f)) + "asdfghjkl".map { letter(it.toString()) } + spacer(0.5f),
-                listOf(Key(KeyKind.SHIFT, "⇧", 1.5f)) +
-                    "zxcvbnm".map { letter(it.toString()) } + backspace(1.5f),
+    private fun qwerty(make: (String) -> Key) = listOf(
+        "qwertyuiop".map { make(it.toString()) },
+        listOf(spacer(0.5f)) + "asdfghjkl".map { make(it.toString()) } + spacer(0.5f),
+        listOf(Key(KeyKind.SHIFT, "⇧", 1.5f)) + "zxcvbnm".map { make(it.toString()) } + backspace(1.5f),
+    )
+
+    private fun numberRow() = chars("1234567890")
+
+    fun build(id: LayoutId, amharicSymbols: Boolean, o: LayoutOptions): Layout = when (id) {
+        LayoutId.LETTERS -> {
+            val rows = qwerty(::letter).toMutableList()
+            if (o.numberRow) rows.add(0, numberRow())
+            rows.add(
                 listOf(
                     Key(KeyKind.SYMBOLS, "?123", 1.4f),
                     Key(KeyKind.LANGUAGE, "አማ", 1.2f),
-                    ch(","),
+                    if (o.backToPad) Key(KeyKind.PAD_ABC, "123") else ch(","),
                     Key(KeyKind.SPACE, "English", 4.2f),
                     ch("."),
-                    enter(enterLabel, 1.5f),
+                    enter(o.enterLabel, 1.5f),
                 ),
-            ),
-            rowHeightDp = 50f,
-        )
+            )
+            Layout(id, rows, rowHeightDp = if (o.numberRow) 46f else 50f)
+        }
+
+        LayoutId.PHONETIC -> {
+            val rows = qwerty(::plainLetter).toMutableList()
+            if (o.numberRow) rows.add(0, numberRow())
+            rows.add(
+                listOf(
+                    Key(KeyKind.SYMBOLS, "፩፪", 1.3f),
+                    Key(KeyKind.LANGUAGE, "EN", 1.2f),
+                    Key(KeyKind.PHONETIC, "ፈደል", 1.3f),
+                    Key(KeyKind.SPACE, "አማርኛ", 3.4f),
+                    ch("።"),
+                    enter(o.enterLabel, 1.5f),
+                ),
+            )
+            Layout(id, rows, rowHeightDp = if (o.numberRow) 46f else 50f)
+        }
 
         LayoutId.FIDEL -> {
+            val vowelRow = List(8) { Key(KeyKind.VOWEL, "", 1f, special = true) }
             val rows = KeyboardData.amharicRows.map { r ->
                 val keys = r.map { fidel(it) }
                 // Shorter rows are centred rather than stretched.
@@ -78,18 +116,19 @@ object Layouts {
             }
             Layout(
                 id,
-                rows + listOf(
+                listOf(vowelRow) + rows + listOf(
                     listOf(
-                        Key(KeyKind.SYMBOLS, "፩፪", 1.3f),
-                        Key(KeyKind.LANGUAGE, "EN", 1.2f),
+                        Key(KeyKind.SYMBOLS, "፩፪", 1.2f),
+                        Key(KeyKind.LANGUAGE, "EN", 1.1f),
+                        Key(KeyKind.PHONETIC, "ABC", 1.1f),
                         ch("፣"),
-                        Key(KeyKind.SPACE, "አማርኛ", 3.4f),
+                        Key(KeyKind.SPACE, "አማርኛ", 2.8f),
                         ch("።"),
-                        backspace(1.3f),
-                        enter(enterLabel, 1.3f),
+                        backspace(1.2f),
+                        enter(o.enterLabel, 1.2f),
                     ),
                 ),
-                rowHeightDp = 45f,
+                rowHeightDp = 41f,
             )
         }
 
@@ -117,7 +156,7 @@ object Layouts {
                         ch(","),
                         Key(KeyKind.SPACE, if (amharicSymbols) "አማርኛ" else "English", 4.8f),
                         ch("."),
-                        enter(enterLabel, 1.5f),
+                        enter(o.enterLabel, 1.5f),
                     ),
                 ),
                 rowHeightDp = 50f,
@@ -134,7 +173,7 @@ object Layouts {
                     listOf(ch("1"), ch("2"), ch("3"), backspace(1f)),
                     listOf(ch("4"), ch("5"), ch("6"), ch(sign, special = true)),
                     listOf(ch("7"), ch("8"), ch("9"), Key(KeyKind.PAD_ABC, "ABC")),
-                    listOf(ch(left, special = true), ch("0"), ch(right, special = true), enter(enterLabel, 1f)),
+                    listOf(ch(left, special = true), ch("0"), ch(right, special = true), enter(o.enterLabel, 1f)),
                 ),
                 rowHeightDp = 60f,
             )
