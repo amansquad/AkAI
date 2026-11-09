@@ -36,6 +36,8 @@ interface PanelHost {
     fun panelTextBefore(): String
     fun onPanelReplace(oldLength: Int, newText: String)
     fun panelAmharic(): Boolean
+    /** The clipboard history as it is right now, including anything copied since the panel opened. */
+    fun panelClips(): List<Clip>
 }
 
 /**
@@ -113,6 +115,7 @@ class PanelView(context: Context) : View(context) {
         resetScroll()
         when (t) {
             Tab.GIF -> if (gifs.isEmpty()) loadGifs()
+            Tab.CLIPBOARD -> host?.let { clips = it.panelClips() }
             Tab.TRANSLATE -> {
                 source = host?.panelTextBefore().orEmpty().takeLast(300)
                 translateToAmharic = host?.panelAmharic() != true
@@ -560,6 +563,8 @@ class PanelView(context: Context) : View(context) {
             MotionEvent.ACTION_MOVE -> current?.let { it.lineTo(e.x.coerceIn(0f, width.toFloat()), e.y.coerceIn(writeAreaTop(), writeAreaBottom())); invalidate() }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 current?.let {
+                    // The last position matters: a quick stroke may have only one move event.
+                    if (e.actionMasked == MotionEvent.ACTION_UP) it.lineTo(e.x.coerceIn(0f, width.toFloat()), e.y.coerceIn(writeAreaTop(), writeAreaBottom()))
                     strokes.add(it); current = null
                     // Read it once the pen has been still for a moment.
                     handler.postDelayed(recognizeTask, 900)

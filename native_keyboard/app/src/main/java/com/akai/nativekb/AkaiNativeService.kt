@@ -571,6 +571,11 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     override fun panelAmharic() = amharic
 
+    override fun panelClips(): List<Clip> {
+        readClipboard()
+        return clipList()
+    }
+
     /**
      * Sends a GIF as an image where the app accepts one, and as a link where it
      * does not (a plain text box has nowhere to put an image).

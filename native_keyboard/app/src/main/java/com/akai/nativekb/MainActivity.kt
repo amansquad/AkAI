@@ -19,6 +19,31 @@ import android.widget.AdapterView
 import android.widget.Switch
 import android.widget.TextView
 
+/**
+ * A box that accepts GIFs from the keyboard, so the GIF tab can be tried here:
+ * it reports how big the received image was. (Most text boxes only take text,
+ * and then the GIF tab types the link instead.)
+ */
+class GifTestField(context: Context) : EditText(context) {
+    init { hint = "Try the GIF tab here" }
+
+    override fun onCreateInputConnection(info: android.view.inputmethod.EditorInfo): android.view.inputmethod.InputConnection? {
+        val ic = super.onCreateInputConnection(info) ?: return null
+        androidx.core.view.inputmethod.EditorInfoCompat.setContentMimeTypes(info, arrayOf("image/gif", "image/png", "image/jpeg"))
+        return androidx.core.view.inputmethod.InputConnectionCompat.createWrapper(ic, info) { content, flags, _ ->
+            if (android.os.Build.VERSION.SDK_INT >= 25 &&
+                (flags and androidx.core.view.inputmethod.InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION) != 0) {
+                try { content.requestPermission() } catch (e: Exception) { return@createWrapper false }
+            }
+            val size = try {
+                context.contentResolver.openInputStream(content.contentUri)?.use { it.readBytes().size }
+            } catch (e: Exception) { null }
+            setText(if (size != null) "GIF received: ${content.description.getMimeType(0)}, $size bytes" else "GIF received but unreadable")
+            size != null
+        }
+    }
+}
+
 /** Set-up and settings: turn the keyboard on, pick it, adjust it, and try it. */
 class MainActivity : Activity() {
 
@@ -168,6 +193,7 @@ class MainActivity : Activity() {
             addView(toggle("Click sound", Prefs.SOUND, false))
 
             addView(label("Try it here", 18f))
+            addView(GifTestField(context))
             addView(EditText(context).apply { hint = "Text" })
             addView(EditText(context).apply { hint = "Phone number"; inputType = InputType.TYPE_CLASS_PHONE })
             addView(EditText(context).apply { hint = "Number"; inputType = InputType.TYPE_CLASS_NUMBER })
