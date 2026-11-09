@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -17,12 +18,17 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.core.view.WindowCompat
+import androidx.core.view.inputmethod.EditorInfoCompat
+import androidx.core.view.inputmethod.InputConnectionCompat
+import androidx.core.view.inputmethod.InputContentInfoCompat
 import kotlin.math.abs
 
 enum class FieldKind { TEXT, NUMBER, PHONE, DATETIME, EMAIL, URL, PASSWORD, NONE }
 
 class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
+    // (Prefs keys live in the Prefs object below.)
 
     private lateinit var keys: KeyboardView
     private lateinit var panel: PanelView
@@ -51,12 +57,26 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     private var hints = true
     private var numberRow = false
     private var suggestOn = true
+    private var learnOn = true
+    private var englishLayout = "qwerty"
+    private var amharicLayout = "traditional"
+    private var holdClear = false
+    private var holdClearMs = 800
+    private var skinTone = 0
+    private var serverUrl = ""
+    private var giphyKey = ""
 
     private var vibrator: Vibrator? = null
     private var audio: AudioManager? = null
 
     private var recents: List<String> = emptyList()
+    /** Clipboard history, newest first. Memory only: copied text is never written to disk. */
     private val clips = ArrayList<String>()
+    /** Items the user pinned. These are saved, because pinning them is a deliberate choice. */
+    private val pinned = LinkedHashSet<String>()
+    /** Words the user has typed, with how often. */
+    private val learned = HashMap<String, Int>()
+    private var learnedDirty = 0
     private var clipboard: ClipboardManager? = null
     private val clipListener = ClipboardManager.OnPrimaryClipChangedListener { readClipboard() }
 
@@ -117,7 +137,31 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         numberRow = p.getBoolean(Prefs.NUMBER_ROW, false)
         suggestOn = p.getBoolean(Prefs.SUGGEST, true)
         recents = (p.getString(Prefs.RECENTS, "") ?: "").split(' ').filter { it.isNotEmpty() }
+        learnOn = p.getBoolean(Prefs.LEARN, true)
+        englishLayout = p.getString(Prefs.ENGLISH_LAYOUT, "qwerty") ?: "qwerty"
+        amharicLayout = p.getString(Prefs.AMHARIC_LAYOUT, "traditional") ?: "traditional"
+        holdClear = p.getBoolean(Prefs.HOLD_CLEAR, false)
+        holdClearMs = p.getInt(Prefs.HOLD_CLEAR_MS, 800)
+        skinTone = p.getInt(Prefs.SKIN_TONE, 0)
+        serverUrl = p.getString(Prefs.SERVER_URL, "") ?: ""
+        giphyKey = p.getString(Prefs.GIPHY_KEY, "") ?: ""
+        if (pinned.isEmpty()) {
+            try {
+                val a = org.json.JSONArray(p.getString(Prefs.PINNED, "[]"))
+                for (i in 0 until a.length()) pinned.add(a.getString(i))
+            } catch (e: Exception) { /* a bad value just means nothing is pinned */ }
+        }
+        if (learned.isEmpty()) {
+            (p.getString(Prefs.LEARNED, "") ?: "").split('\n').forEach { line ->
+                val i = line.lastIndexOf('\t')
+                if (i > 0) line.substring(i + 1).toIntOrNull()?.let { learned[line.substring(0, i)] = it }
+            }
+        }
         if (::keys.isInitialized) {
+            keys.holdClearMs = if (holdClear) holdClearMs.toLong() else 0L
+            panel.serverUrl = serverUrl
+            panel.giphyKey = giphyKey
+            panel.skinTone = skinTone
             keys.applySettings(theme, heightPercent, hints, oneHand)
             panel.applyTheme(theme)
             container.setBackgroundColor(Themes.palette(this, theme).background)
@@ -190,7 +234,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
             else -> LayoutId.LETTERS
         }
         layoutId = id
-        val options = LayoutOptions(enterLabel(), numberRow, backToPad = digitField && padDismissed)
+        val options = LayoutOptions(
+            enterLabel(), numberRow, backToPad = digitField && padDismissed,
+            englishLayout = englishLayout, amharicLayout = amharicLayout,
+        )
         val layout = Layouts.build(id, showAmharic, options)
         keys.setVowels(emptyList())
         keys.setLayout(layout, strip = !layout.isPad)
@@ -232,7 +279,48 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
             return@Runnable
         }
         val before = currentInputConnection?.getTextBeforeCursor(40, 0)
-        keys.setSuggestions(if (before == null) emptyList() else Suggest.forText(before, amharic))
+        keys.setSuggestions(
+            if (before == null) emptyList() else Suggest.forText(before, amharic, if (learnOn) learned else emptyMap()),
+        )
+    }
+
+    /** Remembers the word just finished, so it can be suggested next time. */
+    private fun learnWordBefore() {
+        if (!learnOn || plainField || digitField) return
+        val before = currentInputConnection?.getTextBeforeCursor(40, 0) ?: return
+        val n = Suggest.currentWordLength(before)
+        if (n < 2) return
+        val word = before.substring(before.length - n).trim { !it.isLetter() }
+        if (word.length < 2 || !word.all { it.isLetter() }) return
+        val key = word.lowercase()
+        learned[key] = (learned[key] ?: 0) + 1
+        if (learned.size > 3000) {
+            // Forget the least-used words rather than growing without end.
+            learned.entries.sortedBy { it.value }.take(500).forEach { learned.remove(it.key) }
+        }
+        if (++learnedDirty >= 20) saveLearned()
+    }
+
+    private fun saveLearned() {
+        learnedDirty = 0
+        savePref { putString(Prefs.LEARNED, learned.entries.joinToString("\n") { "${it.key}\t${it.value}" }) }
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        if (learnedDirty > 0) saveLearned()
+    }
+
+    override fun onClearSentence() {
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(500, 0)?.toString() ?: return
+        var i = before.length
+        while (i > 0 && before[i - 1].isWhitespace()) i--
+        var j = i
+        while (j > 0 && before[j - 1] !in ".!?።፧\n") j--
+        if (before.length - j > 0) ic.deleteSurroundingText(before.length - j, 0)
+        translit = Translit.EMPTY
+        keys.setVowels(emptyList())
     }
 
     /** Debounced, so working out suggestions never competes with a keystroke. */
@@ -318,6 +406,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     override fun onSpace() {
         val ic = currentInputConnection ?: return
+        learnWordBefore()
         translit = Translit.EMPTY
         keys.setVowels(emptyList())
         val now = System.currentTimeMillis()
@@ -339,6 +428,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     }
 
     override fun onEnter() {
+        learnWordBefore()
         translit = Translit.EMPTY
         keys.setVowels(emptyList())
         val opts = info?.imeOptions ?: 0
@@ -421,7 +511,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         readClipboard()
         val h = if (keys.height > 0) keys.height else keys.measuredHeight
         panel.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, h)
-        panel.open(tab, recents, clips.toList())
+        panel.open(tab, recents, clipList())
         panel.visibility = View.VISIBLE
         keys.visibility = View.INVISIBLE
     }
@@ -450,9 +540,62 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         onKeyFeedback()
     }
 
+    private fun clipList(): List<Clip> =
+        pinned.map { Clip(it, true) } + clips.filter { it !in pinned }.map { Clip(it, false) }
+
+    /** Clears the history; pinned items stay, because pinning them was deliberate. */
     override fun onPanelClearClipboard() {
         clips.clear()
-        panel.setClips(emptyList())
+        panel.setClips(clipList())
+    }
+
+    override fun onPanelTogglePin(text: String) {
+        if (!pinned.remove(text)) pinned.add(text)
+        savePref { putString(Prefs.PINNED, org.json.JSONArray(pinned.toList()).toString()) }
+        panel.setClips(clipList())
+        onKeyFeedback()
+    }
+
+    override fun panelTextBefore(): String =
+        currentInputConnection?.getTextBeforeCursor(300, 0)?.toString().orEmpty()
+
+    override fun onPanelReplace(oldLength: Int, newText: String) {
+        val ic = currentInputConnection ?: return
+        translit = Translit.EMPTY
+        ic.beginBatchEdit()
+        if (oldLength > 0) ic.deleteSurroundingText(oldLength, 0)
+        ic.commitText(newText, 1)
+        ic.endBatchEdit()
+        onKeyFeedback()
+    }
+
+    override fun panelAmharic() = amharic
+
+    /**
+     * Sends a GIF as an image where the app accepts one, and as a link where it
+     * does not (a plain text box has nowhere to put an image).
+     */
+    override fun onPanelGif(item: GifItem) {
+        val ic = currentInputConnection ?: return
+        val editor = info ?: return
+        val accepts = EditorInfoCompat.getContentMimeTypes(editor).any { it == "image/gif" || it == "image/*" }
+        if (!accepts) {
+            ic.commitText(item.fullUrl, 1)
+            Toast.makeText(this, "This field can't take images, so the link was typed", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Gifs.fetch(this, item) { uri ->
+            val live = currentInputConnection
+            if (uri == null || live == null) {
+                Toast.makeText(this, "Couldn't download that GIF", Toast.LENGTH_SHORT).show()
+                return@fetch
+            }
+            val flags = if (Build.VERSION.SDK_INT >= 25) InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION else 0
+            val sent = InputConnectionCompat.commitContent(
+                live, editor, InputContentInfoCompat(uri, Gifs.mime, Uri.parse(item.fullUrl)), flags, null,
+            )
+            if (!sent) live.commitText(item.fullUrl, 1)
+        }
     }
 
     private fun readClipboard() {
@@ -466,7 +609,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         clips.add(0, value)
         while (clips.size > 20) clips.removeAt(clips.size - 1)
         if (::panel.isInitialized && panel.visibility == View.VISIBLE && panel.tab == PanelView.Tab.CLIPBOARD) {
-            panel.setClips(clips.toList())
+            panel.setClips(clipList())
         }
     }
 
@@ -517,4 +660,16 @@ object Prefs {
     const val NUMBER_ROW = "number_row"
     const val SUGGEST = "suggest"
     const val RECENTS = "recent_emoji"
+    const val LEARN = "learn_words"
+    const val LEARNED = "learned_words"
+    const val PINNED = "pinned_clips"
+    const val ENGLISH_LAYOUT = "english_layout"
+    const val AMHARIC_LAYOUT = "amharic_layout"
+    const val HOLD_CLEAR = "hold_backspace_clears"
+    const val HOLD_CLEAR_MS = "hold_backspace_ms"
+    const val SKIN_TONE = "skin_tone"
+    /** Where handwriting and translation are sent. Blank turns those two off. */
+    const val SERVER_URL = "server_url"
+    /** The user's own Giphy API key. Blank uses the built-in GIF catalogue. */
+    const val GIPHY_KEY = "giphy_key"
 }

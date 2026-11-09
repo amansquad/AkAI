@@ -73,6 +73,28 @@ class MainActivity : Activity() {
         return box
     }
 
+    /** A text box that saves as you type. */
+    private fun field(title: String, key: String, hint: String, secret: Boolean = false, note: String? = null): View {
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        box.addView(label(title))
+        box.addView(EditText(this).apply {
+            this.hint = hint
+            setText(prefs.getString(key, ""))
+            setSingleLine()
+            inputType = InputType.TYPE_CLASS_TEXT or
+                if (secret) InputType.TYPE_TEXT_VARIATION_PASSWORD else InputType.TYPE_TEXT_VARIATION_URI
+            addTextChangedListener(object : android.text.TextWatcher {
+                override fun afterTextChanged(s: android.text.Editable?) {
+                    prefs.edit().putString(key, s?.toString()?.trim().orEmpty()).apply()
+                }
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            })
+        })
+        if (note != null) box.addView(TextView(this).apply { text = note; textSize = 12f })
+        return box
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val pad = (20 * d).toInt()
@@ -106,8 +128,40 @@ class MainActivity : Activity() {
             addView(toggle("Number row above the letters", Prefs.NUMBER_ROW, false))
             addView(toggle("Show corner hints on letters", Prefs.HINTS, true))
 
+            addView(label("Layouts", 18f))
+            val englishLayouts = listOf("qwerty", "dvorak", "azerty", "colemak", "qwertz")
+            addView(choice("English layout", Prefs.ENGLISH_LAYOUT, englishLayouts.map { it.uppercase() },
+                englishLayouts.indexOf(prefs.getString(Prefs.ENGLISH_LAYOUT, "qwerty")).coerceAtLeast(0)) {
+                prefs.edit().putString(Prefs.ENGLISH_LAYOUT, englishLayouts[it]).apply()
+            })
+            val amharicLayouts = listOf("traditional", "frequency")
+            addView(choice("Amharic letter order", Prefs.AMHARIC_LAYOUT,
+                listOf("Traditional (ሀ ለ ሐ መ …)", "Most-used letters first"),
+                amharicLayouts.indexOf(prefs.getString(Prefs.AMHARIC_LAYOUT, "traditional")).coerceAtLeast(0)) {
+                prefs.edit().putString(Prefs.AMHARIC_LAYOUT, amharicLayouts[it]).apply()
+            })
+
             addView(label("Typing", 18f))
             addView(toggle("Word suggestions", Prefs.SUGGEST, true))
+            addView(toggle("Learn the words I type", Prefs.LEARN, true))
+            addView(Button(context).apply {
+                text = "Forget learned words"
+                setOnClickListener {
+                    prefs.edit().remove(Prefs.LEARNED).apply()
+                    android.widget.Toast.makeText(context, "Learned words cleared", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            })
+            addView(toggle("Hold backspace to delete the sentence", Prefs.HOLD_CLEAR, false))
+            addView(slider("Hold time", Prefs.HOLD_CLEAR_MS, 300, 2000, 800, " ms"))
+            addView(choice("Emoji skin tone", Prefs.SKIN_TONE,
+                listOf("Default", "Light", "Medium-light", "Medium", "Medium-dark", "Dark"),
+                prefs.getInt(Prefs.SKIN_TONE, 0)) { prefs.edit().putInt(Prefs.SKIN_TONE, it).apply() })
+
+            addView(label("GIFs, handwriting and translation", 18f))
+            addView(field("Giphy API key", Prefs.GIPHY_KEY, "Paste your key", secret = true,
+                note = "Free at developers.giphy.com. Kept on this phone only. Leave blank to use the built-in GIFs."))
+            addView(field("AkAI server address", Prefs.SERVER_URL, "https://your-site.example",
+                note = "Handwriting and translation run on the AkAI web server. Leave blank to turn them off."))
 
             addView(label("Feedback", 18f))
             addView(slider("Vibration strength (0 is off)", Prefs.HAPTIC, 0, 5, 3, ""))
