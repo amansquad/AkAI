@@ -1,0 +1,34 @@
+apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+android {
+    namespace = "com.akai.nativekb"
+    compileSdk = 36
+
+    defaultConfig {
+        // Its own id, so it installs next to the web-based AkAI keyboard
+        // instead of replacing it.
+        applicationId "com.akai.nativekb"
+        minSdk = 24
+        targetSdk = 36
+        versionCode = 1
+        versionName = "0.1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.17.0'
+}
