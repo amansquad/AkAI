@@ -88,6 +88,72 @@ object KeyboardData {
         "," to listOf(";", ":", "!", "?", ".")
     )
 
+    val suggestionsEn: Map<String, List<String>> = mapOf(
+        "" to listOf("the", "be", "to", "of", "and"),
+        "t" to listOf("the", "to", "that", "this", "they"),
+        "th" to listOf("the", "this", "that", "there", "them"),
+        "the" to listOf("there", "their", "them", "then", "these"),
+        "i" to listOf("is", "it", "in", "if", "I"),
+        "a" to listOf("and", "are", "as", "at", "all"),
+        "an" to listOf("and", "another", "any", "answer"),
+        "s" to listOf("so", "some", "she", "said", "should"),
+        "w" to listOf("was", "with", "will", "we", "what"),
+        "h" to listOf("have", "he", "had", "his", "how"),
+        "b" to listOf("but", "by", "been", "be", "but"),
+        "no" to listOf("not", "now", "know", "nothing"),
+        "wh" to listOf("what", "when", "where", "which", "who"),
+        "ho" to listOf("how", "home", "hope", "house"),
+        "go" to listOf("going", "good", "got", "great"),
+        "lo" to listOf("love", "like", "long", "look"),
+        "he" to listOf("hello", "here", "help", "her"),
+        "ha" to listOf("have", "has", "had", "happy"),
+        "thi" to listOf("this", "think", "thing", "things"),
+        "goo" to listOf("good", "going", "got", "great"),
+        "than" to listOf("that", "thank", "thanks", "than"),
+        "ple" to listOf("please", "place", "people", "plan")
+    )
+    val suggestionsAm: Map<String, List<String>> = mapOf(
+        "" to listOf("እኔ", "አንቺ", "እሱ", "ይህ", "ያ"),
+        "እ" to listOf("እኔ", "እሱ", "እሷ", "እንዴት", "እሺ"),
+        "አ" to listOf("አንቺ", "አዎ", "አሁን", "አለ", "አማርኛ"),
+        "ሰ" to listOf("ሰላም", "ሰው", "ሰዓት"),
+        "መ" to listOf("መሆን", "መጥፎ", "መልካም"),
+        "ከ" to listOf("ከዚህ", "ከትናንት"),
+        "ወ" to listOf("ወደ", "ወጣ", "ወደፊት"),
+        "እን" to listOf("እንዴት", "እንደ", "እንደዚህ"),
+        "ሰላ" to listOf("ሰላም", "ሰላምና", "ሰላምደህ"),
+        "አማ" to listOf("አማርኛ", "አማራ", "አማረን"),
+        "መል" to listOf("መልካም", "መልዕትት", "መልስ"),
+        "ጥሩ" to listOf("ጥሩ", "ጥሩነት"),
+        "ስለ" to listOf("ስለዚህ", "ስለው"),
+        "ያ" to listOf("ያ", "ያም", "ያህል")
+    )
+    val nextWordEn: Map<String, List<String>> = mapOf(
+        "the" to listOf("world", "people", "way", "day", "first"),
+        "i" to listOf("am", "was", "have", "will", "can"),
+        "to" to listOf("the", "be", "do", "make", "have"),
+        "and" to listOf("then", "also", "more", "now", "that"),
+        "hello" to listOf("there", "friend", "world", "how", "everyone"),
+        "good" to listOf("morning", "night", "luck", "job", "bye"),
+        "thank" to listOf("you", "your", "for", "so", "very"),
+        "how" to listOf("are", "to", "do", "about", "much"),
+        "please" to listOf("help", "come", "call", "wait", "tell"),
+        "we" to listOf("are", "will", "can", "have", "should"),
+        "they" to listOf("are", "were", "will", "can", "have"),
+        "it" to listOf("is", "was", "will", "can", "has"),
+        "is" to listOf("a", "the", "not", "very", "so"),
+        "love" to listOf("you", "it", "this", "that", "her")
+    )
+    val nextWordAm: Map<String, List<String>> = mapOf(
+        "ሰላም" to listOf("አለም", "ስላሴ", "መልካም", "ደህና", "ሰላምና"),
+        "እኔ" to listOf("ነኝ", "ነበርኩ", "ማለት", "እፈልጋለሁ"),
+        "መልካም" to listOf("ቀን", "ሰዓት", "እድል", "ሰው"),
+        "እንዴት" to listOf("ነህ", "ነሽ", "ነው", "አለ"),
+        "ጥሩ" to listOf("ቀን", "ሰው", "ስራ", "ነገር"),
+        "አመሰግናለሁ" to listOf("ወድዴህ", "በጣም", "ሁሉ"),
+        "ደህና" to listOf("ሆን", "መሆን", "ኑር")
+    )
+
     val ethiopicNumerals: List<String> = listOf("፩", "፪", "፫", "፬", "፭", "፮", "፯", "፰", "፱", "፲")
     val ethiopicPunctuation: List<String> = listOf("፣", "።", "፤", "፡", "፥", "፦", "፧", "፨", "«", "»")
 }
