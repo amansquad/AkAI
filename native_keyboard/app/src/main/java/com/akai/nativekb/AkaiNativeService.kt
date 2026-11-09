@@ -19,7 +19,9 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.inputmethod.InputConnectionCompat
 import androidx.core.view.inputmethod.InputContentInfoCompat
@@ -109,19 +111,20 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
             addView(panel, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
-            // Lift the keys clear of the system navigation bar.
-            setPadding(0, 0, 0, navigationBarHeightPx())
+            // Leave room only for what the system really draws over the keyboard.
+            // Adding the full navigation-bar height blindly left a dead band on
+            // phones whose navigation bar already sits below the keyboard.
+            val minGap = (8 * resources.displayMetrics.density).toInt()
+            setPadding(0, 0, 0, minGap)
+            ViewCompat.setOnApplyWindowInsetsListener(this) { v, insets ->
+                val bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+                v.setPadding(0, 0, 0, maxOf(bottom, minGap))
+                insets
+            }
         }
         loadPrefs()
         refreshLayout()
         return container
-    }
-
-    private fun navigationBarHeightPx(): Int {
-        val density = resources.displayMetrics.density
-        val id = resources.getIdentifier("navigation_bar_height", "dimen", "android")
-        val px = if (id > 0) resources.getDimensionPixelSize(id) else 0
-        return maxOf(px, (24 * density).toInt())
     }
 
     private fun loadPrefs() {

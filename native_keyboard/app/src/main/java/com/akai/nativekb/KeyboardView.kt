@@ -214,6 +214,16 @@ class KeyboardView(context: Context) : View(context) {
                 drawKey(canvas, key, r, c, isPressed(r, c))
             }
         }
+        // The vowel row is reserved so the board never changes height; until a
+        // letter is tapped, say what it is for instead of leaving a blank band.
+        if (l.id == LayoutId.FIDEL && vowels.isEmpty()) {
+            text.textAlign = Paint.Align.CENTER
+            text.textSize = rowH * 0.3f
+            text.color = palette.hint
+            text.typeface = Typeface.DEFAULT
+            canvas.drawText("Tap a letter to see its vowel forms", (areaLeft + areaRight) / 2f,
+                rowTop[0] + rowH / 2f - (text.descent() + text.ascent()) / 2f, text)
+        }
         // The long-press bubble is drawn last so it sits over the keys.
         for (i in 0 until touches.size()) touches.valueAt(i).let { if (it.popup != null) drawPopup(canvas, it) }
     }
