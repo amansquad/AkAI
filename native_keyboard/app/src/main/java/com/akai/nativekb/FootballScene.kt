@@ -45,9 +45,7 @@ object FootballScene {
 
     /** One club's signature motif. Unported motifs fall back to the default burst. */
     private fun motif(c: Canvas, w: Float, h: Float, time: Float, st: TeamStyle) {
-        when (st.motif) {
-            else -> sunburst(c, w, h, time, st)
-        }
+        if (!ClubMotifs.paint(c, w, h, time, st, st.motif)) sunburst(c, w, h, time, st)
     }
 
     // ── Shared stage ────────────────────────────────────────────────────────
