@@ -134,6 +134,17 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     fun setLayout(next: Layout, strip: Boolean) {
+        // Keys such as ?123 and the language key change the layout on touch-down.
+        // Any finger still down refers to a row and column of the old layout, so
+        // let it go: when it lifts there is nothing to look up, instead of an
+        // index into a layout that may have fewer rows.
+        for (i in 0 until touches.size()) {
+            touches.valueAt(i).let { t ->
+                t.longPress?.let { handler.removeCallbacks(it) }
+                t.repeat?.let { handler.removeCallbacks(it) }
+            }
+        }
+        touches.clear()
         layout = next
         showStrip = strip
         // Height depends on the layout, so ask the parent to measure again.
