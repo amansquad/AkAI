@@ -62,7 +62,7 @@ class PanelView(context: Context) : View(context) {
     private fun dp(v: Float) = v * density
     private val handler = Handler(Looper.getMainLooper())
 
-    private var palette = Themes.palette(context, "system")
+    private var palette = Themes.palette(context, Themes.DEFAULT)
     fun applyTheme(name: String) {
         palette = Themes.palette(context, name)
         setBackgroundColor(palette.background)

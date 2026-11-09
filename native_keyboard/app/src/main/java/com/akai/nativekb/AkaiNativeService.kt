@@ -59,6 +59,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     private var hints = true
     private var numberRow = false
     private var suggestOn = true
+    private var autoCap = true
+    private var doubleSpace = true
+    private var pressAnim = true
+    private var longPress = true
     private var learnOn = true
     private var englishLayout = "qwerty"
     private var amharicLayout = "traditional"
@@ -141,6 +145,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         suggestOn = p.getBoolean(Prefs.SUGGEST, true)
         recents = (p.getString(Prefs.RECENTS, "") ?: "").split(' ').filter { it.isNotEmpty() }
         learnOn = p.getBoolean(Prefs.LEARN, true)
+        autoCap = p.getBoolean(Prefs.AUTOCAP, true)
+        doubleSpace = p.getBoolean(Prefs.DOUBLE_SPACE, true)
+        pressAnim = p.getBoolean(Prefs.PRESS_ANIM, true)
+        longPress = p.getBoolean(Prefs.LONG_PRESS, true)
         englishLayout = p.getString(Prefs.ENGLISH_LAYOUT, "qwerty") ?: "qwerty"
         amharicLayout = p.getString(Prefs.AMHARIC_LAYOUT, "traditional") ?: "traditional"
         holdClear = p.getBoolean(Prefs.HOLD_CLEAR, false)
@@ -165,7 +173,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
             panel.serverUrl = serverUrl
             panel.giphyKey = giphyKey
             panel.skinTone = skinTone
-            keys.applySettings(theme, heightPercent, hints, oneHand)
+            keys.applySettings(theme, heightPercent, hints, oneHand, pressAnim, longPress)
             panel.applyTheme(theme)
             container.setBackgroundColor(Themes.palette(this, theme).background)
         }
@@ -262,7 +270,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     /** Capital at the start of a sentence, as the field asks for. */
     private fun updateAutoCaps() {
-        if (!::keys.isInitialized || plainField) return
+        if (!::keys.isInitialized || plainField || !autoCap) return
         if (keys.shiftState == 2) return // caps lock stays
         // Capitals mean something in phonetic typing (T is ጠ), so never add them.
         if (amharic) { keys.shiftState = 0; return }
@@ -414,7 +422,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         keys.setVowels(emptyList())
         val now = System.currentTimeMillis()
         // Two quick spaces after a word make ". ".
-        if (now - lastSpaceAt < 350 && !plainField) {
+        if (doubleSpace && now - lastSpaceAt < 350 && !plainField) {
             val before = ic.getTextBeforeCursor(2, 0)
             if (before != null && before.length == 2 && before[1] == ' ' &&
                 !before[0].isWhitespace() && before[0] != '.') {
@@ -504,7 +512,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
                 )
             }
             TOOL_SETTINGS -> {
-                startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                startActivity(Intent(this, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 requestHideSelf(0)
             }
         }
@@ -680,4 +688,9 @@ object Prefs {
     const val SERVER_URL = "server_url"
     /** The user's own Giphy API key. Blank uses the built-in GIF catalogue. */
     const val GIPHY_KEY = "giphy_key"
+    const val ONBOARDED = "onboarded"
+    const val LONG_PRESS = "long_press_popup"
+    const val PRESS_ANIM = "press_animation"
+    const val AUTOCAP = "auto_capitalize"
+    const val DOUBLE_SPACE = "double_space_period"
 }

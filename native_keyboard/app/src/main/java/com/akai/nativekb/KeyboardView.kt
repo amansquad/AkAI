@@ -63,7 +63,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun dp(v: Float) = v * density
 
     private val handler = Handler(Looper.getMainLooper())
-    private var palette = Themes.palette(context, "system")
+    private var palette = Themes.palette(context, Themes.DEFAULT)
 
     private var layout: Layout? = null
     /** Per row, per key: left and right edge in pixels. */
@@ -75,13 +75,21 @@ class KeyboardView(context: Context) : View(context) {
     private var areaRight = 0f
 
     // ─── Settings ────────────────────────────────────────────────────────
-    private var themeName = "system"
+    private var themeName = Themes.DEFAULT
     private var heightScale = 1f
     private var showHints = true
     /** 0 off, 1 left hand, 2 right hand. */
     private var oneHanded = 0
 
-    fun applySettings(theme: String, heightPercent: Int, hints: Boolean, oneHand: Int) {
+    private var pressAnim = true
+    private var longPressOn = true
+
+    fun applySettings(
+        theme: String, heightPercent: Int, hints: Boolean, oneHand: Int,
+        pressAnimation: Boolean = true, longPress: Boolean = true,
+    ) {
+        pressAnim = pressAnimation
+        longPressOn = longPress
         themeName = theme
         palette = Themes.palette(context, theme)
         heightScale = heightPercent.coerceIn(70, 140) / 100f
@@ -265,12 +273,15 @@ class KeyboardView(context: Context) : View(context) {
         if (vowelLabel != null && vowelLabel.isEmpty()) return // an empty vowel slot is just a gap
 
         rect.set(lefts[r][c], rowTop[r], rights[r][c], rowTop[r] + rowH)
+        // The Flutter keyboard shrinks a pressed key to 93%. Doing it here, as a
+        // plain inset at draw time, costs nothing and never delays the letter.
+        if (pressed && pressAnim) rect.inset(rect.width() * 0.035f, rect.height() * 0.035f)
         val accent = key.kind == KeyKind.ENTER
+        // Same three kinds of key as the Flutter keyboard: ordinary, function, and the Enter key.
         fill.color = when {
-            pressed -> palette.pressed
-            accent -> palette.accent
-            key.special -> palette.special
-            else -> palette.key
+            accent -> if (pressed) palette.accentPressed else palette.keyAccent
+            key.special -> if (pressed) palette.specialPressed else palette.special
+            else -> if (pressed) palette.pressed else palette.key
         }
         canvas.drawRoundRect(rect, radius, radius, fill)
 
@@ -290,7 +301,7 @@ class KeyboardView(context: Context) : View(context) {
         }
         text.color = when {
             accent -> palette.accentText
-            key.kind == KeyKind.SPACE -> palette.hint
+            key.special -> palette.specialText
             else -> palette.text
         }
         text.typeface = if (key.kind == KeyKind.CHAR || key.kind == KeyKind.VOWEL) Typeface.DEFAULT else Typeface.DEFAULT_BOLD
@@ -419,7 +430,7 @@ class KeyboardView(context: Context) : View(context) {
             KeyKind.CHAR -> {
                 // The letter goes out now, on touch-down, not on release.
                 listener?.onText(if (shifted) key.output.uppercase() else key.output)
-                if (key.alternates.isNotEmpty()) {
+                if (key.alternates.isNotEmpty() && longPressOn) {
                     val run = Runnable { showPopup(t, key, r, c) }
                     t.longPress = run
                     handler.postDelayed(run, LONG_PRESS_MS)
