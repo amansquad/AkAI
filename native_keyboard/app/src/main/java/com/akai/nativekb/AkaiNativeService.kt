@@ -187,7 +187,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         holdClear = p.getBoolean(Prefs.HOLD_CLEAR, false)
         holdClearMs = p.getInt(Prefs.HOLD_CLEAR_MS, 800)
         skinTone = p.getInt(Prefs.SKIN_TONE, 0)
-        serverUrl = p.getString(Prefs.SERVER_URL, "") ?: ""
+        // Blank means the AkAI website, which serves /api/translate itself.
+        serverUrl = (p.getString(Prefs.SERVER_URL, "") ?: "").trim().ifBlank { Net.SITE }
         giphyKey = p.getString(Prefs.GIPHY_KEY, "") ?: ""
         oneHandWidth = p.getInt(Prefs.ONE_HAND_WIDTH, 80)
         longPressMs = p.getInt(Prefs.LONG_PRESS_MS, 330)
