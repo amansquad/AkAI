@@ -223,23 +223,23 @@ class HomeActivity : ThemedActivity() {
 
         c.addView(ui.section("Features"))
         val grid = GridLayout(this).apply { columnCount = 2 }
-        fun feature(icon: String, name: String, sub: String, go: Class<*>?) {
+        fun feature(icon: String, name: String, sub: String, go: () -> Unit) {
             val card = ui.card(
                 ui.label(icon, 26f), ui.gap(6f),
                 ui.label(name, 16f, palette.text, bold = true), ui.label(sub, 12f, ui.dim),
             )
-            if (go != null) card.setOnClickListener { startActivity(Intent(this, go)) }
+            card.setOnClickListener { go() }
             ui.pressable(card)
             grid.addView(card, GridLayout.LayoutParams(
                 GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f),
             ).apply { width = 0; setMargins(ui.dp(5f), ui.dp(5f), ui.dp(5f), ui.dp(5f)) })
         }
-        feature("🎨", "Live Themes", "${Themes.all.size} themes", ThemesActivity::class.java)
-        feature("😀", "Emojis", "With skin tones", SettingsActivity::class.java)
-        feature("🎞️", "GIFs", "Send as images", SettingsActivity::class.java)
-        feature("🤖", "AI Tools", "Translate, handwriting", SettingsActivity::class.java)
-        feature("⌨️", "Layouts", "QWERTY, Dvorak, fidel…", SettingsActivity::class.java)
-        feature("⚙️", "Customization", "Size, feedback, more", SettingsActivity::class.java)
+        feature("🎨", "Live Themes", "${Themes.all.size} themes") { startActivity(Intent(this, ThemesActivity::class.java)) }
+        feature("😀", "Emojis", "With skin tones") { SettingsActivity.open(this, SettingsActivity.EMOJI) }
+        feature("🎞️", "GIFs", "Send as images") { SettingsActivity.open(this, SettingsActivity.EMOJI) }
+        feature("🤖", "AI Tools", "Translate, handwriting") { SettingsActivity.open(this, SettingsActivity.AI) }
+        feature("⌨️", "Layouts", "QWERTY, Dvorak, fidel…") { SettingsActivity.open(this, SettingsActivity.LANGUAGES) }
+        feature("⚙️", "Customization", "Size, feedback, more") { SettingsActivity.open(this) }
         c.addView(grid, LP_MATCH_WRAP)
 
         c.addView(ui.section("Quick settings"))
@@ -294,10 +294,38 @@ class ThemePreview(context: Context, def: PaletteDef) : View(context) {
 
 class ThemesActivity : ThemedActivity() {
     private var filter = "all"
+    private var resumed = false
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         build()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Back from the theme editor: show the new or changed theme.
+        if (resumed && themeReady) { loadTheme(); build() }
+        resumed = true
+    }
+
+    /** Long-press menu: edit or delete your own themes, or start a new one from any theme. */
+    private fun themeActions(def: PaletteDef) {
+        val mine = def.category == CustomThemes.CATEGORY
+        val items = if (mine) arrayOf("Edit", "Make a copy", "Delete") else arrayOf("Customize a copy")
+        android.app.AlertDialog.Builder(this)
+            .setTitle(def.name)
+            .setItems(items) { _, i ->
+                when (items[i]) {
+                    "Edit" -> ThemeEditorActivity.edit(this, def.id)
+                    "Delete" -> android.app.AlertDialog.Builder(this)
+                        .setTitle("Delete ${def.name}?")
+                        .setPositiveButton("Delete") { _, _ -> CustomThemes.delete(this, def.id); loadTheme(); build() }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                    else -> ThemeEditorActivity.copy(this, def.id)
+                }
+            }
+            .show()
     }
 
     private fun build() {
@@ -306,10 +334,10 @@ class ThemesActivity : ThemedActivity() {
         header.addView(ui.ghostButton("←") { finish() })
         header.addView(ui.title("Themes", 28f))
         c.addView(header, LP_MATCH_WRAP)
-        c.addView(ui.label("${Themes.all.size} themes. Tap one to use it on the keyboard and in this app.", 14f, ui.dim), LP_MATCH_WRAP)
+        c.addView(ui.label("${Themes.all.size} themes. Tap one to use it; long-press to customize it.", 14f, ui.dim), LP_MATCH_WRAP)
         c.addView(ui.gap(14f))
 
-        val cats = listOf("all" to "All", "live" to "Live", "solid" to "Solid", "cultural" to "Cultural", "faith" to "Faith", "football" to "Football")
+        val cats = listOf("all" to "All", CustomThemes.CATEGORY to "Mine", "live" to "Live", "solid" to "Solid", "cultural" to "Cultural", "faith" to "Faith", "football" to "Football")
         val chipRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         cats.forEach { (id, name) ->
             val on = id == filter
@@ -324,6 +352,23 @@ class ThemesActivity : ThemedActivity() {
 
         val current = Themes.find(prefs.getString(Prefs.THEME, Themes.DEFAULT) ?: Themes.DEFAULT).id
         val grid = GridLayout(this).apply { columnCount = 2 }
+        fun cell() = GridLayout.LayoutParams(
+            GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f),
+        ).apply { width = 0; setMargins(ui.dp(5f), ui.dp(5f), ui.dp(5f), ui.dp(5f)) }
+        if (filter == "all" || filter == CustomThemes.CATEGORY) {
+            val create = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                setPadding(ui.dp(10f), ui.dp(10f), ui.dp(10f), ui.dp(10f))
+                background = ui.round(ColorUtils.setAlphaComponent(palette.accent, 0x14), 16f, ColorUtils.setAlphaComponent(palette.accent, 0x66), 1.5f)
+                addView(ui.label("+", 34f, palette.accent, bold = true, gravity = Gravity.CENTER), LinearLayout.LayoutParams(-1, ui.dp(84f)))
+                addView(ui.gap(8f))
+                addView(ui.label("Create theme", 14f, palette.text, bold = true, gravity = Gravity.CENTER), LinearLayout.LayoutParams(-1, -2))
+                setOnClickListener { ThemeEditorActivity.copy(this@ThemesActivity, current) }
+            }
+            ui.pressable(create)
+            grid.addView(create, cell())
+        }
         Themes.all.filter { filter == "all" || it.category == filter }.forEach { def ->
             val selected = def.id == current
             val preview = ThemePreview(this, def)
@@ -333,6 +378,7 @@ class ThemesActivity : ThemedActivity() {
                 addView(ui.label(def.emoji, 16f))
                 addView(ui.label(def.name, 14f, palette.text, bold = true).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END },
                     LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(6f) })
+                if (def.category == CustomThemes.CATEGORY) addView(ui.label("MINE ", 9f, palette.accent, bold = true, spacing = 0.1f))
                 if (def.live.isNotEmpty()) addView(ui.label("LIVE", 9f, palette.accent, bold = true, spacing = 0.1f))
                 if (selected) addView(ui.label(" ✓", 14f, palette.accent, bold = true))
             }
@@ -349,12 +395,15 @@ class ThemesActivity : ThemedActivity() {
                     loadTheme()
                     build()
                 }
+                setOnLongClickListener { themeActions(def); true }
             }
-            grid.addView(card, GridLayout.LayoutParams(
-                GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f),
-            ).apply { width = 0; setMargins(ui.dp(5f), ui.dp(5f), ui.dp(5f), ui.dp(5f)) })
+            grid.addView(card, cell())
         }
         c.addView(grid, LP_MATCH_WRAP)
+        if (filter == CustomThemes.CATEGORY && CustomThemes.defs.isEmpty())
+            c.addView(ui.label("Themes you make show up here. Tap Create theme, or long-press any theme to start from its colours.", 13f, ui.dim).apply {
+                setPadding(ui.dp(6f), ui.dp(10f), ui.dp(6f), 0)
+            }, LP_MATCH_WRAP)
         show(c)
     }
 }

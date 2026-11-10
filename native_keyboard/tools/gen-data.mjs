@@ -13,7 +13,9 @@ function grab(name) {
   // The initialiser ends at the first closing bracket followed by ";".
   const m = /[\]}];[ \t]*(\r?\n|$)/.exec(src.slice(eq));
   const end = eq + m.index + 1;
-  return new Function(`return (${src.slice(eq + 1, end)})`)();
+  // Drop TypeScript casts such as "[] as string[]" so it evaluates as plain JS.
+  const body = src.slice(eq + 1, end).replace(/\s+as\s+[\w[\]]+/g, '');
+  return new Function(`return (${body})`)();
 }
 
 // Kotlin treats "$" in a string as a template, so it has to be escaped.
@@ -63,6 +65,17 @@ object KeyboardData {
     val gifs: List<Gif> = listOf(
 ${gifs}
     )
+
+    class StickerSet(val name: String, val icon: String, val stickers: List<String>)
+    /** The web keyboard's sticker sets (its "Recent" set is kept on the phone instead). */
+    val stickerSets: List<StickerSet> = listOf(
+${grab('STICKER_CATEGORIES').filter(c => c.stickers.length).map(c =>
+  `        StickerSet(${q(c.name)}, ${q(c.icon)}, listOf(${[...new Set(c.stickers)].map(q).join(', ')}))`).join(',\n')}
+    )
+
+    /** Word of the day, shown in the empty suggestion strip: word to meaning. */
+    val wordOfTheDayEn: List<Pair<String, String>> = listOf(${grab('WORD_OF_THE_DAY_EN').map(w => `${q(w.word)} to ${q(w.definition)}`).join(', ')})
+    val wordOfTheDayAm: List<Pair<String, String>> = listOf(${grab('WORD_OF_THE_DAY_AM').map(w => `${q(w.word)} to ${q(w.definition)}`).join(', ')})
 
     val ethiopicNumerals: List<String> = listOf(${grab('ETHIOPIAN_NUM_ROW_1').map(c => q(c)).join(', ')})
     val ethiopicPunctuation: List<String> = listOf(${grab('ETHIOPIAN_SYM_ROW').map(c => q(c)).join(', ')})

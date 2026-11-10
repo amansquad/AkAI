@@ -6,6 +6,8 @@ enum class KeyKind {
     VOWEL,
     /** Switches between the fidel board and phonetic (Latin-in) Amharic. */
     PHONETIC,
+    /** Moves the cursor; [Key.output] names the direction (home, left, up, down, right, end). */
+    CURSOR,
 }
 
 /**
@@ -43,7 +45,25 @@ class LayoutOptions(
     val englishLayout: String = "qwerty",
     /** traditional or frequency. */
     val amharicLayout: String = "traditional",
+    /** A row of cursor keys above the bottom row. */
+    val cursorRow: Boolean = false,
+    /** Where the language switch lives: one of [LangKey]. */
+    val langKey: String = LangKey.SYMBOLS,
 )
+
+/** Places for the language switch, chosen in Settings → Languages. */
+object LangKey {
+    /** A key beside ?123 (the original place). */
+    const val SYMBOLS = "symbols"
+    /** The first toolbar button, before emoji. */
+    const val TOOLBAR = "toolbar"
+    /** No key: hold the space bar, then slide left or right. */
+    const val SPACE = "space"
+    /** A key between the full stop and Enter, by the right thumb. */
+    const val RIGHT = "right"
+    val all = listOf(SYMBOLS, TOOLBAR, SPACE, RIGHT)
+    fun parse(s: String?) = if (s in all) s!! else SYMBOLS
+}
 
 object Layouts {
 
@@ -63,6 +83,54 @@ object Layouts {
 
     private fun fidel(c: String) =
         Key(KeyKind.CHAR, c, alternates = KeyboardData.amharicVowels[c].orEmpty())
+
+    /** Long-press extras on the symbols board: currencies, maths, quotes, fractions. */
+    private val symbolAlternates: Map<String, List<String>> = mapOf(
+        "1" to listOf("¹", "½", "⅓", "¼", "⅛"),
+        "2" to listOf("²", "⅔"),
+        "3" to listOf("³", "¾", "⅜"),
+        "4" to listOf("⁴"),
+        "5" to listOf("⅝"),
+        "7" to listOf("⅞"),
+        "0" to listOf("°", "ⁿ", "∅"),
+        "@" to listOf("©", "®", "™"),
+        "#" to listOf("№", "♯"),
+        "\$" to listOf("€", "£", "¥", "¢", "₹", "₩", "₿", "Br"),
+        "%" to listOf("‰", "℅"),
+        "&" to listOf("§", "¶"),
+        "-" to listOf("–", "—", "·", "•"),
+        "+" to listOf("±", "×", "÷"),
+        "(" to listOf("[", "{", "<"),
+        ")" to listOf("]", "}", ">"),
+        "/" to listOf("\\", "|", "÷"),
+        "=" to listOf("≠", "≈", "≡", "∞"),
+        "_" to listOf("‾"),
+        "|" to listOf("¦", "‖"),
+        "<" to listOf("≤", "«", "‹", "←"),
+        ">" to listOf("≥", "»", "›", "→"),
+        "[" to listOf("⟨"),
+        "]" to listOf("⟩"),
+        "*" to listOf("★", "☆", "†", "‡"),
+        "\"" to listOf("“", "”", "„", "«", "»"),
+        "'" to listOf("‘", "’", "‚", "`", "‹", "›"),
+        ";" to listOf("፤"),
+        ":" to listOf("፡", "፥", "፦"),
+        "!" to listOf("¡", "‼"),
+        "?" to listOf("¿", "‽", "፧"),
+        "~" to listOf("^", "`", "≈"),
+        "." to listOf("…", "·", "•", "።"),
+        "," to listOf("፣", "،"),
+        "፲" to listOf("፳", "፴", "፵", "፶", "፷", "፸", "፹", "፺", "፻", "፼"),
+        "።" to listOf("…", "."),
+        "፣" to listOf(","),
+        "፧" to listOf("?"),
+    )
+
+    /** A symbol key with its long-press extras; the first one is drawn as a corner hint. */
+    private fun sym(c: String): Key {
+        val alts = symbolAlternates[c].orEmpty()
+        return Key(KeyKind.CHAR, c, alternates = alts, hint = alts.firstOrNull()?.takeIf { it.length == 1 })
+    }
 
     private fun spacer(w: Float) = Key(KeyKind.SPACER, weight = w)
     private fun backspace(w: Float) = Key(KeyKind.BACKSPACE, "⌫", w)
@@ -85,18 +153,57 @@ object Layouts {
 
     private fun numberRow() = chars("1234567890")
 
-    fun build(id: LayoutId, amharicSymbols: Boolean, o: LayoutOptions): Layout = when (id) {
+    private fun cursorRow() = listOf(
+        Key(KeyKind.CURSOR, "⇤", output = "home"),
+        Key(KeyKind.CURSOR, "◀", 1.4f, output = "left"),
+        Key(KeyKind.CURSOR, "▲", 1.4f, output = "up"),
+        Key(KeyKind.CURSOR, "▼", 1.4f, output = "down"),
+        Key(KeyKind.CURSOR, "▶", 1.4f, output = "right"),
+        Key(KeyKind.CURSOR, "⇥", output = "end"),
+    )
+
+    /** Puts the cursor row (when wanted) just above the bottom row. */
+    private fun withCursorRow(l: Layout, o: LayoutOptions): Layout {
+        if (!o.cursorRow || l.isPad) return l
+        val rows = l.rows.toMutableList()
+        rows.add(rows.size - 1, cursorRow())
+        // A fifth or sixth row would make the board too tall, so the rows get a little shorter.
+        return Layout(l.id, rows, l.rowHeightDp * 0.9f)
+    }
+
+    fun build(id: LayoutId, amharicSymbols: Boolean, o: LayoutOptions): Layout = withCursorRow(buildBase(id, amharicSymbols, o), o)
+
+    /**
+     * The bottom row of a letter board, with the language key where the user
+     * wants it. Left of the space bar sit [left] (?123 first), right of it [right]
+     * (Enter last). Without a key in the row the space bar takes its width.
+     */
+    private fun bottomRow(
+        o: LayoutOptions, left: List<Key>, space: Key, right: List<Key>, langLabel: String, langWeight: Float,
+    ): List<Key> {
+        val lang = Key(KeyKind.LANGUAGE, langLabel, langWeight)
+        return when (o.langKey) {
+            LangKey.SYMBOLS -> listOf(left[0], lang) + left.drop(1) + space + right
+            LangKey.RIGHT -> left + space + right.dropLast(1) + lang + right.last()
+            else -> {
+                // The space bar shows its gesture: ‹ English ›.
+                val label = if (o.langKey == LangKey.SPACE) "‹  ${space.label}  ›" else space.label
+                left + space.copy(label = label, output = space.output, weight = space.weight + langWeight) + right
+            }
+        }
+    }
+
+    private fun buildBase(id: LayoutId, amharicSymbols: Boolean, o: LayoutOptions): Layout = when (id) {
         LayoutId.LETTERS -> {
             val rows = letterRows(o.englishLayout, ::letter).toMutableList()
             if (o.numberRow) rows.add(0, numberRow())
             rows.add(
-                listOf(
-                    Key(KeyKind.SYMBOLS, "?123", 1.4f),
-                    Key(KeyKind.LANGUAGE, "አማ", 1.2f),
-                    if (o.backToPad) Key(KeyKind.PAD_ABC, "123") else ch(","),
+                bottomRow(
+                    o,
+                    listOf(Key(KeyKind.SYMBOLS, "?123", 1.4f), if (o.backToPad) Key(KeyKind.PAD_ABC, "123") else ch(",")),
                     Key(KeyKind.SPACE, "English", 4.2f),
-                    ch("."),
-                    enter(o.enterLabel, 1.5f),
+                    listOf(ch("."), enter(o.enterLabel, 1.5f)),
+                    "አማ", 1.2f,
                 ),
             )
             Layout(id, rows, rowHeightDp = if (o.numberRow) 46f else 50f)
@@ -105,14 +212,14 @@ object Layouts {
         LayoutId.PHONETIC -> {
             val rows = letterRows(o.englishLayout, ::plainLetter).toMutableList()
             if (o.numberRow) rows.add(0, numberRow())
+            // One language key: fidel or phonetic is a setting, or a long press on it.
             rows.add(
-                listOf(
-                    Key(KeyKind.SYMBOLS, "፩፪", 1.3f),
-                    Key(KeyKind.LANGUAGE, "EN", 1.2f),
-                    Key(KeyKind.PHONETIC, "ፈደል", 1.3f),
-                    Key(KeyKind.SPACE, "አማርኛ", 3.4f),
-                    ch("።"),
-                    enter(o.enterLabel, 1.5f),
+                bottomRow(
+                    o,
+                    listOf(Key(KeyKind.SYMBOLS, "፩፪", 1.3f)),
+                    Key(KeyKind.SPACE, "አማርኛ", 4.7f),
+                    listOf(ch("።"), enter(o.enterLabel, 1.5f)),
+                    "EN", 1.2f,
                 ),
             )
             Layout(id, rows, rowHeightDp = if (o.numberRow) 46f else 50f)
@@ -130,15 +237,12 @@ object Layouts {
             Layout(
                 id,
                 listOf(vowelRow) + rows + listOf(
-                    listOf(
-                        Key(KeyKind.SYMBOLS, "፩፪", 1.2f),
-                        Key(KeyKind.LANGUAGE, "EN", 1.1f),
-                        Key(KeyKind.PHONETIC, "ABC", 1.1f),
-                        ch("፣"),
-                        Key(KeyKind.SPACE, "አማርኛ", 2.8f),
-                        ch("።"),
-                        backspace(1.2f),
-                        enter(o.enterLabel, 1.2f),
+                    bottomRow(
+                        o,
+                        listOf(Key(KeyKind.SYMBOLS, "፩፪", 1.2f), ch("፣")),
+                        Key(KeyKind.SPACE, "አማርኛ", 3.9f),
+                        listOf(ch("።"), backspace(1.2f), enter(o.enterLabel, 1.2f)),
+                        "EN", 1.1f,
                     ),
                 ),
                 rowHeightDp = 41f,
@@ -146,18 +250,24 @@ object Layouts {
         }
 
         LayoutId.SYMBOLS -> {
+            // With the number row on, the letter boards have five rows; an extra symbol row
+            // keeps this board the same height so switching doesn't make it jump.
+            val extraRow = o.numberRow
+            fun syms(s: String) = s.map { sym(it.toString()) }
             val top = if (amharicSymbols) {
-                listOf(
-                    KeyboardData.ethiopicNumerals.map { ch(it) },
-                    KeyboardData.ethiopicPunctuation.map { ch(it) },
-                    listOf(spacer(0.25f)) + listOf("-", "(", ")", "/", "?", "!", ":").map { ch(it) } +
+                listOfNotNull(
+                    KeyboardData.ethiopicNumerals.map { sym(it) },
+                    if (extraRow) syms("1234567890") else null,
+                    KeyboardData.ethiopicPunctuation.map { sym(it) },
+                    listOf(spacer(0.25f)) + listOf("-", "(", ")", "/", "?", "!", ":").map { sym(it) } +
                         backspace(1.5f),
                 )
             } else {
-                listOf(
-                    chars("1234567890"),
-                    chars("@#\$%&-+()/"),
-                    listOf(spacer(0.25f)) + listOf("*", "\"", "'", ":", ";", "!", "?", "~").map { ch(it) } +
+                listOfNotNull(
+                    syms("1234567890"),
+                    syms("@#\$%&-+()/"),
+                    if (extraRow) syms("=_\\|<>{}[]") else null,
+                    listOf(spacer(0.25f)) + listOf("*", "\"", "'", ":", ";", "!", "?", "~").map { sym(it) } +
                         backspace(1.5f),
                 )
             }
@@ -166,13 +276,13 @@ object Layouts {
                 top + listOf(
                     listOf(
                         Key(KeyKind.SYMBOLS, if (amharicSymbols) "አማ" else "ABC", 1.5f),
-                        ch(","),
+                        sym(","),
                         Key(KeyKind.SPACE, if (amharicSymbols) "አማርኛ" else "English", 4.8f),
-                        ch("."),
+                        sym("."),
                         enter(o.enterLabel, 1.5f),
                     ),
                 ),
-                rowHeightDp = 50f,
+                rowHeightDp = if (extraRow) 46f else 50f,
             )
         }
 

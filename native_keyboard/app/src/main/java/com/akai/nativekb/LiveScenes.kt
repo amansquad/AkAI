@@ -71,6 +71,8 @@ object LiveScenes {
     /** Picks the scene exactly as the Flutter painter does, in the same order. */
     fun paint(canvas: Canvas, w: Float, h: Float, time: Float, type: String) {
         val t = type.lowercase()
+        // The cultural themes with no picture get scenes of their own first.
+        if (CulturalScenes.paint(canvas, w, h, time, t)) return
         when {
             t.contains("prism") -> prism(canvas, w, h, time)
             t.contains("fireflies") -> fireflies(canvas, w, h, time)
@@ -177,7 +179,8 @@ object LiveScenes {
                     if (cy < -charSize || cy > h + charSize) continue
                     val isHead = j == trail - 1
                     val level = ((j.toFloat() / trail) * levels).toInt()
-                    glyphPaint.color = if (isHead) a(0xFFFFFFFF.toInt(), 0.9f) else a(c(0xFF00FF41), (level.toFloat() / levels) * 0.7f)
+                    // Dimmer than Flutter's (0.9 head, 0.7 trail) so the letters on the keys stay readable.
+                    glyphPaint.color = if (isHead) a(0xFFB8FFC8.toInt(), 0.55f) else a(c(0xFF00FF41), (level.toFloat() / levels) * 0.38f)
                     glyphPaint.textSize = if (isHead) 12f else 10f
                     val ch = GLYPHS[(i + j + (time * 5).toInt()) % GLYPHS.length].toString()
                     canvas.drawText(ch, i * charSize, cy + charSize, glyphPaint)

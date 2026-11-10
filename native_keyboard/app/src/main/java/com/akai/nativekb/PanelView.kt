@@ -33,6 +33,7 @@ interface PanelHost {
     fun onPanelClearClipboard()
     fun onPanelTogglePin(text: String)
     fun onPanelGif(item: GifItem)
+    fun onPanelSticker(sticker: Stickers.Sticker)
     fun panelTextBefore(): String
     fun onPanelReplace(oldLength: Int, newText: String)
     fun panelAmharic(): Boolean
@@ -40,6 +41,8 @@ interface PanelHost {
     fun panelClips(): List<Clip>
     /** The user picked a theme in the Themes tab. */
     fun onPanelTheme(id: String)
+    /** The search button in the emoji tab: type a word to find emoji. */
+    fun onPanelEmojiSearch()
 }
 
 /**
@@ -49,7 +52,7 @@ interface PanelHost {
  */
 class PanelView(context: Context) : View(context) {
 
-    enum class Tab { EMOJI, GIF, CLIPBOARD, WRITE, TRANSLATE, THEMES }
+    enum class Tab { EMOJI, STICKERS, GIF, CLIPBOARD, WRITE, TRANSLATE, THEMES }
 
     var host: PanelHost? = null
 
@@ -92,7 +95,10 @@ class PanelView(context: Context) : View(context) {
     private val themeFilters = listOf("all" to "All", "live" to "Live", "solid" to "Solid", "cultural" to "Cultural", "faith" to "Faith", "football" to "Football")
     private val miniPalettes = HashMap<String, Palette>()
     private fun themeList() = Themes.all.filter { themeFilters[themeFilter].first == "all" || it.category == themeFilters[themeFilter].first }
-    private fun miniPalette(def: PaletteDef) = miniPalettes.getOrPut(def.id) { Themes.palette(context, def.id) }
+    // Keyed by the definition itself too, so an edited custom theme isn't shown in its old colours.
+    private fun miniPalette(def: PaletteDef) = miniPalettes.getOrPut("${def.id}@${System.identityHashCode(def)}") { Themes.palette(def) }
+
+    private var stickerSet = 0
 
     private var gifCategory = 0
     private var gifs: List<GifItem> = emptyList()
@@ -101,6 +107,13 @@ class PanelView(context: Context) : View(context) {
 
     private val strokes = ArrayList<Path>()
     private var current: Path? = null
+    /** The same strokes as points with times, for reading them on the phone. */
+    private val strokePoints = ArrayList<List<FloatArray>>()
+    private var currentPoints: ArrayList<FloatArray>? = null
+    private fun clearInk() {
+        strokes.clear(); strokePoints.clear(); current = null; currentPoints = null
+        candidates = emptyList(); writeStatus = null
+    }
     private var candidates: List<String> = emptyList()
     private var writeStatus: String? = null
     private val recognizeTask = Runnable { recognize() }
@@ -133,7 +146,7 @@ class PanelView(context: Context) : View(context) {
                 result = null
                 translateStatus = null
             }
-            Tab.WRITE -> { strokes.clear(); current = null; candidates = emptyList(); writeStatus = null }
+            Tab.WRITE -> clearInk()
             else -> {}
         }
         invalidate()
@@ -174,18 +187,21 @@ class PanelView(context: Context) : View(context) {
         scroller.forceFinished(true)
     }
 
-    private fun hasCategoryRow() = tab == Tab.EMOJI || tab == Tab.GIF || tab == Tab.THEMES
+    private fun hasCategoryRow() = tab == Tab.EMOJI || tab == Tab.STICKERS || tab == Tab.GIF || tab == Tab.THEMES
     private fun contentTop() = tabH + if (hasCategoryRow()) catH else 0f
 
     private fun emojiList(): List<String> =
         if (emojiCategory == 0) recents else EmojiData.categories.getOrNull(emojiCategory - 1)?.emojis.orEmpty()
 
     private fun gifCell() = width / 3f
+    private fun stickerCell() = width / 4f
+    private fun stickerList() = Stickers.packs.getOrNull(stickerSet)?.stickers.orEmpty()
     private fun clipRowH() = dp(52f)
     private fun themeCellH() = width / 3f * 0.74f + dp(24f)
 
     private fun contentHeight(): Float = when (tab) {
         Tab.EMOJI -> ((emojiList().size + 7) / 8) * (width / 8f)
+        Tab.STICKERS -> ((stickerList().size + 3) / 4) * stickerCell()
         Tab.GIF -> ((gifs.size + 2) / 3) * gifCell()
         Tab.CLIPBOARD -> clips.size * clipRowH()
         Tab.THEMES -> ((themeList().size + 2) / 3) * themeCellH()
@@ -233,6 +249,7 @@ class PanelView(context: Context) : View(context) {
         if (k < 1f) canvas.translate(0f, (1f - k) * dp(8f))
         when (tab) {
             Tab.EMOJI -> drawEmoji(canvas)
+            Tab.STICKERS -> drawStickers(canvas)
             Tab.GIF -> drawGifs(canvas)
             Tab.CLIPBOARD -> drawClips(canvas)
             Tab.WRITE -> drawWrite(canvas)
@@ -244,11 +261,17 @@ class PanelView(context: Context) : View(context) {
         if (k < 1f) postInvalidateOnAnimation()
     }
 
-    private val tabNames = arrayOf("ABC", "😀", "GIF", "📋", "✍️", "🌐", "🎨")
-    private fun tabAt(i: Int) = when (i) { 1 -> Tab.EMOJI; 2 -> Tab.GIF; 3 -> Tab.CLIPBOARD; 4 -> Tab.WRITE; 5 -> Tab.TRANSLATE; 6 -> Tab.THEMES; else -> null }
+    private val tabNames = arrayOf("ABC", "😀", "🧸", "GIF", "📋", "✍️", "🌐", "🎨")
+    private fun tabAt(i: Int) = when (i) {
+        1 -> Tab.EMOJI; 2 -> Tab.STICKERS; 3 -> Tab.GIF; 4 -> Tab.CLIPBOARD; 5 -> Tab.WRITE; 6 -> Tab.TRANSLATE; 7 -> Tab.THEMES; else -> null
+    }
+    private val tabIcons = arrayOf(null, TOOL_EMOJI, TOOL_STICKERS, TOOL_GIF, TOOL_CLIPBOARD, TOOL_WRITE, TOOL_TRANSLATE, TOOL_THEMES)
+
+    /** The tab row has one more cell than tabs: backspace or "Clear" at the end. */
+    private fun tabCell() = width / (tabNames.size + 1f)
 
     private fun drawTabs(canvas: Canvas) {
-        val cell = width / 8f
+        val cell = tabCell()
         for (i in tabNames.indices) {
             val active = tabAt(i) == tab
             if (active) {
@@ -256,28 +279,44 @@ class PanelView(context: Context) : View(context) {
                 fill.color = palette.accent
                 canvas.drawRoundRect(rect, radius, radius, fill)
             }
-            label(canvas, tabNames[i], cell * (i + 0.5f), tabH / 2f, dp(if (i == 0 || i == 2) 13f else 18f),
-                if (active) palette.accentText else palette.text, bold = i == 0 || i == 2)
+            val color = if (active) palette.accentText else palette.text
+            // The same line icons as the toolbar; only "ABC" (back to the keys) is a word.
+            val icon = tabIcons[i]
+            if (icon == null) label(canvas, tabNames[i], cell * (i + 0.5f), tabH / 2f, dp(13f), color, bold = true)
+            else Icons.draw(canvas, icon, cell * (i + 0.5f), tabH / 2f, min(dp(22f), cell * 0.6f), color)
         }
         // The last cell: backspace on emoji, "Clear" on the clipboard.
+        val last = cell * (tabNames.size + 0.5f)
         when (tab) {
-            Tab.EMOJI, Tab.GIF -> label(canvas, "⌫", cell * 7.5f, tabH / 2f, dp(18f), palette.text)
-            Tab.CLIPBOARD -> if (clips.isNotEmpty()) label(canvas, "Clear", cell * 7.5f, tabH / 2f, dp(12f), palette.hint)
+            Tab.EMOJI, Tab.STICKERS, Tab.GIF -> label(canvas, "⌫", last, tabH / 2f, dp(18f), palette.text)
+            Tab.CLIPBOARD -> if (clips.isNotEmpty()) label(canvas, "Clear", last, tabH / 2f, dp(11f), palette.hint)
             else -> {}
         }
     }
 
     private fun drawCategories(canvas: Canvas) {
         if (tab == Tab.EMOJI) {
-            val icons = listOf("🕘") + EmojiData.categories.map { it.icon }
+            // The first cell searches; the rest are recent and the categories.
+            val icons = listOf("🔍", "🕘") + EmojiData.categories.map { it.icon }
             val cell = width.toFloat() / icons.size
             for ((i, icon) in icons.withIndex()) {
-                if (i == emojiCategory) {
+                if (i == emojiCategory + 1) {
                     rect.set(cell * i + dp(3f), tabH, cell * (i + 1) - dp(3f), tabH + catH - dp(3f))
                     fill.color = palette.key
                     canvas.drawRoundRect(rect, radius, radius, fill)
                 }
                 label(canvas, icon, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(18f), palette.text)
+            }
+        } else if (tab == Tab.STICKERS) {
+            val packs = Stickers.packs
+            val cell = width.toFloat() / packs.size
+            for ((i, pack) in packs.withIndex()) {
+                if (i == stickerSet) {
+                    rect.set(cell * i + dp(2f), tabH, cell * (i + 1) - dp(2f), tabH + catH - dp(3f))
+                    fill.color = palette.key
+                    canvas.drawRoundRect(rect, radius, radius, fill)
+                }
+                label(canvas, pack.name, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == stickerSet)
             }
         } else if (tab == Tab.THEMES) {
             val cell = width.toFloat() / themeFilters.size
@@ -316,6 +355,34 @@ class PanelView(context: Context) : View(context) {
             val i = r * 8 + c
             if (i >= list.size) break
             label(canvas, EmojiData.withTone(list[i], skinTone), cell * (c + 0.5f), top + r * cell + cell / 2f - scrollY, cell * 0.55f, palette.text)
+        }
+    }
+
+    private val redraw: () -> Unit = { invalidate() }
+
+    /** Die-cut stickers, four to a row, sitting straight on the panel (no key behind them). */
+    private fun drawStickers(canvas: Canvas) {
+        val top = contentTop()
+        val list = stickerList()
+        val cell = stickerCell()
+        val px = (cell - dp(6f)).toInt().coerceAtLeast(1)
+        val first = max(0, (scrollY / cell).toInt())
+        val last = min((list.size + 3) / 4, first + ((height - top) / cell).toInt() + 2)
+        for (r in first until last) for (c in 0 until 4) {
+            val i = r * 4 + c
+            if (i >= list.size) break
+            val x = cell * c + (cell - px) / 2f
+            val y = top + r * cell - scrollY + (cell - px) / 2f
+            val bmp = Stickers.thumbnail(list[i], px, redraw)
+            if (bmp != null) {
+                canvas.drawBitmap(bmp, x, y, null)
+            } else {
+                // Still being drawn: a faint placeholder where it will appear.
+                fill.color = palette.key
+                fill.alpha = 90
+                canvas.drawCircle(x + px / 2f, y + px / 2f, px * 0.38f, fill)
+                fill.alpha = 255
+            }
         }
     }
 
@@ -425,7 +492,7 @@ class PanelView(context: Context) : View(context) {
         val top = contentTop()
         val chip = chipH()
         if (candidates.isEmpty()) {
-            label(canvas, writeStatus ?: if (serverUrl.isBlank()) "Set the server address in the app's settings" else "Write a letter or a word below",
+            label(canvas, writeStatus ?: "Write a letter or a word below",
                 width / 2f, top + chip / 2f, dp(12f), palette.hint)
         } else {
             val cell = width / 6f
@@ -456,7 +523,23 @@ class PanelView(context: Context) : View(context) {
 
     private fun recognize() {
         if (strokes.isEmpty()) return
-        if (serverUrl.isBlank()) { writeStatus = "Set the server address in the app's settings"; invalidate(); return }
+        writeStatus = "Reading…"
+        invalidate()
+        val amharic = host?.panelAmharic() == true
+        // On the phone first: private, and works offline once the model is there.
+        Handwriting.recognize(strokePoints.toList(), amharic,
+            status = { if (tab == Tab.WRITE) { writeStatus = it; invalidate() } },
+        ) { found ->
+            if (tab != Tab.WRITE) return@recognize
+            when {
+                found != null -> { candidates = found; writeStatus = if (found.isEmpty()) "Nothing recognised" else null; invalidate() }
+                serverUrl.isNotBlank() -> recognizeOnServer()
+                else -> { writeStatus = "Couldn't read that - the handwriting model needs the internet once"; invalidate() }
+            }
+        }
+    }
+
+    private fun recognizeOnServer() {
         writeStatus = "Reading…"
         invalidate()
 
@@ -607,11 +690,12 @@ class PanelView(context: Context) : View(context) {
                 handler.removeCallbacks(recognizeTask)
                 if (inCanvas) {
                     current = Path().apply { moveTo(e.x, e.y); lineTo(e.x + 0.1f, e.y) }
+                    currentPoints = arrayListOf(floatArrayOf(e.x, e.y, e.eventTime.toFloat()))
                     invalidate()
                 } else if (e.y > writeAreaBottom()) {
                     val cell = width / 3f
                     when ((e.x / cell).toInt()) {
-                        0 -> { strokes.clear(); candidates = emptyList(); writeStatus = null; invalidate() }
+                        0 -> { clearInk(); invalidate() }
                         1 -> host?.onPanelText(" ", false)
                         else -> host?.onPanelText("\b", false)
                     }
@@ -619,16 +703,27 @@ class PanelView(context: Context) : View(context) {
                     val i = (e.x / (width / 6f)).toInt()
                     candidates.getOrNull(i)?.let {
                         host?.onPanelText(it, false)
-                        strokes.clear(); candidates = emptyList(); writeStatus = null; invalidate()
+                        clearInk(); invalidate()
                     }
                 }
             }
-            MotionEvent.ACTION_MOVE -> current?.let { it.lineTo(e.x.coerceIn(0f, width.toFloat()), e.y.coerceIn(writeAreaTop(), writeAreaBottom())); invalidate() }
+            MotionEvent.ACTION_MOVE -> current?.let {
+                val x = e.x.coerceIn(0f, width.toFloat())
+                val y = e.y.coerceIn(writeAreaTop(), writeAreaBottom())
+                it.lineTo(x, y)
+                currentPoints?.add(floatArrayOf(x, y, e.eventTime.toFloat()))
+                invalidate()
+            }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 current?.let {
                     // The last position matters: a quick stroke may have only one move event.
                     if (e.actionMasked == MotionEvent.ACTION_UP) it.lineTo(e.x.coerceIn(0f, width.toFloat()), e.y.coerceIn(writeAreaTop(), writeAreaBottom()))
                     strokes.add(it); current = null
+                    currentPoints?.let { pts ->
+                        pts.add(floatArrayOf(e.x.coerceIn(0f, width.toFloat()), e.y.coerceIn(writeAreaTop(), writeAreaBottom()), e.eventTime.toFloat()))
+                        strokePoints.add(pts)
+                    }
+                    currentPoints = null
                     // Read it once the pen has been still for a moment.
                     handler.postDelayed(recognizeTask, 900)
                     invalidate()
@@ -656,19 +751,25 @@ class PanelView(context: Context) : View(context) {
     }
 
     private fun headerTap(x: Float) {
-        val i = (x / (width / 8f)).toInt()
+        val i = (x / tabCell()).toInt()
         when {
             i == 0 -> host?.onPanelClose()
-            i in 1..6 -> if (tabAt(i) != tab) enter(tabAt(i)!!)
+            i in 1 until tabNames.size -> if (tabAt(i) != tab) enter(tabAt(i)!!)
             tab == Tab.CLIPBOARD -> host?.onPanelClearClipboard()
-            tab == Tab.EMOJI || tab == Tab.GIF -> host?.onPanelText("\b", false)
+            tab == Tab.EMOJI || tab == Tab.STICKERS || tab == Tab.GIF -> host?.onPanelText("\b", false)
         }
     }
 
     private fun categoryTap(x: Float) {
         if (tab == Tab.EMOJI) {
-            val n = EmojiData.categories.size + 1
-            emojiCategory = (x / (width.toFloat() / n)).toInt().coerceIn(0, n - 1)
+            val n = EmojiData.categories.size + 2
+            val i = (x / (width.toFloat() / n)).toInt().coerceIn(0, n - 1)
+            if (i == 0) { host?.onPanelEmojiSearch(); return }
+            emojiCategory = i - 1
+            resetScroll()
+        } else if (tab == Tab.STICKERS) {
+            val n = Stickers.packs.size
+            stickerSet = (x / (width.toFloat() / n)).toInt().coerceIn(0, n - 1)
             resetScroll()
         } else if (tab == Tab.THEMES) {
             themeFilter = (x / (width.toFloat() / themeFilters.size)).toInt().coerceIn(0, themeFilters.size - 1)
@@ -691,6 +792,12 @@ class PanelView(context: Context) : View(context) {
                 val c = (x / cell).toInt().coerceIn(0, 7)
                 val r = ((y - top + scrollY) / cell).toInt()
                 emojiList().getOrNull(r * 8 + c)?.let { host?.onPanelText(EmojiData.withTone(it, skinTone), true) }
+            }
+            Tab.STICKERS -> {
+                val cell = stickerCell()
+                val c = (x / cell).toInt().coerceIn(0, 3)
+                val r = ((y - top + scrollY) / cell).toInt()
+                stickerList().getOrNull(r * 4 + c)?.let { host?.onPanelSticker(it) }
             }
             Tab.GIF -> {
                 val cell = gifCell()

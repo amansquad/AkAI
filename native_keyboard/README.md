@@ -11,21 +11,40 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
 ## What it has
 - English layouts: QWERTY, Dvorak, AZERTY, Colemak, QWERTZ
 - Amharic: fidel board (traditional or most-used-first order) with a vowel row,
-  phonetic typing ("selam" gives ሰላም), and symbols boards for both languages
+  or phonetic typing ("selam" gives ሰላም), chosen in settings; one language key
+  switches English and Amharic, and holding it flips fidel and phonetic.
+  Symbols boards for both languages
 - Number, phone and date pads chosen from the focused field's type, with a
   "123" key to come back to the pad after leaving it
 - Email, URL and password fields: English only, no auto-capitals, no
   suggestions, nothing learned
-- Toolbar and suggestion strip: emoji/GIF panel, voice typing, settings, and
-  three word suggestions that learn the words you type
-- Panels: emoji (categories, recents, skin tones), GIFs, clipboard history with
-  pinning, handwriting, translate
+- Swipe typing: slide across the English letters to type a word; the other
+  readings appear in the suggestion strip
+- Auto-correct for English (common typos, missing apostrophes, one-letter
+  slips); backspace straight after a correction puts back what you typed, and
+  that word is then left alone
+- Toolbar and suggestion strip: line icons in the theme's colours; choose which
+  buttons show (emoji, stickers, GIFs, clipboard, handwriting, translate,
+  themes, voice; settings is always there). With more than three, the toolbar
+  folds behind one button while there are suggestions. Up to three suggestions
+  from your own words and a 20,000-word English list
+- Word of the day on its own row above the toolbar (tap it to type the word)
+- Panels: emoji (categories, recents, skin tones, search), stickers (the web
+  keyboard's twelve sets, Ethiopia included), GIFs, clipboard history with
+  pinning, handwriting, translate, themes
+- Emoji search: type a word ("dog", "lol", "ethiopia") into the strip and tap a
+  result
 - Long-press bubble: a letter's accents, or a consonant's whole vowel family
-- Shift, caps lock, auto-capitals, double-space period, hold-backspace to
-  delete the sentence (optional), space-bar swipe to move the cursor
+- Shift, caps lock, auto-capitals, double-space period, optional space after
+  punctuation, hold-backspace to delete the sentence (optional), space-bar
+  swipe to move the cursor, and an optional row of cursor keys (⇤ ◀ ▲ ▼ ▶ ⇥)
 - Enter shows the field's action (Go, Search, Send, Next, Done)
-- Themes (system, light, dark, ocean, forest, rose), key height, one-handed
-  mode, number row, corner hints, vibration strength, click sound
+- 98 themes in five groups (live, solid, cultural, faith, football); live
+  themes animate behind the keys at four times the Flutter app's pace, which
+  otherwise looked frozen. Key height, spacing, corner roundness,
+  label size, letter weight and borders; one-handed mode with an adjustable
+  width; number row, corner hints, long-press delay, vibration strength,
+  click sound and volume
 - TalkBack support: every key is announced and can be activated
 
 ## GIFs and the Giphy key
@@ -37,9 +56,67 @@ falls back to the built-in GIFs. GIFs are sent as images where the app accepts
 them, otherwise as a link.
 
 ## Handwriting and translation
-Both run on the AkAI web server (`/api/handwriting-recognize`, `/api/translate`,
-which use OpenAI). Enter the server's address in settings; with it blank those
-two tabs say so and do nothing. Nothing is sent anywhere until you use them.
+Handwriting is read on the phone with Google ML Kit's digital ink recognition,
+in English or Amharic. The first time you write in a language, the keyboard
+downloads that language's model (about 20 MB); after that it works offline and
+your strokes stay on the phone. If that fails and a server address is set, it
+falls back to the AkAI web server.
+
+Translation runs on the AkAI web server (`/api/translate`, which uses OpenAI),
+because ML Kit's on-device translation has no Amharic. Enter the server's
+address in settings; with it blank the tab says so and does nothing. Nothing is
+sent anywhere until you use it.
+
+## Updates
+Settings → Help → Check for updates reads `app-version.json` from the Vercel
+site, `https://ak-ai-opal.vercel.app` (`Net.SITE`; it's the web app's
+`public/app-version.json`), whatever server address is set. If its
+`versionCode` is higher than the installed one, the app offers to download `url`
+(by default `/AkAI-keyboard.apk`). To ship a release: raise `versionCode`/`versionName` in
+`app/build.gradle`, replace `public/AkAI-keyboard.apk`, and set the same
+numbers (plus optional `notes`) in `public/app-version.json`.
+
+## Theme pictures
+Eight cultural themes (the region flags, Southern Ethiopia, Addis Ababa, the
+Judah lion) are a picture rather than an animation. As in the Flutter app the
+picture fills the keyboard with a slow zoom and a warm glow, but here the
+pictures are bundled (`app/src/main/assets/backdrops/`, 173 KB) instead of
+downloaded, so they work offline. They come from the website's `public/`
+folder; the region flags there are SVG, which this step turns into images:
+
+    node native_keyboard/tools/gen-backdrops.mjs
+
+The other twelve cultural themes (Ethiopian Flag, Aksum Empire, Lalibela Stone,
+Sidama, Gambella, Harari, Benishangul Gumuz, Adey Abeba, Black Gold, and the
+Meskel, Timket and South West Ethiopia themes) have animated scenes of their
+own in `CulturalScenes.kt`: the flag waving, the Aksum stele under turning sun
+rays, the Lalibela cross church, a jebena steaming, a canoe on the river, the
+Harar wall at dusk, gold glinting in a river, swaying adey abeba, a honeycomb
+with dripping honey and bees, the Demera bonfire, the Timket umbrellas and holy
+water, and a misty forest.
+
+The faith themes have scenes of their own too, on the web keyboard's subjects:
+the ornate Ethiopian cross with incense and candles, the Meskel cross above
+the flames, the Al-Najashi mosque at dusk, the coloured houses of Harar Jegol,
+swinging Ramadan lanterns, and the Timkat dove over the blessed water. Holy
+Maryam shows the Maryam icon picture with turning light rays.
+
+Every picture theme also has gold sparkles drifting up. The cultural, faith and
+football themes, and the picture themes, have keys about 80% opaque so their
+scene or picture shows through.
+
+`tools/gen-themes.mjs` rebuilds `ThemeData.kt` from the Flutter palettes. It
+files the Flutter faith palettes under "faith" (they carry no category) and
+makes the Matrix keys more opaque so the letters stay readable over the rain.
+
+## Word list
+`app/src/main/assets/words_en.txt` (swipe typing, auto-correct, completions) is
+the top 20,000 words of [FrequencyWords](https://github.com/hermitdave/FrequencyWords)
+by Hermit Dave, licensed CC BY-SA 4.0, with contractions rejoined and
+profanity removed. That file is under the same licence. To rebuild it, download
+`content/2018/en/en_50k.txt` from that repository and run, from this folder:
+
+    node tools/gen-words.mjs path/to/en_50k.txt
 
 ## Privacy
 - Clipboard history is kept in memory only. Pinned items are saved, because you
@@ -48,8 +125,8 @@ two tabs say so and do nothing. Nothing is sent anywhere until you use them.
   are never learned in email, URL, password or number fields.
 
 ## Not here
-Auto-correct (suggestions only), emoji search, live-wallpaper themes, and
-handwriting/translation that work without a server.
+Translation without a server, swipe typing and auto-correct in Amharic, and a
+desktop-style layout (the web keyboard's desktop view has no use on a phone).
 
 Voice typing opens the system speech recogniser (a keyboard cannot use the
 microphone itself), so it needs a recogniser app such as Google's installed.
@@ -66,7 +143,10 @@ The APK is `app/build/outputs/apk/debug/app-debug.apk`. Install it, open the
 app, turn the keyboard on, then choose it.
 
 ### Release
-`./gradlew.bat :app:assembleRelease` makes a shrunk APK (about 170 KB). To sign
+`./gradlew.bat :app:assembleRelease` makes a shrunk APK of about 13 MB, almost
+all of it the handwriting recognizer's native code. The release carries only
+the arm builds of that code (every phone); debug builds carry all four, so the
+x86 emulator can run handwriting too. To sign
 it, create `keystore.properties` next to `settings.gradle` (git-ignored):
 
     storeFile=../my-release.jks
@@ -80,11 +160,13 @@ Without that file the release APK is left unsigned.
 
     ./gradlew.bat :app:testDebugUnitTest
 
-Covers the phonetic engine, skin tones, learned suggestions and that every
-layout builds.
+Covers the phonetic engine, skin tones, learned suggestions, that every layout
+builds, the cursor row, toolbar choices, auto-correct, swipe decoding on a
+QWERTY board, dictionary completions and emoji search.
 
 ## Amharic data
 `KeyboardData.kt` is generated from the web keyboard's `keyboard-data.ts` and
-`giphy-catalog.ts`:
+`giphy-catalog.ts` (Amharic letters, suggestions, layouts, GIFs, sticker sets
+and words of the day):
 
     node native_keyboard/tools/gen-data.mjs

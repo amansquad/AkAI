@@ -14,6 +14,20 @@ const COLORS = [
 
 const q = (s) => JSON.stringify(s).split('$').join('\\$');
 
+// The faith palettes carry no category of their own; without this they were
+// filed as "solid" and the Faith filter came up empty.
+const DEFAULT_CATEGORY = { 'faith_themes.dart': 'faith' };
+
+// Native-only adjustments. Matrix: Flutter's keys are 40% opaque over a dense
+// rain, which makes the letters hard to read; these are about 85% opaque.
+const OVERRIDES = {
+  matrix: { key: 'DA002900', keySecondary: 'D0001000' },
+  // In Flutter both of these use "ortho_maryam"; the web gives each its own,
+  // so do the same: the ornate cross, and the Maryam icon picture.
+  faith_orthodox: { live: 'ortho_cross' },
+  faith_maryam: { live: '/faith/maryam' },
+};
+
 /** Palettes in the order the Flutter app lists them (its `all` lists). */
 const out = [];
 const seen = new Set();
@@ -33,13 +47,14 @@ for (const f of files) {
       id: str('id'),
       emoji: str('emoji'),
       live: str('liveTheme') ?? '',
-      category: str('category') ?? 'solid',
+      category: str('category') ?? DEFAULT_CATEGORY[f] ?? 'solid',
     };
     for (const c of COLORS) {
       const cm = new RegExp(`\\b${c}:\\s*Color\\(0x([0-9A-Fa-f]{8})\\)`).exec(body);
       if (!cm) throw new Error(`${f} ${m[1]} is missing ${c}`);
       p[c] = cm[1].toUpperCase();
     }
+    Object.assign(p, OVERRIDES[p.id] ?? {});
     defs.set(m[1], p);
   }
 
