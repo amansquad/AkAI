@@ -160,6 +160,38 @@ class Ui(val context: Context, val p: Palette) {
         }
     }
 
+    /**
+     * One choice from a list of [options] (title to explanation), each on its own
+     * line, for when the choices need more words than a segmented row can hold.
+     */
+    fun choiceList(options: List<Pair<String, String>>, selected: Int, onPick: (Int) -> Unit): View {
+        val column = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        val dots = ArrayList<View>()
+        fun paint(sel: Int) = dots.forEachIndexed { i, d ->
+            d.background = if (i == sel) round(p.accent, 999f, ColorUtils.setAlphaComponent(p.accent, 0x66), 5f)
+            else round(Color.TRANSPARENT, 999f, faint, 2f)
+        }
+        options.forEachIndexed { i, (title, subtitle) ->
+            val dot = View(context)
+            dots.add(dot)
+            val texts = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(label(title, 16f, text, bold = true))
+                if (subtitle.isNotEmpty()) addView(label(subtitle, 13f, dim))
+            }
+            column.addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(10f), 0, dp(10f))
+                addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                addView(dot, LinearLayout.LayoutParams(dp(20f), dp(20f)).apply { marginStart = dp(12f) })
+                setOnClickListener { paint(i); onPick(i) }
+            })
+        }
+        paint(selected)
+        return column
+    }
+
     /** A row of segmented options; the selected one is filled with the accent. */
     fun segmented(title: String, options: List<String>, selected: Int, onPick: (Int) -> Unit): View {
         val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }

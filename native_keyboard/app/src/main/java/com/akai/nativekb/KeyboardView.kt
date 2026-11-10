@@ -27,9 +27,69 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
+// Toolbar buttons. The user picks which show (Settings always does).
 const val TOOL_EMOJI = 0
 const val TOOL_VOICE = 1
 const val TOOL_SETTINGS = 2
+const val TOOL_STICKERS = 3
+const val TOOL_GIF = 4
+const val TOOL_CLIPBOARD = 5
+const val TOOL_WRITE = 6
+const val TOOL_TRANSLATE = 7
+const val TOOL_THEMES = 8
+
+object Tools {
+    /** Pref name, icon and spoken name, in the order they appear. */
+    val all = listOf(
+        Triple(TOOL_EMOJI, "emoji", "😀") to "Emoji",
+        Triple(TOOL_STICKERS, "stickers", "🧸") to "Stickers",
+        Triple(TOOL_GIF, "gif", "GIF") to "GIFs",
+        Triple(TOOL_CLIPBOARD, "clipboard", "📋") to "Clipboard",
+        Triple(TOOL_WRITE, "handwriting", "✍️") to "Handwriting",
+        Triple(TOOL_TRANSLATE, "translate", "🌐") to "Translate",
+        Triple(TOOL_THEMES, "themes", "🎨") to "Themes",
+        Triple(TOOL_VOICE, "voice", "🎤") to "Voice typing",
+        Triple(TOOL_SETTINGS, "settings", "⚙️") to "Keyboard settings",
+    )
+    const val DEFAULT = "emoji,voice,settings"
+
+    /** The tools named in a comma list, in toolbar order, always ending with Settings. */
+    fun parse(pref: String): IntArray {
+        val names = pref.split(',').map { it.trim() }.toSet()
+        return all.map { it.first }.filter { it.second in names || it.first == TOOL_SETTINGS }.map { it.first }.toIntArray()
+    }
+    fun icon(id: Int) = all.first { it.first.first == id }.first.third
+    fun spoken(id: Int) = if (id == TOOL_LANGUAGE) "Switch language" else all.first { it.first.first == id }.second
+}
+
+/** The language switch, when the user puts it in the toolbar. Never folded away. */
+const val TOOL_LANGUAGE = 98
+
+/** How the keys look and behave; set from the user's settings. */
+data class KeyLook(
+    val theme: String = Themes.DEFAULT,
+    val heightPercent: Int = 100,
+    val hints: Boolean = true,
+    /** 0 off, 1 left hand, 2 right hand. */
+    val oneHand: Int = 0,
+    /** Width of the one-handed board, as a percentage of the screen. */
+    val oneHandWidth: Int = 80,
+    val pressAnimation: Boolean = true,
+    val longPress: Boolean = true,
+    val live: Boolean = true,
+    val longPressMs: Int = 330,
+    /** Space between keys, in dp. */
+    val gap: Int = 5,
+    /** Corner radius, in dp. */
+    val radius: Int = 8,
+    /** Label size, as a percentage of the standard size. */
+    val labelSize: Int = 100,
+    /** Letter weight, 100 to 900. */
+    val weight: Int = 400,
+    val borders: Boolean = false,
+    /** Swipe across the letters to type a word. */
+    val glide: Boolean = true,
+)
 
 /** What the keys do; implemented by the input method service. */
 interface KeyListener {
@@ -54,6 +114,15 @@ interface KeyListener {
     fun onToolbar(action: Int)
     /** Called after the letter has been sent, so feedback never delays it. */
     fun onKeyFeedback()
+    /** A cursor key: home, left, up, down, right or end. */
+    fun onCursorKey(dir: String)
+    /** A touch turned into a swipe: take back the letter typed when it landed. */
+    fun onGlideStart()
+    /** The swipe ended. [keys] maps each letter to its key centre, for decoding. */
+    fun onGlide(xs: FloatArray, ys: FloatArray, keys: Map<Char, FloatArray>, keyW: Float, shifted: Boolean)
+    /** An emoji was tapped in the emoji-search strip. */
+    fun onSearchPick(emoji: String)
+    fun onSearchClose()
 }
 
 /**
@@ -87,26 +156,44 @@ class KeyboardView(context: Context) : View(context) {
     /** 0 off, 1 left hand, 2 right hand. */
     private var oneHanded = 0
 
+    private var oneHandWidth = 0.8f
+
     private var pressAnim = true
     private var liveOn = true
-    private var lastTouchAt = 0L
     private var longPressOn = true
+    private var longPressMs = 330L
+    private var labelScale = 1f
+    private var borders = false
+    private var glideOn = true
+    private var letterFace: Typeface = Typeface.DEFAULT
+    private var functionFace: Typeface = Typeface.DEFAULT_BOLD
 
-    fun applySettings(
-        theme: String, heightPercent: Int, hints: Boolean, oneHand: Int,
-        pressAnimation: Boolean = true, longPress: Boolean = true, live: Boolean = true,
-    ) {
+    private fun face(weight: Int): Typeface =
+        if (Build.VERSION.SDK_INT >= 28) Typeface.create(Typeface.DEFAULT, weight.coerceIn(100, 900), false)
+        else if (weight >= 600) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+
+    fun applySettings(look: KeyLook) {
         // A different theme fades in over the old one instead of snapping.
-        if (theme != themeName) beginCrossfade(240L)
-        liveOn = live
-        pressAnim = pressAnimation
-        longPressOn = longPress
-        themeName = theme
-        palette = Themes.palette(context, theme)
+        if (look.theme != themeName) beginCrossfade(240L)
+        liveOn = look.live
+        pressAnim = look.pressAnimation
+        longPressOn = look.longPress
+        longPressMs = look.longPressMs.coerceIn(150, 1000).toLong()
+        themeName = look.theme
+        palette = Themes.palette(context, look.theme)
         cacheValid = false
-        heightScale = heightPercent.coerceIn(70, 140) / 100f
-        showHints = hints
-        oneHanded = oneHand
+        heightScale = look.heightPercent.coerceIn(70, 140) / 100f
+        showHints = look.hints
+        oneHanded = look.oneHand
+        oneHandWidth = look.oneHandWidth.coerceIn(50, 95) / 100f
+        gapX = dp(look.gap.coerceIn(0, 16).toFloat())
+        gapY = gapX + dp(1f)
+        radius = dp(look.radius.coerceIn(0, 28).toFloat())
+        labelScale = look.labelSize.coerceIn(70, 140) / 100f
+        borders = look.borders
+        glideOn = look.glide
+        letterFace = face(look.weight)
+        functionFace = face(max(look.weight, 600))
         setBackgroundColor(palette.background)
         requestLayout()
         computeGeometry(width)
@@ -127,7 +214,14 @@ class KeyboardView(context: Context) : View(context) {
 
     private var suggestions: List<String> = emptyList()
     fun setSuggestions(list: List<String>) {
-        if (suggestions != list) { suggestions = list; suggestionsAt = SystemClock.uptimeMillis(); invalidate() }
+        if (suggestions != list) {
+            // Whether the toolbar is folded depends on there being suggestions.
+            val folded = TOOL_MORE in shownTools()
+            suggestions = list
+            toolsOpen = false
+            suggestionsAt = SystemClock.uptimeMillis()
+            if (folded != TOOL_MORE in shownTools()) invalidateCache() else invalidate()
+        }
     }
 
     private var showStrip = true
@@ -135,13 +229,80 @@ class KeyboardView(context: Context) : View(context) {
     /** Hold backspace this long to delete the sentence; 0 turns it off. */
     var holdClearMs = 0L
 
+    /** Toolbar buttons, left of the suggestions. */
+    private var tools = intArrayOf(TOOL_EMOJI, TOOL_VOICE, TOOL_SETTINGS)
+    fun setTools(list: IntArray) {
+        if (!tools.contentEquals(list)) { tools = list; toolsOpen = false; invalidateCache() }
+    }
+
+    /**
+     * A long toolbar folds behind one button while there are suggestions, so
+     * the words keep their room (as Gboard does); tapping it shows the tools
+     * until the suggestions next change.
+     */
+    private var toolsOpen = false
+    private fun foldable() = tools.size > 3
+    private fun shownTools(): IntArray {
+        val base = if (foldable() && suggestions.isNotEmpty() && !toolsOpen) intArrayOf(TOOL_MORE) else tools
+        // The language button stays out of the fold: it is needed mid-sentence.
+        return if (langTool != null) intArrayOf(TOOL_LANGUAGE) + base else base
+    }
+
+    /** The toolbar's language button label ("EN" or "አማ"), or null when it is not in the toolbar. */
+    private var langTool: String? = null
+    fun setLanguageTool(label: String?) {
+        if (langTool != label) { langTool = label; invalidateCache() }
+    }
+
+    /** Hold the space bar, then slide, to switch language. */
+    var spaceSwitch = false
+    /** Suggestions are hidden while a folded toolbar has been opened. */
+    private fun suggestionsShown() = suggestions.isNotEmpty() && !(foldable() && toolsOpen)
+
+    /** Word of the day, on its own row above the toolbar. */
+    private var wordOfDay: Pair<String, String>? = null
+    fun setWordOfDay(w: Pair<String, String>?) {
+        if (wordOfDay == w) return
+        val heightChanges = (wordOfDay == null) != (w == null)
+        wordOfDay = w
+        cacheValid = false
+        if (heightChanges) { requestLayout(); computeGeometry(width) }
+        invalidate()
+    }
+
+    /** Emoji search: the query being typed (null when not searching) and what it found. */
+    private var search: String? = null
+    private var searchResults: List<String> = emptyList()
+    fun setSearch(query: String?, results: List<String>) {
+        val modeChanged = (search == null) != (query == null)
+        search = query
+        searchResults = results
+        // Searching hides the word-of-the-day row, which changes the height.
+        if (modeChanged) { requestLayout(); computeGeometry(width); invalidateCache() } else invalidate()
+    }
+
     private val stripH = dp(40f)
-    private val gapX = dp(5f)
-    private val gapY = dp(6f)
+    private var gapX = dp(5f)
+    private var gapY = dp(6f)
     private val padSide = dp(4f)
     private val padTop = dp(6f)
     private val padBottom = dp(6f)
-    private val radius = dp(8f)
+    private var radius = dp(8f)
+    /** Toolbar button width: 40 dp, narrower when every button is switched on. */
+    private val toolCell get() = min(dp(40f), (width - 2 * padSide - dp(40f)) / max(1, shownTools().size))
+    /** The word-of-the-day row's height (nothing when it is off). */
+    private val wotdRowH = dp(28f)
+    private fun wotdH() = if (showStrip && wordOfDay != null && search == null) wotdRowH else 0f
+
+    /** Where the suggestions start: right of the toolbar buttons. */
+    private fun toolsEnd() = padSide + toolCell * shownTools().size
+    /** Three suggestions when there is room, fewer when the toolbar is long. */
+    private fun suggestionSlots() = ((width - padSide - toolsEnd()) / dp(76f)).toInt().coerceIn(1, 3)
+
+    private val border = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val trail = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+    }
 
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
@@ -186,12 +347,12 @@ class KeyboardView(context: Context) : View(context) {
         invalidateCache()
     }
 
-    private fun stripHeight() = if (showStrip) stripH else 0f
+    private fun stripHeight() = if (showStrip) wotdH() + stripH else 0f
 
     /** The height this layout needs, which is also how tall the keyboard will measure. */
     private fun heightFor(l: Layout, strip: Boolean): Int {
         val rows = l.rows.size
-        return ((if (strip) stripH else 0f) + padTop + rows * dp(l.rowHeightDp) * heightScale + (rows - 1) * gapY + padBottom).toInt()
+        return ((if (strip) wotdH() + stripH else 0f) + padTop + rows * dp(l.rowHeightDp) * heightScale + (rows - 1) * gapY + padBottom).toInt()
     }
 
     override fun onMeasure(widthSpec: Int, heightSpec: Int) {
@@ -214,7 +375,7 @@ class KeyboardView(context: Context) : View(context) {
         lefts = Array(l.rows.size) { FloatArray(l.rows[it].size) }
         rights = Array(l.rows.size) { FloatArray(l.rows[it].size) }
 
-        val usable = if (oneHanded == 0) width.toFloat() else width * 0.8f
+        val usable = if (oneHanded == 0) width.toFloat() else width * oneHandWidth
         areaLeft = if (oneHanded == 2) width - usable else 0f
         areaRight = areaLeft + usable
 
@@ -319,7 +480,12 @@ class KeyboardView(context: Context) : View(context) {
             cv.drawColor(0, PorterDuff.Mode.CLEAR)
             val l = layout
             if (l != null) {
-                if (showStrip) drawStripIcons(cv)
+                if (showStrip && search == null) {
+                    wordOfDay?.let { drawWordOfDay(cv, it) }
+                    cv.save(); cv.translate(0f, wotdH())
+                    drawStripIcons(cv)
+                    cv.restore()
+                }
                 for ((r, row) in l.rows.withIndex()) for ((c, key) in row.withIndex()) {
                     if (key.kind != KeyKind.SPACER) drawKeyBase(cv, key, r, c, 0f)
                 }
@@ -335,14 +501,28 @@ class KeyboardView(context: Context) : View(context) {
         var animating = false
 
         if (liveOn && palette.isLive) {
-            // The Flutter scenes loop every 20 seconds and are drawn in logical pixels.
+            // The scenes are drawn in logical pixels. Flutter gives them 0..1 over
+            // 20 seconds, which leaves most of them all but frozen (flames take
+            // 20 s to rise, the rain crawls), so here one unit is 5 seconds:
+            // four times Flutter's pace. Every term that grows with time sits in
+            // a sine or a modulo, so the clock can run on; it wraps every
+            // 10 minutes to keep float precision.
             canvas.save()
             canvas.scale(density, density)
-            LiveScenes.paint(canvas, width / density, height / density, (now % 20000L) / 20000f, palette.def.live)
+            val live = palette.def.live
+            // A picture theme shows its picture; until it has loaded (or if it is
+            // missing), the aurora keeps the keyboard from looking empty.
+            val pictured = Backdrops.isPicture(live) &&
+                Backdrops.draw(context, canvas, width / density, height / density, now, live) { invalidate() }
+            if (!pictured) LiveScenes.paint(canvas, width / density, height / density, (now % 600_000L) / 5000f, live)
             canvas.restore()
-            // Scene frames wait while you type, so one never competes with a keystroke.
-            val idle = now - lastTouchAt > 700
-            postInvalidateDelayed(if (idle) 50L else (lastTouchAt + 700 - now).coerceAtLeast(50L))
+        }
+
+        // Drop finished presses before cutting holes for them: a key cut out of
+        // the cached board but then not drawn would leave a gap on screen.
+        pressAnims.removeAll { a ->
+            (a.to == 0f && now - a.start >= 180L) ||
+                l.rows.getOrNull(a.r)?.getOrNull(a.c) == null || a.r >= lefts.size || a.c >= lefts[a.r].size
         }
 
         ensureCache()
@@ -365,14 +545,9 @@ class KeyboardView(context: Context) : View(context) {
 
         // Keys being pressed, drawn live and a little smaller, as in the Flutter keyboard.
         if (pressAnims.isNotEmpty()) {
-            val it = pressAnims.iterator()
-            while (it.hasNext()) {
-                val a = it.next()
-                val key = l.rows.getOrNull(a.r)?.getOrNull(a.c)
-                if (key == null || a.c >= lefts[a.r].size) { it.remove(); continue }
+            for (a in pressAnims) {
+                val key = l.rows[a.r][a.c]
                 val p = pressValue(a, now)
-                val finished = a.to == 0f && now - a.start >= 180L
-                if (finished) { it.remove(); invalidateCacheKeepFrame(); continue }
                 val cx = (lefts[a.r][a.c] + rights[a.r][a.c]) / 2f
                 val cy = rowTop[a.r] + rowH / 2f
                 val s = if (pressAnim) 1f - 0.07f * p else 1f
@@ -385,15 +560,36 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
 
-        if (showStrip && suggestions.isNotEmpty()) {
-            val ft = ((now - suggestionsAt) / 120f).coerceIn(0f, 1f)
-            drawSuggestions(canvas, 0.35f + 0.65f * easeOutCubic(ft))
-            if (ft < 1f) animating = true
+        if (showStrip) {
+            canvas.save()
+            canvas.translate(0f, wotdH())
+            if (search != null) {
+                drawSearch(canvas)
+            } else if (suggestionsShown()) {
+                val ft = ((now - suggestionsAt) / 120f).coerceIn(0f, 1f)
+                drawSuggestions(canvas, 0.35f + 0.65f * easeOutCubic(ft))
+                if (ft < 1f) animating = true
+            }
+            canvas.restore()
+        }
+
+        // The swipe's trail, fading toward its tail.
+        for (i in 0 until touches.size()) {
+            val t = touches.valueAt(i)
+            if (!t.gliding || t.n < 2) continue
+            trail.strokeWidth = dp(6f)
+            val from = max(1, t.n - 60)
+            for (j in from until t.n) {
+                trail.color = palette.accent
+                trail.alpha = (60 + 160 * (j - from) / max(1, t.n - from)).coerceIn(0, 255)
+                canvas.drawLine(t.xs[j - 1], t.ys[j - 1], t.xs[j], t.ys[j], trail)
+            }
         }
 
         for (i in 0 until touches.size()) {
             val t = touches.valueAt(i)
             if (t.popup != null && drawPopup(canvas, t, now)) animating = true
+            if (t.langArmed) drawSpaceArmed(canvas, t)
         }
 
         if (fadeDur > 0L) {
@@ -407,36 +603,122 @@ class KeyboardView(context: Context) : View(context) {
         }
 
         if (animating) postInvalidateOnAnimation()
+        // The live scene keeps moving while you type; the board is a cached
+        // bitmap, so a scene frame is cheap and never holds up a keystroke.
+        else if (liveOn && palette.isLive) postInvalidateDelayed(33L)
     }
 
-    /** A key finished animating: nothing to rebuild, the bitmap already shows it at rest. */
-    private fun invalidateCacheKeepFrame() { /* the cached bitmap is unchanged */ }
-
-    private val toolIcons = arrayOf("😀", "🎤", "⚙️")
-
     private fun drawStripIcons(canvas: Canvas) {
-        text.typeface = Typeface.DEFAULT
-        text.textSize = stripH * 0.5f
+        text.textAlign = Paint.Align.CENTER
         text.color = palette.text
         text.alpha = 255
-        val cell = dp(40f)
-        for ((i, icon) in toolIcons.withIndex()) {
+        val cell = toolCell
+        for ((i, id) in shownTools().withIndex()) {
             val cx = padSide + cell * (i + 0.5f)
-            canvas.drawText(icon, cx, stripH / 2f - (text.descent() + text.ascent()) / 2f, text)
+            if (id == TOOL_LANGUAGE) {
+                // The language it switches to, in a soft pill so it reads as a button.
+                val label = langTool ?: continue
+                rect.set(cx - cell * 0.44f, stripH * 0.22f, cx + cell * 0.44f, stripH * 0.78f)
+                fill.color = palette.special
+                canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
+                text.typeface = Typeface.DEFAULT_BOLD
+                text.textSize = min(stripH * 0.32f, cell * 0.36f)
+                text.color = palette.specialText
+                canvas.drawText(label, cx, stripH / 2f - (text.descent() + text.ascent()) / 2f, text)
+                text.color = palette.text
+                continue
+            }
+            Icons.draw(canvas, id, cx, stripH / 2f, min(dp(23f), cell * 0.62f), palette.text)
+        }
+    }
+
+    private fun stripBaseline() = stripH / 2f - (text.descent() + text.ascent()) / 2f
+
+    /** The row above the toolbar: "✦ WORD OF THE DAY  Resilient  Able to withstand…". */
+    private fun drawWordOfDay(canvas: Canvas, w: Pair<String, String>) {
+        val h = wotdRowH
+        var x = padSide + dp(8f)
+        val right = width - padSide - dp(8f)
+        text.textAlign = Paint.Align.LEFT
+        text.alpha = 255
+        fun base() = h / 2f - (text.descent() + text.ascent()) / 2f
+        text.typeface = Typeface.DEFAULT_BOLD
+        text.textSize = h * 0.36f
+        text.color = palette.hint
+        val tag = "✦ WORD OF THE DAY"
+        canvas.drawText(tag, x, base(), text)
+        x += text.measureText(tag) + dp(10f)
+        text.textSize = h * 0.5f
+        text.color = palette.text
+        val word = ellipsize(w.first, right - x)
+        canvas.drawText(word, x, base(), text)
+        x += text.measureText(word) + dp(8f)
+        if (x < right - dp(30f)) {
+            text.typeface = Typeface.DEFAULT
+            text.textSize = h * 0.4f
+            text.color = palette.hint
+            canvas.drawText(ellipsize(w.second, right - x), x, base(), text)
+        }
+        // A hairline separates it from the toolbar.
+        fill.color = palette.hint
+        fill.alpha = 60
+        canvas.drawRect(padSide, h - 1f, width - padSide, h, fill)
+        fill.alpha = 255
+        text.textAlign = Paint.Align.CENTER
+    }
+
+    /** ✕, the query with a caret, then the matching emoji. */
+    private fun searchBoxEnd() = padSide + toolCell + width * 0.34f
+
+    private fun drawSearch(canvas: Canvas) {
+        val q = search ?: return
+        text.textAlign = Paint.Align.CENTER
+        text.typeface = Typeface.DEFAULT
+        text.alpha = 255
+        text.color = palette.text
+        text.textSize = stripH * 0.42f
+        canvas.drawText("✕", padSide + toolCell / 2f, stripBaseline(), text)
+
+        rect.set(padSide + toolCell, dp(5f), searchBoxEnd(), stripH - dp(5f))
+        fill.color = palette.key
+        canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
+        text.textAlign = Paint.Align.LEFT
+        text.textSize = stripH * 0.34f
+        val shown = if (q.isEmpty()) "Search emoji" else "$q▏"
+        text.color = if (q.isEmpty()) palette.hint else palette.text
+        val inner = rect.width() - dp(36f)
+        // Long queries show their end, which is where the typing is.
+        var s = shown
+        while (s.length > 1 && text.measureText(s) > inner) s = s.substring(1)
+        canvas.drawText("🔍 $s", rect.left + dp(10f), stripBaseline(), text)
+
+        text.textAlign = Paint.Align.CENTER
+        text.textSize = stripH * 0.55f
+        text.color = palette.text
+        if (searchResults.isEmpty() && q.isNotEmpty()) {
+            text.textSize = stripH * 0.3f
+            text.color = palette.hint
+            canvas.drawText("No emoji found", (searchBoxEnd() + width) / 2f, stripBaseline(), text)
+            return
+        }
+        for ((i, e) in searchResults.withIndex()) {
+            val cx = searchBoxEnd() + dp(4f) + toolCell * (i + 0.5f)
+            if (cx + toolCell / 2f > width) break
+            canvas.drawText(e, cx, stripBaseline(), text)
         }
     }
 
     private fun drawSuggestions(canvas: Canvas, alpha: Float) {
-        val cell = dp(40f)
-        val start = padSide + cell * toolIcons.size
-        val each = (this.width - padSide - start) / 3f
+        val start = toolsEnd()
+        val each = (this.width - padSide - start) / suggestionSlots()
+        text.textAlign = Paint.Align.CENTER
         text.typeface = Typeface.DEFAULT
         text.textSize = stripH * 0.4f
         text.color = palette.text
         text.alpha = (alpha * 255f).toInt()
         fill.color = palette.hint
         fill.alpha = (alpha * 255f * 0.6f).toInt()
-        for ((i, word) in suggestions.withIndex()) {
+        for ((i, word) in suggestions.take(suggestionSlots()).withIndex()) {
             val cx = start + each * (i + 0.5f)
             if (i > 0) canvas.drawRect(start + each * i - 0.5f, stripH * 0.25f, start + each * i + 0.5f, stripH * 0.75f, fill)
             canvas.drawText(ellipsize(word, each - dp(8f)), cx, stripH / 2f - (text.descent() + text.ascent()) / 2f, text)
@@ -475,18 +757,38 @@ class KeyboardView(context: Context) : View(context) {
         val down = when { accent -> palette.accentPressed; key.special -> palette.specialPressed; else -> palette.pressed }
         fill.color = if (mix > 0f) ColorUtils.blendARGB(rest, down, mix) else rest
         canvas.drawRoundRect(rect, radius, radius, fill)
+        if (borders) {
+            border.strokeWidth = dp(1f)
+            border.color = ColorUtils.setAlphaComponent(palette.text, 0x40)
+            val inset = border.strokeWidth / 2f
+            rect.inset(inset, inset)
+            canvas.drawRoundRect(rect, radius, radius, border)
+            rect.inset(-inset, -inset)
+        }
+
+        val icon = when (key.kind) {
+            KeyKind.SHIFT -> when (shiftState) { 0 -> KEY_SHIFT; 1 -> KEY_SHIFT_ONCE; else -> KEY_CAPS_LOCK }
+            KeyKind.BACKSPACE -> KEY_BACKSPACE
+            else -> -1
+        }
+        if (icon >= 0) {
+            val color = if (key.special) palette.specialText else palette.text
+            val size = min(rowH * 0.5f * labelScale, rect.width() * 0.6f)
+            Icons.draw(canvas, icon, rect.centerX(), rect.centerY(), size, color)
+            return
+        }
 
         var label = vowelLabel ?: key.label
         if (key.cased && shiftState > 0) label = label.uppercase()
-        if (key.kind == KeyKind.SHIFT && shiftState == 2) label = "⇪"
 
         val pad = layout?.isPad == true
         val big = key.kind == KeyKind.CHAR && pad && !key.special
         text.textAlign = Paint.Align.CENTER
         text.alpha = 255
-        text.textSize = when {
+        text.textSize = labelScale * when {
             key.kind == KeyKind.SPACE -> rowH * 0.26f
             key.kind == KeyKind.VOWEL -> rowH * 0.5f
+            key.kind == KeyKind.CURSOR -> rowH * 0.34f
             key.kind != KeyKind.CHAR -> rowH * if (pad) 0.34f else 0.3f
             big -> rowH * 0.5f
             layout?.id == LayoutId.FIDEL -> rowH * 0.46f
@@ -497,7 +799,7 @@ class KeyboardView(context: Context) : View(context) {
             key.special -> palette.specialText
             else -> palette.text
         }
-        text.typeface = if (key.kind == KeyKind.CHAR || key.kind == KeyKind.VOWEL) Typeface.DEFAULT else Typeface.DEFAULT_BOLD
+        text.typeface = if (key.kind == KeyKind.CHAR || key.kind == KeyKind.VOWEL) letterFace else functionFace
 
         // A hint sits in the corner, so push the letter down a touch to keep
         // the two from ever touching.
@@ -552,6 +854,10 @@ class KeyboardView(context: Context) : View(context) {
         var col = 0
         var lastX = 0f
         var swiped = false
+        /** Space held long enough: sliding now switches language. [armX] is where it was armed. */
+        var langArmed = false
+        var armX = 0f
+        var curX = 0f
         var popup: List<String>? = null
         var popupSel = -1
         var popupRow = 0
@@ -560,6 +866,22 @@ class KeyboardView(context: Context) : View(context) {
         var popupAt = 0L
         var longPress: Runnable? = null
         var repeat: Runnable? = null
+        /** A long press already acted, so the release must not. */
+        var longFired = false
+
+        // Swipe typing: the finger's path, once it may be a swipe.
+        var canGlide = false
+        var gliding = false
+        var shifted = false
+        var downX = 0f
+        var downY = 0f
+        var xs = FloatArray(64)
+        var ys = FloatArray(64)
+        var n = 0
+        fun addPoint(x: Float, y: Float) {
+            if (n == xs.size) { xs = xs.copyOf(n * 2); ys = ys.copyOf(n * 2) }
+            xs[n] = x; ys[n] = y; n++
+        }
     }
 
     private val touches = SparseArray<Touch>()
@@ -581,16 +903,25 @@ class KeyboardView(context: Context) : View(context) {
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
         val l = layout ?: return false
-        lastTouchAt = android.os.SystemClock.uptimeMillis()
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
                 val i = e.actionIndex
                 val x = e.getX(i)
                 val y = e.getY(i)
-                if (showStrip && y < stripH + padTop / 2f) stripTap(x) else down(e.getPointerId(i), x, y, l)
+                when {
+                    showStrip && y < wotdH() -> wordOfDay?.let { listener?.onSuggestion(it.first); listener?.onKeyFeedback() }
+                    showStrip && y < wotdH() + stripH + padTop / 2f -> stripTap(x)
+                    else -> down(e.getPointerId(i), x, y, l)
+                }
             }
             MotionEvent.ACTION_MOVE -> {
-                for (i in 0 until e.pointerCount) move(e.getPointerId(i), e.getX(i), l)
+                for (i in 0 until e.pointerCount) {
+                    val id = e.getPointerId(i)
+                    // A swipe wants every point the screen reported, not just the latest.
+                    val t = touches.get(id)
+                    if (t != null && t.canGlide) for (h in 0 until e.historySize) t.addPoint(e.getHistoricalX(i, h), e.getHistoricalY(i, h))
+                    move(id, e.getX(i), e.getY(i), l)
+                }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
                 up(e.getPointerId(e.actionIndex), l, cancelled = false)
@@ -603,18 +934,75 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     private fun stripTap(x: Float) {
-        val cell = dp(40f)
-        val tools = padSide + cell * toolIcons.size
-        if (x < tools) {
-            val i = ((x - padSide) / cell).toInt().coerceIn(0, toolIcons.size - 1)
-            listener?.onToolbar(i)
+        if (search != null) {
+            when {
+                x < padSide + toolCell -> listener?.onSearchClose()
+                x > searchBoxEnd() + dp(4f) -> {
+                    val i = ((x - searchBoxEnd() - dp(4f)) / toolCell).toInt()
+                    searchResults.getOrNull(i)?.let { listener?.onSearchPick(it) }
+                }
+                else -> return
+            }
             listener?.onKeyFeedback()
-        } else if (suggestions.isNotEmpty()) {
-            val each = (width - padSide - tools) / 3f
-            val i = ((x - tools) / each).toInt()
+            return
+        }
+        val end = toolsEnd()
+        val shown = shownTools()
+        if (x < end) {
+            val id = shown[((x - padSide) / toolCell).toInt().coerceIn(0, shown.size - 1)]
+            if (id == TOOL_MORE) { toolsOpen = true; invalidateCache() } else listener?.onToolbar(id)
+            listener?.onKeyFeedback()
+        } else if (suggestionsShown()) {
+            val each = (width - padSide - end) / suggestionSlots()
+            val i = ((x - end) / each).toInt()
             suggestions.getOrNull(i)?.let { listener?.onSuggestion(it) }
             listener?.onKeyFeedback()
         }
+    }
+
+    /** A held cursor key keeps moving, faster the longer it is held. */
+    private fun startRepeat(t: Touch, action: () -> Unit) {
+        var delay = REPEAT_START_MS
+        val run = object : Runnable {
+            override fun run() {
+                action()
+                listener?.onKeyFeedback()
+                delay = max(REPEAT_MIN_MS * 2, delay - 6L)
+                handler.postDelayed(this, delay)
+            }
+        }
+        t.repeat = run
+        handler.postDelayed(run, REPEAT_FIRST_MS)
+    }
+
+    /** Boards that can switch language (the symbol and number boards cannot). */
+    private fun hasLanguage(l: Layout) = l.id == LayoutId.LETTERS || l.id == LayoutId.PHONETIC || l.id == LayoutId.FIDEL
+
+    /** A held space bar, ready to switch language: an accent outline and arrows at both ends. */
+    private fun drawSpaceArmed(canvas: Canvas, t: Touch) {
+        rect.set(lefts[t.row][t.col], rowTop[t.row], rights[t.row][t.col], rowTop[t.row] + rowH)
+        border.strokeWidth = dp(2f)
+        border.color = palette.accent
+        canvas.drawRoundRect(rect, radius, radius, border)
+        text.textAlign = Paint.Align.CENTER
+        text.typeface = Typeface.DEFAULT_BOLD
+        text.textSize = rowH * 0.4f
+        text.color = palette.accent
+        text.alpha = 255
+        val base = rect.centerY() - (text.descent() + text.ascent()) / 2f
+        canvas.drawText("◀", rect.left + dp(16f), base, text)
+        canvas.drawText("▶", rect.right - dp(16f), base, text)
+    }
+
+    /** Letter key centres of the current board, for decoding a swipe. */
+    private fun letterCentres(l: Layout): Map<Char, FloatArray> {
+        val m = HashMap<Char, FloatArray>()
+        for ((r, row) in l.rows.withIndex()) for ((c, k) in row.withIndex()) {
+            if (k.kind == KeyKind.CHAR && k.cased && k.output.length == 1) {
+                m[k.output[0]] = floatArrayOf((lefts[r][c] + rights[r][c]) / 2f, rowTop[r] + rowH / 2f)
+            }
+        }
+        return m
     }
 
     private fun down(id: Int, x: Float, y: Float, l: Layout) {
@@ -634,8 +1022,19 @@ class KeyboardView(context: Context) : View(context) {
                 if (key.alternates.isNotEmpty() && longPressOn) {
                     val run = Runnable { showPopup(t, key, r, c) }
                     t.longPress = run
-                    handler.postDelayed(run, LONG_PRESS_MS)
+                    handler.postDelayed(run, longPressMs)
                 }
+                // English letters may turn out to be the start of a swipe.
+                if (glideOn && l.id == LayoutId.LETTERS && key.cased && id != A11Y_TOUCH && search == null) {
+                    t.canGlide = true
+                    t.shifted = shifted
+                    t.downX = x; t.downY = y
+                    t.addPoint(x, y)
+                }
+            }
+            KeyKind.CURSOR -> {
+                listener?.onCursorKey(key.output)
+                if (key.output != "home" && key.output != "end") startRepeat(t) { listener?.onCursorKey(key.output) }
             }
             KeyKind.VOWEL -> {
                 val v = vowels.getOrNull(c).orEmpty()
@@ -666,10 +1065,34 @@ class KeyboardView(context: Context) : View(context) {
             KeyKind.ENTER -> listener?.onEnter()
             KeyKind.SHIFT -> listener?.onShift()
             KeyKind.SYMBOLS -> listener?.onSymbols()
-            KeyKind.LANGUAGE -> listener?.onLanguage()
+            KeyKind.LANGUAGE -> {
+                // Tap switches language on release; a long press flips Amharic
+                // between the fidel board and phonetic typing.
+                feedback = false
+                val run = Runnable { t.longPress = null; t.longFired = true; listener?.onPhonetic(); listener?.onKeyFeedback() }
+                t.longPress = run
+                handler.postDelayed(run, longPressMs + 120L)
+            }
             KeyKind.PAD_ABC -> listener?.onPadAbc()
             KeyKind.PHONETIC -> listener?.onPhonetic()
-            KeyKind.SPACE -> feedback = false // waits for lift, in case this is a cursor swipe
+            KeyKind.SPACE -> {
+                feedback = false // waits for lift, in case this is a cursor swipe
+                t.curX = x
+                if (spaceSwitch && hasLanguage(l) && search == null && id != A11Y_TOUCH) {
+                    // Held still a moment: the next slide switches language instead of moving the cursor.
+                    val run = Runnable {
+                        t.longPress = null
+                        if (!t.swiped) {
+                            t.langArmed = true
+                            t.armX = t.curX
+                            listener?.onKeyFeedback()
+                            invalidate()
+                        }
+                    }
+                    t.longPress = run
+                    handler.postDelayed(run, longPressMs + 120L)
+                }
+            }
             KeyKind.SPACER -> feedback = false
         }
         // Feedback is last, so the vibration never delays the letter.
@@ -677,7 +1100,7 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
-    private fun move(id: Int, x: Float, l: Layout) {
+    private fun move(id: Int, x: Float, y: Float, l: Layout) {
         val t = touches.get(id) ?: return
         val key = l.rows[t.row][t.col]
 
@@ -689,12 +1112,40 @@ class KeyboardView(context: Context) : View(context) {
             return
         }
 
+        if (t.canGlide) {
+            t.addPoint(x, y)
+            val keyW = rights[t.row][t.col] - lefts[t.row][t.col]
+            if (!t.gliding && kotlin.math.hypot(x - t.downX, y - t.downY) > keyW * 0.8f) {
+                // Moved well off the key: this is a swipe, not a tap.
+                t.gliding = true
+                t.longPress?.let { handler.removeCallbacks(it) }
+                t.longPress = null
+                endPress(t.row, t.col)
+                listener?.onGlideStart()
+            }
+            if (t.gliding) { invalidate(); return }
+        }
+
         if (key.kind == KeyKind.SPACE) {
+            t.curX = x
+            if (t.langArmed) {
+                if (abs(x - t.armX) >= dp(24f)) {
+                    // Either direction switches: there are two languages. The new
+                    // layout lets this finger go, so nothing more happens on lift.
+                    t.langArmed = false
+                    t.swiped = true
+                    listener?.onLanguage()
+                    listener?.onKeyFeedback()
+                }
+                return
+            }
             val step = dp(14f)
             while (abs(x - t.lastX) >= step) {
                 val dir = if (x > t.lastX) 1 else -1
                 t.lastX += dir * step
                 t.swiped = true
+                // A cursor swipe has begun, so holding no longer arms the language switch.
+                t.longPress?.let { handler.removeCallbacks(it); t.longPress = null }
                 listener?.onCursorMove(dir)
             }
         } else if (t.longPress != null && (x < lefts[t.row][t.col] - gapX || x > rights[t.row][t.col] + gapX)) {
@@ -711,10 +1162,19 @@ class KeyboardView(context: Context) : View(context) {
         t.repeat?.let { handler.removeCallbacks(it) }
 
         val alts = t.popup
-        if (!cancelled) {
+        if (t.gliding) {
+            if (!cancelled) {
+                val keyW = rights[t.row][t.col] - lefts[t.row][t.col]
+                listener?.onGlide(t.xs.copyOf(t.n), t.ys.copyOf(t.n), letterCentres(l), keyW, t.shifted)
+            }
+        } else if (!cancelled) {
             if (alts != null && t.popupSel >= 0) {
                 listener?.onReplaceLast(alts[t.popupSel])
-            } else if (key.kind == KeyKind.SPACE && !t.swiped) {
+            } else if (key.kind == KeyKind.LANGUAGE && !t.longFired) {
+                listener?.onLanguage()
+                listener?.onKeyFeedback()
+            } else if (key.kind == KeyKind.SPACE && !t.swiped && !t.langArmed) {
+                // (Armed and lifted without sliding: a change of mind, so no space.)
                 listener?.onSpace()
                 listener?.onKeyFeedback()
             }
@@ -750,14 +1210,17 @@ class KeyboardView(context: Context) : View(context) {
 
         override fun getVirtualViewAt(x: Float, y: Float): Int {
             val l = layout ?: return INVALID_ID
-            if (showStrip && y < stripH + padTop / 2f) {
-                val cell = dp(40f)
-                val tools = padSide + cell * toolIcons.size
-                return if (x < tools) {
-                    stripId(((x - padSide) / cell).toInt().coerceIn(0, toolIcons.size - 1))
-                } else if (suggestions.isNotEmpty()) {
-                    val each = (width - padSide - tools) / 3f
-                    stripId(toolIcons.size + ((x - tools) / each).toInt().coerceIn(0, suggestions.size - 1))
+            if (showStrip && y < wotdH()) return WOTD_ID
+            if (showStrip && y < wotdH() + stripH + padTop / 2f) {
+                if (search != null) return INVALID_ID
+                val end = toolsEnd()
+                val n = shownTools().size
+                val shown = if (suggestionsShown()) min(suggestions.size, suggestionSlots()) else 0
+                return if (x < end) {
+                    stripId(((x - padSide) / toolCell).toInt().coerceIn(0, n - 1))
+                } else if (shown > 0) {
+                    val each = (width - padSide - end) / suggestionSlots()
+                    stripId(n + ((x - end) / each).toInt().coerceIn(0, shown - 1))
                 } else INVALID_ID
             }
             val r = findRow(y)
@@ -767,9 +1230,11 @@ class KeyboardView(context: Context) : View(context) {
 
         override fun getVisibleVirtualViews(ids: MutableList<Int>) {
             val l = layout ?: return
-            if (showStrip) {
-                for (i in toolIcons.indices) ids.add(stripId(i))
-                for (i in suggestions.indices) ids.add(stripId(toolIcons.size + i))
+            if (showStrip && search == null) {
+                if (wotdH() > 0f) ids.add(WOTD_ID)
+                val n = shownTools().size
+                for (i in 0 until n) ids.add(stripId(i))
+                if (suggestionsShown()) for (i in 0 until min(suggestions.size, suggestionSlots())) ids.add(stripId(n + i))
             }
             for ((r, row) in l.rows.withIndex()) for ((c, k) in row.withIndex()) {
                 val emptyVowel = k.kind == KeyKind.VOWEL && vowels.getOrNull(c).isNullOrEmpty()
@@ -779,18 +1244,22 @@ class KeyboardView(context: Context) : View(context) {
 
         override fun onPopulateNodeForVirtualView(id: Int, node: AccessibilityNodeInfoCompat) {
             val b = Rect()
-            if (id >= STRIP_ID) {
+            val top = wotdH().toInt()
+            if (id == WOTD_ID) {
+                node.contentDescription = wordOfDay?.let { "Word of the day: ${it.first}, ${it.second}" } ?: ""
+                b.set(0, 0, width, top)
+            } else if (id >= STRIP_ID) {
                 val i = id - STRIP_ID
-                val cell = dp(40f)
-                if (i < toolIcons.size) {
-                    node.contentDescription = arrayOf("Emoji, GIFs and more", "Voice typing", "Keyboard settings")[i]
-                    b.set((padSide + cell * i).toInt(), 0, (padSide + cell * (i + 1)).toInt(), stripH.toInt())
+                val shown = shownTools()
+                if (i < shown.size) {
+                    node.contentDescription = if (shown[i] == TOOL_MORE) "Show toolbar" else Tools.spoken(shown[i])
+                    b.set((padSide + toolCell * i).toInt(), top, (padSide + toolCell * (i + 1)).toInt(), top + stripH.toInt())
                 } else {
-                    val tools = padSide + cell * toolIcons.size
-                    val each = (width - padSide - tools) / 3f
-                    val k = i - toolIcons.size
+                    val end = toolsEnd()
+                    val each = (width - padSide - end) / suggestionSlots()
+                    val k = i - shown.size
                     node.contentDescription = "Suggestion: " + suggestions.getOrElse(k) { "" }
-                    b.set((tools + each * k).toInt(), 0, (tools + each * (k + 1)).toInt(), stripH.toInt())
+                    b.set((end + each * k).toInt(), top, (end + each * (k + 1)).toInt(), top + stripH.toInt())
                 }
             } else {
                 val l = layout
@@ -808,10 +1277,14 @@ class KeyboardView(context: Context) : View(context) {
         override fun onPerformActionForVirtualView(id: Int, action: Int, args: Bundle?): Boolean {
             if (action != AccessibilityNodeInfo.ACTION_CLICK) return false
             val l = layout ?: return false
-            if (id >= STRIP_ID) {
+            if (id == WOTD_ID) {
+                wordOfDay?.let { listener?.onSuggestion(it.first) }
+            } else if (id >= STRIP_ID) {
                 val i = id - STRIP_ID
-                if (i < toolIcons.size) listener?.onToolbar(i)
-                else suggestions.getOrNull(i - toolIcons.size)?.let { listener?.onSuggestion(it) }
+                val shown = shownTools()
+                if (i < shown.size) {
+                    if (shown[i] == TOOL_MORE) { toolsOpen = true; invalidateCache() } else listener?.onToolbar(shown[i])
+                } else suggestions.getOrNull(i - shown.size)?.let { listener?.onSuggestion(it) }
             } else {
                 val r = id / 100
                 val c = id % 100
@@ -841,6 +1314,9 @@ class KeyboardView(context: Context) : View(context) {
         KeyKind.PAD_ABC -> if (key.label == "123") "Number pad" else "Letters"
         KeyKind.PHONETIC -> if (key.label == "ABC") "Phonetic Amharic" else "Fidel board"
         KeyKind.VOWEL -> vowels.getOrNull(col).orEmpty()
+        KeyKind.CURSOR -> when (key.output) {
+            "home" -> "Start of line"; "end" -> "End of line"; else -> "Cursor ${key.output}"
+        }
         KeyKind.SPACER -> ""
     }
 
@@ -858,11 +1334,11 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     private companion object {
-        const val LONG_PRESS_MS = 330L
         const val REPEAT_FIRST_MS = 380L
         const val REPEAT_START_MS = 70L
         const val REPEAT_MIN_MS = 28L
         const val STRIP_ID = 10000
+        const val WOTD_ID = 9999
         const val A11Y_TOUCH = -1000
     }
 }

@@ -32,6 +32,7 @@
         <activity android:name=".HomeActivity" android:exported="false" />
         <activity android:name=".ThemesActivity" android:exported="false" />
         <activity android:name=".SettingsActivity" android:exported="false" />
+        <activity android:name=".ThemeEditorActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".VoiceActivity"

@@ -46,6 +46,31 @@ object Net {
 
     private fun base(server: String) = server.trim().trimEnd('/')
 
+    /** The AkAI website on Vercel: where releases are published. */
+    const val SITE = "https://ak-ai-opal.vercel.app"
+
+    class Release(val code: Long, val name: String, val url: String, val notes: String)
+
+    /**
+     * The newest build the website offers, from its app-version.json
+     * (public/app-version.json in the web app). Null when it can't be read.
+     */
+    fun latestRelease(server: String = SITE, done: (Release?) -> Unit) = background {
+        val r = request("${base(server)}/app-version.json")
+        val release = try {
+            if (r == null || r.code !in 200..299) null else {
+                val o = JSONObject(String(r.body))
+                val url = o.optString("url", "/AkAI-keyboard.apk")
+                Release(
+                    o.getLong("versionCode"), o.optString("versionName"),
+                    if (url.startsWith("http")) url else base(server) + "/" + url.trimStart('/'),
+                    o.optString("notes"),
+                )
+            }
+        } catch (e: Exception) { null }
+        ui { done(release) }
+    }
+
     /** Handwriting recognition on the AkAI server. Answers with candidates, or null. */
     fun recognize(server: String, dataUrl: String, amharic: Boolean, done: (List<String>?) -> Unit) = background {
         val body = JSONObject().put("image", dataUrl).put("language", if (amharic) "amharic" else "english").toString()

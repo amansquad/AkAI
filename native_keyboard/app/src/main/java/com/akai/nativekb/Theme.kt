@@ -19,8 +19,8 @@ class Palette(
     val accentMuted: Int, val glow: Int,
     val def: PaletteDef,
 ) {
-    /** The accent key's label colour (the Flutter keyboard always uses white). */
-    val accentText: Int = 0xFFFFFFFF.toInt()
+    /** The accent key's label colour: white, as in the Flutter keyboard, unless the key is very light. */
+    val accentText: Int = if (ColorUtils.calculateLuminance(keyAccent) > 0.7) 0xFF111111.toInt() else 0xFFFFFFFF.toInt()
     val hint: Int get() = specialText
     val popup: Int get() = surfaceVariant
 
@@ -32,7 +32,8 @@ class Palette(
 object Themes {
     const val DEFAULT = "obsidian"
 
-    val all: List<PaletteDef> get() = ThemeData.all
+    /** The person's own themes first, then the Flutter app's, then the extra solids. */
+    val all: List<PaletteDef> get() = CustomThemes.defs + ThemeData.all + SolidThemes.all
 
     /** Old ids from before the Flutter themes were brought over. */
     private fun migrate(id: String) = when (id) {
@@ -51,16 +52,30 @@ object Themes {
     private val base = 0xFF0B0B12.toInt()
     private fun solid(c: Int): Int = ColorUtils.compositeColors(c, base)
     private fun keep(c: Int, bg: Int, live: Boolean): Int = if (live) c else ColorUtils.compositeColors(c, bg)
+    /**
+     * The cultural themes with a scene of their own were designed with solid
+     * keys; at about 80% the scene shows through them while letters stay clear.
+     */
+    private fun seeThrough(c: Int): Int = ColorUtils.setAlphaComponent(c, minOf(android.graphics.Color.alpha(c), 0xCC))
 
-    fun palette(@Suppress("UNUSED_PARAMETER") context: Context, id: String): Palette {
-        val d = find(id)
+    fun palette(context: Context, id: String): Palette {
+        CustomThemes.refresh(context)
+        return palette(find(id))
+    }
+
+    /** The colours for a theme that need not be saved yet (the theme editor's preview). */
+    fun palette(d: PaletteDef): Palette {
         val bg = solid(d.background)
         val live = d.live.isNotEmpty()
+        // Themes whose scene or picture was hidden behind solid keys: the cultural
+        // and faith scenes, the pictures, and every football club's stage.
+        val scene = CulturalScenes.has(d.live) || Backdrops.isPicture(d.live) || d.category == "football" || d.category == "faith"
+        fun k(c: Int) = if (scene) seeThrough(c) else keep(c, bg, live)
         return Palette(
             background = bg, surface = solid(d.surface), surfaceVariant = solid(d.surfaceVariant),
             // A live theme's keys stay translucent so its animation shows through them.
-            key = keep(d.key, bg, live), pressed = keep(d.keyPressed, bg, live),
-            special = keep(d.keySecondary, bg, live),
+            key = k(d.key), pressed = keep(d.keyPressed, bg, live),
+            special = k(d.keySecondary),
             specialPressed = keep(d.keySecondaryPressed, bg, live),
             keyAccent = d.keyAccent, accentPressed = d.keyAccentPressed, accent = d.accent,
             text = d.keyText, specialText = d.keySecondaryText,

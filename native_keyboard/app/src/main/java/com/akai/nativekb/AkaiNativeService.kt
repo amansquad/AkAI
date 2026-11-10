@@ -1,6 +1,7 @@
 package com.akai.nativekb
 
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -52,6 +53,17 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     private var lastSpaceAt = 0L
     private var lastShiftAt = 0L
 
+    /** Emoji search: the query being typed into the strip, or null when not searching. */
+    private var emojiQuery: String? = null
+    /** Other readings of the last swipe, offered in the strip until the next key. */
+    private var glideAlts: List<String> = emptyList()
+    /** The last auto-correction (typed, fixed, separator), so backspace can undo it. */
+    private var lastCorrection: Triple<String, String, String>? = null
+    /** Words the user un-corrected; left alone from then on. */
+    private val keepAsTyped = HashSet<String>()
+    /** Punctuation was just typed; a space goes in before the next letter. */
+    private var spaceBeforeNextLetter = false
+
     // ─── Settings (see MainActivity) ─────────────────────────────────────
     private var hapticLevel = 3 // 0 is off
     private var sound = false
@@ -74,6 +86,21 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     private var skinTone = 0
     private var serverUrl = ""
     private var giphyKey = ""
+    private var oneHandWidth = 80
+    private var longPressMs = 330
+    private var keyGap = 5
+    private var keyRadius = 8
+    private var labelSize = 100
+    private var keyWeight = 400
+    private var keyBorders = false
+    private var autoSpace = false
+    private var soundVolume = 60
+    private var cursorRow = false
+    private var langKey = LangKey.SYMBOLS
+    private var tools = Tools.parse(Tools.DEFAULT)
+    private var wordOfDayOn = true
+    private var autoCorrect = true
+    private var glide = true
 
     private var vibrator: Vibrator? = null
     private var audio: AudioManager? = null
@@ -97,6 +124,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         }
         clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         clipboard?.addPrimaryClipChangedListener(clipListener)
+        Words.load(this)
     }
 
     override fun onDestroy() {
@@ -136,6 +164,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     private fun loadPrefs() {
         val p = getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
+        CustomThemes.refresh(this)
         hapticLevel = p.getInt(Prefs.HAPTIC, 3)
         sound = p.getBoolean(Prefs.SOUND, false)
         amharic = p.getBoolean(Prefs.AMHARIC, false)
@@ -160,6 +189,21 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         skinTone = p.getInt(Prefs.SKIN_TONE, 0)
         serverUrl = p.getString(Prefs.SERVER_URL, "") ?: ""
         giphyKey = p.getString(Prefs.GIPHY_KEY, "") ?: ""
+        oneHandWidth = p.getInt(Prefs.ONE_HAND_WIDTH, 80)
+        longPressMs = p.getInt(Prefs.LONG_PRESS_MS, 330)
+        keyGap = p.getInt(Prefs.KEY_GAP, 5)
+        keyRadius = p.getInt(Prefs.KEY_RADIUS, 8)
+        labelSize = p.getInt(Prefs.LABEL_SIZE, 100)
+        keyWeight = p.getInt(Prefs.KEY_WEIGHT, 400)
+        keyBorders = p.getBoolean(Prefs.KEY_BORDERS, false)
+        autoSpace = p.getBoolean(Prefs.AUTO_SPACE, false)
+        soundVolume = p.getInt(Prefs.SOUND_VOLUME, 60)
+        cursorRow = p.getBoolean(Prefs.CURSOR_ROW, false)
+        langKey = LangKey.parse(p.getString(Prefs.LANG_KEY, LangKey.SYMBOLS))
+        tools = Tools.parse(p.getString(Prefs.TOOLBAR, Tools.DEFAULT) ?: Tools.DEFAULT)
+        wordOfDayOn = p.getBoolean(Prefs.WORD_OF_DAY, true)
+        autoCorrect = p.getBoolean(Prefs.AUTOCORRECT, true)
+        glide = p.getBoolean(Prefs.GLIDE, true)
         if (pinned.isEmpty()) {
             try {
                 val a = org.json.JSONArray(p.getString(Prefs.PINNED, "[]"))
@@ -178,11 +222,17 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
             panel.giphyKey = giphyKey
             panel.skinTone = skinTone
             panel.themeId = Themes.find(theme).id
-            keys.applySettings(theme, heightPercent, hints, oneHand, pressAnim, longPress, liveBg)
+            keys.applySettings(look())
+            keys.setTools(tools)
             panel.applyTheme(theme)
             container.setBackgroundColor(Themes.palette(this, theme).background)
         }
     }
+
+    private fun look() = KeyLook(
+        theme, heightPercent, hints, oneHand, oneHandWidth, pressAnim, longPress, liveBg,
+        longPressMs, keyGap, keyRadius, labelSize, keyWeight, keyBorders, glide,
+    )
 
     private fun savePref(block: android.content.SharedPreferences.Editor.() -> Unit) {
         getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE).edit().apply(block).apply()
@@ -195,6 +245,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         padDismissed = false
         symbols = false
         translit = Translit.EMPTY
+        emojiQuery = null
+        glideAlts = emptyList()
+        lastCorrection = null
+        spaceBeforeNextLetter = false
         closePanel(animate = false)
         loadPrefs()
         refreshLayout()
@@ -238,8 +292,11 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     private fun refreshLayout() {
         if (!::keys.isInitialized) return
-        val showAmharic = amharic && !plainField && !digitField
+        val searching = emojiQuery != null
+        // Emoji names are English, so searching always uses the English letters.
+        val showAmharic = amharic && !plainField && !digitField && !searching
         val id = when {
+            searching -> LayoutId.LETTERS
             digitField && !padDismissed -> when (field) {
                 FieldKind.PHONE -> LayoutId.PHONE
                 FieldKind.DATETIME -> LayoutId.DATETIME
@@ -252,10 +309,19 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         layoutId = id
         val options = LayoutOptions(
             enterLabel(), numberRow, backToPad = digitField && padDismissed,
-            englishLayout = englishLayout, amharicLayout = amharicLayout,
+            englishLayout = englishLayout, amharicLayout = amharicLayout, cursorRow = cursorRow && !searching,
+            langKey = langKey,
         )
         val layout = Layouts.build(id, showAmharic, options)
+        // The toolbar's language button, on the boards that have a language key.
+        val letterBoard = id == LayoutId.LETTERS || id == LayoutId.PHONETIC || id == LayoutId.FIDEL
+        keys.setLanguageTool(if (langKey == LangKey.TOOLBAR && letterBoard && !searching) (if (id == LayoutId.LETTERS) "አማ" else "EN") else null)
+        keys.spaceSwitch = langKey == LangKey.SPACE
         keys.setVowels(emptyList())
+        keys.setSearch(emojiQuery, searchResults())
+        // Its own row above the toolbar, the same whether or not you have typed,
+        // so the keyboard never changes height mid-sentence.
+        keys.setWordOfDay(if (wordOfDayOn && !plainField && !layout.isPad) wordOfDay() else null)
         keys.setLayout(layout, strip = !layout.isPad)
         scheduleSuggestions()
     }
@@ -275,7 +341,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     /** Capital at the start of a sentence, as the field asks for. */
     private fun updateAutoCaps() {
-        if (!::keys.isInitialized || plainField || !autoCap) return
+        if (!::keys.isInitialized || plainField || !autoCap || emojiQuery != null) return
         if (keys.shiftState == 2) return // caps lock stays
         // Capitals mean something in phonetic typing (T is ጠ), so never add them.
         if (amharic) { keys.shiftState = 0; return }
@@ -294,10 +360,18 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
             keys.setSuggestions(emptyList())
             return@Runnable
         }
+        if (glideAlts.isNotEmpty()) { keys.setSuggestions(glideAlts); return@Runnable }
         val before = currentInputConnection?.getTextBeforeCursor(40, 0)
         keys.setSuggestions(
-            if (before == null) emptyList() else Suggest.forText(before, amharic, if (learnOn) learned else emptyMap()),
+            if (before == null) emptyList()
+            else Suggest.forText(before, amharic, if (learnOn) learned else emptyMap(), if (amharic) null else Words.en),
         )
+    }
+
+    private fun wordOfDay(): Pair<String, String>? {
+        val list = if (amharic) KeyboardData.wordOfTheDayAm else KeyboardData.wordOfTheDayEn
+        if (list.isEmpty()) return null
+        return list[java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH) % list.size]
     }
 
     /** Remembers the word just finished, so it can be suggested next time. */
@@ -356,7 +430,11 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         ic.commitText("$out ", 1)
         ic.endBatchEdit()
         translit = Translit.EMPTY
+        glideAlts = emptyList()
+        lastCorrection = null
+        spaceBeforeNextLetter = false
         keys.setVowels(emptyList())
+        if (keys.shiftState == 1) keys.shiftState = 0
     }
 
     // ─── Keys ────────────────────────────────────────────────────────────
@@ -365,6 +443,17 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     override fun onText(text: String) {
         val ic = currentInputConnection ?: return
+        if (emojiQuery != null) { typeIntoSearch(text); return }
+        glideAlts = emptyList()
+        lastCorrection = null
+        val c = text.singleOrNull()
+        val sentenceEnd = text == "." || text == "!" || text == "?" || text == "።"
+        // Punctuation ends a word, so it may need correcting first.
+        if (c != null && c in ".,!?;:" ) correctWordBefore("")
+        if (spaceBeforeNextLetter) {
+            spaceBeforeNextLetter = false
+            if (c != null && c.isLetter()) ic.commitText(" ", 1)
+        }
         if (phoneticActive && text.length == 1) {
             applyTranslit(Translit.press(translit, text[0]))
         } else {
@@ -378,7 +467,52 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         }
         // Asking the app about the cursor costs a round trip, so only do it
         // where a new sentence could have started.
-        if (text == "." || text == "!" || text == "?" || text == "።") updateAutoCaps()
+        if (sentenceEnd) updateAutoCaps()
+        // Auto-space after punctuation: the space waits for the next letter, so
+        // "3.5", "..." and a following space or newline come out right.
+        if (autoSpace && !plainField && !digitField && c != null && (c in ".!?;:" || text == "።" || text == "፣")) {
+            spaceBeforeNextLetter = true
+            if (sentenceEnd && autoCap && !amharic && keys.shiftState == 0) keys.shiftState = 1
+        }
+    }
+
+    // ─── Auto-correct ────────────────────────────────────────────────────
+
+    private val correcting get() = autoCorrect && !amharic && !plainField && !digitField && layoutId == LayoutId.LETTERS
+
+    /** Fixes the word just before the cursor, before [separator] is typed after it. */
+    private fun correctWordBefore(separator: String) {
+        if (!correcting) return
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(48, 0)?.toString() ?: return
+        var i = before.length
+        while (i > 0 && (before[i - 1].isLetter() || before[i - 1] == '\'')) i--
+        val typed = before.substring(i)
+        if (typed.isEmpty() || typed.lowercase() in keepAsTyped) return
+        // Part of a longer token such as an address or a number: leave it.
+        if (i > 0 && (before[i - 1].isLetterOrDigit() || before[i - 1] in "@/_.-#")) return
+        val fix = AutoCorrect.correct(typed, Words.en, if (learnOn) learned else emptyMap()) ?: return
+        if (fix == typed) return
+        ic.beginBatchEdit()
+        ic.deleteSurroundingText(typed.length, 0)
+        ic.commitText(fix, 1)
+        ic.endBatchEdit()
+        lastCorrection = Triple(typed, fix, separator)
+    }
+
+    /** Backspace straight after a correction puts back what was typed. */
+    private fun undoCorrection(): Boolean {
+        val (typed, fix, sep) = lastCorrection ?: return false
+        lastCorrection = null
+        val ic = currentInputConnection ?: return false
+        val before = ic.getTextBeforeCursor(fix.length + sep.length, 0)?.toString() ?: return false
+        if (before != fix + sep) return false
+        ic.beginBatchEdit()
+        ic.deleteSurroundingText(before.length, 0)
+        ic.commitText(typed, 1)
+        ic.endBatchEdit()
+        keepAsTyped.add(typed.lowercase())
+        return true
     }
 
     private fun applyTranslit(step: Translit.Step) {
@@ -411,6 +545,14 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     override fun onBackspace() {
         val ic = currentInputConnection ?: return
+        if (emojiQuery != null) {
+            emojiQuery = emojiQuery!!.dropLast(1)
+            keys.setSearch(emojiQuery, searchResults())
+            return
+        }
+        glideAlts = emptyList()
+        spaceBeforeNextLetter = false
+        if (undoCorrection()) return
         if (phoneticActive) {
             val step = Translit.backspace(translit)
             if (step != null) { applyTranslit(step); return }
@@ -422,6 +564,18 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     override fun onSpace() {
         val ic = currentInputConnection ?: return
+        if (emojiQuery != null) { typeIntoSearch(" "); return }
+        glideAlts = emptyList()
+        // The space is typed here instead of waiting for a letter.
+        if (spaceBeforeNextLetter) {
+            spaceBeforeNextLetter = false
+            ic.commitText(" ", 1)
+            lastSpaceAt = 0L
+            updateAutoCaps()
+            return
+        }
+        lastCorrection = null
+        correctWordBefore(" ")
         learnWordBefore()
         translit = Translit.EMPTY
         keys.setVowels(emptyList())
@@ -434,6 +588,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
                 ic.deleteSurroundingText(1, 0)
                 ic.commitText(if (amharic) "። " else ". ", 1)
                 lastSpaceAt = 0L
+                lastCorrection = null
                 updateAutoCaps()
                 return
             }
@@ -444,6 +599,11 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     }
 
     override fun onEnter() {
+        if (emojiQuery != null) { onSearchClose(); return }
+        glideAlts = emptyList()
+        spaceBeforeNextLetter = false
+        correctWordBefore("")
+        lastCorrection = null
         learnWordBefore()
         translit = Translit.EMPTY
         keys.setVowels(emptyList())
@@ -469,12 +629,14 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     }
 
     override fun onSymbols() {
+        if (emojiQuery != null) return
         symbols = !symbols
         translit = Translit.EMPTY
         refreshLayout()
     }
 
     override fun onLanguage() {
+        if (emojiQuery != null) emojiQuery = null
         amharic = !amharic
         symbols = false
         translit = Translit.EMPTY
@@ -484,7 +646,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         if (!amharic) updateAutoCaps()
     }
 
+    /** Holding the language key: flip Amharic between fidel and phonetic (going to Amharic if needed). */
     override fun onPhonetic() {
+        if (emojiQuery != null) emojiQuery = null
+        if (!amharic) { amharic = true; symbols = false; keys.shiftState = 0; savePref { putBoolean(Prefs.AMHARIC, true) } }
         phonetic = !phonetic
         translit = Translit.EMPTY
         savePref { putBoolean(Prefs.PHONETIC, phonetic) }
@@ -499,15 +664,110 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     override fun onCursorMove(delta: Int) {
         translit = Translit.EMPTY
+        glideAlts = emptyList()
+        lastCorrection = null
+        spaceBeforeNextLetter = false
         sendDownUpKeyEvents(if (delta < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT)
         onKeyFeedback()
+    }
+
+    override fun onCursorKey(dir: String) {
+        translit = Translit.EMPTY
+        glideAlts = emptyList()
+        lastCorrection = null
+        spaceBeforeNextLetter = false
+        keys.setVowels(emptyList())
+        sendDownUpKeyEvents(when (dir) {
+            "home" -> KeyEvent.KEYCODE_MOVE_HOME
+            "end" -> KeyEvent.KEYCODE_MOVE_END
+            "up" -> KeyEvent.KEYCODE_DPAD_UP
+            "down" -> KeyEvent.KEYCODE_DPAD_DOWN
+            "left" -> KeyEvent.KEYCODE_DPAD_LEFT
+            else -> KeyEvent.KEYCODE_DPAD_RIGHT
+        })
+    }
+
+    // ─── Swipe typing ────────────────────────────────────────────────────
+
+    /** The touch that started the swipe typed a letter on landing; take it back. */
+    override fun onGlideStart() {
+        currentInputConnection?.deleteSurroundingTextInCodePoints(1, 0)
+    }
+
+    override fun onGlide(xs: FloatArray, ys: FloatArray, keys: Map<Char, FloatArray>, keyW: Float, shifted: Boolean) {
+        val ic = currentInputConnection ?: return
+        val words = Glide.decode(xs, ys, keys, keyW, Words.en, if (learnOn) learned else emptyMap())
+        if (words.isEmpty()) { onKeyFeedback(); return }
+        val caps = shifted || this.keys.shiftState > 0
+        fun shape(w: String) = when {
+            w == "i" || w.startsWith("i'") -> "I" + w.drop(1)
+            this.keys.shiftState == 2 -> w.uppercase()
+            caps -> w.replaceFirstChar { it.uppercase() }
+            else -> w
+        }
+        // A swiped word is its own word: it gets a space before it unless one is there.
+        val prev = ic.getTextBeforeCursor(1, 0)
+        val space = !prev.isNullOrEmpty() && !prev[0].isWhitespace() && prev[0] !in "([{\"'/@#-"
+        ic.commitText((if (space) " " else "") + shape(words[0]), 1)
+        translit = Translit.EMPTY
+        lastCorrection = null
+        spaceBeforeNextLetter = false
+        if (this.keys.shiftState == 1) this.keys.shiftState = 0
+        glideAlts = words.drop(1).map { shape(it) }
+        scheduleSuggestions()
+        onKeyFeedback()
+    }
+
+    // ─── Emoji search ────────────────────────────────────────────────────
+
+    private fun searchResults(): List<String> {
+        val q = emojiQuery ?: return emptyList()
+        val found = if (q.isBlank()) recents.ifEmpty { listOf("😂", "❤️", "😍", "🙏", "👍", "😊", "🔥", "😭", "🥰", "🇪🇹") } else EmojiSearch.search(q)
+        return found.map { EmojiData.withTone(it, skinTone) }
+    }
+
+    private fun typeIntoSearch(text: String) {
+        val q = emojiQuery ?: return
+        val c = text.singleOrNull() ?: return
+        if (!c.isLetterOrDigit() && c != ' ' && c != '\'') return
+        if (c == ' ' && (q.isEmpty() || q.endsWith(' '))) return
+        emojiQuery = (q + c.lowercaseChar()).take(40)
+        keys.shiftState = 0
+        keys.setSearch(emojiQuery, searchResults())
+    }
+
+    override fun onPanelEmojiSearch() {
+        closePanel()
+        emojiQuery = ""
+        symbols = false
+        keys.shiftState = 0
+        refreshLayout()
+    }
+
+    override fun onSearchPick(emoji: String) {
+        currentInputConnection?.commitText(emoji, 1)
+        recents = (listOf(emoji) + recents.filter { it != emoji }).take(24)
+        savePref { putString(Prefs.RECENTS, recents.joinToString(" ")) }
+    }
+
+    override fun onSearchClose() {
+        emojiQuery = null
+        refreshLayout()
+        updateAutoCaps()
     }
 
     // ─── Toolbar, panels, clipboard, voice ───────────────────────────────
 
     override fun onToolbar(action: Int) {
         when (action) {
+            TOOL_LANGUAGE -> onLanguage()
             TOOL_EMOJI -> showPanel(PanelView.Tab.EMOJI)
+            TOOL_STICKERS -> showPanel(PanelView.Tab.STICKERS)
+            TOOL_GIF -> showPanel(PanelView.Tab.GIF)
+            TOOL_CLIPBOARD -> showPanel(PanelView.Tab.CLIPBOARD)
+            TOOL_WRITE -> showPanel(PanelView.Tab.WRITE)
+            TOOL_TRANSLATE -> showPanel(PanelView.Tab.TRANSLATE)
+            TOOL_THEMES -> showPanel(PanelView.Tab.THEMES)
             TOOL_VOICE -> {
                 val tag = if (amharic) "am-ET" else "en-US"
                 startActivity(
@@ -607,7 +867,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     override fun onPanelTheme(id: String) {
         savePref { putString(Prefs.THEME, id) }
         theme = id
-        keys.applySettings(theme, heightPercent, hints, oneHand, pressAnim, longPress, liveBg)
+        keys.applySettings(look())
         panel.applyTheme(theme)
         panel.themeId = id
         container.setBackgroundColor(Themes.palette(this, theme).background)
@@ -646,6 +906,32 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         }
     }
 
+    /**
+     * Sends a sticker as a PNG where the app takes images. A plain text box can't
+     * hold a picture, so there it types the sticker's emoji and caption instead.
+     */
+    override fun onPanelSticker(sticker: Stickers.Sticker) {
+        val ic = currentInputConnection ?: return
+        val editor = info ?: return
+        onKeyFeedback()
+        val accepts = EditorInfoCompat.getContentMimeTypes(editor).any { it == Stickers.MIME || it == "image/*" }
+        val asText = "${sticker.emoji} ${sticker.caption}".trim()
+        if (!accepts) {
+            ic.commitText(asText, 1)
+            Toast.makeText(this, "This app doesn't take stickers here, so it was sent as text", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Stickers.export(this, sticker) { uri ->
+            val live = currentInputConnection ?: return@export
+            if (uri == null) { live.commitText(asText, 1); return@export }
+            val flags = if (Build.VERSION.SDK_INT >= 25) InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION else 0
+            val sent = InputConnectionCompat.commitContent(
+                live, editor, InputContentInfoCompat(uri, ClipDescription(sticker.caption, arrayOf(Stickers.MIME)), null), flags, null,
+            )
+            if (!sent) live.commitText(asText, 1)
+        }
+    }
+
     private fun readClipboard() {
         val clip: ClipData = try { clipboard?.primaryClip } catch (e: Exception) { null } ?: return
         if (clip.itemCount == 0) return
@@ -678,7 +964,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         }
         if (sound) {
             val a = audio ?: (getSystemService(Context.AUDIO_SERVICE) as AudioManager).also { audio = it }
-            a.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, -1f)
+            a.playSoundEffect(AudioManager.FX_KEYPRESS_STANDARD, soundVolume.coerceIn(0, 100) / 100f)
         }
     }
 
@@ -726,4 +1012,22 @@ object Prefs {
     const val PRESS_ANIM = "press_animation"
     const val AUTOCAP = "auto_capitalize"
     const val DOUBLE_SPACE = "double_space_period"
+    const val ONE_HAND_WIDTH = "one_hand_width"
+    const val LONG_PRESS_MS = "long_press_ms"
+    const val KEY_GAP = "key_gap"
+    const val KEY_RADIUS = "key_radius"
+    const val LABEL_SIZE = "label_size"
+    const val KEY_WEIGHT = "key_weight"
+    const val KEY_BORDERS = "key_borders"
+    const val AUTO_SPACE = "auto_space_punctuation"
+    const val SOUND_VOLUME = "sound_volume"
+    const val CURSOR_ROW = "cursor_row"
+    /** Where the language switch lives; see [LangKey]. */
+    const val LANG_KEY = "language_key_position"
+    /** Toolbar buttons, as a comma list of names from [Tools]. */
+    const val TOOLBAR = "toolbar"
+    const val WORD_OF_DAY = "word_of_day"
+    const val AUTOCORRECT = "autocorrect"
+    /** Swipe across the letters to type a word. */
+    const val GLIDE = "glide_typing"
 }
