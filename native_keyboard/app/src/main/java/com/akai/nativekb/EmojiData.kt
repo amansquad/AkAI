@@ -38,8 +38,11 @@ object EmojiData {
 
     /** Every category, without the emoji this phone's font can't draw (they'd show as boxes). */
     val categories: List<Category> by lazy {
-        val p = Paint()
-        raw.map { (icon, name, list) -> Category(icon, name, e(list).filter { p.hasGlyph(it) }) }
+        // Plain JVM unit tests have no font to ask, so there every emoji is kept.
+        val canDraw: (String) -> Boolean = try {
+            val p = Paint(); p.hasGlyph("a"); { p.hasGlyph(it) }
+        } catch (e: RuntimeException) { { true } }
+        raw.map { (icon, name, list) -> Category(icon, name, e(list).filter(canDraw)) }
     }
 
     private val rawNames = listOf(

@@ -183,7 +183,7 @@ class SettingsActivity : ThemedActivity() {
                 .joinToString(", ") { it.second }.ifEmpty { "Settings only" }
         }
         EMOJI -> if (prefs.getString(Prefs.GIPHY_KEY, "").isNullOrBlank()) "Built-in GIFs" else "Giphy key set"
-        AI -> if (server.isEmpty()) "Translation off" else "Server set"
+        AI -> if (server.isEmpty()) "Akai website" else "Your own server"
         SETUP -> if (ImeStatus.enabled(this) && ImeStatus.selected(this)) "Akai is your keyboard" else "Akai isn't your keyboard yet"
         ABOUT -> "Version $versionName"
         else -> ""
@@ -514,8 +514,8 @@ class SettingsActivity : ThemedActivity() {
 
     private fun aiPage(c: LinearLayout) {
         group(c, "Server",
-            field("Akai server address", Prefs.SERVER_URL, "https://your-site.example", false,
-                "Translation runs on the Akai web server; leave blank to turn it off. Handwriting is read on the phone, and uses the server only if that fails."),
+            field("Akai server address", Prefs.SERVER_URL, Net.SITE, false,
+                "Translation runs on the Akai web server. Leave blank to use the Akai website, or enter your own. Handwriting is read on the phone, and uses the server only if that fails."),
         )
     }
 

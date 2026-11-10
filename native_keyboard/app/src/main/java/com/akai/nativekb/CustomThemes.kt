@@ -11,8 +11,13 @@ import org.json.JSONObject
  * The in-between shades (pressed keys, surfaces, glow) are mixed from those.
  */
 object ThemeMaker {
-    private fun mix(a: Int, b: Int, t: Float) = ColorUtils.blendARGB(a, b, t)
-    private fun opaque(c: Int) = ColorUtils.setAlphaComponent(c, 0xFF)
+    // Plain arithmetic rather than ColorUtils, so themes build in JVM unit tests too.
+    private fun mix(a: Int, b: Int, t: Float): Int {
+        fun ch(shift: Int) = Math.round(((a ushr shift) and 0xFF) * (1 - t) + ((b ushr shift) and 0xFF) * t)
+        return (ch(24) shl 24) or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
+    }
+    private fun withAlpha(c: Int, alpha: Int) = (c and 0x00FFFFFF) or (alpha shl 24)
+    private fun opaque(c: Int) = withAlpha(c, 0xFF)
 
     fun def(
         id: String, name: String, emoji: String, category: String, live: String,
@@ -21,7 +26,7 @@ object ThemeMaker {
         val bg = opaque(background); val k = opaque(key); val s = opaque(special)
         val a = opaque(accent); val t = opaque(text)
         // With an animation behind it, the keys let some of it show through.
-        fun keyAlpha(c: Int) = if (live.isEmpty()) c else ColorUtils.setAlphaComponent(c, 0xB8)
+        fun keyAlpha(c: Int) = if (live.isEmpty()) c else withAlpha(c, 0xB8)
         return PaletteDef(
             id, name, emoji, category, live,
             background = bg,

@@ -63,18 +63,21 @@ your strokes stay on the phone. If that fails and a server address is set, it
 falls back to the AkAI web server.
 
 Translation runs on the AkAI web server (`/api/translate`, which uses OpenAI),
-because ML Kit's on-device translation has no Amharic. Enter the server's
-address in settings; with it blank the tab says so and does nothing. Nothing is
-sent anywhere until you use it.
+because ML Kit's on-device translation has no Amharic. It uses the AkAI website
+(`Net.SITE`) unless another server address is entered in settings; the site
+needs `OPENAI_API_KEY` set in Vercel. Nothing is sent anywhere until you use it.
 
 ## Updates
 Settings → Help → Check for updates reads `app-version.json` from the Vercel
 site, `https://ak-ai-opal.vercel.app` (`Net.SITE`; it's the web app's
 `public/app-version.json`), whatever server address is set. If its
 `versionCode` is higher than the installed one, the app offers to download `url`
-(by default `/AkAI-keyboard.apk`). To ship a release: raise `versionCode`/`versionName` in
-`app/build.gradle`, replace `public/AkAI-keyboard.apk`, and set the same
-numbers (plus optional `notes`) in `public/app-version.json`.
+(by default `/AkAI-keyboard.apk`). The website's download is this keyboard.
+To ship a release: raise `versionCode`/`versionName` in `app/build.gradle`,
+build the signed release, copy it over `public/AkAI-keyboard.apk`, then from the
+repository root run `npm run apk:info`. That writes `public/app-version.json`
+and the download button's version and size from the same numbers (add `notes`
+to `app-version.json` by hand if you want them).
 
 ## Theme pictures
 Eight cultural themes (the region flags, Southern Ethiopia, Addis Ababa, the
@@ -154,7 +157,9 @@ it, create `keystore.properties` next to `settings.gradle` (git-ignored):
     keyAlias=...
     keyPassword=...
 
-Without that file the release APK is left unsigned.
+Without that file the release APK is left unsigned. Every update must be
+signed with the same key, or phones refuse to install it over the old one, so
+keep a backup of the keystore and its passwords.
 
 ## Tests
 
