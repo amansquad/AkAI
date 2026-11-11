@@ -50,6 +50,7 @@ class ThemeEditorPreview(context: Context) : View(context) {
             canvas.save()
             canvas.clipRect(0f, 0f, w, h)
             canvas.scale(d, d)
+            FootballScene.attach(context)
             LiveScenes.paint(canvas, w / d, h / d, ((System.currentTimeMillis() - start) % 600_000L) / 5000f, p.def.live)
             canvas.restore()
             postInvalidateOnAnimation()
