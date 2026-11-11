@@ -325,9 +325,12 @@ function Sheet() {
         </Stamp>
         <Stamp className="md:col-span-8" bg="var(--red)" fg="#fff" cap="Privacy" val={<ShieldCheck size={46} aria-hidden="true" />} mark="Sealed">
           <h3 className="land-display" style={{ ...h, fontSize: 'clamp(2rem, 5vw, 3.8rem)' }}>
-            On-device. No keylogging. No data collection.
+            Your typing stays on your phone.
           </h3>
-          <p style={p}>What you type is yours. That is a rule of the keyboard, not a feature on a list.</p>
+          <p style={p}>
+            No keylogging, no accounts, no ads, no tracking. Translation, GIF search and voice send only what you give
+            them, only when you use them. <a href="/privacy" style={{ color: 'inherit' }}>Read exactly what goes where.</a>
+          </p>
         </Stamp>
         <Stamp className="md:col-span-4" bg="var(--ink)" fg="var(--on-ink)" cap="Stickers · GIFs" val={<Smile size={46} aria-hidden="true" />} mark="Expression">
           <h3 className="land-display" style={h}>Say it with a sticker</h3>
