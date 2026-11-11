@@ -44,6 +44,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     private var amharic = false
     private var phonetic = false
     private var symbols = false
+    /** On the symbols board, whether the second page (=\<) is showing. */
+    private var symbolsPage2 = false
     private var padDismissed = false
     private var field = FieldKind.TEXT
     private var info: EditorInfo? = null
@@ -87,7 +89,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     private var serverUrl = ""
     private var giphyKey = ""
     private var oneHandWidth = 80
-    private var longPressMs = 330
+    private var longPressMs = 250
     private var keyGap = 5
     private var keyRadius = 8
     private var labelSize = 100
@@ -191,7 +193,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         serverUrl = (p.getString(Prefs.SERVER_URL, "") ?: "").trim().ifBlank { Net.SITE }
         giphyKey = p.getString(Prefs.GIPHY_KEY, "") ?: ""
         oneHandWidth = p.getInt(Prefs.ONE_HAND_WIDTH, 80)
-        longPressMs = p.getInt(Prefs.LONG_PRESS_MS, 330)
+        longPressMs = p.getInt(Prefs.LONG_PRESS_MS, 250)
         keyGap = p.getInt(Prefs.KEY_GAP, 5)
         keyRadius = p.getInt(Prefs.KEY_RADIUS, 8)
         labelSize = p.getInt(Prefs.LABEL_SIZE, 100)
@@ -303,7 +305,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
                 FieldKind.DATETIME -> LayoutId.DATETIME
                 else -> LayoutId.NUMBER
             }
-            symbols -> LayoutId.SYMBOLS
+            symbols -> if (symbolsPage2) LayoutId.SYMBOLS2 else LayoutId.SYMBOLS
             showAmharic -> if (phonetic) LayoutId.PHONETIC else LayoutId.FIDEL
             else -> LayoutId.LETTERS
         }
@@ -313,7 +315,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
             englishLayout = englishLayout, amharicLayout = amharicLayout, cursorRow = cursorRow && !searching,
             langKey = langKey,
         )
-        val layout = Layouts.build(id, showAmharic, options)
+        val layout = Layouts.build(id, showAmharic, options, if (phonetic) LayoutId.PHONETIC else LayoutId.FIDEL)
         // The toolbar's language button, on the boards that have a language key.
         val letterBoard = id == LayoutId.LETTERS || id == LayoutId.PHONETIC || id == LayoutId.FIDEL
         keys.setLanguageTool(if (langKey == LangKey.TOOLBAR && letterBoard && !searching) (if (id == LayoutId.LETTERS) "አማ" else "EN") else null)
@@ -463,6 +465,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         }
         if (keys.shiftState == 1) keys.shiftState = 0
 
+        // A consonant just typed: the next vowel-row tap turns it into that form.
+        vowelChanges = layoutId == LayoutId.FIDEL && KeyboardData.amharicVowels.containsKey(text)
         if (layoutId == LayoutId.FIDEL) {
             keys.setVowels(KeyboardData.amharicVowels[text].orEmpty())
         }
@@ -525,10 +529,32 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         translit = step.next
     }
 
-    override fun onVowel(vowel: String) = replaceLast(vowel)
+    /**
+     * True straight after a consonant key. The first vowel-row tap then changes
+     * that letter (ለ → ሉ); every tap after it types a new one, so tapping ሉ
+     * twice gives ሉሉ without going back to ለ.
+     */
+    private var vowelChanges = false
+
+    override fun onVowel(vowel: String) {
+        val ic = currentInputConnection ?: return
+        val family = keys.vowelForms()
+        val last = ic.getTextBeforeCursor(1, 0)?.toString()
+        // Only change the letter if it is still the one the row belongs to:
+        // after a backspace or a cursor move it may be something else.
+        if (vowelChanges && last != null && last in family) replaceLast(vowel)
+        else {
+            if (spaceBeforeNextLetter) { spaceBeforeNextLetter = false; ic.commitText(" ", 1) }
+            ic.commitText(vowel, 1)
+            translit = Translit.EMPTY
+        }
+        vowelChanges = false
+    }
 
     override fun onReplaceLast(text: String) {
         replaceLast(text)
+        // The form is chosen, so the vowel row types new letters from here.
+        vowelChanges = false
         // Keep the vowel row in step with the consonant the bubble came from.
         val family = KeyboardData.amharicVowels.values.firstOrNull { text in it }
         if (layoutId == LayoutId.FIDEL && family != null) keys.setVowels(family)
@@ -632,7 +658,13 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     override fun onSymbols() {
         if (emojiQuery != null) return
         symbols = !symbols
+        symbolsPage2 = false
         translit = Translit.EMPTY
+        refreshLayout()
+    }
+
+    override fun onSymbolsPage() {
+        symbolsPage2 = !symbolsPage2
         refreshLayout()
     }
 

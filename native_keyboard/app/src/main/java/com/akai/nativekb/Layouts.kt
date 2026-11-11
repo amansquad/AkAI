@@ -8,6 +8,8 @@ enum class KeyKind {
     PHONETIC,
     /** Moves the cursor; [Key.output] names the direction (home, left, up, down, right, end). */
     CURSOR,
+    /** Flips between the two pages of the symbols board. */
+    SYMBOLS_PAGE,
 }
 
 /**
@@ -29,9 +31,18 @@ data class Key(
     val cased: Boolean = false,
 )
 
-enum class LayoutId { LETTERS, PHONETIC, FIDEL, SYMBOLS, NUMBER, PHONE, DATETIME }
+enum class LayoutId { LETTERS, PHONETIC, FIDEL, SYMBOLS, SYMBOLS2, NUMBER, PHONE, DATETIME }
 
-class Layout(val id: LayoutId, val rows: List<List<Key>>, val rowHeightDp: Float) {
+class Layout(
+    val id: LayoutId,
+    val rows: List<List<Key>>,
+    val rowHeightDp: Float,
+    /**
+     * Boards whose height this one shares: it takes the tallest of them, so
+     * switching language or going to ?123 doesn't make the keyboard jump.
+     */
+    val sameHeightAs: List<Layout> = emptyList(),
+) {
     val isPad get() = id == LayoutId.NUMBER || id == LayoutId.PHONE || id == LayoutId.DATETIME
 }
 
@@ -66,6 +77,9 @@ object LangKey {
 }
 
 object Layouts {
+
+    /** Slots in the Amharic vowel row. */
+    const val MAX_VOWELS = 12
 
     private fun ch(c: String, weight: Float = 1f, special: Boolean = false) =
         Key(KeyKind.CHAR, c, weight, special = special)
@@ -168,10 +182,66 @@ object Layouts {
         val rows = l.rows.toMutableList()
         rows.add(rows.size - 1, cursorRow())
         // A fifth or sixth row would make the board too tall, so the rows get a little shorter.
-        return Layout(l.id, rows, l.rowHeightDp * 0.9f)
+        return Layout(l.id, rows, l.rowHeightDp * 0.9f, l.sameHeightAs)
     }
 
-    fun build(id: LayoutId, amharicSymbols: Boolean, o: LayoutOptions): Layout = withCursorRow(buildBase(id, amharicSymbols, o), o)
+    /**
+     * Every typing board (English, the Amharic board in use, both symbol pages)
+     * shares one height: the tallest letter board's. The fidel board has six rows
+     * and the others four, so their keys stretch to fill it (labels stay normal
+     * size). [amharicBoard] is FIDEL or PHONETIC, whichever Amharic is set to.
+     */
+    fun build(id: LayoutId, amharicSymbols: Boolean, o: LayoutOptions, amharicBoard: LayoutId = LayoutId.FIDEL): Layout {
+        val l = withCursorRow(buildBase(id, amharicSymbols, o), o)
+        if (l.isPad) return l
+        val letterBoards = listOf(LayoutId.LETTERS, amharicBoard).map { withCursorRow(buildBase(it, amharicSymbols, o), o) }
+        return Layout(l.id, l.rows, l.rowHeightDp, sameHeightAs = letterBoards)
+    }
+
+    /**
+     * The symbols board. Page 1 has digits and everyday punctuation; its =\< key
+     * opens page 2 with the rarer symbols, whose own key comes back.
+     */
+    private fun symbolsBoard(amharicSymbols: Boolean, o: LayoutOptions, page: Int): Layout {
+        fun syms(s: String) = s.map { sym(it.toString()) }
+        val pageKey = if (page == 1) Key(KeyKind.SYMBOLS_PAGE, "=\\<", 1.5f)
+            else Key(KeyKind.SYMBOLS_PAGE, if (amharicSymbols) "፩፪" else "?123", 1.5f)
+        val top: List<List<Key>> = when {
+            amharicSymbols && page == 1 -> listOf(
+                KeyboardData.ethiopicNumerals.map { sym(it) },
+                KeyboardData.ethiopicPunctuation.map { sym(it) },
+                listOf(pageKey) + listOf("-", "(", ")", "/", "?", "!", ":").map { sym(it) } + backspace(1.5f),
+            )
+            amharicSymbols -> listOf(
+                syms("1234567890"),
+                syms("@#\$%&+=*_~"),
+                listOf(pageKey) + listOf("€", "£", "¥", "\"", "'", ";", "|").map { sym(it) } + backspace(1.5f),
+            )
+            page == 1 -> listOf(
+                syms("1234567890"),
+                syms("@#\$%&-+()/"),
+                listOf(pageKey) + listOf("*", "\"", "'", ":", ";", "!", "?").map { sym(it) } + backspace(1.5f),
+            )
+            else -> listOf(
+                syms("~`|•√π÷×§∆"),
+                syms("£¢€¥^°={}\\"),
+                listOf(pageKey) + listOf("_", "©", "®", "™", "✓", "[", "]").map { sym(it) } + backspace(1.5f),
+            )
+        }
+        return Layout(
+            if (page == 1) LayoutId.SYMBOLS else LayoutId.SYMBOLS2,
+            top + listOf(
+                listOf(
+                    Key(KeyKind.SYMBOLS, if (amharicSymbols) "አማ" else "ABC", 1.5f),
+                    sym(","),
+                    Key(KeyKind.SPACE, if (amharicSymbols) "አማርኛ" else "English", 4.8f),
+                    sym("."),
+                    enter(o.enterLabel, 1.5f),
+                ),
+            ),
+            rowHeightDp = 50f,
+        )
+    }
 
     /**
      * The bottom row of a letter board, with the language key where the user
@@ -226,7 +296,9 @@ object Layouts {
         }
 
         LayoutId.FIDEL -> {
-            val vowelRow = List(8) { Key(KeyKind.VOWEL, "", 1f, special = true) }
+            // Room for the longest family (ቀ, ከ, ገ and ኀ have twelve forms). The view
+            // shares the row among the forms showing, so shorter families get wider keys.
+            val vowelRow = List(MAX_VOWELS) { Key(KeyKind.VOWEL, "", 1f, special = true) }
             val source = if (o.amharicLayout == "frequency") KeyboardData.amharicFrequencyRows else KeyboardData.amharicRows
             val rows = source.map { r ->
                 val keys = r.map { fidel(it) }
@@ -249,42 +321,8 @@ object Layouts {
             )
         }
 
-        LayoutId.SYMBOLS -> {
-            // With the number row on, the letter boards have five rows; an extra symbol row
-            // keeps this board the same height so switching doesn't make it jump.
-            val extraRow = o.numberRow
-            fun syms(s: String) = s.map { sym(it.toString()) }
-            val top = if (amharicSymbols) {
-                listOfNotNull(
-                    KeyboardData.ethiopicNumerals.map { sym(it) },
-                    if (extraRow) syms("1234567890") else null,
-                    KeyboardData.ethiopicPunctuation.map { sym(it) },
-                    listOf(spacer(0.25f)) + listOf("-", "(", ")", "/", "?", "!", ":").map { sym(it) } +
-                        backspace(1.5f),
-                )
-            } else {
-                listOfNotNull(
-                    syms("1234567890"),
-                    syms("@#\$%&-+()/"),
-                    if (extraRow) syms("=_\\|<>{}[]") else null,
-                    listOf(spacer(0.25f)) + listOf("*", "\"", "'", ":", ";", "!", "?", "~").map { sym(it) } +
-                        backspace(1.5f),
-                )
-            }
-            Layout(
-                id,
-                top + listOf(
-                    listOf(
-                        Key(KeyKind.SYMBOLS, if (amharicSymbols) "አማ" else "ABC", 1.5f),
-                        sym(","),
-                        Key(KeyKind.SPACE, if (amharicSymbols) "አማርኛ" else "English", 4.8f),
-                        sym("."),
-                        enter(o.enterLabel, 1.5f),
-                    ),
-                ),
-                rowHeightDp = if (extraRow) 46f else 50f,
-            )
-        }
+        LayoutId.SYMBOLS -> symbolsBoard(amharicSymbols, o, 1)
+        LayoutId.SYMBOLS2 -> symbolsBoard(amharicSymbols, o, 2)
 
         LayoutId.NUMBER, LayoutId.PHONE, LayoutId.DATETIME -> {
             val left = when (id) { LayoutId.PHONE -> "*"; LayoutId.DATETIME -> "/"; else -> "," }
