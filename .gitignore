@@ -47,6 +47,7 @@ local-*
 dev.log
 dev.out.log
 test
+!native_keyboard/app/src/test
 prompt
 
 server.log
