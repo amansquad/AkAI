@@ -459,7 +459,7 @@ class SettingsActivity : ThemedActivity() {
         group(c, "Gestures",
             ui.switchRow("Swipe typing", "Slide across the English letters to type a word", on(Prefs.GLIDE, true)) { put(Prefs.GLIDE, it) },
             *switchWith("Long-press popups", "Hold a key for accents and vowel forms", on(Prefs.LONG_PRESS, true),
-                ui.sliderRow("Long-press delay", 150, 1000, prefs.getInt(Prefs.LONG_PRESS_MS, 330), " ms") { put(Prefs.LONG_PRESS_MS, it) },
+                ui.sliderRow("Long-press delay", 150, 1000, prefs.getInt(Prefs.LONG_PRESS_MS, 250), " ms") { put(Prefs.LONG_PRESS_MS, it) },
             ) { put(Prefs.LONG_PRESS, it) },
             *switchWith("Hold backspace to delete the sentence", "", on(Prefs.HOLD_CLEAR, false),
                 ui.sliderRow("Hold time", 300, 2000, prefs.getInt(Prefs.HOLD_CLEAR_MS, 800), " ms") { put(Prefs.HOLD_CLEAR_MS, it) },

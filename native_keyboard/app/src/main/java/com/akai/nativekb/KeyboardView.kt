@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.Region
 import android.os.Build
@@ -77,7 +78,7 @@ data class KeyLook(
     val pressAnimation: Boolean = true,
     val longPress: Boolean = true,
     val live: Boolean = true,
-    val longPressMs: Int = 330,
+    val longPressMs: Int = 250,
     /** Space between keys, in dp. */
     val gap: Int = 5,
     /** Corner radius, in dp. */
@@ -100,6 +101,8 @@ interface KeyListener {
     fun onSpace()
     fun onShift()
     fun onSymbols()
+    /** The =\< key: the other page of symbols. */
+    fun onSymbolsPage()
     fun onLanguage()
     fun onPadAbc()
     fun onPhonetic()
@@ -139,6 +142,8 @@ class KeyboardView(context: Context) : View(context) {
 
     private val handler = Handler(Looper.getMainLooper())
     private var palette = Themes.palette(context, Themes.DEFAULT)
+    /** How the long-press bubble enters and looks, from the theme. */
+    private val popupStyle get() = PopupStyle.of(palette.def)
 
     private var layout: Layout? = null
     /** Per row, per key: left and right edge in pixels. */
@@ -146,6 +151,8 @@ class KeyboardView(context: Context) : View(context) {
     private var rights: Array<FloatArray> = emptyArray()
     private var rowTop: FloatArray = FloatArray(0)
     private var rowH = 0f
+    /** Row height that labels are sized from: a stretched row keeps normal-size letters. */
+    private var labelH = 0f
     private var areaLeft = 0f
     private var areaRight = 0f
 
@@ -161,7 +168,7 @@ class KeyboardView(context: Context) : View(context) {
     private var pressAnim = true
     private var liveOn = true
     private var longPressOn = true
-    private var longPressMs = 330L
+    private var longPressMs = 250L
     private var labelScale = 1f
     private var borders = false
     private var glideOn = true
@@ -208,8 +215,14 @@ class KeyboardView(context: Context) : View(context) {
 
     /** The vowel forms offered in the Amharic vowel row. */
     private var vowels: List<String> = emptyList()
+    /** The forms the vowel row is offering now. */
+    fun vowelForms(): List<String> = vowels
     fun setVowels(list: List<String>) {
-        if (vowels != list) { vowels = list; invalidateCache() }
+        if (vowels == list) return
+        val resize = vowelSlots(vowels) != vowelSlots(list)
+        vowels = list
+        if (resize) computeGeometry(width)
+        invalidateCache()
     }
 
     private var suggestions: List<String> = emptyList()
@@ -351,9 +364,17 @@ class KeyboardView(context: Context) : View(context) {
 
     /** The height this layout needs, which is also how tall the keyboard will measure. */
     private fun heightFor(l: Layout, strip: Boolean): Int {
-        val rows = l.rows.size
-        return ((if (strip) wotdH() + stripH else 0f) + padTop + rows * dp(l.rowHeightDp) * heightScale + (rows - 1) * gapY + padBottom).toInt()
+        return ((if (strip) wotdH() + stripH else 0f) + padTop + keysHeight(l) + padBottom).toInt()
     }
+
+    /** The rows and the gaps between them, as [Layout.rowHeightDp] makes them. */
+    private fun naturalKeysHeight(l: Layout) = l.rows.size * dp(l.rowHeightDp) * heightScale + (l.rows.size - 1) * gapY
+
+    /** Height of the key area: the tallest of its own and the boards it matches. */
+    private fun keysHeight(l: Layout) = (l.sameHeightAs + l).maxOf { naturalKeysHeight(it) }
+
+    /** One row's height, stretched or squeezed so the rows fill [keysHeight]. */
+    private fun rowHeight(l: Layout) = (keysHeight(l) - (l.rows.size - 1) * gapY) / l.rows.size
 
     override fun onMeasure(widthSpec: Int, heightSpec: Int) {
         val w = MeasureSpec.getSize(widthSpec)
@@ -369,7 +390,8 @@ class KeyboardView(context: Context) : View(context) {
     private fun computeGeometry(width: Int) {
         val l = layout ?: return
         if (width <= 0) return
-        rowH = dp(l.rowHeightDp) * heightScale
+        rowH = rowHeight(l)
+        labelH = min(rowH, dp(l.rowHeightDp) * heightScale)
         val top = stripHeight() + padTop
         rowTop = FloatArray(l.rows.size) { top + it * (rowH + gapY) }
         lefts = Array(l.rows.size) { FloatArray(l.rows[it].size) }
@@ -380,6 +402,7 @@ class KeyboardView(context: Context) : View(context) {
         areaRight = areaLeft + usable
 
         for ((r, row) in l.rows.withIndex()) {
+            if (row.firstOrNull()?.kind == KeyKind.VOWEL) { placeVowelRow(r, row.size, usable); continue }
             val totalWeight = row.sumOf { it.weight.toDouble() }.toFloat()
             val avail = usable - 2 * padSide - gapX * (row.size - 1)
             val unit = avail / totalWeight
@@ -389,6 +412,26 @@ class KeyboardView(context: Context) : View(context) {
                 x += key.weight * unit
                 rights[r][c] = x
                 x += gapX
+            }
+        }
+    }
+
+    /** Eight slots for most families, more for the few that have more forms. */
+    private fun vowelSlots(list: List<String>) = list.size.coerceIn(8, Layouts.MAX_VOWELS)
+
+    /**
+     * The vowel row shares its width among [vowelSlots] equal keys. The slots
+     * past those have no width, at the far end, so nothing draws or hits them.
+     */
+    private fun placeVowelRow(r: Int, size: Int, usable: Float) {
+        val slots = min(vowelSlots(vowels), size)
+        val unit = (usable - 2 * padSide - gapX * (slots - 1)) / slots
+        var x = areaLeft + padSide
+        for (c in 0 until size) {
+            if (c < slots) {
+                lefts[r][c] = x; x += unit; rights[r][c] = x; x += gapX
+            } else {
+                lefts[r][c] = areaRight - padSide; rights[r][c] = areaRight - padSide
             }
         }
     }
@@ -413,6 +456,8 @@ class KeyboardView(context: Context) : View(context) {
 
     // ── Easing, the same curves the Flutter keys use ──
     private fun easeOutCubic(t: Float): Float { val u = 1f - t; return 1f - u * u * u }
+    /** A gentler overshoot than [easeOutBack], for the long-press bubble. */
+    private fun easeOutBackSoft(t: Float): Float { val u = t - 1f; return 1f + 2.2f * u * u * u + 1.2f * u * u }
     private fun easeOutBack(t: Float): Float { val u = t - 1f; return 1f + 2.70158f * u * u * u + 1.70158f * u * u }
 
     /** One key's press animation: 0 at rest, 1 fully pressed. */
@@ -739,7 +784,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawVowelHint(canvas: Canvas, l: Layout) {
         if (l.id != LayoutId.FIDEL || vowels.isNotEmpty()) return
         text.textAlign = Paint.Align.CENTER
-        text.textSize = rowH * 0.3f
+        text.textSize = labelH * 0.3f
         text.color = palette.hint
         text.typeface = Typeface.DEFAULT
         canvas.drawText("Tap a letter to see its vowel forms", (areaLeft + areaRight) / 2f,
@@ -774,7 +819,7 @@ class KeyboardView(context: Context) : View(context) {
         }
         if (icon >= 0) {
             val color = if (key.special) palette.specialText else palette.text
-            val size = min(rowH * 0.5f * labelScale, rect.width() * 0.6f)
+            val size = min(labelH * 0.5f * labelScale, rect.width() * 0.6f)
             Icons.draw(canvas, icon, rect.centerX(), rect.centerY(), size, color)
             return
         }
@@ -787,13 +832,14 @@ class KeyboardView(context: Context) : View(context) {
         text.textAlign = Paint.Align.CENTER
         text.alpha = 255
         text.textSize = labelScale * when {
-            key.kind == KeyKind.SPACE -> rowH * 0.26f
-            key.kind == KeyKind.VOWEL -> rowH * 0.5f
-            key.kind == KeyKind.CURSOR -> rowH * 0.34f
-            key.kind != KeyKind.CHAR -> rowH * if (pad) 0.34f else 0.3f
-            big -> rowH * 0.5f
-            layout?.id == LayoutId.FIDEL -> rowH * 0.46f
-            else -> rowH * 0.44f
+            key.kind == KeyKind.SPACE -> labelH * 0.26f
+            // Twelve forms make narrow keys, so their letters shrink to fit.
+            key.kind == KeyKind.VOWEL -> labelH * if (vowels.size > 8) 0.42f else 0.5f
+            key.kind == KeyKind.CURSOR -> labelH * 0.34f
+            key.kind != KeyKind.CHAR -> labelH * if (pad) 0.34f else 0.3f
+            big -> labelH * 0.5f
+            layout?.id == LayoutId.FIDEL -> labelH * 0.46f
+            else -> labelH * 0.44f
         }
         text.color = when {
             accent -> palette.accentText
@@ -810,42 +856,110 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawText(label, rect.centerX(), baseline, text)
 
         if (hint != null) {
-            hintPaint.textSize = rowH * 0.2f
+            hintPaint.textSize = labelH * 0.2f
             hintPaint.color = palette.hint
             canvas.drawText(hint, rect.right - dp(4f), rect.top + dp(2f) - hintPaint.ascent(), hintPaint)
         }
     }
 
-    /** Draws the long-press bubble, popping in. Returns true while it is still moving. */
+    private fun withAlpha(c: Int, a: Float) = ColorUtils.setAlphaComponent(c, (Color.alpha(c) * a.coerceIn(0f, 1f)).toInt())
+
+    /**
+     * Draws the long-press bubble. Its entrance and finish follow the theme
+     * ([PopupStyle]). Every fade is done on the paints' own alpha, never through
+     * an offscreen layer, which is what kept a twelve-letter bubble smooth.
+     * Returns true while it is still moving.
+     */
     private fun drawPopup(canvas: Canvas, t: Touch, now: Long): Boolean {
         val alts = t.popup ?: return false
-        val k = easeOutCubic(((now - t.popupAt) / 110f).coerceIn(0f, 1f))
+        val style = popupStyle
+        val elapsed = (now - t.popupAt).toFloat()
+        val n = alts.size
+        // Staggered styles bring each letter in a beat after the one nearer the key.
+        val staggered = style == PopupStyle.FLAME || style == PopupStyle.SPARKLE
+        val step = if (staggered) min(14f, 70f / max(1, n)) else 0f
+        val spread = max(t.popupOrigin, n - 1 - t.popupOrigin)
+        val total = style.ms + step * spread
+        val p = (elapsed / style.ms).coerceIn(0f, 1f)
+        val k = easeOutCubic(p)
         val top = rowTop[t.popupRow]
-        val cx = t.popupLeft + t.popupCell * alts.size / 2f
+        val left = t.popupLeft
+        val right = t.popupLeft + t.popupCell * n
+        val cx = (left + right) / 2f
+        val live = palette.isLive
+
         canvas.save()
-        // Grows from the key it came from, and fades in as it goes.
-        canvas.scale(0.86f + 0.14f * k, 0.86f + 0.14f * k, cx, top + rowH)
-        rect.set(t.popupLeft - 2f, top - 2f, t.popupLeft + t.popupCell * alts.size + 2f, top + rowH + 2f)
-        val layer = canvas.saveLayerAlpha(rect, (k * 255f).toInt().coerceIn(0, 255))
-        rect.set(t.popupLeft, top, t.popupLeft + t.popupCell * alts.size, top + rowH)
-        fill.color = palette.popup
+        var shiftX = 0f
+        when (style) {
+            PopupStyle.POP -> { val s = 0.9f + 0.1f * easeOutBackSoft(p); canvas.scale(s, s, cx, top + rowH) }
+            PopupStyle.RISE -> canvas.translate(0f, dp(16f) * (1f - k))
+            PopupStyle.STADIUM -> { canvas.translate(0f, dp(10f) * (1f - k)); canvas.scale(0.7f + 0.3f * k, 1f, cx, top) }
+            PopupStyle.HALO -> canvas.scale(0.15f + 0.85f * k, 0.92f + 0.08f * k, cx, top + rowH / 2f)
+            PopupStyle.GLITCH -> {
+                // A few hard sideways jumps that settle.
+                if (p < 1f) shiftX = dp(5f) * (1f - p) * (if ((elapsed / 24f).toInt() % 2 == 0) 1f else -1f)
+                canvas.translate(shiftX, 0f)
+            }
+            PopupStyle.FLAME, PopupStyle.SPARKLE -> { val s = 0.94f + 0.06f * k; canvas.scale(s, s, cx, top + rowH) }
+        }
+
+        // The bubble itself.
+        val bgA = if (staggered) min(1f, elapsed / 60f) else k
+        rect.set(left, top, right, top + rowH)
+        fill.color = withAlpha(palette.popup, bgA)
         canvas.drawRoundRect(rect, radius, radius, fill)
+        if (style == PopupStyle.FLAME) {
+            // A warm glow rising from the bottom edge.
+            fill.shader = android.graphics.LinearGradient(0f, top + rowH, 0f, top,
+                withAlpha(palette.accent, 0.45f * bgA), withAlpha(palette.accent, 0f), android.graphics.Shader.TileMode.CLAMP)
+            canvas.drawRoundRect(rect, radius, radius, fill)
+            fill.shader = null
+        }
+        if (live && style != PopupStyle.POP) {
+            border.color = withAlpha(palette.glow, (if (style == PopupStyle.SPARKLE) 0.8f else 0.55f) * bgA)
+            border.strokeWidth = dp(1.5f)
+            rect.inset(dp(0.75f), dp(0.75f))
+            canvas.drawRoundRect(rect, radius, radius, border)
+        }
+        if (style == PopupStyle.STADIUM) {
+            // The club's colour along the top, like a scoreboard's band.
+            rect.set(left + radius, top, right - radius, top + dp(3f))
+            fill.color = withAlpha(palette.keyAccent, k)
+            canvas.drawRect(rect, fill)
+        }
+
+        text.textSize = labelH * 0.46f
+        text.typeface = Typeface.DEFAULT
+        val base = top + rowH / 2f - (text.descent() + text.ascent()) / 2f
+        val rainbow = style == PopupStyle.SPARKLE && ("rainbow" in palette.def.live || "prism" in palette.def.live)
         for ((i, alt) in alts.withIndex()) {
-            val ax = t.popupLeft + t.popupCell * (i + 0.5f)
+            val ax = left + t.popupCell * (i + 0.5f)
+            // Each letter's own entrance (all at once unless staggered).
+            val ci = if (staggered) {
+                ((elapsed - step * abs(i - t.popupOrigin)) / (style.ms * 0.6f)).coerceIn(0f, 1f)
+            } else k
+            if (ci <= 0f) continue
+            val lift = if (staggered) dp(6f) * (1f - easeOutCubic(ci)) else 0f
             if (i == t.popupSel) {
                 rect.set(ax - t.popupCell / 2f + dp(2f), top + dp(3f), ax + t.popupCell / 2f - dp(2f), top + rowH - dp(3f))
-                fill.color = palette.accent
+                fill.color = if (rainbow) Color.HSVToColor(floatArrayOf(360f * i / n, 0.65f, 0.95f)) else withAlpha(palette.accent, ci)
                 canvas.drawRoundRect(rect, radius, radius, fill)
             }
-            text.color = if (i == t.popupSel) palette.accentText else palette.text
-            text.textSize = rowH * 0.46f
-            text.typeface = Typeface.DEFAULT
-            text.alpha = 255
-            canvas.drawText(alt, ax, top + rowH / 2f - (text.descent() + text.ascent()) / 2f, text)
+            val color = if (i == t.popupSel) palette.accentText
+                else if (rainbow) Color.HSVToColor(floatArrayOf(360f * i / n, 0.35f, 1f))
+                else palette.text
+            if (style == PopupStyle.GLITCH && p < 1f) {
+                // Split-colour ghosts either side, fading as it settles.
+                val off = dp(2.5f) * (1f - p)
+                text.color = withAlpha(0xFF00FFFF.toInt(), 0.6f * (1f - p)); canvas.drawText(alt, ax - off, base, text)
+                text.color = withAlpha(0xFFFF00FF.toInt(), 0.6f * (1f - p)); canvas.drawText(alt, ax + off, base, text)
+            }
+            text.color = withAlpha(color, ci)
+            canvas.drawText(alt, ax, base + lift, text)
         }
-        canvas.restoreToCount(layer)
+        text.alpha = 255
         canvas.restore()
-        return k < 1f
+        return elapsed < total
     }
 
     // ─── Touch ───────────────────────────────────────────────────────────
@@ -865,6 +979,7 @@ class KeyboardView(context: Context) : View(context) {
         var popupLeft = 0f
         var popupCell = 0f
         var popupAt = 0L
+        var popupOrigin = 0
         var longPress: Runnable? = null
         var repeat: Runnable? = null
         /** A long press already acted, so the release must not. */
@@ -987,7 +1102,7 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawRoundRect(rect, radius, radius, border)
         text.textAlign = Paint.Align.CENTER
         text.typeface = Typeface.DEFAULT_BOLD
-        text.textSize = rowH * 0.4f
+        text.textSize = labelH * 0.4f
         text.color = palette.accent
         text.alpha = 255
         val base = rect.centerY() - (text.descent() + text.ascent()) / 2f
@@ -1066,6 +1181,7 @@ class KeyboardView(context: Context) : View(context) {
             KeyKind.ENTER -> listener?.onEnter()
             KeyKind.SHIFT -> listener?.onShift()
             KeyKind.SYMBOLS -> listener?.onSymbols()
+            KeyKind.SYMBOLS_PAGE -> listener?.onSymbolsPage()
             KeyKind.LANGUAGE -> {
                 // Tap switches language on release; a long press flips Amharic
                 // between the fidel board and phonetic typing.
@@ -1197,6 +1313,8 @@ class KeyboardView(context: Context) : View(context) {
         t.popupLeft = (keyCx - total / 2f).coerceIn(areaLeft + padSide, max(areaLeft + padSide, areaRight - padSide - total))
         // The bubble covers the row above the key, or its own row at the top.
         t.popupRow = max(r - 1, 0)
+        // The letter nearest the key: staggered bubbles grow outward from it.
+        t.popupOrigin = ((keyCx - t.popupLeft) / cell).toInt().coerceIn(0, alts.size - 1)
         t.popupSel = -1
         t.popupAt = SystemClock.uptimeMillis()
         listener?.onKeyFeedback()
@@ -1312,6 +1430,7 @@ class KeyboardView(context: Context) : View(context) {
         KeyKind.SPACE -> "Space"
         KeyKind.SYMBOLS -> if (key.label == "ABC" || key.label == "አማ") "Letters" else "Numbers and symbols"
         KeyKind.LANGUAGE -> "Switch language"
+        KeyKind.SYMBOLS_PAGE -> if (key.label == "=\\<") "More symbols" else "Back to numbers"
         KeyKind.PAD_ABC -> if (key.label == "123") "Number pad" else "Letters"
         KeyKind.PHONETIC -> if (key.label == "ABC") "Phonetic Amharic" else "Fidel board"
         KeyKind.VOWEL -> vowels.getOrNull(col).orEmpty()

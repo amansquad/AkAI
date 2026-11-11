@@ -15,6 +15,8 @@ object Translit {
     private const val ORDER_SCHWA = 5
     private const val ORDER_O = 6
     private const val ORDER_WA = 7
+    /** Letters whose eighth form is not a -wa sound (ሇ ኧ ዯ ፇ), so "wa" must not pick it. */
+    private val noWa = setOf("ሀ", "አ", "የ", "ፀ")
 
     private val consonants = mapOf(
         "h" to "ሀ", "l" to "ለ", "m" to "መ", "r" to "ረ", "s" to "ሰ", "q" to "ቀ", "b" to "በ",
@@ -44,6 +46,7 @@ object Translit {
 
     private fun formOf(base: String, order: Int): String {
         val forms = KeyboardData.amharicVowels[base] ?: return base
+        if (order == ORDER_WA && base in noWa) return forms.getOrNull(ORDER_SCHWA) ?: base
         return forms.getOrNull(order) ?: forms.getOrNull(ORDER_SCHWA) ?: forms.firstOrNull() ?: base
     }
 

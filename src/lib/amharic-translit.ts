@@ -37,6 +37,8 @@ const ORDER_E = 4; // e (ee)
 const ORDER_SCHWA = 5; // ə — the bare consonant
 const ORDER_O = 6; // o
 const ORDER_WA = 7; // labialised, where the letter has one
+/** Letters whose eighth form is not a -wa sound (ሇ ኧ ዯ ፇ), so "wa" must not pick it. */
+const NO_WA = new Set(['ሀ', 'አ', 'የ', 'ፀ']);
 
 /**
  * Latin spelling → base fidel. Matched longest-first, so "sh" wins over "s"
@@ -134,6 +136,7 @@ const MAX_VOWEL_LEN = Math.max(
 function formOf(base: string, order: number): string {
   const forms = AMHARIC_VOWELS[base];
   if (!forms) return base;
+  if (order === ORDER_WA && NO_WA.has(base)) return forms[ORDER_SCHWA] ?? base;
   return forms[order] ?? forms[ORDER_SCHWA] ?? forms[0] ?? base;
 }
 
