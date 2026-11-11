@@ -452,7 +452,7 @@ export default function Home() {
         <div className="land-wrap flex flex-wrap items-center justify-between gap-4" style={{ paddingBlock: 28 }}>
           <span className="land-display" style={{ fontSize: '1.5rem', fontStretch: '100%' }}>AkAI</span>
           <span style={{ color: 'var(--on-ink-dim)', fontSize: '0.9rem' }}>
-            English &amp; Amharic keyboard · Privacy first · &copy; 2026 AkAI
+            English &amp; Amharic keyboard · <a href="/privacy">Privacy policy</a> · &copy; 2026 AkAI
           </span>
         </div>
       </footer>

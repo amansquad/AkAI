@@ -881,8 +881,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         onKeyFeedback()
     }
 
+    /** Never hands a password to the panels, so translate can't send one off the phone. */
     override fun panelTextBefore(): String =
-        currentInputConnection?.getTextBeforeCursor(300, 0)?.toString().orEmpty()
+        if (field == FieldKind.PASSWORD) ""
+        else currentInputConnection?.getTextBeforeCursor(300, 0)?.toString().orEmpty()
 
     override fun onPanelReplace(oldLength: Int, newText: String) {
         val ic = currentInputConnection ?: return
