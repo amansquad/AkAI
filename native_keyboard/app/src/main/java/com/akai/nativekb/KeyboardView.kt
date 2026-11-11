@@ -514,6 +514,7 @@ class KeyboardView(context: Context) : View(context) {
             // missing), the aurora keeps the keyboard from looking empty.
             val pictured = Backdrops.isPicture(live) &&
                 Backdrops.draw(context, canvas, width / density, height / density, now, live) { invalidate() }
+            FootballScene.attach(context)
             if (!pictured) LiveScenes.paint(canvas, width / density, height / density, (now % 600_000L) / 5000f, live)
             canvas.restore()
         }
