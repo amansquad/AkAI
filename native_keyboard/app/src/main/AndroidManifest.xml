@@ -40,6 +40,7 @@
         <activity android:name=".ThemesActivity" android:exported="false" />
         <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".StickerMarketActivity" android:exported="false" />
+        <activity android:name=".StickerPreviewActivity" android:exported="false" />
         <activity android:name=".ThemeEditorActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
 
         <activity

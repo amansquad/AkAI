@@ -214,8 +214,10 @@ class Ui(val context: Context, val p: Palette) {
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(8f), 0, dp(8f))
-            addView(label(title, 15f, text, bold = true))
-            addView(gap(6f))
+            if (title.isNotEmpty()) {
+                addView(label(title, 15f, text, bold = true))
+                addView(gap(6f))
+            }
             addView(row)
         }
     }

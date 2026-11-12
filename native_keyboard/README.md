@@ -39,7 +39,9 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
 - Panels: emoji (categories, recents, skin tones, search), stickers (the web
   keyboard's twelve sets, Ethiopia included), GIFs, clipboard history with
   pinning, handwriting, translate, themes
-- Sticker Marketplace: packs listed on the website, installed on demand from
+- Sticker Marketplace: packs listed on the website. Each pack opens a page
+  showing all its stickers (GIFs playing, with a GIF badge, and an All / GIFs /
+  Still filter) before it is installed. Installed on demand from
   the "+" at the end of the sticker pack row, Settings → Sticker packs or the
   home screen. Any other Telegram pack can be added from its t.me/addstickers
   link in Settings → Sticker packs. Video stickers play in the panel (Android 9+) and send as
