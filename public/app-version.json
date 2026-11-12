@@ -1,6 +1,6 @@
 {
-  "versionCode": 10005,
-  "versionName": "1.0.5",
+  "versionCode": 10006,
+  "versionName": "1.0.6",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Emoji packs: Telegram custom emoji packs in the Sticker Marketplace, shown six to a row and sent as small animated stickers. Add your own from a t.me/addemoji link."
+  "notes": "Custom emoji packs now live in the emoji tab, next to your other emoji, and are sent emoji-sized. The Sticker Marketplace has separate Stickers and Emoji tabs."
 }
