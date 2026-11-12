@@ -43,6 +43,8 @@ interface PanelHost {
     fun onPanelTheme(id: String)
     /** The search button in the emoji tab: type a word to find emoji. */
     fun onPanelEmojiSearch()
+    /** Something in the voice tab: the mic, the language, the setup button, or leaving the tab. */
+    fun onPanelVoice(action: PanelView.VoiceAction)
 }
 
 /**
@@ -52,7 +54,8 @@ interface PanelHost {
  */
 class PanelView(context: Context) : View(context) {
 
-    enum class Tab { EMOJI, STICKERS, GIF, CLIPBOARD, WRITE, TRANSLATE, THEMES }
+    enum class Tab { EMOJI, STICKERS, GIF, CLIPBOARD, WRITE, TRANSLATE, THEMES, VOICE }
+    enum class VoiceAction { MIC, LANGUAGE, SETUP, LEAVE }
 
     var host: PanelHost? = null
 
@@ -118,6 +121,24 @@ class PanelView(context: Context) : View(context) {
     private var writeStatus: String? = null
     private val recognizeTask = Runnable { recognize() }
 
+    private var voice = VoiceStatus(VoiceStatus.Phase.IDLE)
+    private var voiceAmharic = false
+    /** The latest loudness, and the one drawn, which follows it smoothly. */
+    private var voiceLevel = 0f
+    private var voiceShown = 0f
+
+    fun setVoice(status: VoiceStatus, amharic: Boolean) {
+        voice = status
+        voiceAmharic = amharic
+        if (!status.active) voiceLevel = 0f
+        if (tab == Tab.VOICE) invalidate()
+    }
+
+    fun setVoiceLevel(level: Float) {
+        voiceLevel = level
+        if (tab == Tab.VOICE) invalidate()
+    }
+
     private var translateToAmharic = true
     private var source = ""
     private var result: String? = null
@@ -134,6 +155,7 @@ class PanelView(context: Context) : View(context) {
     }
 
     private fun enter(t: Tab) {
+        if (tab == Tab.VOICE && t != Tab.VOICE) host?.onPanelVoice(VoiceAction.LEAVE)
         tab = t
         tabAt = android.os.SystemClock.uptimeMillis()
         resetScroll()
@@ -255,6 +277,7 @@ class PanelView(context: Context) : View(context) {
             Tab.WRITE -> drawWrite(canvas)
             Tab.TRANSLATE -> drawTranslate(canvas)
             Tab.THEMES -> drawThemes(canvas)
+            Tab.VOICE -> drawVoice(canvas)
         }
         if (layer >= 0) canvas.restoreToCount(layer)
         canvas.restore()
@@ -588,6 +611,81 @@ class PanelView(context: Context) : View(context) {
         button(canvas, w / 2f + dp(3f), by, w - pad, height - dp(4f), "Replace")
     }
 
+    // Bands from the top: the language button, the mic with room for its ring,
+    // two lines of captions, then the row kept for the setup button.
+    private fun voiceAreaTop() = contentTop() + dp(48f)
+    private fun voiceAreaH() = height - dp(52f) - voiceAreaTop()
+    private fun voiceMicRadius() = min(dp(46f), (voiceAreaH() - dp(48f)) / 3.4f)
+    private fun voiceMicY() = voiceAreaTop() + voiceMicRadius() * 1.6f
+
+    private fun drawVoice(canvas: Canvas) {
+        val top = contentTop()
+        val pad = dp(8f)
+        val w = width.toFloat()
+        button(canvas, pad, top + dp(4f), w - pad, top + dp(40f),
+            if (voiceAmharic) "አማርኛ   (tap for English)" else "English   (tap for አማርኛ)")
+
+        val cx = w / 2f
+        val cy = voiceMicY()
+        val r = voiceMicRadius()
+        val phase = voice.phase
+        // The ring follows the voice; with no voice it breathes slowly so it still looks alive.
+        voiceShown += (voiceLevel - voiceShown) * 0.35f
+        if (voice.active) {
+            val t = android.os.SystemClock.uptimeMillis() / 600.0
+            val breathe = (0.06f + 0.04f * kotlin.math.sin(t).toFloat())
+            val ring = r * (1.12f + 0.55f * maxOf(voiceShown, breathe))
+            fill.color = palette.accent
+            fill.alpha = 70
+            canvas.drawCircle(cx, cy, ring, fill)
+            fill.alpha = 255
+            postInvalidateOnAnimation()
+        }
+        fill.color = if (voice.active) palette.accent else palette.key
+        canvas.drawCircle(cx, cy, r, fill)
+        Icons.draw(canvas, TOOL_VOICE, cx, cy, r * 0.9f, if (voice.active) palette.accentText else palette.text)
+
+        val status = when (phase) {
+            VoiceStatus.Phase.STARTING -> "Starting…"
+            VoiceStatus.Phase.LISTENING -> "Speak now"
+            VoiceStatus.Phase.HEARING -> "Listening…  tap to finish"
+            VoiceStatus.Phase.THINKING -> "Writing it down…"
+            VoiceStatus.Phase.NEEDS_PERMISSION -> "AkAI needs the microphone to hear you"
+            VoiceStatus.Phase.UNAVAILABLE -> "This phone has no speech service for the keyboard to use"
+            VoiceStatus.Phase.IDLE -> voice.message ?: "Tap the mic to speak"
+        }
+        val below = cy + r * 1.6f + dp(12f)
+        drawCaption(canvas, status, below, palette.text)
+        // The words heard go under a one-line status; a two-line message has the room to itself.
+        if (voice.heard.isNotEmpty() && voice.message == null && phase != VoiceStatus.Phase.NEEDS_PERMISSION) {
+            drawCaption(canvas, voice.heard, below + dp(22f), palette.hint, wrap = false)
+        }
+        val setup = when (phase) {
+            VoiceStatus.Phase.NEEDS_PERMISSION -> "Allow the microphone"
+            VoiceStatus.Phase.UNAVAILABLE -> "Use the system voice screen"
+            // A language the phone can't do: the system screen may have other options.
+            VoiceStatus.Phase.IDLE -> if (voice.message?.contains("system voice screen") == true) "Use the system voice screen" else null
+            else -> null
+        }
+        if (setup != null) button(canvas, pad, height - dp(44f), w - pad, height - dp(4f), setup, accent = true)
+    }
+
+    /**
+     * Centred text whose first line is centred on [cy]. A message wraps to two
+     * lines; words being spoken keep to one, dropping the oldest words first.
+     */
+    private fun drawCaption(canvas: Canvas, s: String, cy: Float, color: Int, wrap: Boolean = true) {
+        val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = dp(14f); this.color = color }
+        val inner = (width - dp(32f)).toInt().coerceAtLeast(1)
+        val shown = if (wrap) s else TextUtils.ellipsize(s, paint, inner.toFloat(), TextUtils.TruncateAt.START).toString()
+        val layout = StaticLayout.Builder.obtain(shown, 0, shown.length, paint, inner)
+            .setMaxLines(2).setEllipsize(TextUtils.TruncateAt.END).setAlignment(Layout.Alignment.ALIGN_CENTER).build()
+        canvas.save()
+        canvas.translate(dp(16f), cy - layout.getLineBottom(0) / 2f)
+        layout.draw(canvas)
+        canvas.restore()
+    }
+
     private fun drawBox(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, s: String, dim: Boolean) {
         rect.set(l, t, r, b)
         fill.color = palette.key
@@ -628,6 +726,7 @@ class PanelView(context: Context) : View(context) {
         return when (tab) {
             Tab.WRITE -> writeTouch(e)
             Tab.TRANSLATE -> { if (e.actionMasked == MotionEvent.ACTION_DOWN) translateTap(e.x, e.y); true }
+            Tab.VOICE -> { if (e.actionMasked == MotionEvent.ACTION_DOWN) voiceTap(e.x, e.y); true }
             else -> scrollTouch(e)
         }
     }
@@ -747,6 +846,19 @@ class PanelView(context: Context) : View(context) {
                 result = null
                 invalidate()
             }
+        }
+    }
+
+    private fun voiceTap(x: Float, y: Float) {
+        val top = contentTop()
+        val r = voiceMicRadius()
+        when {
+            y < top + dp(44f) -> host?.onPanelVoice(VoiceAction.LANGUAGE)
+            y > height - dp(48f) && (voice.phase == VoiceStatus.Phase.NEEDS_PERMISSION ||
+                voice.phase == VoiceStatus.Phase.UNAVAILABLE || voice.message?.contains("system voice screen") == true) ->
+                host?.onPanelVoice(VoiceAction.SETUP)
+            // A generous target: anywhere near the mic.
+            kotlin.math.hypot(x - width / 2f, y - voiceMicY()) < r * 1.8f -> host?.onPanelVoice(VoiceAction.MIC)
         }
     }
 

@@ -32,7 +32,7 @@ import kotlin.math.abs
 
 enum class FieldKind { TEXT, NUMBER, PHONE, DATETIME, EMAIL, URL, PASSWORD, NONE }
 
-class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
+class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceListener {
     // (Prefs keys live in the Prefs object below.)
 
     private lateinit var keys: KeyboardView
@@ -132,6 +132,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     override fun onDestroy() {
         super.onDestroy()
+        voice?.destroy()
         VoiceBridge.onResult = null
         clipboard?.removePrimaryClipChangedListener(clipListener)
         handler.removeCallbacksAndMessages(null)
@@ -403,6 +404,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        voice?.cancel()
         if (learnedDirty > 0) saveLearned()
     }
 
@@ -824,12 +826,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
             TOOL_TRANSLATE -> showPanel(PanelView.Tab.TRANSLATE)
             TOOL_THEMES -> showPanel(PanelView.Tab.THEMES)
             TOOL_VOICE -> {
-                val tag = if (amharic) "am-ET" else "en-US"
-                startActivity(
-                    Intent(this, VoiceActivity::class.java)
-                        .putExtra(VoiceActivity.EXTRA_LANGUAGE, tag)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION),
-                )
+                voiceAmharic = amharic
+                showPanel(PanelView.Tab.VOICE)
+                voiceInput().start(voiceTag())
             }
             TOOL_SETTINGS -> {
                 startActivity(Intent(this, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -854,6 +853,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     }
 
     private fun closePanel(animate: Boolean = true) {
+        voice?.cancel()
         if (!::panel.isInitialized || panel.visibility != View.VISIBLE) return
         panel.animate().cancel(); keys.animate().cancel()
         if (!animate) {
@@ -870,6 +870,71 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     }
 
     override fun onPanelClose() = closePanel()
+
+    // ─── Voice typing ────────────────────────────────────────────────────
+
+    private var voice: VoiceInput? = null
+    private fun voiceInput() = voice ?: VoiceInput(this, this).also { voice = it }
+    /** The voice tab's language, which starts as the keyboard's and can be switched there. */
+    private var voiceAmharic = false
+    private fun voiceTag() = if (voiceAmharic) "am-ET" else "en-US"
+    /** What goes before the words being spoken (a space or nothing); null when nothing is being spoken. */
+    private var voicePrefix: String? = null
+
+    private fun startVoicePrefix(): String {
+        voicePrefix?.let { return it }
+        val prev = currentInputConnection?.getTextBeforeCursor(1, 0)
+        val space = spaceBeforeNextLetter || !prev.isNullOrEmpty() && !prev[0].isWhitespace() && prev[0] !in "([{\"'/@#-"
+        spaceBeforeNextLetter = false
+        return (if (space) " " else "").also { voicePrefix = it }
+    }
+
+    override fun onPanelVoice(action: PanelView.VoiceAction) {
+        val v = voiceInput()
+        when (action) {
+            PanelView.VoiceAction.MIC -> if (v.status.active) v.stop() else v.start(voiceTag())
+            PanelView.VoiceAction.LANGUAGE -> {
+                voiceAmharic = !voiceAmharic
+                if (v.status.active) { v.cancel(); v.start(voiceTag()) }
+                else panel.setVoice(v.status, voiceAmharic)
+            }
+            PanelView.VoiceAction.SETUP -> {
+                val screen = if (v.status.phase == VoiceStatus.Phase.NEEDS_PERMISSION) Intent(this, MicPermissionActivity::class.java)
+                // No speech service the keyboard can use: the system's own voice screen may still work.
+                else Intent(this, VoiceActivity::class.java).putExtra(VoiceActivity.EXTRA_LANGUAGE, voiceTag())
+                startActivity(screen.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION))
+            }
+            PanelView.VoiceAction.LEAVE -> v.cancel()
+        }
+    }
+
+    override fun onVoiceStatus(status: VoiceStatus) {
+        if (::panel.isInitialized) panel.setVoice(status, voiceAmharic)
+    }
+
+    override fun onVoiceLevel(level: Float) {
+        if (::panel.isInitialized) panel.setVoiceLevel(level)
+    }
+
+    /** The words so far go into the field as underlined, still-changing text. */
+    override fun onVoicePartial(text: String) {
+        val ic = currentInputConnection ?: return
+        ic.setComposingText(startVoicePrefix() + text, 1)
+    }
+
+    override fun onVoiceDone(text: String?) {
+        val ic = currentInputConnection
+        if (ic != null) {
+            if (text != null) ic.commitText(startVoicePrefix() + text, 1)
+            // Nothing more is coming: the words so far stay as typed.
+            else if (voicePrefix != null) ic.finishComposingText()
+        }
+        voicePrefix = null
+        translit = Translit.EMPTY
+        glideAlts = emptyList()
+        lastCorrection = null
+        if (text != null) scheduleSuggestions()
+    }
 
     override fun onPanelText(text: String, isEmoji: Boolean) {
         val ic = currentInputConnection ?: return

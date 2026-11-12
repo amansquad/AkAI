@@ -4,9 +4,14 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- GIFs from Giphy, handwriting and translation on the AkAI server. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Voice typing in the keyboard; asked for the first time the mic is used. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Lets voice typing find a speech recogniser on Android 11 and newer. -->
+    <!-- Lets voice typing find the speech service, and the system voice screen, on Android 11 and newer. -->
     <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
         </intent>
@@ -36,6 +41,12 @@
 
         <activity
             android:name=".VoiceActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <activity
+            android:name=".MicPermissionActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />

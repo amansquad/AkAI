@@ -13,8 +13,9 @@ object VoiceBridge {
 }
 
 /**
- * A keyboard cannot listen to the microphone itself, so voice typing opens the
- * system's speech recogniser in a see-through screen and returns the words.
+ * The fallback for voice typing, when the phone has no speech service the
+ * keyboard can use itself (see [VoiceInput]): opens the system's speech
+ * screen in a see-through screen and returns the words.
  */
 class VoiceActivity : Activity() {
 
