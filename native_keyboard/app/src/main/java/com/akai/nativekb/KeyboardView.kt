@@ -126,6 +126,8 @@ interface KeyListener {
     /** An emoji was tapped in the emoji-search strip. */
     fun onSearchPick(emoji: String)
     fun onSearchClose()
+    /** "Search" was tapped in the strip while searching GIFs. */
+    fun onSearchSubmit()
 }
 
 /**
@@ -286,10 +288,15 @@ class KeyboardView(context: Context) : View(context) {
     /** Emoji search: the query being typed (null when not searching) and what it found. */
     private var search: String? = null
     private var searchResults: List<String> = emptyList()
-    fun setSearch(query: String?, results: List<String>) {
+    /** GIF search: no live results, just a button that runs the search. */
+    /** "GIFs" or "stickers" when the search runs on Enter; null for live emoji search. */
+    private var searchFor: String? = null
+    private val searchGifs get() = searchFor != null
+    fun setSearch(query: String?, results: List<String>, submitFor: String? = null) {
         val modeChanged = (search == null) != (query == null)
         search = query
         searchResults = results
+        searchFor = submitFor
         // Searching hides the word-of-the-day row, which changes the height.
         if (modeChanged) { requestLayout(); computeGeometry(width); invalidateCache() } else invalidate()
     }
@@ -738,7 +745,7 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
         text.textAlign = Paint.Align.LEFT
         text.textSize = stripH * 0.34f
-        val shown = if (q.isEmpty()) "Search emoji" else "$q▏"
+        val shown = if (q.isEmpty()) "Search ${searchFor ?: "emoji"}" else "$q▏"
         text.color = if (q.isEmpty()) palette.hint else palette.text
         val inner = rect.width() - dp(36f)
         // Long queries show their end, which is where the typing is.
@@ -749,6 +756,15 @@ class KeyboardView(context: Context) : View(context) {
         text.textAlign = Paint.Align.CENTER
         text.textSize = stripH * 0.55f
         text.color = palette.text
+        if (searchGifs) {
+            rect.set(searchBoxEnd() + dp(8f), dp(6f), width - padSide - dp(6f), stripH - dp(6f))
+            fill.color = if (q.isBlank()) palette.key else palette.accent
+            canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
+            text.textSize = stripH * 0.32f
+            text.color = if (q.isBlank()) palette.hint else palette.accentText
+            canvas.drawText("Search ${searchFor ?: ""}".trim(), rect.centerX(), stripBaseline(), text)
+            return
+        }
         if (searchResults.isEmpty() && q.isNotEmpty()) {
             text.textSize = stripH * 0.3f
             text.color = palette.hint
@@ -1061,6 +1077,7 @@ class KeyboardView(context: Context) : View(context) {
         if (search != null) {
             when {
                 x < padSide + toolCell -> listener?.onSearchClose()
+                searchGifs && x > searchBoxEnd() + dp(4f) -> listener?.onSearchSubmit()
                 x > searchBoxEnd() + dp(4f) -> {
                     val i = ((x - searchBoxEnd() - dp(4f)) / toolCell).toInt()
                     searchResults.getOrNull(i)?.let { listener?.onSearchPick(it) }

@@ -107,9 +107,20 @@ class GifItem(val id: String, val title: String, val thumbUrl: String, val fullU
 object Gifs {
     val categories = listOf("Trending", "Reactions", "Hype", "Funny", "Animals", "Mood")
 
-    private fun catalogue(category: String): List<GifItem> {
+    private fun catalogue(category: String, search: Boolean = false): List<GifItem> {
         val all = KeyboardData.gifs
-        val picked = if (category == "Trending") all else all.filter { it.category == category }.ifEmpty { all }
+        val picked = when {
+            search -> {
+                // Every word typed has to start a word in the GIF's title, category or keywords.
+                val words = category.lowercase().split(' ').filter { it.isNotBlank() }
+                all.filter { g ->
+                    val hay = "${g.title} ${g.category} ${g.keywords}".lowercase().split(' ', '-', '!', '?', '.', ',')
+                    words.all { w -> hay.any { it.startsWith(w) } }
+                }
+            }
+            category == "Trending" -> all
+            else -> all.filter { it.category == category }.ifEmpty { all }
+        }
         return picked.map {
             GifItem(
                 it.id, it.title,
@@ -119,42 +130,63 @@ object Gifs {
         }
     }
 
+    /** Giphy's JSON (direct, or relayed by the AkAI server) as GIFs; null if unreadable. */
+    private fun parse(body: ByteArray): List<GifItem>? = try {
+        val o = JSONObject(String(body))
+        if (o.optBoolean("isFallback")) null else {
+            val data = o.getJSONArray("data")
+            (0 until data.length()).mapNotNull { i ->
+                val g = data.getJSONObject(i)
+                val images = g.optJSONObject("images") ?: return@mapNotNull null
+                val thumb = images.optJSONObject("fixed_width_still")?.optString("url").orEmpty()
+                val full = (images.optJSONObject("fixed_height") ?: images.optJSONObject("fixed_width"))
+                    ?.optString("url").orEmpty()
+                if (thumb.isEmpty() || full.isEmpty()) null
+                else GifItem(g.optString("id"), g.optString("title"), thumb, full)
+            }
+        }
+    } catch (e: Exception) { null }
+
     /**
-     * The GIFs for a category. With a Giphy key this asks Giphy (trending, or a
-     * search for the category); without one, or if Giphy refuses the key or
-     * cannot be reached, it uses the built-in catalogue. [note] says which, so
-     * a wrong key is never a silent mystery.
+     * The GIFs for a category (trending, or a search for the category), or,
+     * with [search], for words the user typed.
+     *
+     * With the user's own Giphy key this asks Giphy directly, and [note] says
+     * why when it falls back, so a wrong key is never a silent mystery.
+     * Without one it asks the AkAI server, which holds the shared key and
+     * caches answers; if that has no key or fails, the built-in catalogue
+     * shows quietly, since the user set nothing up that could be wrong.
      */
-    fun load(category: String, key: String, done: (List<GifItem>, String?) -> Unit) {
-        if (key.isBlank()) {
-            done(catalogue(category), null)
+    fun load(category: String, key: String, server: String, search: Boolean = false, done: (List<GifItem>, String?) -> Unit) {
+        val own = key.isNotBlank()
+        // Without Giphy a search can only match the built-in GIFs, so say so.
+        val offline = if (search) "Full GIF search is offline - showing built-in matches" else null
+        if (!own && server.isBlank()) {
+            done(catalogue(category, search), offline)
             return
         }
         Net.background {
-            val endpoint = if (category == "Trending") "trending?" else "search?q=${Uri.encode(category.lowercase())}&"
-            val r = Net.request("https://api.giphy.com/v1/gifs/${endpoint}api_key=${Uri.encode(key.trim())}&limit=36&rating=g")
-            var items: List<GifItem>? = null
-            var note: String? = null
-            if (r == null) note = "Can't reach Giphy - showing built-in GIFs"
-            else if (r.code == 401 || r.code == 403) note = "Giphy rejected the key - showing built-in GIFs"
-            else if (r.code == 429) note = "Giphy rate limit reached - showing built-in GIFs"
-            else if (r.code != 200) note = "Giphy error ${r.code} - showing built-in GIFs"
-            else try {
-                val data = JSONObject(String(r.body)).getJSONArray("data")
-                items = (0 until data.length()).mapNotNull { i ->
-                    val g = data.getJSONObject(i)
-                    val images = g.optJSONObject("images") ?: return@mapNotNull null
-                    val thumb = images.optJSONObject("fixed_width_still")?.optString("url").orEmpty()
-                    val full = (images.optJSONObject("fixed_height") ?: images.optJSONObject("fixed_width"))
-                        ?.optString("url").orEmpty()
-                    if (thumb.isEmpty() || full.isEmpty()) null
-                    else GifItem(g.optString("id"), g.optString("title"), thumb, full)
-                }
-            } catch (e: Exception) {
-                note = "Unexpected reply from Giphy - showing built-in GIFs"
+            val trending = !search && category == "Trending"
+            val q = Uri.encode(category.lowercase())
+            val url = if (own) {
+                val endpoint = if (trending) "trending?" else "search?q=$q&"
+                "https://api.giphy.com/v1/gifs/${endpoint}api_key=${Uri.encode(key.trim())}&limit=36&rating=g"
+            } else {
+                val query = if (trending) "type=trending" else "type=search&q=$q"
+                "${server.trim().trimEnd('/')}/api/giphy?$query&limit=36"
+            }
+            val r = Net.request(url)
+            val items = r?.takeIf { it.code == 200 }?.let { parse(it.body) }
+            val note = if (!items.isNullOrEmpty()) null else if (!own) offline else when {
+                r == null -> "Can't reach Giphy - showing built-in GIFs"
+                r.code == 401 || r.code == 403 -> "Giphy rejected the key - showing built-in GIFs"
+                r.code == 429 -> "Giphy rate limit reached - showing built-in GIFs"
+                r.code != 200 -> "Giphy error ${r.code} - showing built-in GIFs"
+                items == null -> "Unexpected reply from Giphy - showing built-in GIFs"
+                else -> "Giphy returned no GIFs - showing built-in GIFs"
             }
             Net.ui {
-                if (items.isNullOrEmpty()) done(catalogue(category), note ?: "Giphy returned no GIFs - showing built-in GIFs")
+                if (items.isNullOrEmpty()) done(catalogue(category, search), note)
                 else done(items, null)
             }
         }

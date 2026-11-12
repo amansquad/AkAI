@@ -1,46 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Giphy API - using the public beta key
-const GIPHY_API_KEY = process.env.GIPHY_API_KEY || 'dc6zaTOxFJmzC';
+// One shared Giphy key for every keyboard and the website, kept server-side
+// (set GIPHY_API_KEY in Vercel) so it never ships inside the APK.
+//
+// Many people share this key, so the route works hard not to spend it:
+//  - The query is normalised ("Cat ", "cat") so equal searches share a cache entry.
+//  - Real answers carry s-maxage, so Vercel's CDN serves repeats without
+//    running this function or calling Giphy at all.
+//  - fetch() also keeps a 5-minute data cache behind the CDN.
+//  - A per-IP limit stops one client from draining the quota. It is
+//    per-instance memory, so it's a brake, not a guarantee.
+// Without a key, or when Giphy fails, it answers with isFallback: true and
+// the clients use their built-in GIF catalogue.
+
+const GIPHY_API_KEY = process.env.GIPHY_API_KEY?.trim() || '';
+
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 60;
+const hits = new Map<string, { start: number; count: number }>();
+
+function limited(ip: string): boolean {
+  const now = Date.now();
+  const h = hits.get(ip);
+  if (!h || now - h.start > RATE_WINDOW_MS) {
+    if (hits.size > 5000) hits.clear();
+    hits.set(ip, { start: now, count: 1 });
+    return false;
+  }
+  h.count++;
+  return h.count > RATE_MAX;
+}
+
+function clampInt(value: string | null, fallback: number, min: number, max: number) {
+  const n = parseInt(value ?? '', 10);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+
+function fallback(query: string, limit: number, offset: number, status = 200) {
+  return NextResponse.json(
+    {
+      data: generateFallbackGifs(query || 'trending', limit),
+      pagination: { total_count: 100, count: limit, offset },
+      meta: { status: 200, msg: 'OK (fallback data)' },
+      isFallback: true,
+    },
+    { status, headers: { 'Cache-Control': 'no-store' } },
+  );
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const query = searchParams.get('q') || '';
-  const limit = searchParams.get('limit') || '20';
-  const offset = searchParams.get('offset') || '0';
-  const type = searchParams.get('type') || (query ? 'search' : 'trending');
+  const query = (searchParams.get('q') || '').trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 50);
+  const limit = clampInt(searchParams.get('limit'), 24, 1, 50);
+  const offset = clampInt(searchParams.get('offset'), 0, 0, 4999);
+  const type = query && searchParams.get('type') !== 'trending' ? 'search' : 'trending';
+
+  if (!GIPHY_API_KEY) return fallback(query, limit, offset);
+
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  if (limited(ip)) return fallback(query, limit, offset, 429);
+
+  const params = new URLSearchParams({
+    api_key: GIPHY_API_KEY,
+    limit: String(limit),
+    offset: String(offset),
+    rating: 'g',
+  });
+  if (type === 'search') params.set('q', query);
 
   try {
-    let url: string;
-
-    if (type === 'trending') {
-      url = `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=${limit}&offset=${offset}&rating=g`;
-    } else {
-      url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}&rating=g`;
-    }
-
-    const response = await fetch(url, {
-      next: { revalidate: 300 }, // Cache for 5 minutes
+    const response = await fetch(`https://api.giphy.com/v1/gifs/${type}?${params}`, {
+      next: { revalidate: 300 },
     });
-
     if (!response.ok) {
-      return NextResponse.json({
-        data: generateFallbackGifs(query || 'trending', parseInt(limit)),
-        pagination: { total_count: 100, count: parseInt(limit), offset: parseInt(offset) },
-        meta: { status: 200, msg: 'OK (fallback data)' },
-        isFallback: true,
-      });
+      console.error(`Giphy ${type} failed: ${response.status}`);
+      return fallback(query, limit, offset);
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
-  } catch {
-    return NextResponse.json({
-      data: generateFallbackGifs(query || 'trending', parseInt(limit)),
-      pagination: { total_count: 100, count: parseInt(limit), offset: parseInt(offset) },
-      meta: { status: 200, msg: 'OK (fallback data)' },
-      isFallback: true,
+    if (!Array.isArray(data?.data) || data.data.length === 0) return fallback(query, limit, offset);
+
+    // Trending changes through the day; a search's results barely do.
+    const maxAge = type === 'trending' ? 600 : 3600;
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': `public, max-age=60, s-maxage=${maxAge}, stale-while-revalidate=86400`,
+      },
     });
+  } catch (error) {
+    console.error('Giphy request error:', error);
+    return fallback(query, limit, offset);
   }
 }
 

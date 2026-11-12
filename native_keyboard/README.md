@@ -39,6 +39,12 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
 - Panels: emoji (categories, recents, skin tones, search), stickers (the web
   keyboard's twelve sets, Ethiopia included), GIFs, clipboard history with
   pinning, handwriting, translate, themes
+- Sticker Marketplace: packs listed on the website, installed on demand from
+  the "+" at the end of the sticker pack row, Settings → Sticker packs or the
+  home screen. Any other Telegram pack can be added from its t.me/addstickers
+  link in Settings → Sticker packs. Video stickers play in the panel (Android 9+) and send as
+  animated WebP or GIF; vector-animated (.tgs) ones are stills. 🔍 at the start
+  of the pack row searches every pack by word or emoji
 - Emoji search: type a word ("dog", "lol", "ethiopia") into the strip and tap a
   result
 - Long-press bubble: a letter's accents, or a consonant's whole vowel family
@@ -55,11 +61,14 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
 - TalkBack support: every key is announced and can be activated
 
 ## GIFs and the Giphy key
-The GIF tab works with no setup, using a built-in catalogue of ~90 GIFs. To get
-the full Giphy library, paste your own API key in the app's settings (free at
-developers.giphy.com). The key is stored only on the phone, never in this repo.
-If Giphy rejects the key, is unreachable or rate-limits, the tab says so and
-falls back to the built-in GIFs. GIFs are sent as images where the app accepts
+The GIF tab works with no setup. It asks the AkAI server's `/api/giphy`, which
+holds one shared Giphy key (`GIPHY_API_KEY` in Vercel, never in the APK or this
+repo) and caches answers on Vercel's CDN, so popular searches don't spend the
+key. If the server has no key or Giphy fails, the tab quietly shows a built-in
+catalogue of ~90 GIFs. A user can also paste their own key in the app's
+settings (kept only on the phone) to ask Giphy directly; if Giphy rejects that
+key, is unreachable or rate-limits, the tab says so and falls back to the
+built-in GIFs. GIFs are sent as images where the app accepts
 them, otherwise as a link.
 
 ## Handwriting and translation
@@ -220,6 +229,30 @@ Covers the phonetic engine, skin tones, learned suggestions, that every layout
 builds, the cursor row, toolbar choices, auto-correct, swipe decoding on a
 QWERTY board, dictionary completions and emoji search, and for Amharic: swipe paths on
 both boards, phonetic and fidel swipes, completions and corrections.
+
+## Sticker packs
+Packs aren't built into the APK; phones download the ones they install. The
+marketplace is a table in the Neon database; manage it from the repository root:
+
+    npm run stickers:db -- setup                    once, makes the tables
+    npm run stickers:db -- add <t.me link> [title]  list a pack (or refresh it)
+    npm run stickers:db -- list | hide <name> | show <name> | delete <name>
+
+A pack added this way shows up in the app straight away, with no new release.
+
+Picture packs live in `app/src/main/assets/sticker_packs/<name>/` (built in) or
+the app's files folder (imported on the phone); each is a `pack.json` and one
+picture per sticker. The website's `/api/stickers` and `/api/stickers/file`
+read Telegram with `TELEGRAM_BOT_TOKEN` (make a bot with @BotFather and set it
+in Vercel), so phones never hold the token. Video stickers are converted there
+with `ffmpeg-static` (animated WebP at 288px/12fps, GIF at 240px, and a full-size
+first frame), once each, then cached by the CDN. To build a pack into the APK
+instead (it then can't be removed, and adds to the download):
+
+    node native_keyboard/tools/fetch-sticker-pack.mjs https://t.me/addstickers/PackName
+
+It uses `TELEGRAM_BOT_TOKEN` from the environment or `.env.local` if set (and
+ffmpeg on the PATH for video stickers), and the deployed website otherwise.
 
 ## Amharic data
 `KeyboardData.kt` is generated from the web keyboard's `keyboard-data.ts` and

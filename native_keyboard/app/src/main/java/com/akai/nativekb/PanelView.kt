@@ -34,6 +34,8 @@ interface PanelHost {
     fun onPanelTogglePin(text: String)
     fun onPanelGif(item: GifItem)
     fun onPanelSticker(sticker: Stickers.Sticker)
+    /** The "+" after the sticker packs: open the Sticker Marketplace. */
+    fun onPanelAddStickers()
     fun panelTextBefore(): String
     fun onPanelReplace(oldLength: Int, newText: String)
     fun panelAmharic(): Boolean
@@ -43,6 +45,10 @@ interface PanelHost {
     fun onPanelTheme(id: String)
     /** The search button in the emoji tab: type a word to find emoji. */
     fun onPanelEmojiSearch()
+    /** The search button in the GIF tab: type words on the keys, starting from [current]. */
+    fun onPanelGifSearch(current: String)
+    /** The search button in the sticker tab: type words on the keys, starting from [current]. */
+    fun onPanelStickerSearch(current: String)
     /** Something in the voice tab: the mic, the language, the setup button, or leaving the tab. */
     fun onPanelVoice(action: PanelView.VoiceAction)
 }
@@ -102,8 +108,22 @@ class PanelView(context: Context) : View(context) {
     private fun miniPalette(def: PaletteDef) = miniPalettes.getOrPut("${def.id}@${System.identityHashCode(def)}") { Themes.palette(def) }
 
     private var stickerSet = 0
+    /** A sticker search being shown instead of a pack, or null; and what it found. */
+    private var stickerQuery: String? = null
+    private var stickerResults: List<Stickers.Sticker> = emptyList()
+    /** How far the row of sticker packs is scrolled sideways. */
+    private var packScrollX = 0f
+    private fun stickerPacks() = Stickers.packs(context)
+    /**
+     * Each cell in the pack row: one per pack, then "+" to add packs. The row
+     * fills the width, and scrolls sideways once they don't fit.
+     */
+    private fun packCell() = max((width - gifSearchCell()) / (stickerPacks().size + 1), dp(64f))
+    private fun maxPackScroll() = max(0f, packCell() * (stickerPacks().size + 1) - (width - gifSearchCell()))
 
     private var gifCategory = 0
+    /** A typed GIF search being shown instead of a category, or null. */
+    private var gifQuery: String? = null
     private var gifs: List<GifItem> = emptyList()
     private var gifNote: String? = null
     private var gifLoading = false
@@ -156,6 +176,7 @@ class PanelView(context: Context) : View(context) {
 
     private fun enter(t: Tab) {
         if (tab == Tab.VOICE && t != Tab.VOICE) host?.onPanelVoice(VoiceAction.LEAVE)
+        if (t != Tab.STICKERS) Stickers.stopAnimations()
         tab = t
         tabAt = android.os.SystemClock.uptimeMillis()
         resetScroll()
@@ -169,6 +190,8 @@ class PanelView(context: Context) : View(context) {
                 translateStatus = null
             }
             Tab.WRITE -> clearInk()
+            // A pack may have been removed in Settings since the panel was last open.
+            Tab.STICKERS -> stickerSet = stickerSet.coerceIn(0, max(0, stickerPacks().size - 1))
             else -> {}
         }
         invalidate()
@@ -179,12 +202,20 @@ class PanelView(context: Context) : View(context) {
         invalidate()
     }
 
+    /** Show the GIFs found for [query]; the GIF tab opens on them. */
+    fun searchGifs(query: String) {
+        gifQuery = query
+        gifs = emptyList()
+        resetScroll()
+    }
+
     private fun loadGifs() {
         gifLoading = true
         gifNote = null
         val wanted = gifCategory
-        Gifs.load(Gifs.categories[wanted], giphyKey) { items, note ->
-            if (wanted != gifCategory) return@load
+        val query = gifQuery
+        Gifs.load(query ?: Gifs.categories[wanted], giphyKey, serverUrl, search = query != null) { items, note ->
+            if (wanted != gifCategory || query != gifQuery) return@load
             gifs = items
             gifNote = note
             gifLoading = false
@@ -216,8 +247,18 @@ class PanelView(context: Context) : View(context) {
         if (emojiCategory == 0) recents else EmojiData.categories.getOrNull(emojiCategory - 1)?.emojis.orEmpty()
 
     private fun gifCell() = width / 3f
+    /** The search button before the GIF categories (and ✕ after a search). */
+    private fun gifSearchCell() = dp(44f)
     private fun stickerCell() = width / 4f
-    private fun stickerList() = Stickers.packs.getOrNull(stickerSet)?.stickers.orEmpty()
+    private fun stickerList() =
+        if (stickerQuery != null) stickerResults else stickerPacks().getOrNull(stickerSet)?.stickers.orEmpty()
+
+    /** Show the stickers found for [query]; the sticker tab opens on them. */
+    fun searchStickers(query: String) {
+        stickerQuery = query
+        stickerResults = Stickers.search(context, query)
+        resetScroll()
+    }
     private fun clipRowH() = dp(52f)
     private fun themeCellH() = width / 3f * 0.74f + dp(24f)
 
@@ -331,16 +372,35 @@ class PanelView(context: Context) : View(context) {
                 label(canvas, icon, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(18f), palette.text)
             }
         } else if (tab == Tab.STICKERS) {
-            val packs = Stickers.packs
-            val cell = width.toFloat() / packs.size
+            val search = gifSearchCell()
+            if (searchRow(canvas, stickerQuery)) return
+            label(canvas, "🔍", search / 2f, tabH + catH / 2f - dp(1f), dp(16f), palette.text)
+            val packs = stickerPacks()
+            val cell = packCell()
+            packScrollX = packScrollX.coerceIn(0f, maxPackScroll())
+            canvas.save()
+            canvas.clipRect(search, tabH, width.toFloat(), tabH + catH)
             for ((i, pack) in packs.withIndex()) {
+                val l = search + cell * i - packScrollX
+                if (l + cell < 0f || l > width) continue
                 if (i == stickerSet) {
-                    rect.set(cell * i + dp(2f), tabH, cell * (i + 1) - dp(2f), tabH + catH - dp(3f))
+                    rect.set(l + dp(2f), tabH, l + cell - dp(2f), tabH + catH - dp(3f))
                     fill.color = palette.key
                     canvas.drawRoundRect(rect, radius, radius, fill)
                 }
-                label(canvas, pack.name, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == stickerSet)
+                val icon = pack.icon
+                val px = (catH - dp(9f)).toInt()
+                val bmp = icon?.let { Stickers.thumbnail(it, px, redraw) }
+                if (bmp != null) canvas.drawBitmap(bmp, l + (cell - px) / 2f, tabH + dp(3f), null)
+                else if (icon == null) {
+                    text.textSize = dp(11f)
+                    val name = TextUtils.ellipsize(pack.name, TextPaint(text), cell - dp(8f), TextUtils.TruncateAt.END).toString()
+                    label(canvas, name, l + cell / 2f, tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == stickerSet)
+                }
             }
+            val add = search + cell * packs.size - packScrollX
+            if (add < width) label(canvas, "+", add + cell / 2f, tabH + catH / 2f - dp(2f), dp(22f), palette.hint)
+            canvas.restore()
         } else if (tab == Tab.THEMES) {
             val cell = width.toFloat() / themeFilters.size
             for ((i, f) in themeFilters.withIndex()) {
@@ -352,16 +412,35 @@ class PanelView(context: Context) : View(context) {
                 label(canvas, f.second, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == themeFilter)
             }
         } else {
-            val cell = width.toFloat() / Gifs.categories.size
+            val search = gifSearchCell()
+            if (searchRow(canvas, gifQuery)) return
+            label(canvas, "🔍", search / 2f, tabH + catH / 2f - dp(1f), dp(16f), palette.text)
+            val cell = (width - search) / Gifs.categories.size
             for ((i, name) in Gifs.categories.withIndex()) {
+                val l = search + cell * i
                 if (i == gifCategory) {
-                    rect.set(cell * i + dp(2f), tabH, cell * (i + 1) - dp(2f), tabH + catH - dp(3f))
+                    rect.set(l + dp(2f), tabH, l + cell - dp(2f), tabH + catH - dp(3f))
                     fill.color = palette.key
                     canvas.drawRoundRect(rect, radius, radius, fill)
                 }
-                label(canvas, name, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == gifCategory)
+                label(canvas, name, l + cell / 2f, tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == gifCategory)
             }
         }
+    }
+
+    /**
+     * A search being shown, in place of the categories: tap it to change the
+     * words, ✕ to go back. False (nothing drawn) when there is no search.
+     */
+    private fun searchRow(canvas: Canvas, q: String?): Boolean {
+        if (q == null) return false
+        val search = gifSearchCell()
+        rect.set(dp(4f), tabH, width - search, tabH + catH - dp(3f))
+        fill.color = palette.key
+        canvas.drawRoundRect(rect, radius, radius, fill)
+        label(canvas, "🔍  $q", rect.centerX(), tabH + catH / 2f - dp(1f), dp(13f), palette.text, bold = true)
+        label(canvas, "✕", width - search / 2f, tabH + catH / 2f - dp(1f), dp(15f), palette.text)
+        return true
     }
 
     private fun drawEmoji(canvas: Canvas) {
@@ -383,10 +462,24 @@ class PanelView(context: Context) : View(context) {
 
     private val redraw: () -> Unit = { invalidate() }
 
+    /** Moving stickers ask for a redraw each frame, but only while they can be seen. */
+    private val animCallback = object : android.graphics.drawable.Drawable.Callback {
+        override fun invalidateDrawable(who: android.graphics.drawable.Drawable) {
+            if (tab == Tab.STICKERS && isShown) postInvalidateOnAnimation()
+        }
+        override fun scheduleDrawable(who: android.graphics.drawable.Drawable, what: Runnable, `when`: Long) { handler.postAtTime(what, who, `when`) }
+        override fun unscheduleDrawable(who: android.graphics.drawable.Drawable, what: Runnable) { handler.removeCallbacks(what, who) }
+    }
+
     /** Die-cut stickers, four to a row, sitting straight on the panel (no key behind them). */
     private fun drawStickers(canvas: Canvas) {
         val top = contentTop()
         val list = stickerList()
+        if (list.isEmpty() && stickerQuery != null) {
+            label(canvas, "No stickers for \"$stickerQuery\"", width / 2f, top + dp(50f), dp(14f), palette.hint)
+            label(canvas, "Try a feeling, like happy, sad, love or laugh", width / 2f, top + dp(74f), dp(12f), palette.hint)
+            return
+        }
         val cell = stickerCell()
         val px = (cell - dp(6f)).toInt().coerceAtLeast(1)
         val first = max(0, (scrollY / cell).toInt())
@@ -396,8 +489,18 @@ class PanelView(context: Context) : View(context) {
             if (i >= list.size) break
             val x = cell * c + (cell - px) / 2f
             val y = top + r * cell - scrollY + (cell - px) / 2f
-            val bmp = Stickers.thumbnail(list[i], px, redraw)
-            if (bmp != null) {
+            val moving = Stickers.animated(list[i], px, animCallback, redraw)
+            val bmp = if (moving == null) Stickers.thumbnail(list[i], px, redraw) else null
+            if (moving != null) {
+                // Fitted into the square, keeping its shape.
+                val w = moving.intrinsicWidth.coerceAtLeast(1).toFloat()
+                val h = moving.intrinsicHeight.coerceAtLeast(1).toFloat()
+                val k = min(px / w, px / h)
+                val l = x + (px - w * k) / 2f
+                val t = y + (px - h * k) / 2f
+                moving.setBounds(l.toInt(), t.toInt(), (l + w * k).toInt(), (t + h * k).toInt())
+                moving.draw(canvas)
+            } else if (bmp != null) {
                 canvas.drawBitmap(bmp, x, y, null)
             } else {
                 // Still being drawn: a faint placeholder where it will appear.
@@ -414,6 +517,9 @@ class PanelView(context: Context) : View(context) {
         if (gifLoading && gifs.isEmpty()) {
             label(canvas, "Loading GIFs…", width / 2f, top + dp(60f), dp(14f), palette.hint)
             return
+        }
+        if (gifs.isEmpty() && gifQuery != null) {
+            label(canvas, "No GIFs found for \"$gifQuery\"", width / 2f, top + dp(60f), dp(14f), palette.hint)
         }
         val cell = gifCell()
         val first = max(0, (scrollY / cell).toInt())
@@ -722,6 +828,7 @@ class PanelView(context: Context) : View(context) {
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
         if (e.actionMasked == MotionEvent.ACTION_DOWN && e.y < tabH) { headerTap(e.x); return true }
+        if (packTouch(e)) return true
         if (e.actionMasked == MotionEvent.ACTION_DOWN && hasCategoryRow() && e.y < contentTop()) { categoryTap(e.x); return true }
         return when (tab) {
             Tab.WRITE -> writeTouch(e)
@@ -729,6 +836,33 @@ class PanelView(context: Context) : View(context) {
             Tab.VOICE -> { if (e.actionMasked == MotionEvent.ACTION_DOWN) voiceTap(e.x, e.y); true }
             else -> scrollTouch(e)
         }
+    }
+
+    /** A touch that started on the sticker pack row: slide it sideways, or tap a pack. */
+    private var packDown: Float? = null
+    private var packLastX = 0f
+    private var packDragging = false
+
+    private fun packTouch(e: MotionEvent): Boolean {
+        if (e.actionMasked == MotionEvent.ACTION_DOWN) {
+            if (tab != Tab.STICKERS || stickerQuery != null || e.y < tabH || e.y >= contentTop()) { packDown = null; return false }
+            packDown = e.x; packLastX = e.x; packDragging = false
+            return true
+        }
+        val down = packDown ?: return false
+        when (e.actionMasked) {
+            MotionEvent.ACTION_MOVE -> {
+                if (!packDragging && abs(e.x - down) > slop) packDragging = true
+                if (packDragging) {
+                    packScrollX = (packScrollX - (e.x - packLastX)).coerceIn(0f, maxPackScroll())
+                    invalidate()
+                }
+                packLastX = e.x
+            }
+            MotionEvent.ACTION_UP -> { if (!packDragging) categoryTap(e.x); packDown = null }
+            MotionEvent.ACTION_CANCEL -> packDown = null
+        }
+        return true
     }
 
     private fun scrollTouch(e: MotionEvent): Boolean {
@@ -880,14 +1014,35 @@ class PanelView(context: Context) : View(context) {
             emojiCategory = i - 1
             resetScroll()
         } else if (tab == Tab.STICKERS) {
-            val n = Stickers.packs.size
-            stickerSet = (x / (width.toFloat() / n)).toInt().coerceIn(0, n - 1)
+            val search = gifSearchCell()
+            val q = stickerQuery
+            if (q != null) {
+                if (x < width - search) { host?.onPanelStickerSearch(q); return }
+                stickerQuery = null
+                stickerResults = emptyList()
+                resetScroll()
+                invalidate()
+                return
+            }
+            if (x < search) { host?.onPanelStickerSearch(""); return }
+            val n = stickerPacks().size
+            val i = ((x - search + packScrollX) / packCell()).toInt()
+            if (i >= n) { host?.onPanelAddStickers(); return }
+            stickerSet = i.coerceIn(0, max(0, n - 1))
+            Stickers.stopAnimations()
             resetScroll()
         } else if (tab == Tab.THEMES) {
             themeFilter = (x / (width.toFloat() / themeFilters.size)).toInt().coerceIn(0, themeFilters.size - 1)
             resetScroll()
         } else {
-            gifCategory = (x / (width.toFloat() / Gifs.categories.size)).toInt().coerceIn(0, Gifs.categories.size - 1)
+            val search = gifSearchCell()
+            val q = gifQuery
+            when {
+                q != null && x < width - search -> { host?.onPanelGifSearch(q); return }
+                q != null -> gifQuery = null
+                x < search -> { host?.onPanelGifSearch(""); return }
+                else -> gifCategory = ((x - search) / ((width - search) / Gifs.categories.size)).toInt().coerceIn(0, Gifs.categories.size - 1)
+            }
             resetScroll()
             gifs = emptyList()
             loadGifs()
@@ -930,8 +1085,19 @@ class PanelView(context: Context) : View(context) {
         }
     }
 
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility != VISIBLE) Stickers.stopAnimations()
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        if (!isShown) Stickers.stopAnimations()
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        Stickers.stopAnimations()
         handler.removeCallbacksAndMessages(null)
     }
 }
