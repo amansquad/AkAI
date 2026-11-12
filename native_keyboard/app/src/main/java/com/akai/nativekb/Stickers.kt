@@ -40,9 +40,13 @@ object Stickers {
         val anim: String? = null,
         /** Where the website serves it as a GIF (a path on the Akai server), for apps that only take GIFs. */
         val gif: String? = null,
+        /** A Telegram custom emoji: lives in the emoji tab and is sent emoji-sized, not sticker-sized. */
+        val isEmoji: Boolean = false,
     )
-    /** [key] tells packs apart; [removable] packs were imported and can be deleted in Settings. */
-    /** [emoji] packs are Telegram custom emoji: small, so the panel shows more to a row. */
+    /**
+     * [key] tells packs apart; [removable] packs were imported and can be deleted in Settings.
+     * [emoji] packs are Telegram custom emoji, shown in the emoji tab rather than with the stickers.
+     */
     class Pack(
         val name: String, val stickers: List<Sticker>, val key: String = name, val removable: Boolean = false,
         val emoji: Boolean = false,
@@ -52,8 +56,8 @@ object Stickers {
     }
 
     /** A picture sticker from a pack. */
-    fun picture(id: String, emoji: String, image: String, anim: String? = null, gif: String? = null) =
-        Sticker(id.replace('/', '~'), emoji, "", Shape.SQUARE, intArrayOf(0, 0), image, anim, gif)
+    fun picture(id: String, emoji: String, image: String, anim: String? = null, gif: String? = null, isEmoji: Boolean = false) =
+        Sticker(id.replace('/', '~'), emoji, "", Shape.SQUARE, intArrayOf(0, 0), image, anim, gif, isEmoji)
 
     private fun c(top: String, bottom: String) = intArrayOf(Color.parseColor(top), Color.parseColor(bottom))
 
@@ -73,7 +77,10 @@ object Stickers {
         Sticker(Integer.toHexString("$emoji|$caption|$shape|${colors[0]}".hashCode()), emoji, caption, shape, colors)
 
     /** The drawn packs, then the picture packs (built in, then imported). */
-    fun packs(context: Context): List<Pack> = drawn + StickerPacks.all(context)
+    fun packs(context: Context): List<Pack> = drawn + StickerPacks.all(context).filter { !it.emoji }
+
+    /** Installed Telegram custom emoji packs, which the emoji tab shows after the ordinary emoji. */
+    fun emojiPacks(context: Context): List<Pack> = StickerPacks.all(context).filter { it.emoji }
 
     /** Without variation selectors, so ☹ and ☹️ count as the same emoji. */
     private fun plain(e: String) = e.filterNot { it.code == 0xFE0F || it.code == 0xFE0E }
@@ -396,6 +403,8 @@ object Stickers {
     const val MIME = "image/png"
     /** WhatsApp's sticker size. */
     private const val SEND_SIZE = 512
+    /** A custom emoji goes out small, like an emoji, not as a sticker. */
+    private const val EMOJI_SEND_SIZE = 128
     /** Bump when the drawing changes, so files cached by an older version aren't sent. */
     private const val LOOK = 3
 
@@ -407,7 +416,7 @@ object Stickers {
                 val dir = File(app.cacheDir, "stickers").apply { mkdirs() }
                 val file = File(dir, "akai_${LOOK}_${st.id}.png")
                 if (!file.exists()) {
-                    val bmp = render(st, SEND_SIZE)
+                    val bmp = render(st, if (st.isEmoji) EMOJI_SEND_SIZE else SEND_SIZE)
                     val tmp = File(dir, "${file.name}.tmp")
                     tmp.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     bmp.recycle()

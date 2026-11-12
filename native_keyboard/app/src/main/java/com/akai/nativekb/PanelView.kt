@@ -176,7 +176,7 @@ class PanelView(context: Context) : View(context) {
 
     private fun enter(t: Tab) {
         if (tab == Tab.VOICE && t != Tab.VOICE) host?.onPanelVoice(VoiceAction.LEAVE)
-        if (t != Tab.STICKERS) Stickers.stopAnimations()
+        if (t != Tab.STICKERS && t != Tab.EMOJI) Stickers.stopAnimations()
         tab = t
         tabAt = android.os.SystemClock.uptimeMillis()
         resetScroll()
@@ -192,6 +192,7 @@ class PanelView(context: Context) : View(context) {
             Tab.WRITE -> clearInk()
             // A pack may have been removed in Settings since the panel was last open.
             Tab.STICKERS -> stickerSet = stickerSet.coerceIn(0, max(0, stickerPacks().size - 1))
+            Tab.EMOJI -> emojiCategory = emojiCategory.coerceIn(0, EmojiData.categories.size + emojiPacks().size)
             else -> {}
         }
         invalidate()
@@ -246,12 +247,20 @@ class PanelView(context: Context) : View(context) {
     private fun emojiList(): List<String> =
         if (emojiCategory == 0) recents else EmojiData.categories.getOrNull(emojiCategory - 1)?.emojis.orEmpty()
 
+    /**
+     * Installed Telegram custom emoji packs come after the ordinary emoji
+     * categories, one category each: 0 is recent, then the categories, then these.
+     */
+    private fun emojiPacks() = Stickers.emojiPacks(context)
+    private fun customEmoji(): Stickers.Pack? =
+        emojiPacks().getOrNull(emojiCategory - 1 - EmojiData.categories.size)
+    private fun emojiCount() = customEmoji()?.stickers?.size ?: emojiList().size
+
     private fun gifCell() = width / 3f
     /** The search button before the GIF categories (and ✕ after a search). */
     private fun gifSearchCell() = dp(44f)
-    /** Four stickers to a row; six for a custom emoji pack, which are small. */
-    private fun stickerCols() =
-        if (stickerQuery == null && stickerPacks().getOrNull(stickerSet)?.emoji == true) 6 else 4
+    /** Four stickers to a row. (Custom emoji packs live in the emoji tab.) */
+    private fun stickerCols() = 4
     private fun stickerCell() = width / stickerCols().toFloat()
     private fun stickerList() =
         if (stickerQuery != null) stickerResults else stickerPacks().getOrNull(stickerSet)?.stickers.orEmpty()
@@ -266,7 +275,7 @@ class PanelView(context: Context) : View(context) {
     private fun themeCellH() = width / 3f * 0.74f + dp(24f)
 
     private fun contentHeight(): Float = when (tab) {
-        Tab.EMOJI -> ((emojiList().size + 7) / 8) * (width / 8f)
+        Tab.EMOJI -> ((emojiCount() + 7) / 8) * (width / 8f)
         Tab.STICKERS -> ((stickerList().size + stickerCols() - 1) / stickerCols()) * stickerCell()
         Tab.GIF -> ((gifs.size + 2) / 3) * gifCell()
         Tab.CLIPBOARD -> clips.size * clipRowH()
@@ -364,15 +373,23 @@ class PanelView(context: Context) : View(context) {
     private fun drawCategories(canvas: Canvas) {
         if (tab == Tab.EMOJI) {
             // The first cell searches; the rest are recent and the categories.
+            // Then a cell for each installed custom emoji pack, showing its first emoji.
             val icons = listOf("🔍", "🕘") + EmojiData.categories.map { it.icon }
-            val cell = width.toFloat() / icons.size
-            for ((i, icon) in icons.withIndex()) {
+            val packs = emojiPacks()
+            val cell = width.toFloat() / (icons.size + packs.size)
+            for (i in 0 until icons.size + packs.size) {
                 if (i == emojiCategory + 1) {
                     rect.set(cell * i + dp(3f), tabH, cell * (i + 1) - dp(3f), tabH + catH - dp(3f))
                     fill.color = palette.key
                     canvas.drawRoundRect(rect, radius, radius, fill)
                 }
-                label(canvas, icon, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(18f), palette.text)
+                if (i < icons.size) {
+                    label(canvas, icons[i], cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(18f), palette.text)
+                } else {
+                    val px = min(catH - dp(12f), cell - dp(6f)).toInt().coerceAtLeast(1)
+                    packs[i - icons.size].icon?.let { Stickers.thumbnail(it, px, redraw) }
+                        ?.let { canvas.drawBitmap(it, cell * (i + 0.5f) - px / 2f, tabH + (catH - dp(3f) - px) / 2f, null) }
+                }
             }
         } else if (tab == Tab.STICKERS) {
             val search = gifSearchCell()
@@ -448,6 +465,7 @@ class PanelView(context: Context) : View(context) {
 
     private fun drawEmoji(canvas: Canvas) {
         val top = contentTop()
+        customEmoji()?.let { drawCustomEmoji(canvas, it.stickers); return }
         val list = emojiList()
         if (list.isEmpty()) {
             label(canvas, "Emoji you use will appear here", width / 2f, top + dp(60f), dp(14f), palette.hint)
@@ -465,10 +483,30 @@ class PanelView(context: Context) : View(context) {
 
     private val redraw: () -> Unit = { invalidate() }
 
+    /** A custom emoji pack, eight to a row like the ordinary emoji, moving ones playing. */
+    private fun drawCustomEmoji(canvas: Canvas, list: List<Stickers.Sticker>) {
+        val top = contentTop()
+        val cell = width / 8f
+        val px = (cell * 0.82f).toInt().coerceAtLeast(1)
+        val first = max(0, (scrollY / cell).toInt())
+        val last = min((list.size + 7) / 8, first + ((height - top) / cell).toInt() + 2)
+        for (r in first until last) for (c in 0 until 8) {
+            val i = r * 8 + c
+            if (i >= list.size) break
+            val x = cell * c + (cell - px) / 2f
+            val y = top + r * cell - scrollY + (cell - px) / 2f
+            val moving = Stickers.animated(list[i], px, animCallback, redraw)
+            if (moving != null) {
+                moving.setBounds(x.toInt(), y.toInt(), (x + px).toInt(), (y + px).toInt())
+                moving.draw(canvas)
+            } else Stickers.thumbnail(list[i], px, redraw)?.let { canvas.drawBitmap(it, x, y, null) }
+        }
+    }
+
     /** Moving stickers ask for a redraw each frame, but only while they can be seen. */
     private val animCallback = object : android.graphics.drawable.Drawable.Callback {
         override fun invalidateDrawable(who: android.graphics.drawable.Drawable) {
-            if (tab == Tab.STICKERS && isShown) postInvalidateOnAnimation()
+            if ((tab == Tab.STICKERS || tab == Tab.EMOJI) && isShown) postInvalidateOnAnimation()
         }
         override fun scheduleDrawable(who: android.graphics.drawable.Drawable, what: Runnable, `when`: Long) { handler.postAtTime(what, who, `when`) }
         override fun unscheduleDrawable(who: android.graphics.drawable.Drawable, what: Runnable) { handler.removeCallbacks(what, who) }
@@ -1012,10 +1050,11 @@ class PanelView(context: Context) : View(context) {
 
     private fun categoryTap(x: Float) {
         if (tab == Tab.EMOJI) {
-            val n = EmojiData.categories.size + 2
+            val n = EmojiData.categories.size + 2 + emojiPacks().size
             val i = (x / (width.toFloat() / n)).toInt().coerceIn(0, n - 1)
             if (i == 0) { host?.onPanelEmojiSearch(); return }
             emojiCategory = i - 1
+            Stickers.stopAnimations()
             resetScroll()
         } else if (tab == Tab.STICKERS) {
             val search = gifSearchCell()
@@ -1062,7 +1101,9 @@ class PanelView(context: Context) : View(context) {
                 val cell = width / 8f
                 val c = (x / cell).toInt().coerceIn(0, 7)
                 val r = ((y - top + scrollY) / cell).toInt()
-                emojiList().getOrNull(r * 8 + c)?.let { host?.onPanelText(EmojiData.withTone(it, skinTone), true) }
+                val custom = customEmoji()
+                if (custom != null) custom.stickers.getOrNull(r * 8 + c)?.let { host?.onPanelSticker(it) }
+                else emojiList().getOrNull(r * 8 + c)?.let { host?.onPanelText(EmojiData.withTone(it, skinTone), true) }
             }
             Tab.STICKERS -> {
                 val cell = stickerCell()
