@@ -215,7 +215,7 @@ object Layouts {
             amharicSymbols -> listOf(
                 syms("1234567890"),
                 syms("@#\$%&+=*_~"),
-                listOf(pageKey) + listOf("€", "£", "¥", "\"", "'", ";", "|").map { sym(it) } + backspace(1.5f),
+                listOf(pageKey) + listOf("€", "<", ">", "\"", "'", ";", "|").map { sym(it) } + backspace(1.5f),
             )
             page == 1 -> listOf(
                 syms("1234567890"),
@@ -223,7 +223,7 @@ object Layouts {
                 listOf(pageKey) + listOf("*", "\"", "'", ":", ";", "!", "?").map { sym(it) } + backspace(1.5f),
             )
             else -> listOf(
-                syms("~`|•√π÷×§∆"),
+                syms("~`|•√π÷×<>"),
                 syms("£¢€¥^°={}\\"),
                 listOf(pageKey) + listOf("_", "©", "®", "™", "✓", "[", "]").map { sym(it) } + backspace(1.5f),
             )
@@ -235,7 +235,7 @@ object Layouts {
         val rows = top.toMutableList()
         if (o.numberRow) when {
             amharicSymbols && page == 1 -> rows.add(0, syms("1234567890"))
-            amharicSymbols -> rows.add(2, syms("^`|•°[]{}<>"))
+            amharicSymbols -> rows.add(2, syms("^`|•°[]{}§¶"))
             page == 1 -> rows.add(2, syms("~`|•^={}[]"))
             else -> rows.add(0, syms("1234567890"))
         }

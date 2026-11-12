@@ -20,6 +20,16 @@ class LayoutsTest {
         }
     }
 
+    @Test fun lessAndGreaterThanAreOnAKeyOfTheSymbolPages() {
+        for (amharic in listOf(false, true)) for (numberRow in listOf(false, true)) {
+            val keys = listOf(LayoutId.SYMBOLS, LayoutId.SYMBOLS2)
+                .flatMap { Layouts.build(it, amharic, LayoutOptions(numberRow = numberRow)).rows.flatten() }
+                .map { it.output }
+            assertTrue("< amharic=$amharic numberRow=$numberRow", "<" in keys)
+            assertTrue("> amharic=$amharic numberRow=$numberRow", ">" in keys)
+        }
+    }
+
     @Test fun symbolPagesHaveAsManyRowsAsTheLetters() {
         for (numberRow in listOf(false, true)) for (cursorRow in listOf(false, true)) for (amharic in listOf(false, true)) {
             val opts = LayoutOptions(numberRow = numberRow, cursorRow = cursorRow)
