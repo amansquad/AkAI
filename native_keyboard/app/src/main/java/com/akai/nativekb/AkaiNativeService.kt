@@ -102,6 +102,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
     private var tools = Tools.parse(Tools.DEFAULT)
     private var wordOfDayOn = true
     private var autoCorrect = true
+    private var autoCorrectAm = false
     private var glide = true
 
     private var vibrator: Vibrator? = null
@@ -206,6 +207,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         tools = Tools.parse(p.getString(Prefs.TOOLBAR, Tools.DEFAULT) ?: Tools.DEFAULT)
         wordOfDayOn = p.getBoolean(Prefs.WORD_OF_DAY, true)
         autoCorrect = p.getBoolean(Prefs.AUTOCORRECT, true)
+        autoCorrectAm = p.getBoolean(Prefs.AUTOCORRECT_AM, false)
         glide = p.getBoolean(Prefs.GLIDE, true)
         if (pinned.isEmpty()) {
             try {
@@ -367,7 +369,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         val before = currentInputConnection?.getTextBeforeCursor(40, 0)
         keys.setSuggestions(
             if (before == null) emptyList()
-            else Suggest.forText(before, amharic, if (learnOn) learned else emptyMap(), if (amharic) null else Words.en),
+            else Suggest.forText(before, amharic, if (learnOn) learned else emptyMap(), if (amharic) Words.am else Words.en),
         )
     }
 
@@ -483,7 +485,12 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     // ─── Auto-correct ────────────────────────────────────────────────────
 
-    private val correcting get() = autoCorrect && !amharic && !plainField && !digitField && layoutId == LayoutId.LETTERS
+    private val correcting get() = !plainField && !digitField && when (layoutId) {
+        LayoutId.LETTERS -> autoCorrect && !amharic
+        // Off unless asked for: the Amharic list is small next to all the forms a word can take.
+        LayoutId.FIDEL, LayoutId.PHONETIC -> autoCorrectAm
+        else -> false
+    }
 
     /** Fixes the word just before the cursor, before [separator] is typed after it. */
     private fun correctWordBefore(separator: String) {
@@ -496,7 +503,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
         if (typed.isEmpty() || typed.lowercase() in keepAsTyped) return
         // Part of a longer token such as an address or a number: leave it.
         if (i > 0 && (before[i - 1].isLetterOrDigit() || before[i - 1] in "@/_.-#")) return
-        val fix = AutoCorrect.correct(typed, Words.en, if (learnOn) learned else emptyMap()) ?: return
+        val known = if (learnOn) learned else emptyMap()
+        val fix = (if (amharic) Amharic.correct(typed, Words.am, known) else AutoCorrect.correct(typed, Words.en, known)) ?: return
         if (fix == typed) return
         ic.beginBatchEdit()
         ic.deleteSurroundingText(typed.length, 0)
@@ -724,15 +732,29 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost {
 
     /** The touch that started the swipe typed a letter on landing; take it back. */
     override fun onGlideStart() {
-        currentInputConnection?.deleteSurroundingTextInCodePoints(1, 0)
+        // Phonetically the letter may have re-spelt the word ("se" + l is ሰል), so step the spelling back.
+        val step = if (phoneticActive) Translit.backspace(translit) else null
+        if (step != null) applyTranslit(step)
+        else currentInputConnection?.deleteSurroundingTextInCodePoints(1, 0)
+        vowelChanges = false
+        keys.setVowels(emptyList())
     }
 
     override fun onGlide(xs: FloatArray, ys: FloatArray, keys: Map<Char, FloatArray>, keyW: Float, shifted: Boolean) {
         val ic = currentInputConnection ?: return
-        val words = Glide.decode(xs, ys, keys, keyW, Words.en, if (learnOn) learned else emptyMap())
+        val spelling = when (layoutId) {
+            LayoutId.FIDEL -> Amharic.FIDEL
+            LayoutId.PHONETIC -> Amharic.PHONETIC
+            else -> Spelling.LETTERS
+        }
+        val english = spelling == Spelling.LETTERS
+        val words = Glide.decode(xs, ys, keys, keyW, if (english) Words.en else Words.am,
+            if (learnOn) learned else emptyMap(), spelling = spelling)
         if (words.isEmpty()) { onKeyFeedback(); return }
-        val caps = shifted || this.keys.shiftState > 0
+        // Capitals mean other letters in phonetic typing, and fidel has none.
+        val caps = english && (shifted || this.keys.shiftState > 0)
         fun shape(w: String) = when {
+            !english -> w
             w == "i" || w.startsWith("i'") -> "I" + w.drop(1)
             this.keys.shiftState == 2 -> w.uppercase()
             caps -> w.replaceFirstChar { it.uppercase() }
@@ -1063,6 +1085,7 @@ object Prefs {
     const val TOOLBAR = "toolbar"
     const val WORD_OF_DAY = "word_of_day"
     const val AUTOCORRECT = "autocorrect"
+    const val AUTOCORRECT_AM = "autocorrect_amharic"
     /** Swipe across the letters to type a word. */
     const val GLIDE = "glide_typing"
 }
