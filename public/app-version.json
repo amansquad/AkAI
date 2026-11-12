@@ -1,6 +1,6 @@
 {
-  "versionCode": 10007,
-  "versionName": "1.0.7",
+  "versionCode": 10008,
+  "versionName": "1.0.8",
   "url": "/AkAI-keyboard.apk",
-  "notes": "The Sticker Marketplace switches between Stickers and Emoji right away, and always shows the tab you picked."
+  "notes": "Choose the app's language in Settings: English, Amharic, Tigrinya, Oromo, Somali or Arabic. The < and > symbols now have their own keys on the second symbols page."
 }
