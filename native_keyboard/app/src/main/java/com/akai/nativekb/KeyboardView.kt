@@ -343,7 +343,10 @@ class KeyboardView(context: Context) : View(context) {
         // Switching boards (letters, symbols, number pad) fades rather than flashes.
         // Only when the height is unchanged, or the old picture would not fit.
         val prev = layout
-        if (prev != null && (prev.id != next.id || strip != showStrip) && heightFor(next, strip) == height) beginCrossfade(150L)
+        if (prev != null && (prev.id != next.id || strip != showStrip) && heightFor(next, strip) == height) {
+            // Same theme, so a scene behind the keys stays put: only the keys change.
+            beginCrossfade(150L, keysOnly = liveOn && palette.isLive)
+        }
         cacheValid = false
         layout = next
         showStrip = strip
@@ -490,8 +493,13 @@ class KeyboardView(context: Context) : View(context) {
     private var fadeDur = 0L
     private val fadePaint = Paint()
 
-    /** Freezes what is on screen now, so it can fade out over whatever replaces it. */
-    private fun beginCrossfade(dur: Long) {
+    /**
+     * Freezes what is on screen now, so it can fade out over whatever replaces it.
+     * With [keysOnly] the frozen picture has no background: over a live scene the
+     * old keys fade while the scene keeps moving, instead of a flat colour
+     * hiding it for the length of the fade.
+     */
+    private fun beginCrossfade(dur: Long, keysOnly: Boolean = false) {
         val src = cache ?: return
         if (!cacheValid || width <= 0 || src.width != width || src.height != height) return
         var fb = fadeBitmap
@@ -501,7 +509,7 @@ class KeyboardView(context: Context) : View(context) {
             fadeBitmap = fb
         }
         val cv = Canvas(fb)
-        cv.drawColor(palette.background)
+        if (keysOnly) cv.drawColor(0, PorterDuff.Mode.CLEAR) else cv.drawColor(palette.background)
         cv.drawBitmap(src, 0f, 0f, null)
         fadeStart = SystemClock.uptimeMillis()
         fadeDur = dur
