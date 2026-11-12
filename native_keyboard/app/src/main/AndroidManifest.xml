@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Voice typing in the keyboard; asked for the first time the mic is used. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Typing works without a microphone, so phones and tablets without one can install it. -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <!-- Lets voice typing find the speech service, and the system voice screen, on Android 11 and newer. -->
     <queries>
