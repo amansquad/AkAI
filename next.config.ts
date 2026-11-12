@@ -23,6 +23,14 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
 
+  // /api/stickers/file runs ffmpeg to turn Telegram video stickers into
+  // animated WebP and GIF. Keep the package unbundled so it can find its
+  // binary, and ship the binary with that route.
+  serverExternalPackages: ['ffmpeg-static'],
+  outputFileTracingIncludes: {
+    '/api/stickers/file': ['./node_modules/ffmpeg-static/ffmpeg*'],
+  },
+
   // Performance optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,

@@ -239,6 +239,7 @@ class HomeActivity : ThemedActivity() {
         feature("🎨", "Live Themes", "${Themes.all.size} themes") { startActivity(Intent(this, ThemesActivity::class.java)) }
         feature("😀", "Emojis", "With skin tones") { SettingsActivity.open(this, SettingsActivity.EMOJI) }
         feature("🎞️", "GIFs", "Send as images") { SettingsActivity.open(this, SettingsActivity.EMOJI) }
+        feature("🛍️", "Stickers", "Sticker Marketplace") { StickerMarketActivity.open(this) }
         feature("🤖", "AI Tools", "Translate, handwriting") { SettingsActivity.open(this, SettingsActivity.AI) }
         feature("⌨️", "Layouts", "QWERTY, Dvorak, fidel…") { SettingsActivity.open(this, SettingsActivity.LANGUAGES) }
         feature("⚙️", "Customization", "Size, feedback, more") { SettingsActivity.open(this) }

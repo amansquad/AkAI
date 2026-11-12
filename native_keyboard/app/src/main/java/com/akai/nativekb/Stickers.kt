@@ -29,8 +29,27 @@ import kotlin.math.sin
 object Stickers {
     enum class Shape { CIRCLE, BURST, BLOB, HEART, SQUARE }
 
-    class Sticker(val id: String, val emoji: String, val caption: String, val shape: Shape, val colors: IntArray)
-    class Pack(val name: String, val stickers: List<Sticker>)
+    /**
+     * A drawn sticker, or, with [image], a picture from a sticker pack
+     * ("asset:<path>" or a file path); then [emoji] is what to type where pictures can't go.
+     */
+    class Sticker(
+        val id: String, val emoji: String, val caption: String, val shape: Shape, val colors: IntArray,
+        val image: String? = null,
+        /** An animated WebP of a video sticker, played in the panel and sent where apps take WebP. */
+        val anim: String? = null,
+        /** Where the website serves it as a GIF (a path on the Akai server), for apps that only take GIFs. */
+        val gif: String? = null,
+    )
+    /** [key] tells packs apart; [removable] packs were imported and can be deleted in Settings. */
+    class Pack(val name: String, val stickers: List<Sticker>, val key: String = name, val removable: Boolean = false) {
+        /** Picture packs show their first sticker in the pack row instead of a name. */
+        val icon: Sticker? get() = stickers.firstOrNull()?.takeIf { it.image != null }
+    }
+
+    /** A picture sticker from a pack. */
+    fun picture(id: String, emoji: String, image: String, anim: String? = null, gif: String? = null) =
+        Sticker(id.replace('/', '~'), emoji, "", Shape.SQUARE, intArrayOf(0, 0), image, anim, gif)
 
     private fun c(top: String, bottom: String) = intArrayOf(Color.parseColor(top), Color.parseColor(bottom))
 
@@ -49,7 +68,39 @@ object Stickers {
     private fun s(emoji: String, caption: String, shape: Shape, colors: IntArray) =
         Sticker(Integer.toHexString("$emoji|$caption|$shape|${colors[0]}".hashCode()), emoji, caption, shape, colors)
 
-    val packs: List<Pack> = listOf(
+    /** The drawn packs, then the picture packs (built in, then imported). */
+    fun packs(context: Context): List<Pack> = drawn + StickerPacks.all(context)
+
+    /** Without variation selectors, so ☹ and ☹️ count as the same emoji. */
+    private fun plain(e: String) = e.filterNot { it.code == 0xFE0F || it.code == 0xFE0E }
+
+    /**
+     * Stickers from every pack for [query], best first. Words in a caption count
+     * most; otherwise a word is turned into emoji ("laugh" → 😂 🤣) and matched
+     * against the emoji each sticker stands for. Typed emoji work too.
+     */
+    fun search(context: Context, query: String, limit: Int = 120): List<Sticker> {
+        val q = query.trim().lowercase()
+        if (q.isEmpty()) return emptyList()
+        val words = q.split(Regex("\\s+"))
+        val all = packs(context).flatMap { p -> p.stickers.map { it to p } }
+        val out = LinkedHashSet<Sticker>()
+        // 1. Captions (drawn stickers) and pack names that hold every word.
+        all.filter { (st, p) ->
+            val hay = "${st.caption} ${p.name}".lowercase()
+            words.all { w -> hay.split(' ', '!', '?', ',', '.').any { it.startsWith(w) } || (w.length > 2 && w in hay) }
+        }.forEach { out.add(it.first) }
+        // 2. Emoji: the ones typed, then the ones the words describe, in that order.
+        val typed = q.filter { !it.isLetterOrDigit() && !it.isWhitespace() }.let { if (it.isNotEmpty()) listOf(it) else emptyList() }
+        val wanted = (typed + EmojiSearch.search(q, 60)).map(::plain).filter { it.isNotEmpty() }
+        for (e in wanted) {
+            for ((st, _) in all) if (st.emoji.isNotEmpty() && plain(st.emoji).contains(e)) out.add(st)
+            if (out.size >= limit) break
+        }
+        return out.take(limit)
+    }
+
+    private val drawn: List<Pack> = listOf(
         Pack("Greetings", listOf(
             s("👋", "ሰላም!", Shape.BURST, sun),
             s("☀️", "እንደምን አደራችሁ", Shape.CIRCLE, gold),
@@ -129,6 +180,7 @@ object Stickers {
      * main thread: every Paint and Path here is its own.
      */
     fun render(st: Sticker, size: Int): Bitmap {
+        st.image?.let { return renderPicture(it, size) }
         val u = size / 100f // designed on a 100-unit square
         // 1. The badge, the emoji and the caption, on their own.
         val art = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
@@ -209,6 +261,19 @@ object Stickers {
         return out
     }
 
+    /** A pack's picture, scaled to fit a transparent square [size] pixels across. */
+    private fun renderPicture(image: String, size: Int): Bitmap {
+        val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val src = StickerPacks.decode(image, size) ?: return out
+        val k = minOf(size.toFloat() / src.width, size.toFloat() / src.height)
+        val w = src.width * k
+        val h = src.height * k
+        val dst = RectF((size - w) / 2f, (size - h) / 2f, (size + w) / 2f, (size + h) / 2f)
+        Canvas(out).drawBitmap(src, null, dst, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+        src.recycle()
+        return out
+    }
+
     /** One line if it fits (or can't be split), else two, split at the space nearest the middle. */
     private fun captionLines(caption: String, text: Paint, maxW: Float): List<String> {
         if (caption.isEmpty()) return emptyList()
@@ -282,6 +347,45 @@ object Stickers {
         }
         return null
     }
+
+    // ─── Moving stickers in the panel ────────────────────────────────────
+
+    private val animWorker = Executors.newSingleThreadExecutor()
+    private val animPending = HashSet<String>()
+    /** Only the stickers on screen play; ones scrolled away are stopped and dropped. */
+    private val anims = object : LruCache<String, android.graphics.drawable.Drawable>(20) {
+        override fun entryRemoved(evicted: Boolean, key: String, old: android.graphics.drawable.Drawable, new: android.graphics.drawable.Drawable?) {
+            if (android.os.Build.VERSION.SDK_INT >= 28) (old as? android.graphics.drawable.AnimatedImageDrawable)?.stop()
+            old.callback = null
+        }
+    }
+
+    /**
+     * A video sticker playing, [size] pixels across at most, or null while it loads
+     * (show [thumbnail] meanwhile) or where it can't play; [ready] runs once it can.
+     */
+    fun animated(st: Sticker, size: Int, callback: android.graphics.drawable.Drawable.Callback, ready: () -> Unit): android.graphics.drawable.Drawable? {
+        val anim = st.anim ?: return null
+        if (android.os.Build.VERSION.SDK_INT < 28) return null
+        val key = "${st.id}@$size"
+        anims.get(key)?.let { if (it.callback !== callback) it.callback = callback; return it }
+        if (animPending.add(key)) animWorker.execute {
+            val d = StickerPacks.decodeAnimated(anim, size)
+            main.post {
+                animPending.remove(key)
+                if (d != null) {
+                    d.callback = callback
+                    (d as? android.graphics.drawable.AnimatedImageDrawable)?.apply { repeatCount = android.graphics.drawable.AnimatedImageDrawable.REPEAT_INFINITE; start() }
+                    anims.put(key, d)
+                    ready()
+                }
+            }
+        }
+        return null
+    }
+
+    /** Stops every playing sticker, when the panel closes or leaves the sticker tab. */
+    fun stopAnimations() = anims.evictAll()
 
     // ─── Sending ─────────────────────────────────────────────────────────
 

@@ -57,6 +57,16 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     /** Emoji search: the query being typed into the strip, or null when not searching. */
     private var emojiQuery: String? = null
+    /**
+     * What the strip search is for: GIFs or stickers (run on Enter, then shown
+     * in that panel), or null for emoji (live, in the strip).
+     */
+    private var searchTab: PanelView.Tab? = null
+    private fun searchLabel() = when (searchTab) {
+        PanelView.Tab.GIF -> "GIFs"
+        PanelView.Tab.STICKERS -> "stickers"
+        else -> null
+    }
     /** Other readings of the last swipe, offered in the strip until the next key. */
     private var glideAlts: List<String> = emptyList()
     /** The last auto-correction (typed, fixed, separator), so backspace can undo it. */
@@ -252,6 +262,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         symbols = false
         translit = Translit.EMPTY
         emojiQuery = null
+        searchTab = null
         glideAlts = emptyList()
         lastCorrection = null
         spaceBeforeNextLetter = false
@@ -324,7 +335,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         keys.setLanguageTool(if (langKey == LangKey.TOOLBAR && letterBoard && !searching) (if (id == LayoutId.LETTERS) "አማ" else "EN") else null)
         keys.spaceSwitch = langKey == LangKey.SPACE
         keys.setVowels(emptyList())
-        keys.setSearch(emojiQuery, searchResults())
+        keys.setSearch(emojiQuery, searchResults(), searchLabel())
         // Its own row above the toolbar, the same whether or not you have typed,
         // so the keyboard never changes height mid-sentence.
         keys.setWordOfDay(if (wordOfDayOn && !plainField && !layout.isPad) wordOfDay() else null)
@@ -584,7 +595,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         val ic = currentInputConnection ?: return
         if (emojiQuery != null) {
             emojiQuery = emojiQuery!!.dropLast(1)
-            keys.setSearch(emojiQuery, searchResults())
+            keys.setSearch(emojiQuery, searchResults(), searchLabel())
             return
         }
         glideAlts = emptyList()
@@ -636,7 +647,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     }
 
     override fun onEnter() {
-        if (emojiQuery != null) { onSearchClose(); return }
+        if (emojiQuery != null) { if (searchTab != null) onSearchSubmit() else onSearchClose(); return }
         glideAlts = emptyList()
         spaceBeforeNextLetter = false
         correctWordBefore("")
@@ -679,7 +690,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     }
 
     override fun onLanguage() {
-        if (emojiQuery != null) emojiQuery = null
+        if (emojiQuery != null) { emojiQuery = null; searchTab = null }
         amharic = !amharic
         symbols = false
         translit = Translit.EMPTY
@@ -691,7 +702,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     /** Holding the language key: flip Amharic between fidel and phonetic (going to Amharic if needed). */
     override fun onPhonetic() {
-        if (emojiQuery != null) emojiQuery = null
+        if (emojiQuery != null) { emojiQuery = null; searchTab = null }
         if (!amharic) { amharic = true; symbols = false; keys.shiftState = 0; savePref { putBoolean(Prefs.AMHARIC, true) } }
         phonetic = !phonetic
         translit = Translit.EMPTY
@@ -779,6 +790,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     private fun searchResults(): List<String> {
         val q = emojiQuery ?: return emptyList()
+        if (searchTab != null) return emptyList()
         val found = if (q.isBlank()) recents.ifEmpty { listOf("😂", "❤️", "😍", "🙏", "👍", "😊", "🔥", "😭", "🥰", "🇪🇹") } else EmojiSearch.search(q)
         return found.map { EmojiData.withTone(it, skinTone) }
     }
@@ -790,12 +802,25 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         if (c == ' ' && (q.isEmpty() || q.endsWith(' '))) return
         emojiQuery = (q + c.lowercaseChar()).take(40)
         keys.shiftState = 0
-        keys.setSearch(emojiQuery, searchResults())
+        keys.setSearch(emojiQuery, searchResults(), searchLabel())
     }
 
-    override fun onPanelEmojiSearch() {
+    override fun onPanelEmojiSearch() = startSearch(null, start = "")
+
+    override fun onPanelAddStickers() {
         closePanel()
-        emojiQuery = ""
+        requestHideSelf(0)
+        startActivity(Intent(this, StickerMarketActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+
+    override fun onPanelGifSearch(current: String) = startSearch(PanelView.Tab.GIF, start = current)
+
+    override fun onPanelStickerSearch(current: String) = startSearch(PanelView.Tab.STICKERS, start = current)
+
+    private fun startSearch(tab: PanelView.Tab?, start: String) {
+        closePanel()
+        searchTab = tab
+        emojiQuery = start
         symbols = false
         keys.shiftState = 0
         refreshLayout()
@@ -808,9 +833,24 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     }
 
     override fun onSearchClose() {
+        val back = searchTab
         emojiQuery = null
+        searchTab = null
         refreshLayout()
         updateAutoCaps()
+        if (back != null) showPanel(back)
+    }
+
+    /** Enter, or "Search" in the strip, while searching GIFs or stickers: show what's found. */
+    override fun onSearchSubmit() {
+        val q = emojiQuery?.trim().orEmpty()
+        val tab = searchTab
+        if (tab == null || q.isEmpty()) return
+        emojiQuery = null
+        searchTab = null
+        refreshLayout()
+        if (tab == PanelView.Tab.STICKERS) panel.searchStickers(q) else panel.searchGifs(q)
+        showPanel(tab)
     }
 
     // ─── Toolbar, panels, clipboard, voice ───────────────────────────────
@@ -1036,8 +1076,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         val ic = currentInputConnection ?: return
         val editor = info ?: return
         onKeyFeedback()
-        val accepts = EditorInfoCompat.getContentMimeTypes(editor).any { it == Stickers.MIME || it == "image/*" }
+        val mimes = EditorInfoCompat.getContentMimeTypes(editor)
+        val accepts = mimes.any { it == Stickers.MIME || it == "image/*" }
         val asText = "${sticker.emoji} ${sticker.caption}".trim()
+        if (sticker.anim != null && sendMoving(sticker, mimes, asText)) return
         if (!accepts) {
             ic.commitText(asText, 1)
             Toast.makeText(this, "This app doesn't take stickers here, so it was sent as text", Toast.LENGTH_SHORT).show()
@@ -1048,7 +1090,55 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             if (uri == null) { live.commitText(asText, 1); return@export }
             val flags = if (Build.VERSION.SDK_INT >= 25) InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION else 0
             val sent = InputConnectionCompat.commitContent(
-                live, editor, InputContentInfoCompat(uri, ClipDescription(sticker.caption, arrayOf(Stickers.MIME)), null), flags, null,
+                live, editor, InputContentInfoCompat(uri, ClipDescription(sticker.caption.ifEmpty { "Sticker" }, arrayOf(Stickers.MIME)), null), flags, null,
+            )
+            if (!sent) live.commitText(asText, 1)
+        }
+    }
+
+    /**
+     * Sends a video sticker so it moves: as its own animated WebP where the app
+     * names WebP, else as a GIF from the Akai website where the app takes GIFs,
+     * else as WebP where it takes any image. False when the app takes none of
+     * these, so the still picture goes instead. Falls back to the still if a step fails.
+     */
+    private fun sendMoving(sticker: Stickers.Sticker, mimes: Array<String>, asText: String): Boolean {
+        val editor = info ?: return false
+        val webp = "image/webp"
+        val any = mimes.any { it == "image/*" || it == "*/*" }
+        val gif = sticker.gif != null && (mimes.contains("image/gif") || any)
+        fun commit(uri: Uri?, mime: String): Boolean {
+            val live = currentInputConnection ?: return true
+            if (uri == null) return false
+            val flags = if (Build.VERSION.SDK_INT >= 25) InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION else 0
+            return InputConnectionCompat.commitContent(
+                live, editor, InputContentInfoCompat(uri, ClipDescription("Sticker", arrayOf(mime)), null), flags, null,
+            )
+        }
+        fun still() = sendStill(sticker, asText)
+        fun asWebp() = StickerPacks.exportAnimated(this, sticker) { if (!commit(it, webp)) still() }
+        when {
+            mimes.contains(webp) -> asWebp()
+            gif -> StickerPacks.fetchGif(this, sticker) { uri ->
+                if (!commit(uri, "image/gif")) { if (any) asWebp() else still() }
+            }
+            any -> asWebp()
+            else -> return false
+        }
+        return true
+    }
+
+    /** The still picture, or the emoji where the app takes no pictures. */
+    private fun sendStill(sticker: Stickers.Sticker, asText: String) {
+        val editor = info ?: return
+        val accepts = EditorInfoCompat.getContentMimeTypes(editor).any { it == Stickers.MIME || it == "image/*" }
+        if (!accepts) { currentInputConnection?.commitText(asText, 1); return }
+        Stickers.export(this, sticker) { uri ->
+            val live = currentInputConnection ?: return@export
+            if (uri == null) { live.commitText(asText, 1); return@export }
+            val flags = if (Build.VERSION.SDK_INT >= 25) InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION else 0
+            val sent = InputConnectionCompat.commitContent(
+                live, editor, InputContentInfoCompat(uri, ClipDescription("Sticker", arrayOf(Stickers.MIME)), null), flags, null,
             )
             if (!sent) live.commitText(asText, 1)
         }

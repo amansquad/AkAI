@@ -30,10 +30,16 @@ const SENT = [
     when: 'Only while the voice tab is open and its mic is lit. Leaving the tab or the text field stops it.',
   },
   {
-    name: 'GIF search',
-    what: 'The words you search for.',
-    where: 'Giphy, using the API key you entered yourself, under Giphy’s privacy policy.',
-    when: 'Only when you search in the GIF panel.',
+    name: 'GIFs',
+    what: 'Which GIF category you open, such as Trending or Funny.',
+    where: 'The AkAI website, which asks Giphy with its own key and does not store the request; Giphy sees the website, not your phone. If you entered your own Giphy key, your phone asks Giphy directly, under Giphy’s privacy policy. The GIFs themselves load from Giphy’s servers.',
+    when: 'Only when you open the GIF panel or one of its categories.',
+  },
+  {
+    name: 'Sticker packs',
+    what: 'What you search for in the Sticker Marketplace, which pack you install or the Telegram link you paste, and requests for that pack’s pictures. Installing also sends the same random phone number as Community themes, so a pack counts one install per phone.',
+    where: 'The AkAI website, which looks packs up on Telegram with its own bot; Telegram sees the website, not your phone. The pack is then kept on your phone.',
+    when: 'Only when you open the Sticker Marketplace, or install or add a pack.',
   },
   {
     name: 'Community themes',

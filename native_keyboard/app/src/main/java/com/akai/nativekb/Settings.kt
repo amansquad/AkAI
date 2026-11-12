@@ -28,7 +28,7 @@ class GifTestField(context: Context) : EditText(context) {
 
     override fun onCreateInputConnection(info: EditorInfo): InputConnection? {
         val ic = super.onCreateInputConnection(info) ?: return null
-        EditorInfoCompat.setContentMimeTypes(info, arrayOf("image/gif", "image/png", "image/jpeg"))
+        EditorInfoCompat.setContentMimeTypes(info, arrayOf("image/gif", "image/png", "image/jpeg", "image/webp"))
         return InputConnectionCompat.createWrapper(ic, info) { content, flags, _ ->
             if (android.os.Build.VERSION.SDK_INT >= 25 &&
                 (flags and InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION) != 0) {
@@ -59,6 +59,7 @@ class SettingsActivity : ThemedActivity() {
         const val FEEDBACK = "feedback"
         const val TOOLBAR = "toolbar"
         const val EMOJI = "emoji"
+        const val STICKERS = "stickers"
         const val AI = "ai"
         const val SETUP = "setup"
         const val ABOUT = "about"
@@ -78,6 +79,7 @@ class SettingsActivity : ThemedActivity() {
         Page(FEEDBACK, "📳", "Sound and vibration", "Typing"),
         Page(TOOLBAR, "🧰", "Toolbar", "Extras"),
         Page(EMOJI, "😀", "Emoji and GIFs", "Extras"),
+        Page(STICKERS, "🧸", "Sticker packs", "Extras"),
         Page(AI, "🤖", "Translation and handwriting", "Extras"),
         Page(SETUP, "🛠️", "Set up and test", "Help"),
         Page(ABOUT, "ℹ️", "About Akai", "Help"),
@@ -128,6 +130,7 @@ class SettingsActivity : ThemedActivity() {
             FEEDBACK -> feedbackPage(c)
             TOOLBAR -> toolbarPage(c)
             EMOJI -> emojiPage(c)
+            STICKERS -> stickersPage(c)
             AI -> aiPage(c)
             SETUP -> setupPage(c)
             ABOUT -> aboutPage(c)
@@ -183,7 +186,10 @@ class SettingsActivity : ThemedActivity() {
             Tools.all.filter { it.first.first != TOOL_SETTINGS && it.first.second in chosen }
                 .joinToString(", ") { it.second }.ifEmpty { "Settings only" }
         }
-        EMOJI -> if (prefs.getString(Prefs.GIPHY_KEY, "").isNullOrBlank()) "Built-in GIFs" else "Giphy key set"
+        EMOJI -> if (prefs.getString(Prefs.GIPHY_KEY, "").isNullOrBlank()) "GIFs from Giphy" else "Own Giphy key"
+        STICKERS -> StickerPacks.imported(this).size.let { n ->
+            if (n == 0) "Marketplace and Telegram links" else "$n installed"
+        }
         AI -> if (server.isEmpty()) "Akai website" else "Your own server"
         SETUP -> if (ImeStatus.enabled(this) && ImeStatus.selected(this)) "Akai is your keyboard" else "Akai isn't your keyboard yet"
         ABOUT -> "Version $versionName"
@@ -201,8 +207,29 @@ class SettingsActivity : ThemedActivity() {
                 ui.primaryButton("Set it up") { open(this, SETUP) },
             ), wrap)
         }
+        // Search: typing swaps the topic list for matching settings.
+        val results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
+        val topics = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val search = styled(EditText(this)).apply {
+            hint = "🔍  Search settings"
+            setSingleLine()
+            inputType = InputType.TYPE_CLASS_TEXT
+            imeOptions = EditorInfo.IME_ACTION_SEARCH
+            addTextChangedListener(object : android.text.TextWatcher {
+                override fun afterTextChanged(s: android.text.Editable?) {
+                    showResults(results, topics, s?.toString().orEmpty())
+                }
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            })
+        }
+        c.addView(ui.gap(10f))
+        c.addView(search, wrap)
+        c.addView(results, wrap)
+        c.addView(topics, wrap)
+
         pages.groupBy { it.group }.forEach { (group, list) ->
-            c.addView(ui.section(group))
+            topics.addView(ui.section(group))
             val card = ui.card(pad = 6f)
             list.forEachIndexed { i, p ->
                 if (i > 0) card.addView(divider())
@@ -214,8 +241,83 @@ class SettingsActivity : ThemedActivity() {
                     card.addView(row, wrap)
                 }
             }
-            c.addView(card, wrap)
+            topics.addView(card, wrap)
         }
+    }
+
+    /** One searchable setting: its name, the page it lives on, and other words people might type. */
+    private class Entry(val page: String, val title: String, val words: String = "")
+
+    private val index = listOf(
+        Entry(THEME, "Theme", "colour color dark light wallpaper skin appearance"),
+        Entry(THEME, "Create a theme", "custom editor design own"),
+        Entry(THEME, "Animated backgrounds", "live motion wallpaper battery"),
+        Entry(THEME, "Smooth key press", "animation shrink press"),
+        Entry(SIZE, "Key height", "size taller shorter big small"),
+        Entry(SIZE, "One-handed mode", "left right thumb shrink width"),
+        Entry(SIZE, "Number row", "digits numbers top row"),
+        Entry(SIZE, "Cursor keys", "arrows move cursor row home end"),
+        Entry(KEYS, "Key spacing", "gap space between"),
+        Entry(KEYS, "Corner roundness", "radius round square shape"),
+        Entry(KEYS, "Key borders", "outline border line"),
+        Entry(KEYS, "Label size", "font text letters bigger smaller"),
+        Entry(KEYS, "Letter weight", "bold thin light font boldness"),
+        Entry(KEYS, "Corner hints", "symbols digits small hint"),
+        Entry(LANGUAGES, "English layout", "qwerty dvorak azerty colemak qwertz"),
+        Entry(LANGUAGES, "Amharic keyboard", "fidel phonetic geez ግዕዝ አማርኛ frequency"),
+        Entry(LANGUAGES, "Language switch", "globe change language key toolbar space"),
+        Entry(TYPING, "Show suggestions", "predictions words bar"),
+        Entry(TYPING, "Auto-correct", "typos fix spelling"),
+        Entry(TYPING, "Auto-correct Amharic", "ሰ ሠ vowel fix"),
+        Entry(TYPING, "Learn the words I type", "dictionary personal remember"),
+        Entry(TYPING, "Forget learned words", "clear reset dictionary delete"),
+        Entry(TYPING, "Swipe typing", "glide gesture slide"),
+        Entry(TYPING, "Long-press popups", "hold accents vowel delay"),
+        Entry(TYPING, "Hold backspace to delete the sentence", "delete erase clear"),
+        Entry(TYPING, "Auto-capitalization", "capital shift sentence"),
+        Entry(TYPING, "Double-space period", "full stop dot"),
+        Entry(TYPING, "Space after punctuation", "auto space comma"),
+        Entry(FEEDBACK, "Haptic feedback", "vibration vibrate buzz strength"),
+        Entry(FEEDBACK, "Key sounds", "click volume noise audio"),
+        Entry(TOOLBAR, "Toolbar buttons", "emoji gif clipboard translate handwriting mic"),
+        Entry(TOOLBAR, "Word of the day", "daily amharic row"),
+        Entry(EMOJI, "Skin tone", "emoji colour hand"),
+        Entry(EMOJI, "Giphy API key", "gif giphy key"),
+        Entry(STICKERS, "Add sticker pack", "telegram import link stickers remove"),
+        Entry(AI, "Akai server address", "translation translate handwriting url own server"),
+        Entry(SETUP, "Turn the keyboard on", "enable choose select default input method set up"),
+        Entry(SETUP, "Try the keyboard", "test field password number email phone"),
+        Entry(ABOUT, "Check for updates", "version upgrade new release"),
+        Entry(ABOUT, "Privacy", "data words learned microphone voice"),
+    )
+
+    private fun showResults(results: LinearLayout, topics: LinearLayout, query: String) {
+        val terms = query.lowercase().split(' ').filter { it.isNotBlank() }
+        results.removeAllViews()
+        if (terms.isEmpty()) {
+            results.visibility = View.GONE
+            topics.visibility = View.VISIBLE
+            return
+        }
+        topics.visibility = View.GONE
+        results.visibility = View.VISIBLE
+        val hits = index.filter { e ->
+            val hay = "${e.title} ${e.words} ${pages.first { it.id == e.page }.title}".lowercase()
+            terms.all { it in hay }
+        }
+        if (hits.isEmpty()) {
+            results.addView(ui.gap(12f))
+            results.addView(note("No setting matches \"${query.trim()}\"."))
+            return
+        }
+        val card = ui.card(pad = 6f)
+        hits.forEachIndexed { i, e ->
+            if (i > 0) card.addView(divider())
+            val p = pages.first { it.id == e.page }
+            card.addView(navRow(p.icon, e.title, p.title) { open(this, e.page) }, wrap)
+        }
+        results.addView(ui.gap(12f))
+        results.addView(card, wrap)
     }
 
     private fun divider() = View(this).apply {
@@ -510,7 +612,94 @@ class SettingsActivity : ThemedActivity() {
         )
         group(c, "GIFs",
             field("Giphy API key", Prefs.GIPHY_KEY, "Paste your key", true,
-                "Free at developers.giphy.com. Kept on this phone only. Leave blank to use the built-in GIFs."),
+                "Optional. GIFs come from Giphy through the Akai server. Paste your own key (free at developers.giphy.com) to ask Giphy directly instead. Kept on this phone only."),
+        )
+    }
+
+    private var importing = false
+
+    private fun stickersPage(c: LinearLayout) {
+        c.addView(ui.gap(12f))
+        val market = ui.card(
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(ui.label("🛍️", 24f))
+                addView(LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(ui.label("Sticker Marketplace", 17f, palette.text, bold = true))
+                    addView(ui.label("Browse packs and install the ones you like", 13f, ui.dim))
+                }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(12f) })
+                addView(ui.label("›", 24f, ui.dim))
+            },
+        )
+        market.setOnClickListener { StickerMarketActivity.open(this) }
+        ui.pressable(market)
+        c.addView(market, wrap)
+
+        val status = ui.label("", 13f, ui.dim).apply { visibility = View.GONE }
+        val box = styled(EditText(this)).apply {
+            hint = "t.me/addstickers/PackName"
+            setSingleLine()
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            // A link copied from Telegram is usually on the clipboard already.
+            val clip = try {
+                (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                    .primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
+            } catch (e: Exception) { "" }
+            if (clip.contains("addstickers", ignoreCase = true)) setText(clip.trim())
+        }
+        val add = ui.primaryButton("Add pack") {}
+        add.setOnClickListener {
+            if (importing) return@setOnClickListener
+            importing = true
+            add.isEnabled = false
+            status.visibility = View.VISIBLE
+            status.setTextColor(ui.dim)
+            StickerPacks.import(this, box.text.toString(), progress = { status.text = it }) { pack, error ->
+                importing = false
+                if (isFinishing) return@import
+                add.isEnabled = true
+                if (pack == null) {
+                    status.text = error
+                    status.setTextColor(palette.accent)
+                } else {
+                    Toast.makeText(this, "Added ${pack.name}: ${pack.stickers.size} stickers", Toast.LENGTH_SHORT).show()
+                    build()
+                }
+            }
+        }
+        group(c, "Add from a Telegram link",
+            note("Paste a Telegram sticker pack link. In Telegram, open the pack, tap ⋮ then Copy link. Video stickers move (on Android 9 and newer); vector-animated ones come in as still pictures."),
+            ui.gap(6f),
+            box,
+            ui.gap(10f),
+            add,
+            status,
+        )
+
+        c.addView(ui.section("Your packs"))
+        val mine = ui.card(pad = 6f)
+        val packs = StickerPacks.imported(this)
+        if (packs.isEmpty()) mine.addView(note("Packs you add show up here and in the keyboard's sticker tab.").apply {
+            setPadding(ui.dp(10f), ui.dp(8f), ui.dp(10f), ui.dp(8f))
+        })
+        packs.forEachIndexed { i, p ->
+            if (i > 0) mine.addView(divider())
+            val row = navRow(p.stickers.firstOrNull()?.emoji?.ifBlank { null } ?: "🧸", p.name, "${p.stickers.size} stickers · tap to remove") {
+                android.app.AlertDialog.Builder(this)
+                    .setTitle("Remove ${p.name}?")
+                    .setMessage("It leaves the keyboard. You can add it again from its link.")
+                    .setPositiveButton("Remove") { _, _ -> StickerPacks.remove(this, p.key); build() }
+                    .setNegativeButton("Keep", null)
+                    .show()
+            }
+            mine.addView(row, wrap)
+        }
+        c.addView(mine, wrap)
+        val builtIn = StickerPacks.all(this).filter { !it.removable }
+        if (builtIn.isNotEmpty()) group(c, "Built in",
+            note(builtIn.joinToString("\n") { "${it.name} · ${it.stickers.size} stickers" }),
         )
     }
 
@@ -575,7 +764,7 @@ class SettingsActivity : ThemedActivity() {
         c.addView(links, wrap)
 
         group(c, "Privacy",
-            note("Learned words and settings are kept on this phone, and words are never learned from password, email or number fields. Text goes to your Akai server only when you use Translate, or for handwriting the phone can't read. GIF searches go to Giphy, and voice typing uses your phone's speech service."),
+            note("Learned words and settings are kept on this phone, and words are never learned from password, email or number fields. Text goes to your Akai server only when you use Translate, or for handwriting the phone can't read. GIFs come from Giphy through the Akai server (or directly, with your own key), and voice typing uses your phone's speech service."),
         )
         group(c, "Credits",
             note("English word list from FrequencyWords by Hermit Dave, CC BY-SA 4.0.\nHandwriting by Google ML Kit digital ink recognition.\nGIFs powered by Giphy."),
