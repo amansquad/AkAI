@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TELEGRAM_BOT_TOKEN, canConvert, kindOf, limited, packNameFrom, stickerSet } from '@/lib/telegram-stickers';
+import { sql } from '@/lib/community-themes';
+
+/**
+ * The name a pack is listed under in the Sticker Marketplace, if it is: Telegram
+ * titles are often channel ads, so a pasted link should show the same clean name.
+ */
+async function marketTitle(name: string): Promise<string | null> {
+  try {
+    const rows = await sql()`select title from sticker_market where lower(name) = lower(${name}) and not hidden limit 1`;
+    return (rows[0]?.title as string) || null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * GET /api/stickers?pack=<name or t.me/addstickers link>
@@ -40,7 +54,7 @@ export async function GET(request: NextRequest) {
     if (stickers.length === 0) return json({ error: 'That pack has no stickers the keyboard can use' }, 422);
 
     return json(
-      { name: set.name, title: set.title, kind: kindOf(set), stickers },
+      { name: set.name, title: (await marketTitle(set.name)) || set.title, kind: kindOf(set), stickers },
       200,
       { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' },
     );
