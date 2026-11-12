@@ -20,6 +20,8 @@ import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 
 private val LP_MATCH_WRAP = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+/** The Themes screen's filter for themes other people shared. */
+private const val COMMUNITY = "community"
 
 /** Is this keyboard switched on in system settings, and is it the one in use? */
 object ImeStatus {
@@ -288,7 +290,8 @@ object MiniKeyboard {
 }
 
 class ThemePreview(context: Context, def: PaletteDef) : View(context) {
-    private val pal = Themes.palette(context, def.id)
+    // From the definition itself: a shared theme being browsed isn't installed, so it can't be found by id.
+    private val pal = run { CustomThemes.refresh(context); Themes.palette(def) }
     override fun onDraw(canvas: Canvas) = MiniKeyboard.draw(canvas, 0f, 0f, width.toFloat(), height.toFloat(), pal)
 }
 
@@ -308,24 +311,229 @@ class ThemesActivity : ThemedActivity() {
         resumed = true
     }
 
-    /** Long-press menu: edit or delete your own themes, or start a new one from any theme. */
+    /** Long-press menu: edit, share or delete your own themes, or start a new one from any theme. */
     private fun themeActions(def: PaletteDef) {
-        val mine = def.category == CustomThemes.CATEGORY
-        val items = if (mine) arrayOf("Edit", "Make a copy", "Delete") else arrayOf("Customize a copy")
+        val custom = if (def.category == CustomThemes.CATEGORY) CustomThemes.get(this, def.id) else null
+        val items = when {
+            custom == null -> arrayOf("Customize a copy")
+            custom.shared.isNotEmpty() -> arrayOf("Edit", "Make a copy", "Stop sharing", "Delete")
+            // A theme from the community is someone else's to share.
+            custom.source.isNotEmpty() -> arrayOf("Edit", "Make a copy", "Delete")
+            else -> arrayOf("Edit", "Make a copy", "Share to community", "Delete")
+        }
         android.app.AlertDialog.Builder(this)
             .setTitle(def.name)
             .setItems(items) { _, i ->
                 when (items[i]) {
                     "Edit" -> ThemeEditorActivity.edit(this, def.id)
+                    "Share to community" -> custom?.let(::share)
+                    "Stop sharing" -> custom?.let(::unshare)
                     "Delete" -> android.app.AlertDialog.Builder(this)
                         .setTitle("Delete ${def.name}?")
-                        .setPositiveButton("Delete") { _, _ -> CustomThemes.delete(this, def.id); loadTheme(); build() }
+                        .setMessage(if (custom?.shared?.isNotEmpty() == true) "It also stops being shared with the community." else null)
+                        .setPositiveButton("Delete") { _, _ ->
+                            custom?.shared?.takeIf { it.isNotEmpty() }?.let { Community.unshare(this, it) {} }
+                            CustomThemes.delete(this, def.id); loadTheme(); build()
+                        }
                         .setNegativeButton("Cancel", null)
                         .show()
                     else -> ThemeEditorActivity.copy(this, def.id)
                 }
             }
             .show()
+    }
+
+    private fun toast(s: String) = android.widget.Toast.makeText(this, s, android.widget.Toast.LENGTH_LONG).show()
+
+    /** Asks for an optional name to credit, then shares the theme. */
+    private fun share(t: CustomTheme) {
+        val field = android.widget.EditText(this).apply {
+            hint = "Your name (optional)"
+            setText(prefs.getString(Community.AUTHOR, ""))
+            setSingleLine()
+            filters = arrayOf(android.text.InputFilter.LengthFilter(24))
+        }
+        val box = LinearLayout(this).apply { setPadding(ui.dp(22f), ui.dp(4f), ui.dp(22f), 0); addView(field, LP_MATCH_WRAP) }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Share ${t.name}?")
+            .setMessage("Everyone using AkAI will see its name, emoji, colours and the name you give here. You can stop sharing it any time.")
+            .setView(box)
+            .setPositiveButton("Share") { _, _ ->
+                val author = field.text.toString().trim()
+                prefs.edit().putString(Community.AUTHOR, author).apply()
+                Community.share(this, t, author) { id, error ->
+                    if (id == null) { toast(error ?: "Couldn't share it"); return@share }
+                    CustomThemes.save(this, t.copy(shared = id))
+                    toast("Shared. It's in Community now")
+                    loadTheme(); build()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun unshare(t: CustomTheme) {
+        Community.unshare(this, t.shared) { ok ->
+            if (!ok) { toast("No connection. Try again"); return@unshare }
+            CustomThemes.save(this, t.copy(shared = ""))
+            toast("No longer shared")
+            loadTheme(); build()
+        }
+    }
+
+    // ─── Community ───────────────────────────────────────────────────────
+
+    private var popular = true
+    private val shared = ArrayList<SharedTheme>()
+    private var nextOffset: Int? = null
+    private var loading = false
+    /** The first page has come back, so an empty list means nothing is shared yet. */
+    private var communityLoaded = false
+    private var communityError: String? = null
+    /** The grid and "Load more" button on screen, so another page adds to them instead of redrawing. */
+    private var communityGrid: GridLayout? = null
+    private var moreButton: View? = null
+
+    private fun loadCommunity(reset: Boolean) {
+        if (loading) return
+        if (reset) { shared.clear(); nextOffset = null; communityLoaded = false }
+        loading = true
+        communityError = null
+        val wanted = popular
+        Community.list(this, popular, if (reset) 0 else nextOffset ?: 0) { page, error ->
+            if (wanted != popular || isFinishing) { loading = false; return@list }
+            loading = false
+            if (page == null) { communityError = error; if (filter == COMMUNITY) build(); return@list }
+            nextOffset = page.next
+            communityLoaded = true
+            val grid = communityGrid
+            if (!reset && grid != null && filter == COMMUNITY) {
+                addCards(grid, page.themes)
+                shared.addAll(page.themes)
+                moreButton?.visibility = if (nextOffset != null) View.VISIBLE else View.GONE
+            } else {
+                shared.addAll(page.themes)
+                if (filter == COMMUNITY) build()
+            }
+        }
+    }
+
+    // Columns share the width; rows take their own height (a row weight would stretch them to fill the screen).
+    private fun gridCell() = GridLayout.LayoutParams(
+        GridLayout.spec(GridLayout.UNDEFINED), GridLayout.spec(GridLayout.UNDEFINED, 1f),
+    ).apply { width = 0; setMargins(ui.dp(5f), ui.dp(5f), ui.dp(5f), ui.dp(5f)) }
+
+    /** Filler that keeps an odd last card at half width; always the grid's last cell. */
+    private var gridFiller: View? = null
+
+    private fun addCards(grid: GridLayout, themes: List<SharedTheme>) {
+        gridFiller?.let(grid::removeView)
+        themes.forEach { grid.addView(sharedCard(it), gridCell()) }
+        if (grid.childCount % 2 == 1) grid.addView(View(this).also { gridFiller = it }, gridCell()) else gridFiller = null
+    }
+
+    private fun installed(t: SharedTheme) = CustomThemes.themes.firstOrNull { it.source == t.id || it.shared == t.id }
+
+    private fun sharedCard(t: SharedTheme): View {
+        val have = installed(t)
+        val label = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(ui.label(t.emoji, 16f))
+            addView(ui.label(t.name, 14f, palette.text, bold = true).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END },
+                LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(6f) })
+            if (t.live.isNotEmpty()) addView(ui.label("LIVE", 9f, palette.accent, bold = true, spacing = 0.1f))
+            if (have != null) addView(ui.label(" ✓", 14f, palette.accent, bold = true))
+        }
+        val installs = if (t.installs == 1) "1 install" else "${t.installs} installs"
+        val credit = ui.label(if (t.author.isNotEmpty()) "${t.author} · $installs" else installs, 12f, ui.dim).apply {
+            maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(ui.dp(10f), ui.dp(10f), ui.dp(10f), ui.dp(10f))
+            background = ui.round(ColorUtils.setAlphaComponent(palette.surface, 0xDD), 16f, ColorUtils.setAlphaComponent(palette.text, 0x1A), 1f)
+            addView(ThemePreview(this@ThemesActivity, t.toDef()), LinearLayout.LayoutParams(-1, ui.dp(84f)))
+            addView(ui.gap(8f))
+            addView(label)
+            addView(credit)
+            setOnClickListener {
+                // Added before: just use it. Otherwise it joins Mine and is used straight away.
+                val custom = installed(t) ?: t.toCustom().also {
+                    CustomThemes.save(this@ThemesActivity, it)
+                    Community.countInstall(this@ThemesActivity, t.id)
+                    toast("${t.name} added to Mine and in use")
+                }
+                prefs.edit().putString(Prefs.THEME, custom.id).apply()
+                loadTheme()
+                build()
+            }
+            setOnLongClickListener {
+                // Your own shared theme: offer to take it down rather than report it.
+                val own = CustomThemes.themes.firstOrNull { it.shared == t.id }
+                if (own != null) android.app.AlertDialog.Builder(this@ThemesActivity)
+                    .setTitle(t.name)
+                    .setItems(arrayOf("Stop sharing")) { _, _ -> unshare(own); shared.removeAll { it.id == t.id } }
+                    .show()
+                else reportDialog(t)
+                true
+            }
+        }
+    }
+
+    private fun reportDialog(t: SharedTheme) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Report ${t.name}?")
+            .setMessage("For an offensive name or anything that shouldn't be here. A theme reported by a few people is hidden until it's checked.")
+            .setPositiveButton("Report") { _, _ ->
+                Community.report(this, t.id) { ok ->
+                    if (!ok) { toast("No connection. Try again"); return@report }
+                    shared.removeAll { it.id == t.id }
+                    toast("Thanks for reporting it")
+                    build()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun buildCommunity(c: LinearLayout) {
+        val sortRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf(true to "Popular", false to "New").forEach { (value, name) ->
+            val on = value == popular
+            sortRow.addView(ui.label(name, 13f, if (on) palette.text else ui.dim, bold = on, gravity = Gravity.CENTER).apply {
+                setPadding(ui.dp(14f), ui.dp(7f), ui.dp(14f), ui.dp(7f))
+                background = if (on) ui.round(ColorUtils.setAlphaComponent(palette.text, 0x14), 999f) else null
+                setOnClickListener { if (popular != value) { popular = value; loadCommunity(reset = true); build() } }
+            }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = ui.dp(6f) })
+        }
+        c.addView(sortRow, LP_MATCH_WRAP)
+        c.addView(ui.label("Themes people made and shared. Tap one to add it to Mine; long-press to report it. To share yours, long-press it under Mine.", 13f, ui.dim).apply {
+            setPadding(ui.dp(4f), ui.dp(8f), ui.dp(4f), ui.dp(6f))
+        }, LP_MATCH_WRAP)
+
+        val error = communityError
+        when {
+            error != null && shared.isEmpty() -> {
+                c.addView(ui.label(error, 14f, palette.text).apply { setPadding(ui.dp(4f), ui.dp(16f), ui.dp(4f), ui.dp(10f)) }, LP_MATCH_WRAP)
+                c.addView(ui.ghostButton("Try again") { loadCommunity(reset = true); build() })
+            }
+            shared.isEmpty() && !communityLoaded ->
+                c.addView(ui.label("Loading…", 14f, ui.dim).apply { setPadding(ui.dp(4f), ui.dp(16f), 0, 0) }, LP_MATCH_WRAP)
+            shared.isEmpty() ->
+                c.addView(ui.label("Nothing shared yet. Be the first: long-press one of your themes under Mine and choose Share.", 14f, ui.dim).apply {
+                    setPadding(ui.dp(4f), ui.dp(16f), ui.dp(4f), 0)
+                }, LP_MATCH_WRAP)
+        }
+        val grid = GridLayout(this).apply { columnCount = 2 }
+        gridFiller = null
+        addCards(grid, shared)
+        c.addView(grid, LP_MATCH_WRAP)
+        communityGrid = grid
+        val more = ui.ghostButton("Load more") { loadCommunity(reset = false) }
+        more.visibility = if (nextOffset != null) View.VISIBLE else View.GONE
+        c.addView(more)
+        moreButton = more
     }
 
     private fun build() {
@@ -337,18 +545,25 @@ class ThemesActivity : ThemedActivity() {
         c.addView(ui.label("${Themes.all.size} themes. Tap one to use it; long-press to customize it.", 14f, ui.dim), LP_MATCH_WRAP)
         c.addView(ui.gap(14f))
 
-        val cats = listOf("all" to "All", CustomThemes.CATEGORY to "Mine", "live" to "Live", "solid" to "Solid", "cultural" to "Cultural", "faith" to "Faith", "football" to "Football")
+        val cats = listOf("all" to "All", CustomThemes.CATEGORY to "Mine", COMMUNITY to "Community", "live" to "Live", "solid" to "Solid", "cultural" to "Cultural", "faith" to "Faith", "football" to "Football")
         val chipRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         cats.forEach { (id, name) ->
             val on = id == filter
             chipRow.addView(ui.label(name, 13f, if (on) android.graphics.Color.WHITE else ui.dim, bold = true, gravity = Gravity.CENTER).apply {
                 setPadding(ui.dp(16f), ui.dp(9f), ui.dp(16f), ui.dp(9f))
                 background = ui.round(if (on) palette.accent else ColorUtils.setAlphaComponent(palette.text, 0x14), 999f)
-                setOnClickListener { filter = id; build() }
+                setOnClickListener {
+                    filter = id
+                    if (id == COMMUNITY && shared.isEmpty() && !loading) loadCommunity(reset = true)
+                    build()
+                }
             }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = ui.dp(8f) })
         }
         c.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(chipRow) }, LP_MATCH_WRAP)
         c.addView(ui.gap(14f))
+
+        communityGrid = null; moreButton = null
+        if (filter == COMMUNITY) { buildCommunity(c); show(c); return }
 
         val current = Themes.find(prefs.getString(Prefs.THEME, Themes.DEFAULT) ?: Themes.DEFAULT).id
         val grid = GridLayout(this).apply { columnCount = 2 }

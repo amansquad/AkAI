@@ -16,7 +16,8 @@
     "db:reset": "prisma migrate reset",
     "version:patch": "npm version patch --no-git-tag-version",
     "version:minor": "npm version minor --no-git-tag-version",
-    "version:major": "npm version major --no-git-tag-version"
+    "version:major": "npm version major --no-git-tag-version",
+    "themes:db": "node --env-file=.env.local scripts/community-themes.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -26,6 +27,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.1.1",
     "@mdxeditor/editor": "^3.39.1",
+    "@neondatabase/serverless": "^1.2.0",
     "@prisma/client": "^6.11.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",

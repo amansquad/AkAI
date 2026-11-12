@@ -86,6 +86,29 @@ repository root run `npm run apk:info`. That writes `public/app-version.json`
 and the download button's version and size from the same numbers (add `notes`
 to `app-version.json` by hand if you want them).
 
+## Community themes
+Themes → Community lists themes people shared, most installed or newest
+first. Tapping one copies it into Mine and uses it. Long-press one of your own
+themes under Mine and choose Share to publish it, with an optional name for
+credit; Stop sharing (or deleting it) takes it down. Long-press a community
+theme to report it. A theme is a few hundred bytes of JSON (name, emoji,
+animation, five colours), so previews are drawn from the colours, with no
+pictures to host.
+
+The website keeps them in Neon Postgres (added to the Vercel project through
+the Marketplace; `DATABASE_URL`). The routes are under `src/app/api/themes`.
+There are no accounts: the app sends a random id it makes once
+(`X-AkAI-Device`), which the site stores only as a hash. That id allows five
+shares a day, one install and one report per theme, and taking down its own
+themes. Names go through a word filter, and three reports hide a theme until
+it is looked at. From the repository root (reads `.env.local`, which
+`vercel env pull` writes):
+
+    npm run themes:db -- setup          # make the tables
+    npm run themes:db -- stats
+    npm run themes:db -- hidden         # themes hidden by reports
+    npm run themes:db -- restore <id>   # or: delete <id>
+
 ## Theme pictures
 Eight cultural themes (the region flags, Southern Ethiopia, Addis Ababa, the
 Judah lion) are a picture rather than an animation. As in the Flutter app the

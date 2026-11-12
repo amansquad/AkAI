@@ -65,21 +65,28 @@ object SolidThemes {
     )
 }
 
-/** A theme someone made: the five picked colours, kept in the settings as JSON. */
+/**
+ * A theme someone made, or got from the community: the five picked colours,
+ * kept in the settings as JSON. [source] is the community id it was installed
+ * from; [shared] is its community id once this phone has shared it.
+ */
 data class CustomTheme(
     val id: String, val name: String, val emoji: String, val live: String,
     val background: Int, val key: Int, val special: Int, val accent: Int, val text: Int,
+    val source: String = "", val shared: String = "",
 ) {
     fun toDef() = ThemeMaker.def(id, name, emoji, CustomThemes.CATEGORY, live, background, key, special, accent, text)
 
     fun toJson(): JSONObject = JSONObject()
         .put("id", id).put("name", name).put("emoji", emoji).put("live", live)
         .put("bg", background).put("key", key).put("special", special).put("accent", accent).put("text", text)
+        .put("source", source).put("shared", shared)
 
     companion object {
         fun fromJson(o: JSONObject) = CustomTheme(
             o.getString("id"), o.optString("name", "My theme"), o.optString("emoji", "🎨"), o.optString("live", ""),
             o.getInt("bg"), o.getInt("key"), o.getInt("special"), o.getInt("accent"), o.getInt("text"),
+            o.optString("source", ""), o.optString("shared", ""),
         )
 
         /** Starts a new theme from an existing one's colours. */
