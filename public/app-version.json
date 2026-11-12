@@ -1,6 +1,6 @@
 {
-  "versionCode": 10004,
-  "versionName": "1.0.4",
+  "versionCode": 10005,
+  "versionName": "1.0.5",
   "url": "/AkAI-keyboard.apk",
-  "notes": "See every sticker in a pack before you install it: GIFs play in the preview, with a filter for GIFs or still stickers. Plus 16 new packs in the Sticker Marketplace."
+  "notes": "Emoji packs: Telegram custom emoji packs in the Sticker Marketplace, shown six to a row and sent as small animated stickers. Add your own from a t.me/addemoji link."
 }

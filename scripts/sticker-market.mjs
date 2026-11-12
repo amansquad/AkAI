@@ -3,7 +3,7 @@
 // (`vercel env pull` writes the first). Run from the repository root:
 //
 //   npm run stickers:db -- setup                     make the tables (safe to run again)
-//   npm run stickers:db -- add <t.me link> [title]   add a pack, or refresh one already there
+//   npm run stickers:db -- add <t.me link> [title]   add a pack (addstickers or addemoji link), or refresh one
 //   npm run stickers:db -- list                      every pack, most installed first
 //   npm run stickers:db -- hide <name>               take a pack out of the marketplace
 //   npm run stickers:db -- show <name>               put it back
@@ -33,6 +33,7 @@ const SCHEMA = [
     hidden boolean not null default false,
     added_at timestamptz not null default now()
   )`,
+  `alter table sticker_market add column if not exists kind text not null default 'stickers'`,
   `create index if not exists sticker_market_popular on sticker_market (installs desc, added_at desc) where not hidden`,
   `create table if not exists sticker_market_installs (
     name text not null references sticker_market(name) on delete cascade,
@@ -42,7 +43,7 @@ const SCHEMA = [
 ];
 
 function packName(input) {
-  const m = input?.match(/(?:t\.me|telegram\.me)\/addstickers\/([A-Za-z0-9_]+)/i);
+  const m = input?.match(/(?:t\.me|telegram\.me)\/add(?:stickers|emoji)\/([A-Za-z0-9_]+)/i);
   const name = m ? m[1] : input;
   return name && /^[A-Za-z0-9_]{1,64}$/.test(name) ? name : null;
 }
@@ -68,12 +69,13 @@ switch (command) {
     for (const s of usable) if (s.emoji) counts[s.emoji] = (counts[s.emoji] || 0) + 1;
     const emoji = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([e]) => e).join('');
     const title = rest.join(' ').trim() || set.title;
+    const kind = set.sticker_type === 'custom_emoji' ? 'emoji' : 'stickers';
     await sql`
-      insert into sticker_market (name, title, count, moving, previews, emoji)
-      values (${set.name}, ${title}, ${usable.length}, ${moving}, ${JSON.stringify(previews)}::jsonb, ${emoji})
+      insert into sticker_market (name, title, count, moving, previews, emoji, kind)
+      values (${set.name}, ${title}, ${usable.length}, ${moving}, ${JSON.stringify(previews)}::jsonb, ${emoji}, ${kind})
       on conflict (name) do update set title = excluded.title, count = excluded.count, moving = excluded.moving,
-        previews = excluded.previews, emoji = excluded.emoji`;
-    console.log(`Added "${title}" (${set.name}): ${usable.length} stickers, ${moving} moving.`);
+        previews = excluded.previews, emoji = excluded.emoji, kind = excluded.kind`;
+    console.log(`Added "${title}" (${set.name}): ${usable.length} ${kind}, ${moving} moving.`);
     break;
   }
 

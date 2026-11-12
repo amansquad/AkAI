@@ -25,6 +25,8 @@ class MarketPack(
     val name: String, val title: String, val count: Int, val moving: Int, val installs: Int,
     /** Paths on the Akai server of a few of its stickers, to show before installing. */
     val previews: List<String>,
+    /** A Telegram custom emoji pack rather than stickers. */
+    val emoji: Boolean = false,
 )
 
 /**
@@ -53,6 +55,7 @@ object StickerMarket {
                     MarketPack(
                         p.getString("name"), p.optString("title", p.getString("name")), p.optInt("count"), p.optInt("moving"),
                         p.optInt("installs"), (0 until (prev?.length() ?: 0)).map { prev!!.getString(it) },
+                        emoji = p.optString("kind") == "emoji",
                     )
                 }, o.optInt("next", -1).takeIf { it >= 0 && !o.isNull("next") })
             } catch (e: Exception) { null } else null
@@ -212,8 +215,8 @@ class StickerMarketActivity : ThemedActivity() {
         val gifs = p.moving
         val stills = p.count - p.moving
         val sub = listOfNotNull(
-            "${p.count} stickers",
-            if (gifs > 0) "$gifs GIFs" else null,
+            if (p.emoji) "Emoji pack · ${p.count} emoji" else "${p.count} stickers",
+            if (gifs > 0) (if (p.emoji) (if (stills == 0) "all animated" else "$gifs animated") else "$gifs GIFs") else null,
             if (gifs > 0 && stills > 0) "$stills still" else null,
             if (p.installs > 0) "${p.installs} installs" else null,
         ).joinToString(" · ")

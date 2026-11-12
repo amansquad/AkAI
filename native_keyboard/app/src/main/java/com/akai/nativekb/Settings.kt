@@ -661,7 +661,7 @@ class SettingsActivity : ThemedActivity() {
             StickerPreviewActivity.open(this, name)
         }
         group(c, "Add from a Telegram link",
-            note("Paste a Telegram sticker pack link to see its stickers, then install it. In Telegram, open the pack, tap ⋮ then Copy link. Video stickers move (on Android 9 and newer); vector-animated ones come in as still pictures."),
+            note("Paste a Telegram sticker or emoji pack link (t.me/addstickers/… or t.me/addemoji/…) to see what is in it, then install it. In Telegram, open the pack, tap ⋮ then Copy link. Video stickers move (on Android 9 and newer); vector-animated ones come in as still pictures."),
             ui.gap(6f),
             box,
             ui.gap(10f),

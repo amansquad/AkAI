@@ -13,10 +13,10 @@ export const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.trim() || '';
 /** Telegram pack names are letters, digits and underscores. */
 export const PACK_NAME = /^[A-Za-z0-9_]{1,64}$/;
 
-/** "https://t.me/addstickers/Name", "t.me/addstickers/Name" or just "Name". */
+/** "https://t.me/addstickers/Name", "t.me/addemoji/Name" (a custom emoji pack) or just "Name". */
 export function packNameFrom(input: string): string | null {
   const s = input.trim();
-  const m = s.match(/(?:t\.me|telegram\.me|telegram\.dog)\/addstickers\/([A-Za-z0-9_]+)/i);
+  const m = s.match(/(?:t\.me|telegram\.me|telegram\.dog)\/add(?:stickers|emoji)\/([A-Za-z0-9_]+)/i);
   const name = m ? m[1] : s;
   return PACK_NAME.test(name) ? name : null;
 }
@@ -29,7 +29,10 @@ export type TgSticker = {
   is_video: boolean;
   thumbnail?: { file_id: string; width: number; height: number };
 };
-export type TgStickerSet = { name: string; title: string; stickers: TgSticker[] };
+export type TgStickerSet = { name: string; title: string; sticker_type?: string; stickers: TgSticker[] };
+
+/** Telegram custom emoji (t.me/addemoji): small, 100 px, and usable as emoji only inside Telegram. */
+export const kindOf = (set: TgStickerSet) => (set.sticker_type === 'custom_emoji' ? 'emoji' : 'stickers');
 
 export async function bot<T>(method: string, params: Record<string, string>): Promise<T | null> {
   const qs = new URLSearchParams(params);

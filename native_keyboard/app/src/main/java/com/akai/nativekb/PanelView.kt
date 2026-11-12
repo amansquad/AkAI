@@ -249,7 +249,10 @@ class PanelView(context: Context) : View(context) {
     private fun gifCell() = width / 3f
     /** The search button before the GIF categories (and ✕ after a search). */
     private fun gifSearchCell() = dp(44f)
-    private fun stickerCell() = width / 4f
+    /** Four stickers to a row; six for a custom emoji pack, which are small. */
+    private fun stickerCols() =
+        if (stickerQuery == null && stickerPacks().getOrNull(stickerSet)?.emoji == true) 6 else 4
+    private fun stickerCell() = width / stickerCols().toFloat()
     private fun stickerList() =
         if (stickerQuery != null) stickerResults else stickerPacks().getOrNull(stickerSet)?.stickers.orEmpty()
 
@@ -264,7 +267,7 @@ class PanelView(context: Context) : View(context) {
 
     private fun contentHeight(): Float = when (tab) {
         Tab.EMOJI -> ((emojiList().size + 7) / 8) * (width / 8f)
-        Tab.STICKERS -> ((stickerList().size + 3) / 4) * stickerCell()
+        Tab.STICKERS -> ((stickerList().size + stickerCols() - 1) / stickerCols()) * stickerCell()
         Tab.GIF -> ((gifs.size + 2) / 3) * gifCell()
         Tab.CLIPBOARD -> clips.size * clipRowH()
         Tab.THEMES -> ((themeList().size + 2) / 3) * themeCellH()
@@ -483,9 +486,10 @@ class PanelView(context: Context) : View(context) {
         val cell = stickerCell()
         val px = (cell - dp(6f)).toInt().coerceAtLeast(1)
         val first = max(0, (scrollY / cell).toInt())
-        val last = min((list.size + 3) / 4, first + ((height - top) / cell).toInt() + 2)
-        for (r in first until last) for (c in 0 until 4) {
-            val i = r * 4 + c
+        val cols = stickerCols()
+        val last = min((list.size + cols - 1) / cols, first + ((height - top) / cell).toInt() + 2)
+        for (r in first until last) for (c in 0 until cols) {
+            val i = r * cols + c
             if (i >= list.size) break
             val x = cell * c + (cell - px) / 2f
             val y = top + r * cell - scrollY + (cell - px) / 2f
@@ -1062,9 +1066,10 @@ class PanelView(context: Context) : View(context) {
             }
             Tab.STICKERS -> {
                 val cell = stickerCell()
-                val c = (x / cell).toInt().coerceIn(0, 3)
+                val cols = stickerCols()
+                val c = (x / cell).toInt().coerceIn(0, cols - 1)
                 val r = ((y - top + scrollY) / cell).toInt()
-                stickerList().getOrNull(r * 4 + c)?.let { host?.onPanelSticker(it) }
+                stickerList().getOrNull(r * cols + c)?.let { host?.onPanelSticker(it) }
             }
             Tab.GIF -> {
                 val cell = gifCell()
