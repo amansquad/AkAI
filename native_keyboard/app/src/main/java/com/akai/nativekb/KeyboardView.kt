@@ -1110,11 +1110,18 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawText("▶", rect.right - dp(16f), base, text)
     }
 
+    /** A letter a swipe can pass over: English and phonetic letters, and the fidel consonants. */
+    private fun swipeable(l: Layout, k: Key): Boolean = k.kind == KeyKind.CHAR && k.output.length == 1 && when (l.id) {
+        LayoutId.LETTERS, LayoutId.PHONETIC -> k.cased
+        LayoutId.FIDEL -> Amharic.isFidel(k.output[0])
+        else -> false
+    }
+
     /** Letter key centres of the current board, for decoding a swipe. */
     private fun letterCentres(l: Layout): Map<Char, FloatArray> {
         val m = HashMap<Char, FloatArray>()
         for ((r, row) in l.rows.withIndex()) for ((c, k) in row.withIndex()) {
-            if (k.kind == KeyKind.CHAR && k.cased && k.output.length == 1) {
+            if (swipeable(l, k)) {
                 m[k.output[0]] = floatArrayOf((lefts[r][c] + rights[r][c]) / 2f, rowTop[r] + rowH / 2f)
             }
         }
@@ -1140,8 +1147,8 @@ class KeyboardView(context: Context) : View(context) {
                     t.longPress = run
                     handler.postDelayed(run, longPressMs)
                 }
-                // English letters may turn out to be the start of a swipe.
-                if (glideOn && l.id == LayoutId.LETTERS && key.cased && id != A11Y_TOUCH && search == null) {
+                // A letter may turn out to be the start of a swipe.
+                if (glideOn && swipeable(l, key) && id != A11Y_TOUCH && search == null) {
                     t.canGlide = true
                     t.shifted = shifted
                     t.downX = x; t.downY = y

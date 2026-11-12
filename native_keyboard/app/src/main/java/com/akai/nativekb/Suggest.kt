@@ -1,6 +1,6 @@
 package com.akai.nativekb
 
-/** Word suggestions: the user's own words, the English dictionary, then the web keyboard's word lists. */
+/** Word suggestions: the user's own words, the language's dictionary, then the web keyboard's word lists. */
 object Suggest {
     /** [before] is the text left of the cursor. Returns up to three words. */
     fun forText(
@@ -23,8 +23,14 @@ object Suggest {
                 .take(2)
                 .map { it.key }
             // A word that is not a word gets offered the same fix auto-correct would make.
-            val fix = if (dict != null) listOfNotNull(AutoCorrect.correct(cur, dict, learned)) else emptyList()
-            val fromDict = dict?.completions(cur, 3).orEmpty()
+            val fix = listOfNotNull(
+                if (amharic) Amharic.correct(cur, dict, learned) else dict?.let { AutoCorrect.correct(cur, it, learned) },
+            )
+            val fromDict = when {
+                dict == null -> emptyList()
+                amharic -> Amharic.completions(cur, dict, 3)
+                else -> dict.completions(cur, 3)
+            }
             fix + own + fromDict + (suggestions[cur] ?: suggestions[cur.take(2)] ?: suggestions[cur.take(1)] ?: emptyList())
         }
         return list.distinct().take(3)

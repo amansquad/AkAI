@@ -18,11 +18,18 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
   "123" key to come back to the pad after leaving it
 - Email, URL and password fields: English only, no auto-capitals, no
   suggestions, nothing learned
-- Swipe typing: slide across the English letters to type a word; the other
-  readings appear in the suggestion strip
+- Swipe typing: slide across the letters to type a word; the other readings
+  appear in the suggestion strip. In English; in phonetic Amharic over the
+  word's Latin spelling ("selam", or the usual "salam" for ሰላም); and on the
+  fidel board over its consonants, whatever their vowels (ሰ ለ መ gives ሰላም)
 - Auto-correct for English (common typos, missing apostrophes, one-letter
   slips); backspace straight after a correction puts back what you typed, and
   that word is then left alone
+- Amharic completions from a 20,000-word list, allowing for the vowel not yet
+  chosen (ሰለ or phonetic "sel" already offers ሰላም). A misspelt Amharic word
+  (a wrong vowel, or a sound-alike letter such as ሰ for ሠ) gets its fix
+  offered first; fixing it on space is a setting, off by default, since the
+  list holds only some of the forms an Amharic word can take
 - Toolbar and suggestion strip: line icons in the theme's colours; choose which
   buttons show (emoji, stickers, GIFs, clipboard, handwriting, translate,
   themes, voice; settings is always there). With more than three, the toolbar
@@ -121,6 +128,16 @@ profanity removed. That file is under the same licence. To rebuild it, download
 
     node tools/gen-words.mjs path/to/en_50k.txt
 
+`app/src/main/assets/words_am.txt`, the Amharic list, is the 20,000 most
+frequent words in the text of [Amharic Wikipedia](https://am.wikipedia.org),
+licensed CC BY-SA 4.0 (so this file is too), with the everyday words from the
+web keyboard's suggestion lists placed near the top, since Wikipedia is formal.
+To rebuild it, download and unpack
+`https://dumps.wikimedia.org/amwiki/latest/amwiki-latest-pages-articles.xml.bz2`,
+then run, from this folder:
+
+    node tools/gen-words-am.mjs path/to/amwiki-latest-pages-articles.xml
+
 ## Privacy
 - Clipboard history is kept in memory only. Pinned items are saved, because you
   pinned them. Anything the source marks sensitive is skipped.
@@ -128,8 +145,7 @@ profanity removed. That file is under the same licence. To rebuild it, download
   are never learned in email, URL, password or number fields.
 
 ## Not here
-Translation without a server, swipe typing and auto-correct in Amharic, and a
-desktop-style layout (the web keyboard's desktop view has no use on a phone).
+Translation without a server, and a desktop-style layout (the web keyboard's desktop view has no use on a phone).
 
 Voice typing opens the system speech recogniser (a keyboard cannot use the
 microphone itself), so it needs a recogniser app such as Google's installed.
@@ -167,7 +183,8 @@ keep a backup of the keystore and its passwords.
 
 Covers the phonetic engine, skin tones, learned suggestions, that every layout
 builds, the cursor row, toolbar choices, auto-correct, swipe decoding on a
-QWERTY board, dictionary completions and emoji search.
+QWERTY board, dictionary completions and emoji search, and for Amharic: swipe paths on
+both boards, phonetic and fidel swipes, completions and corrections.
 
 ## Amharic data
 `KeyboardData.kt` is generated from the web keyboard's `keyboard-data.ts` and

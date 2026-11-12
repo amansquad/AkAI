@@ -171,6 +171,7 @@ class SettingsActivity : ThemedActivity() {
         TYPING -> listOfNotNull(
             if (on(Prefs.SUGGEST, true)) "suggestions" else null,
             if (on(Prefs.AUTOCORRECT, true)) "auto-correct" else null,
+            if (on(Prefs.AUTOCORRECT_AM, false)) "Amharic auto-correct" else null,
             if (on(Prefs.GLIDE, true)) "swipe" else null,
         ).joinToString(", ").ifEmpty { "all off" }.replaceFirstChar { it.uppercase() }
         FEEDBACK -> listOf(
@@ -453,11 +454,12 @@ class SettingsActivity : ThemedActivity() {
         group(c, "Suggestions",
             ui.switchRow("Show suggestions", "Word suggestions above the keys", on(Prefs.SUGGEST, true)) { put(Prefs.SUGGEST, it) },
             ui.switchRow("Auto-correct", "Fixes English typos when you finish a word; backspace undoes it", on(Prefs.AUTOCORRECT, true)) { put(Prefs.AUTOCORRECT, it) },
+            ui.switchRow("Auto-correct Amharic", "Fixes a wrong vowel or a sound-alike letter (ሰ for ሠ) when you finish a word. Off, the fix is still offered first in the suggestions", on(Prefs.AUTOCORRECT_AM, false)) { put(Prefs.AUTOCORRECT_AM, it) },
             ui.switchRow("Learn the words I type", "Never in password, email or number fields", on(Prefs.LEARN, true)) { put(Prefs.LEARN, it) },
             forget,
         )
         group(c, "Gestures",
-            ui.switchRow("Swipe typing", "Slide across the English letters to type a word", on(Prefs.GLIDE, true)) { put(Prefs.GLIDE, it) },
+            ui.switchRow("Swipe typing", "Slide across the letters to type a word, in English, phonetic Amharic or on the fidel consonants", on(Prefs.GLIDE, true)) { put(Prefs.GLIDE, it) },
             *switchWith("Long-press popups", "Hold a key for accents and vowel forms", on(Prefs.LONG_PRESS, true),
                 ui.sliderRow("Long-press delay", 150, 1000, prefs.getInt(Prefs.LONG_PRESS_MS, 250), " ms") { put(Prefs.LONG_PRESS_MS, it) },
             ) { put(Prefs.LONG_PRESS, it) },

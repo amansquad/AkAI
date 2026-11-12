@@ -6,24 +6,44 @@ import kotlin.math.ln
 import kotlin.math.max
 
 /**
- * The English word list (assets/words_en.txt, most common first), used for
- * completions, auto-correct and swipe typing. Plain Kotlin, so it can be
+ * How a word is swiped on one board: the keys the finger passes over, in
+ * order. A word can have several (Amharic spelt in Latin letters has more than
+ * one usual spelling), and none if the board cannot type it.
+ */
+fun interface Spelling {
+    fun paths(word: String): List<String>
+
+    companion object {
+        /** English: the word's own letters, apostrophes left out. */
+        val LETTERS = Spelling { listOf(Dictionary.lettersOf(it)) }
+    }
+}
+
+/**
+ * A word list (most common first): assets/words_en.txt or words_am.txt. Used
+ * for completions, auto-correct and swipe typing. Plain Kotlin, so it can be
  * tested without a phone.
  */
-class Dictionary(words: List<String>) {
+class Dictionary(words: List<String>, spellings: List<Spelling> = listOf(Spelling.LETTERS)) {
     private val rank = HashMap<String, Int>(words.size * 2)
     /** Sorted copy, for prefix lookups. */
     private val sorted: Array<String>
-    /** Words by first and last letter, for swipe typing. Apostrophes are ignored for matching. */
-    private val byEnds = HashMap<Int, MutableList<String>>()
+    /** For each spelling, words by the first and last key of their path, for swipe typing. */
+    private val byEnds = HashMap<Spelling, HashMap<Int, MutableList<Swiped>>>()
+
+    /** A word and one path that types it. */
+    class Swiped(val word: String, val path: String)
 
     init {
         for ((i, w) in words.withIndex()) if (w.isNotEmpty() && w !in rank) rank[w] = i
         sorted = rank.keys.toTypedArray().also { it.sort() }
-        for (w in rank.keys) {
-            val letters = lettersOf(w)
-            if (letters.length < 2) continue
-            byEnds.getOrPut(ends(letters[0], letters.last())) { ArrayList() }.add(w)
+        for (s in spellings) {
+            val index = HashMap<Int, MutableList<Swiped>>()
+            for (w in rank.keys) for (p in s.paths(w)) {
+                if (p.length < 2) continue
+                index.getOrPut(ends(p[0], p.last())) { ArrayList() }.add(Swiped(w, p))
+            }
+            byEnds[s] = index
         }
     }
 
@@ -32,8 +52,11 @@ class Dictionary(words: List<String>) {
     /** 0 is the most common word; unknown words rank after every known one. */
     fun rankOf(word: String) = rank[word] ?: Int.MAX_VALUE
 
-    /** Up to [limit] known words that start with [prefix] (longer than it), most common first. */
-    fun completions(prefix: String, limit: Int): List<String> {
+    /**
+     * Up to [limit] known words that start with [prefix] (longer than it) and
+     * pass [keep], most common first.
+     */
+    fun completions(prefix: String, limit: Int, keep: (String) -> Boolean = { true }): List<String> {
         if (prefix.isEmpty()) return emptyList()
         var lo = 0
         var hi = sorted.size
@@ -42,13 +65,15 @@ class Dictionary(words: List<String>) {
         var i = lo
         // Long prefix ranges ("t…") are capped; the most common words win anyway.
         while (i < sorted.size && sorted[i].startsWith(prefix) && i - lo < 6000) {
-            if (sorted[i].length > prefix.length) found.add(sorted[i])
+            if (sorted[i].length > prefix.length && keep(sorted[i])) found.add(sorted[i])
             i++
         }
         return found.sortedBy { rankOf(it) }.take(limit)
     }
 
-    fun withEnds(first: Char, last: Char): List<String> = byEnds[ends(first, last)].orEmpty()
+    /** Words whose path in [spelling] starts with [first] and ends with [last]. */
+    fun withEnds(first: Char, last: Char, spelling: Spelling = Spelling.LETTERS): List<Swiped> =
+        byEnds[spelling]?.get(ends(first, last)).orEmpty()
 
     companion object {
         fun lettersOf(w: String) = w.filter { it != '\'' }
@@ -56,19 +81,23 @@ class Dictionary(words: List<String>) {
     }
 }
 
-/** The bundled English dictionary, loaded once off the main thread. */
+/** The bundled English and Amharic dictionaries, loaded once off the main thread. */
 object Words {
     @Volatile var en: Dictionary? = null
         private set
+    @Volatile var am: Dictionary? = null
+        private set
+    private var started = false
 
     fun load(context: Context) {
-        if (en != null) return
+        if (started) return
+        started = true
         val app = context.applicationContext
+        fun read(name: String) = app.assets.open(name).bufferedReader().useLines { lines -> lines.filter { it.isNotBlank() }.toList() }
         Thread {
-            try {
-                val list = app.assets.open("words_en.txt").bufferedReader().useLines { lines -> lines.filter { it.isNotBlank() }.toList() }
-                if (en == null) en = Dictionary(list)
-            } catch (e: Exception) { /* no list: completions fall back to the small built-in one */ }
+            // No list just means completions fall back to the small built-in ones.
+            try { en = Dictionary(read("words_en.txt")) } catch (e: Exception) { }
+            try { am = Amharic.dictionary(read("words_am.txt")) } catch (e: Exception) { }
         }.start()
     }
 }
@@ -157,39 +186,41 @@ object Glide {
     private const val N = 32
 
     /**
-     * [xs]/[ys] are the finger's points. [keys] maps each letter to its key centre;
-     * [keyW] is a key's width. Returns up to [limit] words, best first.
+     * [xs]/[ys] are the finger's points. [keys] maps each key's letter to its centre;
+     * [keyW] is a key's width. [spelling] gives the keys each word passes over on
+     * this board. Returns up to [limit] words, best first.
      */
     fun decode(
         xs: FloatArray, ys: FloatArray, keys: Map<Char, FloatArray>, keyW: Float,
         dict: Dictionary?, learned: Map<String, Int> = emptyMap(), limit: Int = 4,
+        spelling: Spelling = Spelling.LETTERS,
     ): List<String> {
         if (xs.size < 2 || keys.isEmpty()) return emptyList()
         val starts = near(xs[0], ys[0], keys, keyW)
         val endsAt = near(xs.last(), ys.last(), keys, keyW)
         val user = resample(xs, ys)
 
-        val pool = LinkedHashSet<String>()
+        val pool = ArrayList<Dictionary.Swiped>()
+        val learnedPaths = learned.keys.flatMap { w -> spelling.paths(w).map { Dictionary.Swiped(w, it) } }
         for (a in starts) for (b in endsAt) {
-            dict?.withEnds(a, b)?.let(pool::addAll)
-            for (w in learned.keys) {
-                val l = Dictionary.lettersOf(w)
-                if (l.length >= 2 && l[0] == a && l.last() == b && l.all { it in keys }) pool.add(w)
-            }
+            dict?.withEnds(a, b, spelling)?.let(pool::addAll)
+            for (s in learnedPaths) if (s.path.length >= 2 && s.path[0] == a && s.path.last() == b) pool.add(s)
         }
 
-        val scored = ArrayList<Pair<String, Float>>()
-        for (w in pool) {
-            val letters = Dictionary.lettersOf(w)
+        // A word with several paths scores by its best one.
+        val best = HashMap<String, Float>()
+        for (s in pool) {
+            val letters = s.path
             if (!letters.all { it in keys }) continue
             if (!alongPath(letters, xs, ys, keys, keyW)) continue
             val ideal = idealPath(letters, keys)
             val shape = distance(user, ideal) / keyW
-            val r = dict?.rankOf(w) ?: Int.MAX_VALUE
-            val common = if (w in learned) 1f else if (r == Int.MAX_VALUE) 0f else 1f - ln(r + 2f) / ln(25000f)
-            scored.add(w to shape - 0.45f * common)
+            val r = dict?.rankOf(s.word) ?: Int.MAX_VALUE
+            val common = if (s.word in learned) 1f else if (r == Int.MAX_VALUE) 0f else 1f - ln(r + 2f) / ln(25000f)
+            val score = shape - 0.45f * common
+            if (score < (best[s.word] ?: Float.MAX_VALUE)) best[s.word] = score
         }
-        return scored.sortedBy { it.second }.take(limit).map { it.first }
+        return best.entries.sortedBy { it.value }.take(limit).map { it.key }
     }
 
     /** Letters whose key centre is close to a point: the nearest, plus any almost as near. */
