@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: 'What the AkAI keyboard keeps on your phone, and the few things it sends, only when you ask it to.',
 };
 
-const UPDATED = '11 November 2026';
+const UPDATED = '12 November 2026';
 
 /** One thing the keyboard can send: what goes, where, and when. */
 const SENT = [
@@ -26,8 +26,8 @@ const SENT = [
   {
     name: 'Voice typing',
     what: 'What you say.',
-    where: "Android's own speech service (usually Google's), under its own privacy policy.",
-    when: 'Only after you tap the microphone.',
+    where: "Android's own speech service (usually Google's), under its own privacy policy. AkAI asks for the microphone the first time you use it.",
+    when: 'Only while the voice tab is open and its mic is lit. Leaving the tab or the text field stops it.',
   },
   {
     name: 'GIF search',

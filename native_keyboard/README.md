@@ -147,8 +147,20 @@ then run, from this folder:
 ## Not here
 Translation without a server, and a desktop-style layout (the web keyboard's desktop view has no use on a phone).
 
-Voice typing opens the system speech recogniser (a keyboard cannot use the
-microphone itself), so it needs a recogniser app such as Google's installed.
+Voice typing needs a speech service on the phone, such as Google's, and the
+internet for Amharic.
+
+## Voice typing
+The mic button opens a voice tab in the keyboard and starts listening through
+the phone's speech service (`SpeechRecognizer`), in the keyboard's language;
+the tab's top button switches between English and Amharic. The words appear in
+the field, underlined, as they are recognised, and are typed when you stop
+speaking or tap the mic. The first time, the tab asks for the microphone, which
+a small see-through screen (`MicPermissionActivity`) requests, since a keyboard
+cannot show the request itself. The keyboard only listens while the voice tab
+is open and the mic is lit; leaving the tab or the field stops it. A phone with
+no speech service the keyboard can use gets a button for the system's own voice
+screen (`VoiceActivity`) instead.
 
 ## Build
 Needs the Android SDK and a JDK 17-21 (Gradle 8.14 does not run on Java 26;
