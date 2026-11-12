@@ -85,7 +85,7 @@ object StickerMarket {
 
     // ─── Preview pictures ────────────────────────────────────────────────
 
-    private val previews = object : LruCache<String, Bitmap>(12 * 1024 * 1024) {
+    private val previews = object : LruCache<String, Bitmap>(20 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
     private val loading = HashSet<String>()
@@ -101,7 +101,12 @@ object StickerMarket {
                 BitmapFactory.decodeByteArray(b, 0, b.size, bounds)
                 var sample = 1
                 while (bounds.outWidth / (sample * 2) >= size && bounds.outHeight / (sample * 2) >= size) sample *= 2
-                BitmapFactory.decodeByteArray(b, 0, b.size, BitmapFactory.Options().apply { inSampleSize = sample })
+                BitmapFactory.decodeByteArray(b, 0, b.size, BitmapFactory.Options().apply { inSampleSize = sample })?.let { full ->
+                    // Down to the size shown: a full 512 px sticker is 1 MB, which would crowd the cache.
+                    val k = size.toFloat() / maxOf(full.width, full.height)
+                    if (k >= 1f) full else Bitmap.createScaledBitmap(full, maxOf(1, (full.width * k).toInt()), maxOf(1, (full.height * k).toInt()), true)
+                        .also { if (it !== full) full.recycle() }
+                }
             }
             Net.ui {
                 loading.remove(url)
@@ -112,7 +117,7 @@ object StickerMarket {
     }
 }
 
-/** Browse, search, install and remove sticker packs. */
+/** Browse and search sticker packs; each opens its own page to preview and install it. */
 class StickerMarketActivity : ThemedActivity() {
     private val wrap = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     private lateinit var list: LinearLayout
@@ -121,8 +126,6 @@ class StickerMarketActivity : ThemedActivity() {
     private var query = ""
     private var next: Int? = null
     private var loadingPage = false
-    /** Packs downloading right now, with their progress line, so a rebuilt card picks it up. */
-    private val installing = HashMap<String, String>()
     private val rows = HashMap<String, (() -> Unit)>()
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
@@ -206,59 +209,35 @@ class StickerMarketActivity : ThemedActivity() {
             StickerMarket.preview(url, cell) { img.setImageBitmap(it) }?.let(img::setImageBitmap)
             strip.addView(img, LinearLayout.LayoutParams(0, cell, 1f).apply { marginEnd = ui.dp(4f) })
         }
+        val gifs = p.moving
+        val stills = p.count - p.moving
         val sub = listOfNotNull(
             "${p.count} stickers",
-            if (p.moving > 0) "${p.moving} moving" else null,
+            if (gifs > 0) "$gifs GIFs" else null,
+            if (gifs > 0 && stills > 0) "$stills still" else null,
             if (p.installs > 0) "${p.installs} installs" else null,
         ).joinToString(" · ")
-        val line = ui.label("", 13f, ui.dim)
-        val button = ui.primaryButton("Install") {}
-        val remove = ui.ghostButton("Remove") {}
+        val view = ui.primaryButton("View pack") { StickerPreviewActivity.open(this, p.name, p.title) }
+        val have = ui.ghostButton("Installed ✓  ·  View") { StickerPreviewActivity.open(this, p.name, p.title) }
 
         fun refresh() {
-            val busy = installing[p.name]
-            val have = installed(p.name)
-            line.text = busy ?: sub
-            button.visibility = if (have || busy != null) View.GONE else View.VISIBLE
-            remove.visibility = if (have && busy == null) View.VISIBLE else View.GONE
-            remove.text = "Installed ✓  ·  Remove"
+            val on = installed(p.name)
+            view.visibility = if (on) View.GONE else View.VISIBLE
+            have.visibility = if (on) View.VISIBLE else View.GONE
         }
         rows[p.name] = ::refresh
-        button.setOnClickListener { install(p) }
-        remove.setOnClickListener {
-            android.app.AlertDialog.Builder(this)
-                .setTitle("Remove ${p.title}?")
-                .setMessage("It leaves the keyboard. You can install it again any time.")
-                .setPositiveButton("Remove") { _, _ ->
-                    StickerPacks.imported(this).firstOrNull { it.key.equals(p.name, ignoreCase = true) }?.let { StickerPacks.remove(this, it.key) }
-                    refresh()
-                }
-                .setNegativeButton("Keep", null)
-                .show()
-        }
         refresh()
 
-        val card = ui.card(strip, ui.gap(10f), ui.label(p.title, 17f, palette.text, bold = true), line, ui.gap(10f), button, remove)
+        val card = ui.card(strip, ui.gap(10f), ui.label(p.title, 17f, palette.text, bold = true), ui.label(sub, 13f, ui.dim), ui.gap(10f), view, have)
+        card.setOnClickListener { StickerPreviewActivity.open(this, p.name, p.title) }
+        ui.pressable(card)
         return card
     }
 
-    private fun install(p: MarketPack) {
-        installing[p.name] = "Starting…"
-        rows[p.name]?.invoke()
-        StickerPacks.import(this, p.name, title = p.title, progress = { msg ->
-            installing[p.name] = msg
-            rows[p.name]?.invoke()
-        }) { pack, error ->
-            installing.remove(p.name)
-            if (isFinishing) return@import
-            rows[p.name]?.invoke()
-            if (pack == null) {
-                Toast.makeText(this, error ?: "Couldn't install ${p.title}", Toast.LENGTH_LONG).show()
-            } else {
-                StickerMarket.countInstall(this, p.name)
-                Toast.makeText(this, "${p.title} is in your keyboard's sticker tab", Toast.LENGTH_SHORT).show()
-            }
-        }
+    override fun onResume() {
+        super.onResume()
+        // Back from a pack's page, which may have installed or removed it.
+        rows.values.forEach { it() }
     }
 
     companion object {

@@ -616,8 +616,6 @@ class SettingsActivity : ThemedActivity() {
         )
     }
 
-    private var importing = false
-
     private fun stickersPage(c: LinearLayout) {
         c.addView(ui.gap(12f))
         val market = ui.card(
@@ -649,28 +647,21 @@ class SettingsActivity : ThemedActivity() {
             } catch (e: Exception) { "" }
             if (clip.contains("addstickers", ignoreCase = true)) setText(clip.trim())
         }
-        val add = ui.primaryButton("Add pack") {}
+        // The pack's own page shows every sticker first, and installs it from there.
+        val add = ui.primaryButton("Look at the pack") {}
         add.setOnClickListener {
-            if (importing) return@setOnClickListener
-            importing = true
-            add.isEnabled = false
-            status.visibility = View.VISIBLE
-            status.setTextColor(ui.dim)
-            StickerPacks.import(this, box.text.toString(), progress = { status.text = it }) { pack, error ->
-                importing = false
-                if (isFinishing) return@import
-                add.isEnabled = true
-                if (pack == null) {
-                    status.text = error
-                    status.setTextColor(palette.accent)
-                } else {
-                    Toast.makeText(this, "Added ${pack.name}: ${pack.stickers.size} stickers", Toast.LENGTH_SHORT).show()
-                    build()
-                }
+            val name = StickerPacks.nameFrom(box.text.toString())
+            if (name == null) {
+                status.visibility = View.VISIBLE
+                status.text = "Paste a link like t.me/addstickers/PackName"
+                status.setTextColor(palette.accent)
+                return@setOnClickListener
             }
+            status.visibility = View.GONE
+            StickerPreviewActivity.open(this, name)
         }
         group(c, "Add from a Telegram link",
-            note("Paste a Telegram sticker pack link. In Telegram, open the pack, tap ⋮ then Copy link. Video stickers move (on Android 9 and newer); vector-animated ones come in as still pictures."),
+            note("Paste a Telegram sticker pack link to see its stickers, then install it. In Telegram, open the pack, tap ⋮ then Copy link. Video stickers move (on Android 9 and newer); vector-animated ones come in as still pictures."),
             ui.gap(6f),
             box,
             ui.gap(10f),
