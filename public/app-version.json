@@ -1,6 +1,6 @@
 {
-  "versionCode": 10006,
-  "versionName": "1.0.6",
+  "versionCode": 10007,
+  "versionName": "1.0.7",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Custom emoji packs now live in the emoji tab, next to your other emoji, and are sent emoji-sized. The Sticker Marketplace has separate Stickers and Emoji tabs."
+  "notes": "The Sticker Marketplace switches between Stickers and Emoji right away, and always shows the tab you picked."
 }
