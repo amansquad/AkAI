@@ -67,9 +67,9 @@ object StickerMarket {
             } catch (e: Exception) { null } else null
             val error = when {
                 page != null -> null
-                r == null -> "No connection. Check the internet and try again"
+                r == null -> UiText.t(context, "No connection. Check the internet and try again")
                 else -> try { JSONObject(String(r.body)).optString("error").ifBlank { null } } catch (e: Exception) { null }
-                    ?: "The Sticker Marketplace is unavailable right now"
+                    ?: UiText.t(context, "The Sticker Marketplace is unavailable right now")
             }
             Net.ui { done(page, error) }
         }
@@ -155,7 +155,7 @@ class StickerMarketActivity : ThemedActivity() {
         c.addView(ui.gap(12f))
 
         val search = EditText(this).apply {
-            hint = "🔍  Search packs"
+            hint = ui.tr("🔍  Search packs")
             setSingleLine()
             inputType = InputType.TYPE_CLASS_TEXT
             imeOptions = EditorInfo.IME_ACTION_SEARCH
@@ -202,7 +202,7 @@ class StickerMarketActivity : ThemedActivity() {
         val gen = ++loadGen
         if (reset) { list.removeAllViews(); rows.clear(); next = null }
         status.visibility = View.VISIBLE
-        status.text = "Loading…"
+        status.text = ui.tr("Loading…")
         more.visibility = View.GONE
         StickerMarket.list(this, query, if (reset) 0 else next ?: 0, emoji) { page, error ->
             if (gen != loadGen || isFinishing) return@list
@@ -211,8 +211,11 @@ class StickerMarketActivity : ThemedActivity() {
             next = page.next
             page.packs.forEach { list.addView(card(it), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = ui.dp(10f) }) }
             status.visibility = if (list.childCount == 0) View.VISIBLE else View.GONE
-            val what = if (emoji) "emoji packs" else "sticker packs"
-            status.text = if (query.isBlank()) "No $what yet. Check back soon." else "No $what match \"$query\""
+            status.text = if (emoji) {
+                if (query.isBlank()) ui.tr("No emoji packs yet. Check back soon.") else ui.tr("No emoji packs match \"{q}\"", "q" to query)
+            } else {
+                if (query.isBlank()) ui.tr("No sticker packs yet. Check back soon.") else ui.tr("No sticker packs match \"{q}\"", "q" to query)
+            }
             more.visibility = if (next != null) View.VISIBLE else View.GONE
         }
     }
@@ -232,10 +235,10 @@ class StickerMarketActivity : ThemedActivity() {
         val gifs = p.moving
         val stills = p.count - p.moving
         val sub = listOfNotNull(
-            if (p.emoji) "Emoji pack · ${p.count} emoji" else "${p.count} stickers",
-            if (gifs > 0) (if (p.emoji) (if (stills == 0) "all animated" else "$gifs animated") else "$gifs GIFs") else null,
-            if (gifs > 0 && stills > 0) "$stills still" else null,
-            if (p.installs > 0) "${p.installs} installs" else null,
+            if (p.emoji) ui.tr("Emoji pack · {n} emoji", "n" to p.count) else ui.tr("{n} stickers", "n" to p.count),
+            if (gifs > 0) (if (p.emoji) (if (stills == 0) ui.tr("all animated") else ui.tr("{n} animated", "n" to gifs)) else ui.tr("{n} GIFs", "n" to gifs)) else null,
+            if (gifs > 0 && stills > 0) ui.tr("{n} still", "n" to stills) else null,
+            if (p.installs > 0) ui.tr("{n} installs", "n" to p.installs) else null,
         ).joinToString(" · ")
         val view = ui.primaryButton("View pack") { StickerPreviewActivity.open(this, p.name, p.title) }
         val have = ui.ghostButton("Installed ✓  ·  View") { StickerPreviewActivity.open(this, p.name, p.title) }

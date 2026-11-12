@@ -745,7 +745,7 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
         text.textAlign = Paint.Align.LEFT
         text.textSize = stripH * 0.34f
-        val shown = if (q.isEmpty()) "Search ${searchFor ?: "emoji"}" else "$q▏"
+        val shown = if (q.isEmpty()) UiText.t(context, "Search {what}", "what" to UiText.t(context, searchFor ?: "emoji")) else "$q▏"
         text.color = if (q.isEmpty()) palette.hint else palette.text
         val inner = rect.width() - dp(36f)
         // Long queries show their end, which is where the typing is.
@@ -762,13 +762,13 @@ class KeyboardView(context: Context) : View(context) {
             canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
             text.textSize = stripH * 0.32f
             text.color = if (q.isBlank()) palette.hint else palette.accentText
-            canvas.drawText("Search ${searchFor ?: ""}".trim(), rect.centerX(), stripBaseline(), text)
+            canvas.drawText(UiText.t(context, "Search {what}", "what" to UiText.t(context, searchFor ?: "")).trim(), rect.centerX(), stripBaseline(), text)
             return
         }
         if (searchResults.isEmpty() && q.isNotEmpty()) {
             text.textSize = stripH * 0.3f
             text.color = palette.hint
-            canvas.drawText("No emoji found", (searchBoxEnd() + width) / 2f, stripBaseline(), text)
+            canvas.drawText(UiText.t(context, "No emoji found"), (searchBoxEnd() + width) / 2f, stripBaseline(), text)
             return
         }
         for ((i, e) in searchResults.withIndex()) {
@@ -811,7 +811,7 @@ class KeyboardView(context: Context) : View(context) {
         text.textSize = labelH * 0.3f
         text.color = palette.hint
         text.typeface = Typeface.DEFAULT
-        canvas.drawText("Tap a letter to see its vowel forms", (areaLeft + areaRight) / 2f,
+        canvas.drawText(UiText.t(context, "Tap a letter to see its vowel forms"), (areaLeft + areaRight) / 2f,
             rowTop[0] + rowH / 2f - (text.descent() + text.ascent()) / 2f, text)
     }
 

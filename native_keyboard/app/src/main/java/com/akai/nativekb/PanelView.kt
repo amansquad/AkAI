@@ -294,12 +294,15 @@ class PanelView(context: Context) : View(context) {
 
     // ─── Drawing ─────────────────────────────────────────────────────────
 
+    /** [s] in the app's interface language; text with no translation (emoji, typed words) is unchanged. */
+    private fun tr(s: String) = UiText.t(context, s)
+
     private fun label(canvas: Canvas, s: String, cx: Float, cy: Float, size: Float, color: Int, bold: Boolean = false) {
         text.textAlign = Paint.Align.CENTER
         text.textSize = size
         text.color = color
         text.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-        canvas.drawText(s, cx, cy - (text.descent() + text.ascent()) / 2f, text)
+        canvas.drawText(tr(s), cx, cy - (text.descent() + text.ascent()) / 2f, text)
     }
 
     private fun button(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, s: String, accent: Boolean = false) {
@@ -517,7 +520,7 @@ class PanelView(context: Context) : View(context) {
         val top = contentTop()
         val list = stickerList()
         if (list.isEmpty() && stickerQuery != null) {
-            label(canvas, "No stickers for \"$stickerQuery\"", width / 2f, top + dp(50f), dp(14f), palette.hint)
+            label(canvas, UiText.t(context, "No stickers for \"{q}\"", "q" to stickerQuery.orEmpty()), width / 2f, top + dp(50f), dp(14f), palette.hint)
             label(canvas, "Try a feeling, like happy, sad, love or laugh", width / 2f, top + dp(74f), dp(12f), palette.hint)
             return
         }
@@ -561,7 +564,7 @@ class PanelView(context: Context) : View(context) {
             return
         }
         if (gifs.isEmpty() && gifQuery != null) {
-            label(canvas, "No GIFs found for \"$gifQuery\"", width / 2f, top + dp(60f), dp(14f), palette.hint)
+            label(canvas, UiText.t(context, "No GIFs found for \"{q}\"", "q" to gifQuery.orEmpty()), width / 2f, top + dp(60f), dp(14f), palette.hint)
         }
         val cell = gifCell()
         val first = max(0, (scrollY / cell).toInt())
@@ -825,7 +828,7 @@ class PanelView(context: Context) : View(context) {
     private fun drawCaption(canvas: Canvas, s: String, cy: Float, color: Int, wrap: Boolean = true) {
         val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = dp(14f); this.color = color }
         val inner = (width - dp(32f)).toInt().coerceAtLeast(1)
-        val shown = if (wrap) s else TextUtils.ellipsize(s, paint, inner.toFloat(), TextUtils.TruncateAt.START).toString()
+        val shown = if (wrap) tr(s) else TextUtils.ellipsize(s, paint, inner.toFloat(), TextUtils.TruncateAt.START).toString()
         val layout = StaticLayout.Builder.obtain(shown, 0, shown.length, paint, inner)
             .setMaxLines(2).setEllipsize(TextUtils.TruncateAt.END).setAlignment(Layout.Alignment.ALIGN_CENTER).build()
         canvas.save()
@@ -834,7 +837,8 @@ class PanelView(context: Context) : View(context) {
         canvas.restore()
     }
 
-    private fun drawBox(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, s: String, dim: Boolean) {
+    private fun drawBox(canvas: Canvas, l: Float, t: Float, r: Float, b: Float, raw: String, dim: Boolean) {
+        val s = if (dim) tr(raw) else raw
         rect.set(l, t, r, b)
         fill.color = palette.key
         canvas.drawRoundRect(rect, radius, radius, fill)

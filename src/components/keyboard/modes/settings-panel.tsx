@@ -3,10 +3,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
-  ClipboardList, Image, Palette, PenTool, RotateCcw, Smile, Sparkles,
+  ClipboardList, Image, Palette, PenTool, RotateCcw, Search, Smile, Sparkles, X,
 } from 'lucide-react';
 import type { ThemeDef } from '@/components/keyboard-data';
 import { DEFAULT_PREFS, NUMBER_LIMITS, clampPref, type KeyboardPrefs, type NumericPref } from '@/components/keyboard/prefs';
+import { UI_LANGUAGES, translate, useUiLanguage } from '@/components/keyboard/i18n';
 
 interface KeyboardSettingsPanelProps {
   t: ThemeDef;
@@ -22,13 +23,38 @@ interface KeyboardSettingsPanelProps {
   onReset: () => void;
 }
 
+// ─── Search ─────────────────────────────────────────────────────────────────
+
+/** The words typed into the search box. Settings that don't contain all of them hide themselves. */
+const SearchContext = React.createContext<string[]>([]);
+
+/** Translates English settings text into the app's interface language. */
+type Tr = (text: string, vars?: Record<string, string | number>) => string;
+const TrContext = React.createContext<Tr>((text, vars) => translate('en', text, vars));
+const useTr = () => React.useContext(TrContext);
+
+function useMatches(...texts: (string | undefined)[]): boolean {
+  const terms = React.useContext(SearchContext);
+  const tr = useTr();
+  if (terms.length === 0) return true;
+  // Match what is on screen and the English wording, so either finds it.
+  const hay = texts.filter(Boolean).flatMap(x => [x!, tr(x!)]).join(' ').toLowerCase();
+  return terms.every(term => hay.includes(term));
+}
+
+/** A block of settings that can be found by `words` (its title plus other words people might type). */
+function Item({ words, children }: { words: string; children: React.ReactNode }) {
+  return useMatches(words) ? <>{children}</> : null;
+}
+
 // ─── Building blocks ────────────────────────────────────────────────────────
 
 function Section({ t, title, children }: { t: ThemeDef; title: string; children: React.ReactNode }) {
+  const tr = useTr();
   return (
-    <section className="flex flex-col gap-1.5">
-      <h3 className={`px-1 text-[10px] font-bold uppercase tracking-wider ${t.keyText} opacity-50`}>{title}</h3>
-      <div className={`rounded-xl ${t.card} ${t.border} border divide-y divide-white/5 overflow-hidden`}>
+    <section className="flex flex-col gap-1.5 has-[>div:empty]:hidden">
+      <h3 className={`px-1 text-[10px] font-bold uppercase tracking-wider ${t.keyText} opacity-50`}>{tr(title)}</h3>
+      <div className={`rounded-xl ${t.card} ${t.border} border divide-y divide-white/5 overflow-hidden empty:hidden`}>
         {children}
       </div>
     </section>
@@ -39,13 +65,15 @@ function Row({ t, label, hint, children, icon: Icon }: {
   t: ThemeDef; label: string; hint?: string; children: React.ReactNode;
   icon?: React.ComponentType<{ className?: string }>;
 }) {
+  const tr = useTr();
+  if (!useMatches(label, hint)) return null;
   return (
     <div className="flex items-center justify-between gap-3 px-3 py-2.5">
       <div className="flex items-center gap-2.5 min-w-0">
         {Icon && <Icon className={`w-4 h-4 shrink-0 ${t.keyText} opacity-50`} />}
         <div className="min-w-0">
-          <p className={`text-xs font-medium ${t.keyText}`}>{label}</p>
-          {hint && <p className={`text-[10px] leading-snug ${t.keyText} opacity-50`}>{hint}</p>}
+          <p className={`text-xs font-medium ${t.keyText}`}>{tr(label)}</p>
+          {hint && <p className={`text-[10px] leading-snug ${t.keyText} opacity-50`}>{tr(hint)}</p>}
         </div>
       </div>
       <div className="shrink-0">{children}</div>
@@ -54,12 +82,13 @@ function Row({ t, label, hint, children, icon: Icon }: {
 }
 
 function Toggle({ t, on, onChange, label }: { t: ThemeDef; on: boolean; onChange: (v: boolean) => void; label: string }) {
+  const tr = useTr();
   return (
     <motion.button
       type="button"
       role="switch"
       aria-checked={on}
-      aria-label={label}
+      aria-label={tr(label)}
       whileTap={{ scale: 0.9 }}
       onClick={() => onChange(!on)}
       className={`w-10 h-6 rounded-full transition-colors flex items-center ${on ? t.accent : 'bg-gray-600'}`}
@@ -72,6 +101,7 @@ function Toggle({ t, on, onChange, label }: { t: ThemeDef; on: boolean; onChange
 function Choice<V extends string>({ t, value, options, onChange }: {
   t: ThemeDef; value: V; options: readonly { id: V; label: string }[]; onChange: (v: V) => void;
 }) {
+  const tr = useTr();
   return (
     <div className="flex gap-1.5 px-3 pb-2.5">
       {options.map(opt => (
@@ -85,7 +115,7 @@ function Choice<V extends string>({ t, value, options, onChange }: {
             value === opt.id ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
           }`}
         >
-          {opt.label}
+          {tr(opt.label)}
         </motion.button>
       ))}
     </div>
@@ -97,6 +127,8 @@ function Slider({ t, value, min, max, step = 1, onChange, onCommit, label, forma
   onChange: (v: number) => void; onCommit?: (v: number) => void;
   label: string; format: (v: number) => string;
 }) {
+  const tr = useTr();
+  if (!useMatches(label)) return null;
   return (
     <div className="flex items-center gap-3 px-3 pb-3">
       <input
@@ -105,7 +137,7 @@ function Slider({ t, value, min, max, step = 1, onChange, onCommit, label, forma
         max={max}
         step={step}
         value={value}
-        aria-label={label}
+        aria-label={tr(label)}
         onChange={e => {
           const v = Number(e.target.value);
           onChange(v);
@@ -136,22 +168,25 @@ function NumberSetting({ t, label, hint, pref, value, onChange }: {
     if (draft !== null && draft.trim() !== '' && Number.isFinite(Number(draft))) set(Number(draft));
     setDraft(null);
   };
+  const tr = useTr();
+  const visible = useMatches(label, hint);
   const stepBtn = `w-7 h-7 rounded-lg text-sm font-semibold ${t.suggestion} ${t.keyText} disabled:opacity-30`;
 
+  if (!visible) return null;
   return (
     <div className="px-3 py-2.5 flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className={`text-xs font-medium ${t.keyText}`}>{label}</p>
-          {hint && <p className={`text-[10px] leading-snug ${t.keyText} opacity-50`}>{hint}</p>}
+          <p className={`text-xs font-medium ${t.keyText}`}>{tr(label)}</p>
+          {hint && <p className={`text-[10px] leading-snug ${t.keyText} opacity-50`}>{tr(hint)}</p>}
         </div>
         <div className="shrink-0 flex items-center gap-1">
-          <button type="button" aria-label={`Decrease ${label}`} className={stepBtn}
+          <button type="button" aria-label={tr('Decrease {v}', { v: tr(label) })} className={stepBtn}
             disabled={value <= min} onClick={() => set(value - step)}>−</button>
           <input
             type="text"
             inputMode="numeric"
-            aria-label={label}
+            aria-label={tr(label)}
             value={draft ?? String(value)}
             onFocus={e => e.currentTarget.select()}
             onChange={e => setDraft(e.target.value.replace(/[^0-9]/g, ''))}
@@ -160,7 +195,7 @@ function NumberSetting({ t, label, hint, pref, value, onChange }: {
             className={`w-12 h-7 text-center text-xs font-semibold tabular-nums rounded-lg bg-transparent border ${t.border} ${t.keyText}`}
           />
           <span className={`w-5 text-[10px] ${t.keyText} opacity-50`}>{unit}</span>
-          <button type="button" aria-label={`Increase ${label}`} className={stepBtn}
+          <button type="button" aria-label={tr('Increase {v}', { v: tr(label) })} className={stepBtn}
             disabled={value >= max} onClick={() => set(value + step)}>+</button>
         </div>
       </div>
@@ -170,7 +205,7 @@ function NumberSetting({ t, label, hint, pref, value, onChange }: {
         max={max}
         step={step}
         value={value}
-        aria-label={`${label} slider`}
+        aria-label={tr(label)}
         onChange={e => set(Number(e.target.value))}
         className="w-full h-1.5 cursor-pointer"
         style={{ accentColor: 'currentColor' }}
@@ -178,8 +213,8 @@ function NumberSetting({ t, label, hint, pref, value, onChange }: {
       <div className={`flex items-center justify-between text-[10px] ${t.keyText} opacity-50`}>
         <span>{min}{unit}</span>
         {changed
-          ? <button type="button" className="underline" onClick={() => onChange(DEFAULT_PREFS[pref] as number)}>Reset to {DEFAULT_PREFS[pref]}{unit}</button>
-          : <span>Default</span>}
+          ? <button type="button" className="underline" onClick={() => onChange(DEFAULT_PREFS[pref] as number)}>{tr('Reset to {v}', { v: `${DEFAULT_PREFS[pref]}${unit}` })}</button>
+          : <span>{tr('Default')}</span>}
         <span>{max}{unit}</span>
       </div>
     </div>
@@ -202,6 +237,7 @@ const TOOLBAR_BUTTONS = [
 export default function KeyboardSettingsPanel({
   t, prefs, setPref, isIme, previewHaptic, previewSound, onOpenThemes, onReset,
 }: KeyboardSettingsPanelProps) {
+  const { lang, setLang, tr, rtl } = useUiLanguage();
   const toggleButton = (id: string) =>
     setPref('visibleButtons', { ...prefs.visibleButtons, [id]: prefs.visibleButtons[id] === false });
 
@@ -211,6 +247,8 @@ export default function KeyboardSettingsPanel({
   // A second tap confirms. Not window.confirm: inside the Android keyboard
   // there is no activity window for a dialog to attach to.
   const [confirmingReset, setConfirmingReset] = React.useState(false);
+  const [query, setQuery] = React.useState('');
+  const terms = React.useMemo(() => query.toLowerCase().split(/\s+/).filter(Boolean), [query]);
   React.useEffect(() => {
     if (!confirmingReset) return;
     const timer = setTimeout(() => setConfirmingReset(false), 3000);
@@ -218,12 +256,59 @@ export default function KeyboardSettingsPanel({
   }, [confirmingReset]);
 
   return (
-    <div className="flex flex-col h-full">
+    <TrContext.Provider value={tr}>
+    <div className="flex flex-col h-full" dir={rtl ? 'rtl' : 'ltr'} lang={lang}>
       <div className={`flex items-center justify-between px-3 py-2 border-b ${t.border}`}>
-        <span className={`text-xs font-medium ${t.keyText} opacity-70`}>Keyboard Settings</span>
+        <span className={`text-xs font-medium ${t.keyText} opacity-70`}>{tr('Keyboard Settings')}</span>
       </div>
 
+      <div className="px-3 pt-2">
+        <div className={`flex items-center gap-2 px-3 h-9 rounded-xl border ${t.border} ${t.card}`}>
+          <Search className={`w-3.5 h-3.5 shrink-0 ${t.keyText} opacity-50`} />
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={tr('Search settings')}
+            aria-label={tr('Search settings')}
+            className={`flex-1 min-w-0 bg-transparent outline-none text-xs ${t.keyText}`}
+          />
+          {query && (
+            <button type="button" aria-label={tr('Clear search')} onClick={() => setQuery('')}>
+              <X className={`w-3.5 h-3.5 ${t.keyText} opacity-60`} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <SearchContext.Provider value={terms}>
       <div className="flex-1 p-3 overflow-y-auto flex flex-col gap-4">
+        {/* ── Language ── */}
+        <Section t={t} title="Language">
+          <Item words="language app interface amharic tigrinya oromo somali arabic english አማርኛ ትግርኛ العربية soomaali afaan">
+            <div className="pt-2.5">
+              <p className={`px-3 text-xs font-medium ${t.keyText}`}>{tr('App language')}</p>
+              <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>{tr('The words in menus and settings. The 🌐 key still switches what you type.')}</p>
+              <div className="grid grid-cols-3 gap-1.5 px-3 pb-3">
+                {UI_LANGUAGES.map(l => (
+                  <motion.button
+                    key={l.id}
+                    type="button"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setLang(l.id)}
+                    aria-pressed={lang === l.id}
+                    className={`py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                      lang === l.id ? `${t.accent} ${t.accentText}` : `${t.suggestion} ${t.keyText}`
+                    }`}
+                  >
+                    {l.native}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </Item>
+        </Section>
+
         {/* ── Look ── */}
         <Section t={t} title="Look">
           <Row t={t} label="Theme" hint="Colours and live wallpapers" icon={Palette}>
@@ -233,7 +318,7 @@ export default function KeyboardSettingsPanel({
               onClick={onOpenThemes}
               className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold ${t.accent} ${t.accentText}`}
             >
-              Change
+              {tr('Change')}
             </motion.button>
           </Row>
           <Row t={t} label="Key-press animation" hint="Glow and bounce when a key is tapped">
@@ -266,9 +351,10 @@ export default function KeyboardSettingsPanel({
 
         {/* ── Layout ── */}
         <Section t={t} title="Keyboard layout">
+          <Item words="english layout qwerty dvorak azerty colemak qwertz">
           <div className="pt-2.5">
-            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>English layout</p>
-            <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>Applies only to the English keyboard</p>
+            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>{tr('English layout')}</p>
+            <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>{tr('Applies only to the English keyboard')}</p>
             {/* Row 1: QWERTY / Dvorak / AZERTY */}
             <Choice
               t={t}
@@ -293,11 +379,13 @@ export default function KeyboardSettingsPanel({
               ] as const}
             />
           </div>
+          </Item>
 
           {/* Amharic fidel layout */}
+          <Item words="amharic አማርኛ layout fidel geez traditional frequency phonetic">
           <div className="pt-2.5">
-            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>አማርኛ (Amharic) layout</p>
-            <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>Applies to the Ge'ez fidel keyboard</p>
+            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>አማርኛ (Amharic) · {tr('Layout')}</p>
+            <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>{tr("Applies to the Ge'ez fidel keyboard")}</p>
             <Choice
               t={t}
               value={prefs.amharicLayout}
@@ -310,8 +398,9 @@ export default function KeyboardSettingsPanel({
             />
           </div>
           <div className={`px-3 pb-3 text-[10px] leading-relaxed ${t.keyText} opacity-40`}>
-            Traditional: Ge'ez alphabetical order · Frequency: most-used letters first · Phonetic: QWERTY-mapped sounds
+            {tr("Traditional: Ge'ez alphabetical order · Frequency: most-used letters first · Phonetic: QWERTY-mapped sounds")}
           </div>
+          </Item>
         </Section>
 
         {/* ── Top bar ── */}
@@ -324,8 +413,9 @@ export default function KeyboardSettingsPanel({
               <Toggle t={t} label="Word of the Day" on={prefs.showWordOfTheDay} onChange={v => setPref('showWordOfTheDay', v)} />
             </Row>
           )}
+          <Item words="toolbar labels icons active">
           <div className="pt-2.5">
-            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>Toolbar labels</p>
+            <p className={`px-3 pb-2 text-xs font-medium ${t.keyText}`}>{tr('Toolbar labels')}</p>
             <Choice
               t={t}
               value={prefs.toolbarStyle}
@@ -337,6 +427,7 @@ export default function KeyboardSettingsPanel({
               ] as const}
             />
           </div>
+          </Item>
         </Section>
 
         {/* ── Toolbar buttons ── */}
@@ -392,9 +483,10 @@ export default function KeyboardSettingsPanel({
           <Row t={t} label="Cursor row" hint="Arrow keys above the bottom row for precise cursor movement">
             <Toggle t={t} label="Cursor row" on={prefs.showCursorRow} onChange={v => setPref('showCursorRow', v)} />
           </Row>
+          <Item words="one-handed mode left right thumb">
           <div className="pt-2.5">
-            <p className={`px-3 text-xs font-medium ${t.keyText}`}>One-handed mode</p>
-            <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>Shrink the keyboard towards one thumb</p>
+            <p className={`px-3 text-xs font-medium ${t.keyText}`}>{tr('One-handed mode')}</p>
+            <p className={`px-3 pb-2 text-[10px] ${t.keyText} opacity-50`}>{tr('Shrink the keyboard towards one thumb')}</p>
             <Choice
               t={t}
               value={prefs.oneHandedMode}
@@ -406,6 +498,7 @@ export default function KeyboardSettingsPanel({
               ] as const}
             />
           </div>
+          </Item>
           {prefs.oneHandedMode !== 'off' && (
             <NumberSetting
               t={t}
@@ -479,7 +572,7 @@ export default function KeyboardSettingsPanel({
               max={5}
               onChange={v => setPref('hapticLevel', v)}
               onCommit={previewHaptic}
-              format={v => HAPTIC_LABELS[v]}
+              format={v => tr(HAPTIC_LABELS[v])}
             />
           )}
           <Row t={t} label="Sound" hint="A soft click on every key">
@@ -514,6 +607,7 @@ export default function KeyboardSettingsPanel({
           </Section>
         )}
 
+        {terms.length === 0 && (<>
         <motion.button
           type="button"
           whileTap={{ scale: 0.97 }}
@@ -527,10 +621,13 @@ export default function KeyboardSettingsPanel({
           } ${isDefault ? 'opacity-30' : 'opacity-90 hover:opacity-100'}`}
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          {confirmingReset ? 'Tap again to reset' : 'Reset to defaults'}
+          {confirmingReset ? tr('Tap again to reset') : tr('Reset to defaults')}
         </motion.button>
-        <p className={`-mt-2 text-center text-[10px] ${t.keyText} opacity-40`}>Your theme and custom themes are kept.</p>
+        <p className={`-mt-2 text-center text-[10px] ${t.keyText} opacity-40`}>{tr('Your theme and custom themes are kept.')}</p>
+        </>)}
       </div>
+      </SearchContext.Provider>
     </div>
+    </TrContext.Provider>
   );
 }

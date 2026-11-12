@@ -156,10 +156,10 @@ class MicPermissionActivity : Activity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Microphone allowed. Tap the mic on the keyboard to speak", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, UiText.t(this, "Microphone allowed. Tap the mic on the keyboard to speak"), Toast.LENGTH_LONG).show()
         } else if (!shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
             // Turned down for good: only the app's settings page can allow it now.
-            Toast.makeText(this, "Allow the microphone under Permissions to use voice typing", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, UiText.t(this, "Allow the microphone under Permissions to use voice typing"), Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
         }
         finish()

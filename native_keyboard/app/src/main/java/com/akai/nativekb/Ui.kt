@@ -44,11 +44,15 @@ class Ui(val context: Context, val p: Palette) {
         if (stroke != 0) setStroke(dp(strokeDp).coerceAtLeast(1), stroke)
     }
 
+    /** [s] in the app's interface language (unchanged when there is no translation). */
+    fun tr(s: String) = UiText.t(context, s)
+    fun tr(s: String, vararg vars: Pair<String, Any>) = UiText.t(context, s, *vars)
+
     fun label(
         t: String, sizeSp: Float = 15f, color: Int = text, bold: Boolean = false,
         spacing: Float = 0f, gravity: Int = Gravity.START,
     ) = TextView(context).apply {
-        this.text = t
+        this.text = tr(t)
         textSize = sizeSp
         setTextColor(color)
         typeface = if (bold) Typeface.create("sans-serif", Typeface.BOLD) else Typeface.DEFAULT
@@ -82,7 +86,7 @@ class Ui(val context: Context, val p: Palette) {
 
     /** A filled, rounded button in the accent colour. */
     fun primaryButton(t: String, onClick: () -> Unit) = Button(context).apply {
-        text = t
+        text = tr(t)
         isAllCaps = false
         textSize = 16f
         typeface = Typeface.create("sans-serif", Typeface.BOLD)
@@ -94,7 +98,7 @@ class Ui(val context: Context, val p: Palette) {
     }
 
     fun ghostButton(t: String, onClick: () -> Unit) = Button(context).apply {
-        text = t
+        text = tr(t)
         isAllCaps = false
         textSize = 15f
         setTextColor(dim)
@@ -246,7 +250,7 @@ class Ui(val context: Context, val p: Palette) {
         return v
     }
 
-    fun section(t: String) = label(t.uppercase(), 12f, p.accent, bold = true, spacing = 0.15f).apply {
+    fun section(t: String) = label(tr(t).uppercase(), 12f, p.accent, bold = true, spacing = 0.15f).apply {
         setPadding(dp(4f), dp(22f), 0, dp(8f))
     }
 }
@@ -296,6 +300,8 @@ abstract class ThemedActivity : Activity() {
         if (content is LinearLayout) ui.animateIn(content)
         val body: View = if (scroll) ScrollView(this).apply { isFillViewport = true; addView(content) } else content
         root.addView(body, FrameLayout.LayoutParams(-1, -1))
+        // Arabic reads right to left.
+        root.layoutDirection = if (UiText.current(this).rtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR
         setContentView(root)
     }
 
