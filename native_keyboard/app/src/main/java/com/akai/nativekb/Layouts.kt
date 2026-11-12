@@ -228,9 +228,20 @@ object Layouts {
                 listOf(pageKey) + listOf("_", "©", "®", "™", "✓", "[", "]").map { sym(it) } + backspace(1.5f),
             )
         }
+        // With the number row on, the letter boards have five rows; a symbols page
+        // gets a fifth too, so its keys are the same size as the letters'. A page
+        // without plain digits gets them on top, like the letters; one that has
+        // them gets another row of symbols.
+        val rows = top.toMutableList()
+        if (o.numberRow) when {
+            amharicSymbols && page == 1 -> rows.add(0, syms("1234567890"))
+            amharicSymbols -> rows.add(2, syms("^`|•°[]{}<>"))
+            page == 1 -> rows.add(2, syms("~`|•^={}[]"))
+            else -> rows.add(0, syms("1234567890"))
+        }
         return Layout(
             if (page == 1) LayoutId.SYMBOLS else LayoutId.SYMBOLS2,
-            top + listOf(
+            rows + listOf(
                 listOf(
                     Key(KeyKind.SYMBOLS, if (amharicSymbols) "አማ" else "ABC", 1.5f),
                     sym(","),
@@ -239,7 +250,7 @@ object Layouts {
                     enter(o.enterLabel, 1.5f),
                 ),
             ),
-            rowHeightDp = 50f,
+            rowHeightDp = if (o.numberRow) 46f else 50f,
         )
     }
 

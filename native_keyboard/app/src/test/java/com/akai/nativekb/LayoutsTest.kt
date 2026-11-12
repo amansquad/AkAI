@@ -20,6 +20,19 @@ class LayoutsTest {
         }
     }
 
+    @Test fun symbolPagesHaveAsManyRowsAsTheLetters() {
+        for (numberRow in listOf(false, true)) for (cursorRow in listOf(false, true)) for (amharic in listOf(false, true)) {
+            val opts = LayoutOptions(numberRow = numberRow, cursorRow = cursorRow)
+            val letters = Layouts.build(LayoutId.LETTERS, amharic, opts)
+            for (id in listOf(LayoutId.SYMBOLS, LayoutId.SYMBOLS2)) {
+                val page = Layouts.build(id, amharic, opts)
+                val what = "$id numberRow=$numberRow cursorRow=$cursorRow amharic=$amharic"
+                assertEquals(what, letters.rows.size, page.rows.size)
+                assertEquals(what, letters.rowHeightDp, page.rowHeightDp, 0.01f)
+            }
+        }
+    }
+
     @Test fun everyEnglishLayoutHasTheWholeAlphabet() {
         for (name in listOf("qwerty", "dvorak", "azerty", "colemak", "qwertz")) {
             val l = Layouts.build(LayoutId.LETTERS, false, LayoutOptions(englishLayout = name))
