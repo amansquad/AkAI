@@ -63,6 +63,7 @@ class SettingsActivity : ThemedActivity() {
         const val AI = "ai"
         const val SETUP = "setup"
         const val ABOUT = "about"
+        const val APP_LANGUAGE = "app_language"
 
         fun open(c: Context, page: String? = null) =
             c.startActivity(Intent(c, SettingsActivity::class.java).putExtra(EXTRA_PAGE, page))
@@ -71,6 +72,7 @@ class SettingsActivity : ThemedActivity() {
     private class Page(val id: String, val icon: String, val title: String, val group: String)
 
     private val pages = listOf(
+        Page(APP_LANGUAGE, "🌐", "App language", "Look"),
         Page(THEME, "🎨", "Theme", "Look"),
         Page(KEYS, "🔤", "Keys", "Look"),
         Page(SIZE, "📐", "Size and rows", "Look"),
@@ -134,6 +136,7 @@ class SettingsActivity : ThemedActivity() {
             AI -> aiPage(c)
             SETUP -> setupPage(c)
             ABOUT -> aboutPage(c)
+            APP_LANGUAGE -> appLanguagePage(c)
             else -> hub(c)
         }
         show(c)
@@ -143,56 +146,57 @@ class SettingsActivity : ThemedActivity() {
 
     /** One line under each topic saying how it is set now. */
     private fun summary(id: String): String = when (id) {
+        APP_LANGUAGE -> UiText.current(this).native
         THEME -> Themes.find(prefs.getString(Prefs.THEME, Themes.DEFAULT) ?: Themes.DEFAULT).name
         KEYS -> listOfNotNull(
-            "${prefs.getInt(Prefs.LABEL_SIZE, 100)}% labels",
-            listOf("Light", "Regular", "Medium", "Bold", "Black")[
+            ui.tr("{n}% labels", "n" to prefs.getInt(Prefs.LABEL_SIZE, 100)),
+            listOf("Light", "Regular", "Medium", "Bold", "Black").map { ui.tr(it) }[
                 listOf(300, 400, 500, 700, 900).indexOf(prefs.getInt(Prefs.KEY_WEIGHT, 400)).coerceAtLeast(0)],
-            if (on(Prefs.KEY_BORDERS, false)) "borders" else null,
+            if (on(Prefs.KEY_BORDERS, false)) ui.tr("borders") else null,
         ).joinToString(" · ")
         SIZE -> listOfNotNull(
-            "${prefs.getInt(Prefs.HEIGHT, 100)}% height",
-            when (prefs.getInt(Prefs.ONE_HAND, 0)) { 1 -> "left hand"; 2 -> "right hand"; else -> null },
-            if (on(Prefs.NUMBER_ROW, false)) "number row" else null,
-            if (on(Prefs.CURSOR_ROW, false)) "cursor keys" else null,
+            ui.tr("{n}% height", "n" to prefs.getInt(Prefs.HEIGHT, 100)),
+            when (prefs.getInt(Prefs.ONE_HAND, 0)) { 1 -> ui.tr("left hand"); 2 -> ui.tr("right hand"); else -> null },
+            if (on(Prefs.NUMBER_ROW, false)) ui.tr("number row") else null,
+            if (on(Prefs.CURSOR_ROW, false)) ui.tr("cursor keys") else null,
         ).joinToString(" · ")
         LANGUAGES -> {
             val en = (prefs.getString(Prefs.ENGLISH_LAYOUT, "qwerty") ?: "qwerty").uppercase()
             val am = when {
-                on(Prefs.PHONETIC, false) -> "Phonetic"
-                prefs.getString(Prefs.AMHARIC_LAYOUT, "traditional") == "frequency" -> "Fidel, most-used"
-                else -> "Fidel"
+                on(Prefs.PHONETIC, false) -> ui.tr("Phonetic")
+                prefs.getString(Prefs.AMHARIC_LAYOUT, "traditional") == "frequency" -> ui.tr("Fidel, most-used")
+                else -> ui.tr("Fidel")
             }
             val switch = when (LangKey.parse(prefs.getString(Prefs.LANG_KEY, null))) {
-                LangKey.TOOLBAR -> "switch in toolbar"
-                LangKey.SPACE -> "switch on space bar"
-                LangKey.RIGHT -> "switch beside space"
+                LangKey.TOOLBAR -> ui.tr("switch in toolbar")
+                LangKey.SPACE -> ui.tr("switch on space bar")
+                LangKey.RIGHT -> ui.tr("switch beside space")
                 else -> null
             }
             listOfNotNull(en, am, switch).joinToString(" · ")
         }
         TYPING -> listOfNotNull(
-            if (on(Prefs.SUGGEST, true)) "suggestions" else null,
-            if (on(Prefs.AUTOCORRECT, true)) "auto-correct" else null,
-            if (on(Prefs.AUTOCORRECT_AM, false)) "Amharic auto-correct" else null,
-            if (on(Prefs.GLIDE, true)) "swipe" else null,
-        ).joinToString(", ").ifEmpty { "all off" }.replaceFirstChar { it.uppercase() }
+            if (on(Prefs.SUGGEST, true)) ui.tr("suggestions") else null,
+            if (on(Prefs.AUTOCORRECT, true)) ui.tr("auto-correct") else null,
+            if (on(Prefs.AUTOCORRECT_AM, false)) ui.tr("Amharic auto-correct") else null,
+            if (on(Prefs.GLIDE, true)) ui.tr("swipe") else null,
+        ).joinToString(", ").ifEmpty { ui.tr("all off") }.replaceFirstChar { it.uppercase() }
         FEEDBACK -> listOf(
-            if (prefs.getInt(Prefs.HAPTIC, 3) > 0) "Vibration on" else "Vibration off",
-            if (on(Prefs.SOUND, false)) "sounds on" else "sounds off",
+            if (prefs.getInt(Prefs.HAPTIC, 3) > 0) ui.tr("Vibration on") else ui.tr("Vibration off"),
+            if (on(Prefs.SOUND, false)) ui.tr("sounds on") else ui.tr("sounds off"),
         ).joinToString(" · ")
         TOOLBAR -> {
             val chosen = (prefs.getString(Prefs.TOOLBAR, Tools.DEFAULT) ?: Tools.DEFAULT).split(',').toSet()
             Tools.all.filter { it.first.first != TOOL_SETTINGS && it.first.second in chosen }
-                .joinToString(", ") { it.second }.ifEmpty { "Settings only" }
+                .joinToString(", ") { ui.tr(it.second) }.ifEmpty { ui.tr("Settings only") }
         }
-        EMOJI -> if (prefs.getString(Prefs.GIPHY_KEY, "").isNullOrBlank()) "GIFs from Giphy" else "Own Giphy key"
+        EMOJI -> if (prefs.getString(Prefs.GIPHY_KEY, "").isNullOrBlank()) ui.tr("GIFs from Giphy") else ui.tr("Own Giphy key")
         STICKERS -> StickerPacks.imported(this).size.let { n ->
-            if (n == 0) "Marketplace and Telegram links" else "$n installed"
+            if (n == 0) ui.tr("Marketplace and Telegram links") else ui.tr("{n} installed", "n" to n)
         }
-        AI -> if (server.isEmpty()) "Akai website" else "Your own server"
-        SETUP -> if (ImeStatus.enabled(this) && ImeStatus.selected(this)) "Akai is your keyboard" else "Akai isn't your keyboard yet"
-        ABOUT -> "Version $versionName"
+        AI -> if (server.isEmpty()) ui.tr("Akai website") else ui.tr("Your own server")
+        SETUP -> if (ImeStatus.enabled(this) && ImeStatus.selected(this)) ui.tr("Akai is your keyboard") else ui.tr("Akai isn't your keyboard yet")
+        ABOUT -> ui.tr("Version {v}", "v" to versionName)
         else -> ""
     }
 
@@ -211,7 +215,7 @@ class SettingsActivity : ThemedActivity() {
         val results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
         val topics = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val search = styled(EditText(this)).apply {
-            hint = "🔍  Search settings"
+            hint = "🔍  " + ui.tr("Search settings")
             setSingleLine()
             inputType = InputType.TYPE_CLASS_TEXT
             imeOptions = EditorInfo.IME_ACTION_SEARCH
@@ -236,7 +240,7 @@ class SettingsActivity : ThemedActivity() {
                 card.addView(navRow(p.icon, p.title, summary(p.id)) { open(this, p.id) }, wrap)
                 if (p.id == SETUP) {
                     card.addView(divider())
-                    val row = navRow("🔄", "Check for updates", "You have version $versionName", null)
+                    val row = navRow("🔄", "Check for updates", ui.tr("You have version {v}", "v" to versionName), null)
                     row.setOnClickListener { checkForUpdates(row.findViewWithTag("sub")) }
                     card.addView(row, wrap)
                 }
@@ -410,7 +414,7 @@ class SettingsActivity : ThemedActivity() {
 
     private fun field(title: String, key: String, hint: String, secret: Boolean, note: String): View {
         val box = styled(EditText(this)).apply {
-            this.hint = hint
+            this.hint = ui.tr(hint)
             setSingleLine()
             setText(prefs.getString(key, ""))
             inputType = InputType.TYPE_CLASS_TEXT or if (secret) InputType.TYPE_TEXT_VARIATION_PASSWORD else InputType.TYPE_TEXT_VARIATION_URI
@@ -432,7 +436,7 @@ class SettingsActivity : ThemedActivity() {
     }
 
     private fun testField(h: String, type: Int = InputType.TYPE_CLASS_TEXT): EditText =
-        styled(EditText(this)).apply { hint = h; inputType = type }
+        styled(EditText(this)).apply { hint = ui.tr(h); inputType = type }
 
     // ─── Pages ──────────────────────────────────────────────────────────────
 
@@ -447,7 +451,7 @@ class SettingsActivity : ThemedActivity() {
                 addView(LinearLayout(context).apply {
                     orientation = LinearLayout.VERTICAL
                     addView(ui.label(current.name, 17f, palette.text, bold = true))
-                    addView(ui.label("Tap to browse all ${Themes.all.size} themes", 13f, ui.dim))
+                    addView(ui.label(ui.tr("Tap to browse all {n} themes", "n" to Themes.all.size), 13f, ui.dim))
                 }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(12f) })
                 addView(ui.label("›", 24f, ui.dim))
             },
@@ -458,12 +462,12 @@ class SettingsActivity : ThemedActivity() {
 
         c.addView(ui.section("Your themes"))
         val mine = ui.card(pad = 6f)
-        mine.addView(navRow("➕", "Create a theme", "Start from ${current.name}'s colours") {
+        mine.addView(navRow("➕", "Create a theme", ui.tr("Start from {name}'s colours", "name" to current.name)) {
             ThemeEditorActivity.copy(this, current.id)
         }, wrap)
         if (current.category == CustomThemes.CATEGORY) {
             mine.addView(divider())
-            mine.addView(navRow("✎", "Edit ${current.name}", "Change its colours, name or animation") {
+            mine.addView(navRow("✎", ui.tr("Edit {name}", "name" to current.name), "Change its colours, name or animation") {
                 ThemeEditorActivity.edit(this, current.id)
             }, wrap)
         }
@@ -514,6 +518,20 @@ class SettingsActivity : ThemedActivity() {
         )
     }
 
+    /** Pick the language of this app's own screens. The typing language is separate. */
+    private fun appLanguagePage(c: LinearLayout) {
+        val langs = UiText.LANGUAGES
+        c.addView(ui.gap(8f))
+        c.addView(note("Choose the language of menus and settings. The language key still switches what you type."))
+        c.addView(ui.card(
+            ui.choiceList(langs.map { it.native to it.english }, langs.indexOfFirst { it.code == UiText.code(this) }.coerceAtLeast(0)) {
+                put(Prefs.UI_LANG, langs[it].code)
+                // Rebuild so the page, its title and the text direction switch at once.
+                loadTheme(); build()
+            },
+        ), wrap)
+    }
+
     private fun languagesPage(c: LinearLayout) {
         val english = listOf("qwerty", "dvorak", "azerty", "colemak", "qwertz")
         val amharic = listOf("traditional", "frequency")
@@ -550,7 +568,7 @@ class SettingsActivity : ThemedActivity() {
             setPadding(0, ui.dp(12f), 0, ui.dp(4f))
             setOnClickListener {
                 prefs.edit().remove(Prefs.LEARNED).apply()
-                Toast.makeText(context, "Learned words cleared", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, ui.tr("Learned words cleared"), Toast.LENGTH_SHORT).show()
             }
         }
         group(c, "Suggestions",
@@ -677,12 +695,12 @@ class SettingsActivity : ThemedActivity() {
         })
         packs.forEachIndexed { i, p ->
             if (i > 0) mine.addView(divider())
-            val row = navRow(p.stickers.firstOrNull()?.emoji?.ifBlank { null } ?: "🧸", p.name, "${p.stickers.size} stickers · tap to remove") {
+            val row = navRow(p.stickers.firstOrNull()?.emoji?.ifBlank { null } ?: "🧸", p.name, ui.tr(if (p.emoji) "{n} emoji · tap to remove" else "{n} stickers · tap to remove", "n" to p.stickers.size)) {
                 android.app.AlertDialog.Builder(this)
-                    .setTitle("Remove ${p.name}?")
-                    .setMessage("It leaves the keyboard. You can add it again from its link.")
-                    .setPositiveButton("Remove") { _, _ -> StickerPacks.remove(this, p.key); build() }
-                    .setNegativeButton("Keep", null)
+                    .setTitle(ui.tr("Remove {name}?", "name" to p.name))
+                    .setMessage(ui.tr("It leaves the keyboard. You can add it again from its link."))
+                    .setPositiveButton(ui.tr("Remove")) { _, _ -> StickerPacks.remove(this, p.key); build() }
+                    .setNegativeButton(ui.tr("Keep"), null)
                     .show()
             }
             mine.addView(row, wrap)
@@ -737,14 +755,14 @@ class SettingsActivity : ThemedActivity() {
                 addView(LinearLayout(context).apply {
                     orientation = LinearLayout.VERTICAL
                     addView(ui.label("Akai Keyboard", 18f, palette.text, bold = true))
-                    addView(ui.label("Version $versionName ($versionCode)", 13f, ui.dim))
+                    addView(ui.label(ui.tr("Version {v} ({c})", "v" to versionName, "c" to versionCode), 13f, ui.dim))
                 }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(14f) })
             },
             ui.gap(12f),
             ui.label("A bilingual English and Amharic keyboard, with fidel and phonetic typing, live themes, emoji, GIFs, handwriting and translation.", 14f, ui.dim),
         ), wrap)
 
-        val updateRow = navRow("🔄", "Check for updates", "You have version $versionName", null)
+        val updateRow = navRow("🔄", "Check for updates", ui.tr("You have version {v}", "v" to versionName), null)
         updateRow.setOnClickListener { checkForUpdates(updateRow.findViewWithTag("sub")) }
         val links = ui.card(pad = 6f).apply {
             addView(updateRow, wrap)

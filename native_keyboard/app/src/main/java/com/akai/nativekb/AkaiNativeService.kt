@@ -1051,13 +1051,13 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         val accepts = EditorInfoCompat.getContentMimeTypes(editor).any { it == "image/gif" || it == "image/*" }
         if (!accepts) {
             ic.commitText(item.fullUrl, 1)
-            Toast.makeText(this, "This field can't take images, so the link was typed", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, UiText.t(this, "This field can't take images, so the link was typed"), Toast.LENGTH_SHORT).show()
             return
         }
         Gifs.fetch(this, item) { uri ->
             val live = currentInputConnection
             if (uri == null || live == null) {
-                Toast.makeText(this, "Couldn't download that GIF", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, UiText.t(this, "Couldn't download that GIF"), Toast.LENGTH_SHORT).show()
                 return@fetch
             }
             val flags = if (Build.VERSION.SDK_INT >= 25) InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION else 0
@@ -1082,7 +1082,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         if (sticker.anim != null && sendMoving(sticker, mimes, asText)) return
         if (!accepts) {
             ic.commitText(asText, 1)
-            Toast.makeText(this, "This app doesn't take stickers here, so it was sent as text", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, UiText.t(this, "This app doesn't take stickers here, so it was sent as text"), Toast.LENGTH_SHORT).show()
             return
         }
         Stickers.export(this, sticker) { uri ->
@@ -1216,6 +1216,8 @@ object Prefs {
     const val SKIN_TONE = "skin_tone"
     /** Where handwriting and translation are sent. Blank turns those two off. */
     const val SERVER_URL = "server_url"
+    /** The language of the app's own screens (not the typing language). */
+    const val UI_LANG = "ui_lang"
     /** The user's own Giphy API key. Blank uses the built-in GIF catalogue. */
     const val GIPHY_KEY = "giphy_key"
     const val ONBOARDED = "onboarded"

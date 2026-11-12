@@ -102,7 +102,7 @@ class StickerPreviewActivity : ThemedActivity() {
         remove.visibility = if (have && !busy) View.VISIBLE else View.GONE
         progress.visibility = if (busy) View.VISIBLE else View.GONE
         progress.text = installing.orEmpty()
-        (action as? TextView)?.text = if (items.isEmpty()) "Install" else "Install · ${items.size} ${if (emoji) "emoji" else "stickers"}"
+        (action as? TextView)?.text = if (items.isEmpty()) ui.tr("Install") else if (emoji) ui.tr("Install · {n} emoji", "n" to items.size) else ui.tr("Install · {n} stickers", "n" to items.size)
     }
 
     private fun load() {
@@ -118,9 +118,9 @@ class StickerPreviewActivity : ThemedActivity() {
             }
             val error = when {
                 list != null -> null
-                r == null -> "No connection. Check the internet and try again"
+                r == null -> ui.tr("No connection. Check the internet and try again")
                 else -> try { JSONObject(String(r.body)).optString("error").ifBlank { null } } catch (e: Exception) { null }
-                    ?: "Couldn't load this pack"
+                    ?: ui.tr("Couldn't load this pack")
             }
             Net.ui {
                 if (isFinishing) return@ui
@@ -147,20 +147,20 @@ class StickerPreviewActivity : ThemedActivity() {
         val stills = items.size - gifs
         summary.text = buildString {
             if (emoji) {
-                append("Emoji pack · ${items.size} emoji")
-                if (gifs > 0) append(if (stills == 0) " · all animated" else " · $gifs animated")
-                append("\nTelegram emoji work as emoji only inside Telegram. Akai sends them as small stickers.")
+                append(ui.tr("Emoji pack · {n} emoji", "n" to items.size))
+                if (gifs > 0) append(" · " + if (stills == 0) ui.tr("all animated") else ui.tr("{n} animated", "n" to gifs))
+                append("\n" + ui.tr("Telegram emoji work as emoji only inside Telegram. Akai sends them as small stickers."))
             } else {
-                append("${items.size} stickers")
-                if (gifs > 0) append(" · $gifs GIFs")
-                if (stills > 0) append(" · $stills still")
+                append(ui.tr("{n} stickers", "n" to items.size))
+                if (gifs > 0) append(" · " + ui.tr("{n} GIFs", "n" to gifs))
+                if (stills > 0) append(" · " + ui.tr("{n} still", "n" to stills))
             }
-            if (gifs > 0 && Build.VERSION.SDK_INT < 28) append("\nGIFs show as still pictures on this phone (Android 9 or newer plays them).")
+            if (gifs > 0 && Build.VERSION.SDK_INT < 28) append("\n" + ui.tr("GIFs show as still pictures on this phone (Android 9 or newer plays them)."))
         }
         filters.removeAllViews()
         // A filter only when there's a mix to tell apart.
         if (gifs > 0 && stills > 0) {
-            filters.addView(ui.segmented("", listOf("All ${items.size}", "GIFs $gifs", "Still $stills"), filter) {
+            filters.addView(ui.segmented("", listOf(ui.tr("All {n}", "n" to items.size), ui.tr("GIFs {n}", "n" to gifs), ui.tr("Still {n}", "n" to stills)), filter) {
                 filter = it
                 applyFilter()
             })
@@ -179,30 +179,30 @@ class StickerPreviewActivity : ThemedActivity() {
 
     private fun install() {
         if (installing != null) return
-        installing = "Starting…"
+        installing = ui.tr("Starting…")
         refreshButtons()
         StickerPacks.import(this, name, title = title, progress = { installing = it; refreshButtons() }) { pack, error ->
             installing = null
             if (isFinishing) return@import
             refreshButtons()
             if (pack == null) {
-                Toast.makeText(this, error ?: "Couldn't install $title", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, error ?: ui.tr("Couldn't install {title}", "title" to title), Toast.LENGTH_LONG).show()
             } else {
                 StickerMarket.countInstall(this, name)
-                Toast.makeText(this, "$title is in your keyboard's sticker tab", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, ui.tr("{title} is in your keyboard's sticker tab", "title" to title), Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     private fun confirmRemove() {
         android.app.AlertDialog.Builder(this)
-            .setTitle("Remove $title?")
-            .setMessage("It leaves the keyboard. You can install it again any time.")
-            .setPositiveButton("Remove") { _, _ ->
+            .setTitle(ui.tr("Remove {title}?", "title" to title))
+            .setMessage(ui.tr("It leaves the keyboard. You can install it again any time."))
+            .setPositiveButton(ui.tr("Remove")) { _, _ ->
                 StickerPacks.imported(this).firstOrNull { it.key.equals(name, ignoreCase = true) }?.let { StickerPacks.remove(this, it.key) }
                 refreshButtons()
             }
-            .setNegativeButton("Keep", null)
+            .setNegativeButton(ui.tr("Keep"), null)
             .show()
     }
 

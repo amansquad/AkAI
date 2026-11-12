@@ -185,7 +185,7 @@ class ThemeEditorActivity : ThemedActivity() {
         c.addView(ui.section("Name"))
         val name = EditText(this).apply {
             setText(theme.name)
-            hint = "Theme name"
+            hint = ui.tr("Theme name")
             setSingleLine()
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
             setHintTextColor(ui.faint); setTextColor(palette.text); textSize = 15f
@@ -422,10 +422,10 @@ class ThemeEditorActivity : ThemedActivity() {
 
     private fun confirmDelete() {
         android.app.AlertDialog.Builder(this)
-            .setTitle("Delete ${theme.name}?")
-            .setMessage("This can't be undone.")
-            .setPositiveButton("Delete") { _, _ -> CustomThemes.delete(this, theme.id); finish() }
-            .setNegativeButton("Cancel", null)
+            .setTitle(ui.tr("Delete {name}?", "name" to theme.name))
+            .setMessage(ui.tr("This can't be undone."))
+            .setPositiveButton(ui.tr("Delete")) { _, _ -> CustomThemes.delete(this, theme.id); finish() }
+            .setNegativeButton(ui.tr("Cancel"), null)
             .show()
     }
 }

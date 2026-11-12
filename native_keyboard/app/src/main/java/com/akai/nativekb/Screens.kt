@@ -207,7 +207,7 @@ class HomeActivity : ThemedActivity() {
         c.addView(ui.gap(18f))
 
         val tryBox = EditText(this).apply {
-            hint = "Tap here and type…"
+            hint = ui.tr("Tap here and type…")
             setHintTextColor(ui.faint)
             setTextColor(palette.text)
             textSize = 16f
@@ -236,7 +236,7 @@ class HomeActivity : ThemedActivity() {
                 GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f),
             ).apply { width = 0; setMargins(ui.dp(5f), ui.dp(5f), ui.dp(5f), ui.dp(5f)) })
         }
-        feature("🎨", "Live Themes", "${Themes.all.size} themes") { startActivity(Intent(this, ThemesActivity::class.java)) }
+        feature("🎨", "Live Themes", ui.tr("{n} themes", "n" to Themes.all.size)) { startActivity(Intent(this, ThemesActivity::class.java)) }
         feature("😀", "Emojis", "With skin tones") { SettingsActivity.open(this, SettingsActivity.EMOJI) }
         feature("🎞️", "GIFs", "Send as images") { SettingsActivity.open(this, SettingsActivity.EMOJI) }
         feature("🛍️", "Stickers", "Sticker Marketplace") { StickerMarketActivity.open(this) }
@@ -324,19 +324,19 @@ class ThemesActivity : ThemedActivity() {
         }
         android.app.AlertDialog.Builder(this)
             .setTitle(def.name)
-            .setItems(items) { _, i ->
+            .setItems(items.map { ui.tr(it) }.toTypedArray()) { _, i ->
                 when (items[i]) {
                     "Edit" -> ThemeEditorActivity.edit(this, def.id)
                     "Share to community" -> custom?.let(::share)
                     "Stop sharing" -> custom?.let(::unshare)
                     "Delete" -> android.app.AlertDialog.Builder(this)
-                        .setTitle("Delete ${def.name}?")
-                        .setMessage(if (custom?.shared?.isNotEmpty() == true) "It also stops being shared with the community." else null)
-                        .setPositiveButton("Delete") { _, _ ->
+                        .setTitle(ui.tr("Delete {name}?", "name" to def.name))
+                        .setMessage(if (custom?.shared?.isNotEmpty() == true) ui.tr("It also stops being shared with the community.") else null)
+                        .setPositiveButton(ui.tr("Delete")) { _, _ ->
                             custom?.shared?.takeIf { it.isNotEmpty() }?.let { Community.unshare(this, it) {} }
                             CustomThemes.delete(this, def.id); loadTheme(); build()
                         }
-                        .setNegativeButton("Cancel", null)
+                        .setNegativeButton(ui.tr("Cancel"), null)
                         .show()
                     else -> ThemeEditorActivity.copy(this, def.id)
                 }
@@ -349,35 +349,35 @@ class ThemesActivity : ThemedActivity() {
     /** Asks for an optional name to credit, then shares the theme. */
     private fun share(t: CustomTheme) {
         val field = android.widget.EditText(this).apply {
-            hint = "Your name (optional)"
+            hint = ui.tr("Your name (optional)")
             setText(prefs.getString(Community.AUTHOR, ""))
             setSingleLine()
             filters = arrayOf(android.text.InputFilter.LengthFilter(24))
         }
         val box = LinearLayout(this).apply { setPadding(ui.dp(22f), ui.dp(4f), ui.dp(22f), 0); addView(field, LP_MATCH_WRAP) }
         android.app.AlertDialog.Builder(this)
-            .setTitle("Share ${t.name}?")
-            .setMessage("Everyone using AkAI will see its name, emoji, colours and the name you give here. You can stop sharing it any time.")
+            .setTitle(ui.tr("Share {name}?", "name" to t.name))
+            .setMessage(ui.tr("Everyone using AkAI will see its name, emoji, colours and the name you give here. You can stop sharing it any time."))
             .setView(box)
-            .setPositiveButton("Share") { _, _ ->
+            .setPositiveButton(ui.tr("Share")) { _, _ ->
                 val author = field.text.toString().trim()
                 prefs.edit().putString(Community.AUTHOR, author).apply()
                 Community.share(this, t, author) { id, error ->
-                    if (id == null) { toast(error ?: "Couldn't share it"); return@share }
+                    if (id == null) { toast(error ?: ui.tr("Couldn't share it")); return@share }
                     CustomThemes.save(this, t.copy(shared = id))
-                    toast("Shared. It's in Community now")
+                    toast(ui.tr("Shared. It's in Community now"))
                     loadTheme(); build()
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(ui.tr("Cancel"), null)
             .show()
     }
 
     private fun unshare(t: CustomTheme) {
         Community.unshare(this, t.shared) { ok ->
-            if (!ok) { toast("No connection. Try again"); return@unshare }
+            if (!ok) { toast(ui.tr("No connection. Try again")); return@unshare }
             CustomThemes.save(this, t.copy(shared = ""))
-            toast("No longer shared")
+            toast(ui.tr("No longer shared"))
             loadTheme(); build()
         }
     }
@@ -474,7 +474,7 @@ class ThemesActivity : ThemedActivity() {
                 val own = CustomThemes.themes.firstOrNull { it.shared == t.id }
                 if (own != null) android.app.AlertDialog.Builder(this@ThemesActivity)
                     .setTitle(t.name)
-                    .setItems(arrayOf("Stop sharing")) { _, _ -> unshare(own); shared.removeAll { it.id == t.id } }
+                    .setItems(arrayOf(ui.tr("Stop sharing"))) { _, _ -> unshare(own); shared.removeAll { it.id == t.id } }
                     .show()
                 else reportDialog(t)
                 true
@@ -484,17 +484,17 @@ class ThemesActivity : ThemedActivity() {
 
     private fun reportDialog(t: SharedTheme) {
         android.app.AlertDialog.Builder(this)
-            .setTitle("Report ${t.name}?")
-            .setMessage("For an offensive name or anything that shouldn't be here. A theme reported by a few people is hidden until it's checked.")
-            .setPositiveButton("Report") { _, _ ->
+            .setTitle(ui.tr("Report {name}?", "name" to t.name))
+            .setMessage(ui.tr("For an offensive name or anything that shouldn't be here. A theme reported by a few people is hidden until it's checked."))
+            .setPositiveButton(ui.tr("Report")) { _, _ ->
                 Community.report(this, t.id) { ok ->
-                    if (!ok) { toast("No connection. Try again"); return@report }
+                    if (!ok) { toast(ui.tr("No connection. Try again")); return@report }
                     shared.removeAll { it.id == t.id }
-                    toast("Thanks for reporting it")
+                    toast(ui.tr("Thanks for reporting it"))
                     build()
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(ui.tr("Cancel"), null)
             .show()
     }
 
@@ -543,7 +543,7 @@ class ThemesActivity : ThemedActivity() {
         header.addView(ui.ghostButton("←") { finish() })
         header.addView(ui.title("Themes", 28f))
         c.addView(header, LP_MATCH_WRAP)
-        c.addView(ui.label("${Themes.all.size} themes. Tap one to use it; long-press to customize it.", 14f, ui.dim), LP_MATCH_WRAP)
+        c.addView(ui.label(ui.tr("{n} themes. Tap one to use it; long-press to customize it.", "n" to Themes.all.size), 14f, ui.dim), LP_MATCH_WRAP)
         c.addView(ui.gap(14f))
 
         val cats = listOf("all" to "All", CustomThemes.CATEGORY to "Mine", COMMUNITY to "Community", "live" to "Live", "solid" to "Solid", "cultural" to "Cultural", "faith" to "Faith", "football" to "Football")
