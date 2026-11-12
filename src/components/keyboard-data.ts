@@ -1815,7 +1815,7 @@ export const LAYOUT_ROWS: Record<string, string[][]> = {
 export const SYMBOL_ROWS = [
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
   ['@', '#', '$', '%', '&', '-', '+', '(', ')', '/'],
-  ['shift', '*', '"', "'", ':', ';', '!', '?', '~', 'backspace'],
+  ['<', '*', '"', "'", ':', ';', '!', '?', '>', 'backspace'],
   ['symbols', 'language', 'voice', 'space', 'enter'],
 ];
 
@@ -1837,5 +1837,5 @@ export const DESKTOP_QWERTY_ROWS = [
 
 export const DESKTOP_SYMBOL_ROWS = [
   ['@', '#', '$', '%', '&', '-', '+', '(', ')', '/'],
-  ['*', '"', "'", ':', ';', '!', '?', '~'],
+  ['*', '"', "'", ':', ';', '!', '?', '<', '>'],
 ];
