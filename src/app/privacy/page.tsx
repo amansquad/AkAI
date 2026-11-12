@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: 'What the AkAI keyboard keeps on your phone, and the few things it sends, only when you ask it to.',
 };
 
-const UPDATED = '12 November 2026';
+const UPDATED = '13 November 2026';
 
 /** One thing the keyboard can send: what goes, where, and when. */
 const SENT = [
@@ -34,6 +34,12 @@ const SENT = [
     what: 'The words you search for.',
     where: 'Giphy, using the API key you entered yourself, under Giphy’s privacy policy.',
     when: 'Only when you search in the GIF panel.',
+  },
+  {
+    name: 'Community themes',
+    what: "A theme you choose to share: its name, emoji, colours and animation, and the name you give for credit, if any. Browsing, adding or reporting themes sends only which theme. Each phone sends a random number it made itself, stored only scrambled, so a theme counts one install and one report per phone and only your phone can take down what it shared.",
+    where: 'The AkAI website and its database (Neon, through Vercel). Shared themes are public; anything else about you is not collected.',
+    when: 'Only when you open Community or share, add or report a theme.',
   },
   {
     name: 'Update check',
