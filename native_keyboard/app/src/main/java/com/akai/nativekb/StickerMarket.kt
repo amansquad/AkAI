@@ -37,6 +37,10 @@ class MarketPack(
 object StickerMarket {
     class Page(val packs: List<MarketPack>, val next: Int?)
 
+    private val listPool = java.util.concurrent.Executors.newSingleThreadExecutor()
+    /** Preview pictures download here, apart from the app's other network work. */
+    private val imagePool = java.util.concurrent.Executors.newFixedThreadPool(4)
+
     fun server(context: Context) =
         (context.getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE).getString(Prefs.SERVER_URL, "") ?: "")
             .trim().ifBlank { Net.SITE }.trimEnd('/')
@@ -45,7 +49,8 @@ object StickerMarket {
     fun list(context: Context, query: String, offset: Int, emoji: Boolean, done: (Page?, String?) -> Unit) {
         val server = server(context)
         val kind = if (emoji) "emoji" else "stickers"
-        Net.background {
+        // Its own thread: a list must never wait behind the many preview pictures.
+        listPool.execute {
             val r = Net.request("$server/api/stickers/market?kind=$kind&offset=$offset&limit=20&q=${Uri.encode(query.trim())}")
             val page = if (r != null && r.code == 200) try {
                 val o = JSONObject(String(r.body))
@@ -98,7 +103,7 @@ object StickerMarket {
     fun preview(url: String, size: Int, ready: (Bitmap) -> Unit): Bitmap? {
         previews.get(url)?.let { return it }
         if (!loading.add(url)) return null
-        Net.background {
+        imagePool.execute {
             val r = Net.request(url)
             val bmp = r?.takeIf { it.code == 200 }?.body?.let { b ->
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -188,16 +193,20 @@ class StickerMarketActivity : ThemedActivity() {
         show(c)
     }
 
+    /** Bumped by every load, so a reply that arrives after a newer one (say, a tab switch) is dropped. */
+    private var loadGen = 0
+
     private fun load(reset: Boolean) {
-        if (loadingPage) return
+        if (loadingPage && !reset) return
         loadingPage = true
+        val gen = ++loadGen
         if (reset) { list.removeAllViews(); rows.clear(); next = null }
         status.visibility = View.VISIBLE
         status.text = "Loading…"
         more.visibility = View.GONE
         StickerMarket.list(this, query, if (reset) 0 else next ?: 0, emoji) { page, error ->
+            if (gen != loadGen || isFinishing) return@list
             loadingPage = false
-            if (isFinishing) return@list
             if (page == null) { status.text = error; return@list }
             next = page.next
             page.packs.forEach { list.addView(card(it), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = ui.dp(10f) }) }
