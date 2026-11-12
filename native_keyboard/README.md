@@ -41,7 +41,9 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
   pinning, handwriting, translate, themes
 - Sticker Marketplace: packs listed on the website. Each pack opens a page
   showing all its stickers (GIFs playing, with a GIF badge, and an All / GIFs /
-  Still filter) before it is installed. Installed on demand from
+  Still filter) before it is installed. Telegram custom emoji packs
+  (t.me/addemoji links) work too: six to a row, sent as small stickers, since
+  outside Telegram they can't sit in a line of text. Installed on demand from
   the "+" at the end of the sticker pack row, Settings → Sticker packs or the
   home screen. Any other Telegram pack can be added from its t.me/addstickers
   link in Settings → Sticker packs. Video stickers play in the panel (Android 9+) and send as

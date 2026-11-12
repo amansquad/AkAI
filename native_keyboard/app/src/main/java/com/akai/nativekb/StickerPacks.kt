@@ -25,8 +25,9 @@ import java.io.File
  */
 object StickerPacks {
     private const val DIR = "sticker_packs"
-    /** Telegram's own limit for a regular pack. */
+    /** Telegram's own limits: 120 stickers in a pack, 200 custom emoji. */
     private const val MAX_STICKERS = 120
+    private const val MAX_EMOJI = 200
 
     private lateinit var app: Context
     private var cache: List<Stickers.Pack>? = null
@@ -77,7 +78,10 @@ object StickerPacks {
             )
         }
         if (stickers.isEmpty()) null
-        else Stickers.Pack(o.optString("title", name).ifBlank { name }, stickers, key = name, removable = removable)
+        else Stickers.Pack(
+            o.optString("title", name).ifBlank { name }, stickers, key = name, removable = removable,
+            emoji = o.optString("kind") == "emoji",
+        )
     } catch (e: Exception) { null }
 
     private fun changed() {
@@ -168,11 +172,14 @@ object StickerPacks {
 
     // ─── Importing ───────────────────────────────────────────────────────
 
-    /** "https://t.me/addstickers/Name", "t.me/addstickers/Name", "tg://addstickers?set=Name" or just "Name". */
+    /**
+     * "https://t.me/addstickers/Name", "t.me/addemoji/Name" (custom emoji),
+     * "tg://addstickers?set=Name" or just "Name".
+     */
     fun nameFrom(link: String): String? {
         val s = link.trim()
-        val m = Regex("""(?:t\.me|telegram\.me|telegram\.dog)/addstickers/([A-Za-z0-9_]+)""", RegexOption.IGNORE_CASE).find(s)
-            ?: Regex("""addstickers\?set=([A-Za-z0-9_]+)""", RegexOption.IGNORE_CASE).find(s)
+        val m = Regex("""(?:t\.me|telegram\.me|telegram\.dog)/add(?:stickers|emoji)/([A-Za-z0-9_]+)""", RegexOption.IGNORE_CASE).find(s)
+            ?: Regex("""add(?:stickers|emoji)\?set=([A-Za-z0-9_]+)""", RegexOption.IGNORE_CASE).find(s)
         val name = m?.groupValues?.get(1) ?: s
         return name.takeIf { Regex("""[A-Za-z0-9_]{1,64}""").matches(it) }
     }
@@ -210,7 +217,8 @@ object StickerPacks {
             val title = title?.takeIf { it.isNotBlank() } ?: o.optString("title", key)
 
             val tmp = File(userDir(), ".$key.part").apply { deleteRecursively(); mkdirs() }
-            val total = minOf(list.length(), MAX_STICKERS)
+            val kind = if (o.optString("kind") == "emoji") "emoji" else "stickers"
+            val total = minOf(list.length(), if (kind == "emoji") MAX_EMOJI else MAX_STICKERS)
             val results = arrayOfNulls<JSONObject>(total)
             val finished = java.util.concurrent.atomic.AtomicInteger()
             // A few at a time: a moving sticker can take the server a moment to convert.
@@ -244,7 +252,7 @@ object StickerPacks {
                 Net.ui { done(null, "None of the stickers could be downloaded. Try again later") }
                 return@background
             }
-            File(tmp, "pack.json").writeText(JSONObject().put("name", key).put("title", title).put("stickers", saved).toString())
+            File(tmp, "pack.json").writeText(JSONObject().put("name", key).put("title", title).put("kind", kind).put("stickers", saved).toString())
             val dest = File(userDir(), key)
             dest.deleteRecursively()
             val moved = tmp.renameTo(dest)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TELEGRAM_BOT_TOKEN, canConvert, limited, packNameFrom, stickerSet } from '@/lib/telegram-stickers';
+import { TELEGRAM_BOT_TOKEN, canConvert, kindOf, limited, packNameFrom, stickerSet } from '@/lib/telegram-stickers';
 
 /**
  * GET /api/stickers?pack=<name or t.me/addstickers link>
@@ -7,7 +7,8 @@ import { TELEGRAM_BOT_TOKEN, canConvert, limited, packNameFrom, stickerSet } fro
  * A Telegram sticker pack as links the keyboard downloads from /api/stickers/file:
  * every sticker has a still picture; a video sticker also has an animated WebP
  * (to play and send) and a GIF (for apps that only take GIFs). Animated .tgs
- * stickers (vector animations) come as their still preview only.
+ * stickers (vector animations) come as their still preview only. kind is
+ * "emoji" for a custom emoji pack (t.me/addemoji), "stickers" otherwise.
  */
 
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     if (stickers.length === 0) return json({ error: 'That pack has no stickers the keyboard can use' }, 422);
 
     return json(
-      { name: set.name, title: set.title, stickers },
+      { name: set.name, title: set.title, kind: kindOf(set), stickers },
       200,
       { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' },
     );

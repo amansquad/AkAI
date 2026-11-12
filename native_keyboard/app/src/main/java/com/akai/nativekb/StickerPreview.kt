@@ -32,6 +32,9 @@ class StickerPreviewActivity : ThemedActivity() {
     private var shown: List<Item> = emptyList()
     private var filter = 0 // all, GIFs, stills
     private var installing: String? = null
+    /** A custom emoji pack: small, so six to a row. */
+    private var emoji = false
+    private fun cols() = if (emoji) 6 else 4
 
     private lateinit var grid: GridView
     private lateinit var status: TextView
@@ -99,7 +102,7 @@ class StickerPreviewActivity : ThemedActivity() {
         remove.visibility = if (have && !busy) View.VISIBLE else View.GONE
         progress.visibility = if (busy) View.VISIBLE else View.GONE
         progress.text = installing.orEmpty()
-        (action as? TextView)?.text = if (items.isEmpty()) "Install" else "Install · ${items.size} stickers"
+        (action as? TextView)?.text = if (items.isEmpty()) "Install" else "Install · ${items.size} ${if (emoji) "emoji" else "stickers"}"
     }
 
     private fun load() {
@@ -127,6 +130,8 @@ class StickerPreviewActivity : ThemedActivity() {
                     (window.decorView.findViewWithTag<TextView>("title"))?.text = title
                 }
                 name = o!!.optString("name", name)
+                emoji = o.optString("kind") == "emoji"
+                grid.numColumns = cols()
                 items = list
                 status.visibility = View.GONE
                 action.isEnabled = true
@@ -141,9 +146,15 @@ class StickerPreviewActivity : ThemedActivity() {
         val gifs = items.count { it.anim != null }
         val stills = items.size - gifs
         summary.text = buildString {
-            append("${items.size} stickers")
-            if (gifs > 0) append(" · $gifs GIFs")
-            if (stills > 0) append(" · $stills still")
+            if (emoji) {
+                append("Emoji pack · ${items.size} emoji")
+                if (gifs > 0) append(if (stills == 0) " · all animated" else " · $gifs animated")
+                append("\nTelegram emoji work as emoji only inside Telegram. Akai sends them as small stickers.")
+            } else {
+                append("${items.size} stickers")
+                if (gifs > 0) append(" · $gifs GIFs")
+                if (stills > 0) append(" · $stills still")
+            }
             if (gifs > 0 && Build.VERSION.SDK_INT < 28) append("\nGIFs show as still pictures on this phone (Android 9 or newer plays them).")
         }
         filters.removeAllViews()
@@ -204,7 +215,8 @@ class StickerPreviewActivity : ThemedActivity() {
 
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             // From the screen, not the grid: the grid can be asked for cells before it has a width.
-            val size = ((resources.displayMetrics.widthPixels - ui.dp(32f) - ui.dp(18f)) / 4).coerceAtLeast(1)
+            val n = cols()
+            val size = ((resources.displayMetrics.widthPixels - ui.dp(32f) - ui.dp(6f) * (n - 1)) / n).coerceAtLeast(1)
             val cell = (convertView as? FrameLayout) ?: FrameLayout(this@StickerPreviewActivity).apply {
                 addView(ImageView(context).apply { scaleType = ImageView.ScaleType.FIT_CENTER }, FrameLayout.LayoutParams(-1, -1))
                 addView(ui.label("GIF", 10f, android.graphics.Color.WHITE, bold = true, gravity = Gravity.CENTER).apply {
@@ -216,7 +228,8 @@ class StickerPreviewActivity : ThemedActivity() {
             val img = cell.getChildAt(0) as ImageView
             val badge = cell.getChildAt(1)
             val item = shown[position]
-            badge.visibility = if (item.anim != null) View.VISIBLE else View.GONE
+            // Every emoji in an emoji pack moves, so a badge on each would only be noise.
+            badge.visibility = if (item.anim != null && !emoji) View.VISIBLE else View.GONE
             img.tag = item.still
             img.setImageDrawable(null)
             val px = size.coerceAtLeast(1)

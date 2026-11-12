@@ -42,7 +42,11 @@ object Stickers {
         val gif: String? = null,
     )
     /** [key] tells packs apart; [removable] packs were imported and can be deleted in Settings. */
-    class Pack(val name: String, val stickers: List<Sticker>, val key: String = name, val removable: Boolean = false) {
+    /** [emoji] packs are Telegram custom emoji: small, so the panel shows more to a row. */
+    class Pack(
+        val name: String, val stickers: List<Sticker>, val key: String = name, val removable: Boolean = false,
+        val emoji: Boolean = false,
+    ) {
         /** Picture packs show their first sticker in the pack row instead of a name. */
         val icon: Sticker? get() = stickers.firstOrNull()?.takeIf { it.image != null }
     }

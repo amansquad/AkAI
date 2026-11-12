@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       count: r.count as number,
       moving: r.moving as number,
       installs: r.installs as number,
+      kind: (r.kind as string) || 'stickers',
       previews: ((r.previews as string[]) || []).map((id) => file(r.name as string, id)),
     }));
     return json(
