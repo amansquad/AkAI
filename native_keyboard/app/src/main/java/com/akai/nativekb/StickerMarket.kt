@@ -42,10 +42,11 @@ object StickerMarket {
             .trim().ifBlank { Net.SITE }.trimEnd('/')
 
     /** One page of packs, most installed first, matching [query] if given. Null with a reason when it fails. */
-    fun list(context: Context, query: String, offset: Int, done: (Page?, String?) -> Unit) {
+    fun list(context: Context, query: String, offset: Int, emoji: Boolean, done: (Page?, String?) -> Unit) {
         val server = server(context)
+        val kind = if (emoji) "emoji" else "stickers"
         Net.background {
-            val r = Net.request("$server/api/stickers/market?offset=$offset&limit=20&q=${Uri.encode(query.trim())}")
+            val r = Net.request("$server/api/stickers/market?kind=$kind&offset=$offset&limit=20&q=${Uri.encode(query.trim())}")
             val page = if (r != null && r.code == 200) try {
                 val o = JSONObject(String(r.body))
                 val a = o.getJSONArray("packs")
@@ -127,6 +128,8 @@ class StickerMarketActivity : ThemedActivity() {
     private lateinit var status: TextView
     private lateinit var more: View
     private var query = ""
+    /** Showing custom emoji packs rather than sticker packs. */
+    private var emoji = false
     private var next: Int? = null
     private var loadingPage = false
     private val rows = HashMap<String, (() -> Unit)>()
@@ -161,7 +164,11 @@ class StickerMarketActivity : ThemedActivity() {
             }
         }
         c.addView(search, wrap)
-        c.addView(ui.gap(8f))
+        // Stickers and custom emoji are different things, so they're browsed apart.
+        c.addView(ui.segmented("", listOf("Stickers", "Emoji"), if (emoji) 1 else 0) {
+            emoji = it == 1
+            load(reset = true)
+        }, wrap)
 
         status = ui.label("", 14f, ui.dim, gravity = Gravity.CENTER).apply { setPadding(0, ui.dp(24f), 0, ui.dp(24f)) }
         c.addView(status, wrap)
@@ -173,7 +180,7 @@ class StickerMarketActivity : ThemedActivity() {
         c.addView(ui.section("Have a link?"))
         val own = ui.card(
             ui.label("Add any Telegram pack", 16f, palette.text, bold = true),
-            ui.label("Paste a t.me/addstickers link to install a pack that isn't listed here.", 13f, ui.dim),
+            ui.label("Paste a t.me/addstickers or t.me/addemoji link to install a pack that isn't listed here.", 13f, ui.dim),
         )
         own.setOnClickListener { SettingsActivity.open(this, SettingsActivity.STICKERS) }
         ui.pressable(own)
@@ -188,14 +195,15 @@ class StickerMarketActivity : ThemedActivity() {
         status.visibility = View.VISIBLE
         status.text = "Loading…"
         more.visibility = View.GONE
-        StickerMarket.list(this, query, if (reset) 0 else next ?: 0) { page, error ->
+        StickerMarket.list(this, query, if (reset) 0 else next ?: 0, emoji) { page, error ->
             loadingPage = false
             if (isFinishing) return@list
             if (page == null) { status.text = error; return@list }
             next = page.next
             page.packs.forEach { list.addView(card(it), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = ui.dp(10f) }) }
             status.visibility = if (list.childCount == 0) View.VISIBLE else View.GONE
-            status.text = if (query.isBlank()) "No packs yet. Check back soon." else "No packs match \"$query\""
+            val what = if (emoji) "emoji packs" else "sticker packs"
+            status.text = if (query.isBlank()) "No $what yet. Check back soon." else "No $what match \"$query\""
             more.visibility = if (next != null) View.VISIBLE else View.GONE
         }
     }

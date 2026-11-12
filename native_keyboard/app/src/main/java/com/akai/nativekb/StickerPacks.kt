@@ -68,6 +68,7 @@ object StickerPacks {
     private fun read(json: String, base: String, removable: Boolean): Stickers.Pack? = try {
         val o = JSONObject(json)
         val name = o.getString("name")
+        val isEmoji = o.optString("kind") == "emoji"
         val a = o.getJSONArray("stickers")
         val stickers = (0 until a.length()).map { i ->
             val s = a.getJSONObject(i)
@@ -75,12 +76,13 @@ object StickerPacks {
                 "$name/${s.getString("id")}", s.optString("emoji"), base + s.getString("file"),
                 s.optString("anim").ifEmpty { null }?.let { base + it },
                 s.optString("gif").ifEmpty { null },
+                isEmoji = isEmoji,
             )
         }
         if (stickers.isEmpty()) null
         else Stickers.Pack(
             o.optString("title", name).ifBlank { name }, stickers, key = name, removable = removable,
-            emoji = o.optString("kind") == "emoji",
+            emoji = isEmoji,
         )
     } catch (e: Exception) { null }
 
