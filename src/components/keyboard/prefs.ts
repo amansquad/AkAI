@@ -189,7 +189,7 @@ export function keyboardCssVars(p: Pick<KeyboardPrefs, 'keyHeight' | 'keyGap' | 
 export const KEY_TEXT_CLASS = 'text-[length:var(--key-text)]';
 export const KEY_GAP_CLASS = 'gap-[var(--key-gap)]';
 export const ROW_GAP_CLASS = 'gap-[var(--key-row-gap)]';
-export const KEY_SHAPE_CLASS = 'rounded-[var(--key-radius)]';
+export const KEY_SHAPE_CLASS = 'kb-key rounded-[var(--key-radius)]';
 export const KEY_FONT_CLASS = 'font-[number:var(--key-weight)]';
 export const KEY_HEIGHT_CLASS = 'h-[var(--key-h)]';
 export const PANEL_HEIGHT_CLASS = 'h-[var(--panel-h)]';

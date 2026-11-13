@@ -245,3 +245,42 @@
   letter-spacing: 0.06em;
   color: var(--on-ink-dim);
 }
+
+/* ---------- hints beside the demo ---------- */
+.land-hints { list-style: none; margin: 28px 0 0; padding: 0; display: grid; gap: 12px; max-width: 46ch; }
+.land-hints li { display: flex; align-items: center; gap: 14px; line-height: 1.4; color: var(--on-ink); }
+.land-hints__key {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px;
+  font-size: 1.3rem; color: var(--ink); background: var(--enamel);
+  border: 2.5px solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 var(--ground-deep);
+}
+
+/* ---------- the demo keyboard, in the shopfront look ----------
+   Scoped to the Shopfront theme so the other themes keep their own colours. */
+.land-phone__screen [data-kb-theme='shopfront'] {
+  background-image: repeating-linear-gradient(90deg, oklch(1 0 0 / 0.04) 0 10px, oklch(0 0 0 / 0.1) 10px 20px) !important;
+}
+/* the text area takes the free space, so the keys sit at the bottom like a phone's */
+.land-phone__screen [data-kb-theme='shopfront'] .kb-text-area { flex: 1 1 auto; height: auto !important; min-height: 120px; padding: 12px 12px 14px; }
+.land-phone__screen [data-kb-theme='shopfront'] .kb-text-area > div {
+  background: var(--enamel) !important; border: 2.5px solid var(--ink) !important; border-radius: 12px;
+  box-shadow: 4px 4px 0 var(--ground-deep); padding: 12px 14px;
+}
+.land-phone__screen [data-kb-theme='shopfront'] .kb-text-area p { color: var(--ink) !important; opacity: 1; }
+.land-phone__screen [data-kb-theme='shopfront'] .kb-text-area p.italic { opacity: 0.55; }
+/* keys are keycaps: enamel, ink border, a hard shadow beneath that closes when pressed */
+.land-phone__screen [data-kb-theme='shopfront'] .kb-key {
+  background: var(--enamel) !important; color: var(--ink) !important;
+  border: 2px solid var(--ink) !important; border-radius: 9px !important;
+  box-shadow: 0 3px 0 var(--ink) !important; font-weight: 700;
+  transition: transform 80ms, box-shadow 80ms;
+}
+.land-phone__screen [data-kb-theme='shopfront'] .kb-key[class*='0B4A52'] {
+  background: var(--ground-soft) !important; color: var(--on-ink) !important;
+}
+.land-phone__screen [data-kb-theme='shopfront'] .kb-key:active {
+  transform: translateY(2px) !important; box-shadow: 0 1px 0 var(--ink) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .land-phone__screen [data-kb-theme='shopfront'] .kb-key { transition: none; }
+}
