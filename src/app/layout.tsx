@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Archivo, Noto_Sans_Ethiopic, Noto_Serif_Ethiopic } from "next/font/google";
+import { Geist, Geist_Mono, Big_Shoulders, Noto_Sans_Ethiopic } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,24 +14,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Landing page type system. Archivo's width axis gives the condensed-to-
-// expanded range of stamp denominations; Noto Serif Ethiopic carries Ge'ez at
-// display size (engraved feel), Noto Sans Ethiopic carries it in UI text.
-// Both Ethiopic faces are a hard requirement: few webfonts cover Ge'ez.
-const archivo = Archivo({
-  variable: "--font-archivo",
+// Landing type: Big Shoulders is condensed signboard lettering; Noto Sans
+// Ethiopic (heavy weights) carries Ge'ez at the same weight, so both scripts
+// read as one painted sign. Few webfonts cover Ge'ez, so this one is required.
+const bigShoulders = Big_Shoulders({
+  variable: "--font-display",
   subsets: ["latin"],
-  axes: ["wdth"],
   display: "swap",
 });
 
 const notoSansEthiopic = Noto_Sans_Ethiopic({
   variable: "--font-noto-ethiopic",
-  subsets: ["ethiopic"],
-});
-
-const notoSerifEthiopic = Noto_Serif_Ethiopic({
-  variable: "--font-noto-serif-ethiopic",
   subsets: ["ethiopic"],
 });
 
@@ -63,27 +56,23 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} ${notoSansEthiopic.variable} ${notoSerifEthiopic.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} ${bigShoulders.variable} ${notoSansEthiopic.variable} antialiased bg-background text-foreground`}
       >
         {/*
-          THESIS: AkAI is a letter home. Two scripts, one envelope: the
-          landing page is an airmail sheet of Ethiopian-style stamps where
-          English and Amharic are printed at identical weight. Refuses the
-          dark-SaaS emerald gradient hero with an icon-card grid.
-          OWN-WORLD: Drenched ultramarine airmail ground with a red/white/blue
-          chevron border; perforated postage stamps in flag inks (green,
-          yellow, red) on stamp paper; Archivo width-axis display, Noto Serif
-          Ethiopic engraved Ge'ez; a dark circular postmark as the one stamp
-          of authority.
-          STORY: Visitor sees the English and Amharic stamps share one
-          sentence, watches the postmark land (translation), tries the real
-          keyboard inline, and downloads the APK.
+          THESIS: AkAI is a shopfront sign. In Addis, one painted board carries
+          Amharic and English at equal weight; the landing page is that board.
+          Refuses the dark-SaaS gradient hero with an icon-card grid.
+          OWN-WORLD: Corrugated enamel-teal sheet metal; riveted painted signs
+          in vermilion, saffron, sky and chalk-white enamel with ink keylines and
+          hard flat shadows; Big Shoulders condensed lettering beside heavy Noto
+          Ethiopic; a round painted decal as the one mark of translation.
+          STORY: Visitor sees English and Amharic signs share one sentence,
+          watches the decal land (translation), tries the real keyboard inline,
+          and downloads the APK.
           FIRST VIEWPORT: Left, 'One keyboard. Both languages. No compromise.'
           at display size with the APK download button; right, an English and
-          an Amharic stamp tilted into each other with a postmark falling on
-          the pair every few seconds.
-          FORM: Direction 7 of own grounded list (Ethiopian postage stamp
-          sheet), seed key 79b3f41b.
+          an Amharic sign tilted together with the decal landing on the pair.
+          FORM: Own list, candidate 7 (Addis hand-painted signboards), seed d65232a5.
           FINISH: unreviewed and undocumented is unfinished; this build ends
           with the finish review, the verdict, and DESIGN.md.
         */}

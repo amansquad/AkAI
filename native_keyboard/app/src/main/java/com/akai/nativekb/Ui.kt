@@ -68,19 +68,24 @@ class Ui(val context: Context, val p: Palette) {
     /** A small outlined chip, e.g. a feature tag. */
     fun chip(t: String) = label(t, 13f, p.text).apply {
         setPadding(dp(14f), dp(8f), dp(14f), dp(8f))
-        background = round(ColorUtils.setAlphaComponent(p.surface, 0xCC), 999f, ColorUtils.setAlphaComponent(p.text, 0x22))
+        background = round(ColorUtils.setAlphaComponent(p.surface, 0xCC), 8f, ColorUtils.setAlphaComponent(p.text, 0x44), 2f)
     }
 
     /** The "✦ AKAI KEYBOARD" pill at the top of a screen. */
-    fun brandPill(t: String = "✦  AKAI KEYBOARD") = label(t, 12f, p.accent, bold = true, spacing = 0.3f, gravity = Gravity.CENTER).apply {
+    fun brandPill(t: String = "AKAI KEYBOARD") = label(t, 12f, p.accent, bold = true, spacing = 0.3f, gravity = Gravity.CENTER).apply {
         setPadding(dp(22f), dp(10f), dp(22f), dp(10f))
-        background = round(ColorUtils.setAlphaComponent(p.accent, 0x1F), 999f, ColorUtils.setAlphaComponent(p.accent, 0x55))
+        background = round(ColorUtils.setAlphaComponent(p.accent, 0x26), 8f, p.accent, 2f)
     }
 
     fun card(vararg views: View, pad: Float = 16f): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(pad), dp(pad), dp(pad), dp(pad))
-        background = round(ColorUtils.setAlphaComponent(p.surface, 0xDD), 18f, ColorUtils.setAlphaComponent(p.text, 0x1A))
+        val sh = SignDrawable.CARD_SHADOW_DP
+        setPadding(dp(pad), dp(pad), dp(pad + sh), dp(pad + sh))
+        background = SignDrawable(
+            ColorUtils.compositeColors(ColorUtils.setAlphaComponent(p.surface, 0xF2), p.background), d,
+            border = ColorUtils.setAlphaComponent(p.text, 0x55), shadow = 0x66000000, rivets = false,
+            shadowDp = sh, strokeDp = 2f,
+        )
         views.forEach { addView(it) }
     }
 
@@ -92,7 +97,7 @@ class Ui(val context: Context, val p: Palette) {
         typeface = Typeface.create("sans-serif", Typeface.BOLD)
         setTextColor(if (ColorUtils.calculateLuminance(p.accent) > 0.5) Color.BLACK else Color.WHITE)
         stateListAnimator = null
-        background = round(p.accent, 999f)
+        background = round(p.accent, 12f, if (ColorUtils.calculateLuminance(p.accent) > 0.5) Color.BLACK else Color.WHITE, 2f)
         setPadding(dp(26f), dp(14f), dp(26f), dp(14f))
         setOnClickListener { onClick() }
     }
@@ -203,7 +208,7 @@ class Ui(val context: Context, val p: Palette) {
         fun paint(sel: Int) = cells.forEachIndexed { i, c ->
             val on = i == sel
             c.setTextColor(if (on) (if (ColorUtils.calculateLuminance(p.accent) > 0.5) Color.BLACK else Color.WHITE) else dim)
-            c.background = round(if (on) p.accent else Color.TRANSPARENT, 999f)
+            c.background = round(if (on) p.accent else Color.TRANSPARENT, 8f)
         }
         options.forEachIndexed { i, o ->
             val c = label(o, 13f, dim, bold = true, gravity = Gravity.CENTER).apply {
@@ -214,7 +219,7 @@ class Ui(val context: Context, val p: Palette) {
             row.addView(c, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         }
         paint(selected)
-        row.background = round(ColorUtils.setAlphaComponent(p.text, 0x14), 999f)
+        row.background = round(ColorUtils.setAlphaComponent(p.text, 0x14), 10f, ColorUtils.setAlphaComponent(p.text, 0x44), 2f)
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(8f), 0, dp(8f))
@@ -250,29 +255,53 @@ class Ui(val context: Context, val p: Palette) {
         return v
     }
 
-    fun section(t: String) = label(tr(t).uppercase(), 12f, p.accent, bold = true, spacing = 0.15f).apply {
-        setPadding(dp(4f), dp(22f), 0, dp(8f))
+    /**
+     * A painted shopfront sign: enamel panel, ink border, rivets and a hard flat
+     * shadow. [tilt] hangs it a little crooked, like a real board.
+     */
+    fun sign(fill: Int, vararg views: View, tilt: Float = 0f, pad: Float = 16f): LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        val sh = SignDrawable.SHADOW_DP
+        setPadding(dp(pad + 4f), dp(pad + 4f), dp(pad + 4f + sh), dp(pad + 4f + sh))
+        background = SignDrawable(fill, d)
+        rotation = tilt
+        views.forEach { addView(it) }
+    }
+
+    fun section(t: String): View {
+        val tab = label(tr(t).uppercase(), 12f, if (ColorUtils.calculateLuminance(p.accent) > 0.5) SignDrawable.INK else Color.WHITE, bold = true, spacing = 0.15f).apply {
+            setPadding(dp(12f), dp(5f), dp(12f), dp(5f))
+            background = round(p.accent, 6f, SignDrawable.INK, 2f)
+            rotation = -1.5f
+        }
+        return LinearLayout(context).apply {
+            setPadding(dp(4f), dp(22f), 0, dp(10f))
+            addView(tab, LinearLayout.LayoutParams(-2, -2))
+        }
     }
 }
 
-/** The page background: the theme colour with a soft glow of its accent at the top. */
+/** The page background: the theme colour ribbed like corrugated sheet metal, with a saw-tooth edge in the accent. */
 class GlowBackground(context: Context, private val p: Palette) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val rib = Color.argb(if (p.isLight) 0x0C else 0x12, if (p.isLight) 0 else 255, if (p.isLight) 0 else 255, if (p.isLight) 0 else 255)
     override fun onDraw(canvas: Canvas) {
         canvas.drawColor(p.background)
-        val cx = width / 2f
-        val r = width * 0.95f
-        paint.shader = RadialGradient(
-            cx, 0f, r,
-            intArrayOf(ColorUtils.setAlphaComponent(p.accent, 0x30), Color.TRANSPARENT),
-            floatArrayOf(0f, 1f), Shader.TileMode.CLAMP,
-        )
-        canvas.drawRect(0f, 0f, width.toFloat(), r, paint)
-        paint.shader = LinearGradient(
-            0f, height * 0.6f, 0f, height.toFloat(),
-            Color.TRANSPARENT, ColorUtils.setAlphaComponent(p.glow, 0x14), Shader.TileMode.CLAMP,
-        )
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        val d = resources.displayMetrics.density
+        paint.shader = null
+        paint.color = rib
+        val step = 14f * d
+        var x = 0f
+        while (x < width) { canvas.drawRect(x, 0f, x + step / 2, height.toFloat(), paint); x += step }
+        // saw-tooth edge along the top
+        paint.color = p.accent
+        val tooth = 16f * d
+        val path = android.graphics.Path()
+        path.moveTo(0f, 0f)
+        var tx = 0f
+        while (tx < width) { path.lineTo(tx + tooth / 2, tooth / 2); path.lineTo(tx + tooth, 0f); tx += tooth }
+        path.close()
+        canvas.drawPath(path, paint)
     }
 }
 
@@ -314,4 +343,42 @@ abstract class ThemedActivity : Activity() {
         super.onCreate(savedInstanceState)
         loadTheme()
     }
+}
+
+/** The board behind a sign: see [Ui.sign]. Also the flat-shadowed panel behind [Ui.card]. */
+class SignDrawable(
+    private val fill: Int, private val d: Float,
+    private val border: Int = INK, private val shadow: Int = SHADOW, private val rivets: Boolean = true,
+    private val shadowDp: Float = SHADOW_DP, private val strokeDp: Float = 2.5f,
+) : android.graphics.drawable.Drawable() {
+    companion object {
+        const val SHADOW_DP = 5f
+        const val CARD_SHADOW_DP = 4f
+        const val INK = 0xFF0E2A33.toInt()
+        const val SHADOW = 0xB306161B.toInt()
+    }
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun draw(canvas: Canvas) {
+        val sh = shadowDp * d
+        val panel = android.graphics.RectF(bounds.left + 2 * d, bounds.top + 2 * d, bounds.right - sh - 2 * d, bounds.bottom - sh - 2 * d)
+        val r = 14f * d
+        paint.style = Paint.Style.FILL
+        paint.color = shadow
+        canvas.drawRoundRect(android.graphics.RectF(panel).apply { offset(sh, sh) }, r, r, paint)
+        paint.color = fill
+        canvas.drawRoundRect(panel, r, r, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = strokeDp * d
+        paint.color = border
+        canvas.drawRoundRect(panel, r, r, paint)
+        if (rivets) {
+            paint.style = Paint.Style.FILL
+            val i = 8f * d
+            for (x in floatArrayOf(panel.left + i, panel.right - i)) for (y in floatArrayOf(panel.top + i, panel.bottom - i))
+                canvas.drawCircle(x, y, 2.2f * d, paint)
+        }
+    }
+    override fun setAlpha(a: Int) {}
+    override fun setColorFilter(f: android.graphics.ColorFilter?) {}
+    @Suppress("OVERRIDE_DEPRECATION") override fun getOpacity() = android.graphics.PixelFormat.TRANSLUCENT
 }

@@ -1,27 +1,28 @@
-/* AkAI landing — the airmail stamp sheet.
+/* AkAI landing — the Addis shopfront.
+   Painted enamel signs riveted to corrugated teal sheet metal.
    Scoped to .land so the keyboard routes keep their own tokens. */
 
 .land {
-  --ink: oklch(0.27 0.13 268);          /* ultramarine ground */
-  --ink-deep: oklch(0.2 0.1 268);
-  --ink-soft: oklch(0.36 0.15 268);
-  --paper: oklch(0.965 0.02 95);         /* stamp paper */
-  --paper-edge: oklch(0.88 0.03 90);
-  --print: oklch(0.22 0.06 268);         /* text printed on paper */
-  --green: oklch(0.52 0.14 152);
-  --yellow: oklch(0.86 0.17 92);
-  --red: oklch(0.58 0.21 27);
-  --postmark: oklch(0.2 0.08 268);
-  --on-ink: oklch(0.96 0.015 95);
-  --on-ink-dim: oklch(0.84 0.04 265);
+  --ground: oklch(0.4 0.085 198);        /* corrugated enamel teal */
+  --ground-deep: oklch(0.29 0.065 200);
+  --ground-soft: oklch(0.33 0.075 199);
+  --enamel: oklch(0.955 0.014 150);      /* chalky white enamel */
+  --ink: oklch(0.2 0.04 225);            /* sign-painter's black */
+  --vermilion: oklch(0.55 0.19 33);
+  --saffron: oklch(0.84 0.16 82);
+  --sky: oklch(0.5 0.14 245);
+  --on-ink: oklch(0.97 0.012 150);
+  --on-ink-dim: oklch(0.86 0.035 195);
 
-  --f-display: var(--font-archivo), 'Arial Narrow', sans-serif;
-  --f-geez: var(--font-noto-serif-ethiopic), serif;
-  --f-geez-ui: var(--font-noto-ethiopic), sans-serif;
+  --f-display: var(--font-display), 'Arial Narrow', sans-serif;
+  --f-geez: var(--font-noto-ethiopic), sans-serif;
   --f-mono: var(--font-geist-mono), ui-monospace, monospace;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 
-  background: var(--ink);
+  /* vertical ribs of sheet metal */
+  background:
+    repeating-linear-gradient(90deg, oklch(1 0 0 / 0.035) 0 14px, oklch(0 0 0 / 0.07) 14px 28px),
+    var(--ground);
   color: var(--on-ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   min-height: 100dvh;
@@ -32,16 +33,12 @@
 .land * { box-sizing: border-box; }
 .land a { color: inherit; }
 
-/* ---------- airmail chevron border ---------- */
-.land-chevron {
-  height: 14px;
-  background: repeating-linear-gradient(
-    -45deg,
-    var(--red) 0 18px,
-    var(--paper) 18px 36px,
-    oklch(0.5 0.2 262) 36px 54px,
-    var(--paper) 54px 72px
-  );
+/* ---------- saw-tooth edge of the sheet ---------- */
+.land-ribs {
+  height: 16px;
+  background:
+    conic-gradient(from -45deg at 50% 100%, var(--saffron) 0 90deg, transparent 0) 0 0 / 32px 16px repeat-x,
+    var(--ground-deep);
 }
 
 /* ---------- page frame ---------- */
@@ -53,25 +50,22 @@
 /* ---------- display type ---------- */
 .land-display {
   font-family: var(--f-display);
-  font-weight: 800;
-  font-stretch: 72%;
-  line-height: 0.88;
-  letter-spacing: -0.015em;
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: 0.005em;
   text-wrap: balance;
   text-transform: uppercase;
 }
-.land-h2 {
-  font-size: clamp(2.6rem, 7vw, 5.2rem);
-}
+.land-h2 { font-size: clamp(2.6rem, 7vw, 5.2rem); }
 .land-lede {
   font-size: clamp(1.05rem, 1.6vw, 1.25rem);
   line-height: 1.55;
   color: var(--on-ink-dim);
   max-width: 54ch;
 }
-.land-geez { font-family: var(--f-geez); font-weight: 700; }
+.land-geez { font-family: var(--f-geez); font-weight: 800; }
 
-/* ---------- buttons ---------- */
+/* ---------- buttons: painted tabs ---------- */
 .land-btn {
   display: inline-flex;
   align-items: center;
@@ -80,105 +74,95 @@
   min-height: 56px;
   padding: 0 1.6rem;
   font-family: var(--f-display);
-  font-stretch: 100%;
-  font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: 0.02em;
+  font-weight: 900;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   text-decoration: none;
-  border: 0;
-  border-radius: 4px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
   cursor: pointer;
-  transition: transform 180ms var(--ease), background-color 180ms var(--ease), box-shadow 180ms var(--ease);
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease), background-color 160ms var(--ease);
 }
 .land-btn:focus-visible,
-.land-chip:focus-visible,
-.land-stamp-btn:focus-visible {
-  outline: 3px solid var(--yellow);
+.land-chip:focus-visible {
+  outline: 3px solid var(--enamel);
   outline-offset: 3px;
 }
 .land-btn--primary {
-  background: var(--yellow);
-  color: var(--print);
-  box-shadow: 0 2px 0 oklch(0.62 0.15 85), 0 14px 28px -10px oklch(0.1 0.1 268 / 0.6);
+  background: var(--saffron);
+  color: var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
 }
-.land-btn--primary:hover { transform: translateY(-2px); background: oklch(0.9 0.17 94); }
-.land-btn--primary:active { transform: translateY(1px); box-shadow: 0 0 0 oklch(0.62 0.15 85); }
+.land-btn--primary:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--ink); }
+.land-btn--primary:active { transform: translate(4px, 4px); box-shadow: 1px 1px 0 var(--ink); }
 .land-btn--ghost {
   background: transparent;
   color: var(--on-ink);
-  box-shadow: inset 0 0 0 2px oklch(0.96 0.015 95 / 0.55);
+  border-color: var(--on-ink);
 }
-.land-btn--ghost:hover { background: oklch(1 0 0 / 0.08); box-shadow: inset 0 0 0 2px var(--on-ink); }
+.land-btn--ghost:hover { background: var(--enamel); color: var(--ink); }
 
-/* ---------- the stamp ---------- */
-.land-stamp-shadow {
-  filter: drop-shadow(0 1px 0 oklch(0.1 0.08 268 / 0.5))
-          drop-shadow(0 14px 18px oklch(0.1 0.1 268 / 0.45));
-}
-.land-stamp {
-  --r: 5px;
-  --s: 15px;
+/* ---------- the sign ---------- */
+/* hard, flat shadow: paint, not light */
+.land-sign-shadow { filter: drop-shadow(7px 8px 0 var(--ground-deep)); }
+.land-sign {
   position: relative;
-  background: var(--paper);
-  color: var(--print);
+  background: var(--enamel);
+  color: var(--ink);
   padding: 14px;
+  border-radius: 16px;
+  border: 3px solid var(--ink);
 }
-/* perforated edge: four half-circle tiled masks, intersected */
-@supports (mask-composite: intersect) {
-  .land-stamp {
-    mask-image:
-      radial-gradient(circle var(--r) at 50% 0, #0000 97%, #000),
-      radial-gradient(circle var(--r) at 50% 100%, #0000 97%, #000),
-      radial-gradient(circle var(--r) at 0 50%, #0000 97%, #000),
-      radial-gradient(circle var(--r) at 100% 50%, #0000 97%, #000);
-    mask-size: var(--s) 100%, var(--s) 100%, 100% var(--s), 100% var(--s);
-    mask-position: 0 0, 0 0, 0 0, 0 0;
-    mask-repeat: round no-repeat, round no-repeat, no-repeat round, no-repeat round;
-    mask-composite: intersect;
-    -webkit-mask-image:
-      radial-gradient(circle var(--r) at 50% 0, #0000 97%, #000),
-      radial-gradient(circle var(--r) at 50% 100%, #0000 97%, #000),
-      radial-gradient(circle var(--r) at 0 50%, #0000 97%, #000),
-      radial-gradient(circle var(--r) at 100% 50%, #0000 97%, #000);
-    -webkit-mask-size: var(--s) 100%, var(--s) 100%, 100% var(--s), 100% var(--s);
-    -webkit-mask-position: 0 0, 0 0, 0 0, 0 0;
-    -webkit-mask-repeat: round no-repeat, round no-repeat, no-repeat round, no-repeat round;
-    -webkit-mask-composite: source-in;
-  }
+/* rivets */
+.land-sign::before,
+.land-sign::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle 3px at 3px 3px, var(--ink) 95%, transparent) top left / 6px 6px no-repeat,
+    radial-gradient(circle 3px at 3px 3px, var(--ink) 95%, transparent) top right / 6px 6px no-repeat,
+    radial-gradient(circle 3px at 3px 3px, var(--ink) 95%, transparent) bottom left / 6px 6px no-repeat,
+    radial-gradient(circle 3px at 3px 3px, var(--ink) 95%, transparent) bottom right / 6px 6px no-repeat;
 }
-.land-stamp__art {
+.land-sign::after { display: none; }
+.land-sign__art {
   position: relative;
   overflow: hidden;
-  outline: 1.5px solid currentColor;
-  outline-offset: 3px;
+  border-radius: 8px;
+  /* painted keyline inside the panel */
+  box-shadow: inset 0 0 0 5px transparent, inset 0 0 0 7px currentColor;
 }
-.land-stamp__val {
+.land-sign__val {
   font-family: var(--f-display);
-  font-stretch: 62%;
   font-weight: 900;
   line-height: 0.85;
   text-transform: uppercase;
 }
-.land-stamp__cap {
+.land-sign__cap {
   font-family: var(--f-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-/* ---------- postmark ---------- */
-.land-postmark {
-  color: var(--postmark);
-  mix-blend-mode: multiply;
+/* ---------- seal: round painted decal ---------- */
+.land-seal {
+  color: var(--ink);
   pointer-events: none;
+  filter: drop-shadow(3px 4px 0 oklch(0.2 0.04 225 / 0.35));
 }
-.land-postmark--drop { animation: pm-drop 700ms var(--ease) both; }
-@keyframes pm-drop {
+.land-seal--drop { animation: seal-drop 700ms var(--ease) both; }
+@keyframes seal-drop {
   0% { transform: translateY(-34px) scale(1.5) rotate(-24deg); opacity: 0; }
-  55% { transform: translateY(2px) scale(0.97) rotate(-12deg); opacity: 0.95; }
-  100% { transform: translateY(0) scale(1) rotate(-14deg); opacity: 0.88; }
+  55% { transform: translateY(2px) scale(0.97) rotate(-12deg); opacity: 1; }
+  100% { transform: translateY(0) scale(1) rotate(-12deg); opacity: 1; }
 }
+.land-seal circle:first-child { fill: var(--enamel); }
+.land-seal circle:nth-child(2) { fill: var(--saffron); }
 
 /* ---------- caret ---------- */
 .land-caret {
@@ -197,43 +181,27 @@
   min-width: 52px;
   min-height: 52px;
   font-family: var(--f-geez);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 1.5rem;
   color: var(--on-ink);
   background: transparent;
-  border: 2px solid oklch(0.96 0.015 95 / 0.4);
-  border-radius: 4px;
+  border: 3px solid var(--on-ink);
+  border-radius: 12px;
   cursor: pointer;
   transition: background-color 160ms var(--ease), color 160ms var(--ease), transform 160ms var(--ease);
 }
-.land-chip:hover { transform: translateY(-2px); border-color: var(--on-ink); }
-.land-chip[aria-pressed='true'] { background: var(--yellow); color: var(--print); border-color: var(--yellow); }
+.land-chip:hover { transform: translateY(-2px); }
+.land-chip[aria-pressed='true'] { background: var(--saffron); color: var(--ink); border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
 
-/* ---------- theme sheet ---------- */
-.land-stamp-btn {
-  display: block;
-  width: 100%;
-  background: none;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  transition: transform 260ms var(--ease);
-}
-.land-stamp-btn:hover { transform: translateY(-6px) rotate(-1.2deg); }
-
-/* ---------- phone (flat ink bezel) ---------- */
+/* ---------- phone ---------- */
 .land-phone {
   width: min(100%, 360px);
   min-width: 0;
   margin-inline: auto;
   padding: 12px;
-  background: var(--ink-deep);
+  background: var(--ink);
   border-radius: 38px;
-  box-shadow:
-    0 0 0 2px oklch(0.96 0.015 95 / 0.5),
-    0 30px 50px -18px oklch(0.08 0.1 268 / 0.8);
+  box-shadow: 0 0 0 3px var(--on-ink), 10px 12px 0 3px var(--ground-deep);
 }
 .land-phone__screen {
   height: 640px;
@@ -247,15 +215,9 @@
 @supports not (animation-timeline: view()) { .land-rise { animation: none; } }
 @keyframes land-rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
 
-/* ---------- perforation rule ---------- */
-.land-perf {
-  height: 10px;
-  background: radial-gradient(circle 4px at 50% 50%, var(--ink) 98%, transparent) 0 0 / 18px 10px repeat-x var(--paper);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .land-postmark--drop, .land-caret, .land-rise { animation: none !important; }
-  .land-stamp-btn, .land-btn, .land-chip { transition: none; }
+  .land-seal--drop, .land-caret, .land-rise { animation: none !important; }
+  .land-btn, .land-chip { transition: none; }
 }
 
 /* Version, size and minimum Android, under a download button. */

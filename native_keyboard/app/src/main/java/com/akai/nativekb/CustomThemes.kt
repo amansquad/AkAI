@@ -47,6 +47,7 @@ object SolidThemes {
 
     val all: List<PaletteDef> = listOf(
         // Dark
+        s("shopfront", "Shopfront", "🏪", 0xFF083A40, 0xFF11606A, 0xFF0B4A52, 0xFFF2B632, 0xFFEEF3EC),
         s("midnight", "Midnight", "🌙", 0xFF0B1120, 0xFF1E293B, 0xFF141C2E, 0xFF3B82F6, 0xFFF1F5F9),
         s("graphite", "Graphite", "✏️", 0xFF121214, 0xFF2A2A2E, 0xFF1E1E21, 0xFFF97316, 0xFFF4F4F5),
         s("amoled", "AMOLED Black", "🖤", 0xFF000000, 0xFF161616, 0xFF0C0C0C, 0xFFFFFFFF, 0xFFFFFFFF),

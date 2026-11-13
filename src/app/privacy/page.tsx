@@ -65,7 +65,7 @@ const KEPT = [
 export default function PrivacyPage() {
   return (
     <main className="land">
-      <div className="land-chevron" aria-hidden="true" />
+      <div className="land-ribs" aria-hidden="true" />
       <article className="land-wrap" style={{ maxWidth: 760, paddingBlock: '56px 72px', lineHeight: 1.6 }}>
         <p style={{ marginBottom: 12 }}>
           <Link href="/" style={{ color: 'var(--on-ink-dim)' }}>← AkAI</Link>
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
         <h2 className="land-display" style={{ fontSize: '1.8rem', margin: '0 0 12px' }}>Sent only when you use it</h2>
         <div style={{ display: 'grid', gap: 16, marginBottom: 40 }}>
           {SENT.map((s) => (
-            <section key={s.name} style={{ border: '1px solid var(--ink-soft)', borderRadius: 12, padding: '16px 18px' }}>
+            <section key={s.name} style={{ border: '1px solid var(--on-ink-dim)', borderRadius: 12, padding: '16px 18px' }}>
               <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem' }}>{s.name}</h3>
               <p style={{ margin: 0, color: 'var(--on-ink-dim)' }}>
                 <strong style={{ color: 'var(--on-ink)' }}>What:</strong> {s.what}<br />

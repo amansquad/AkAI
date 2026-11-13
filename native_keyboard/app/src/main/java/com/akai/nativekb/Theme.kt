@@ -30,7 +30,7 @@ class Palette(
 }
 
 object Themes {
-    const val DEFAULT = "obsidian"
+    const val DEFAULT = "shopfront"
 
     /** The person's own themes first, then the Flutter app's, then the extra solids. */
     val all: List<PaletteDef> get() = CustomThemes.defs + ThemeData.all + SolidThemes.all
