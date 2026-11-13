@@ -6,9 +6,8 @@ import { ArrowDown, Download, Languages, PenLine, ShieldCheck, Smile } from 'luc
 import apkInfo from '@/lib/apk-info.json';
 import './landing.css';
 
-// The demo is the shipping keyboard itself, not a lookalike, so every tab,
-// theme and setting behaves exactly as it does in the app.
-const DemoKeyboard = lazy(() => import('@/components/keyboard-app'));
+// The demo is built for this page: English, the full fidel with its seven forms, and AI translation.
+const DemoKeyboard = lazy(() => import('./landing-demo'));
 
 const APK = '/AkAI-keyboard.apk';
 // The saved file is named with its version, so it can be told apart from an
@@ -340,37 +339,67 @@ function Sheet() {
   );
 }
 
+/* A decorative keyboard drawn over a theme's wallpaper, so a theme reads as a keyboard, not a picture. */
+function StageKeys() {
+  const rows = [['ሀ', 'ለ', 'መ', 'ሰ', 'ቀ', 'በ', 'ተ', 'ነ'], ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i'], ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k']];
+  return (
+    <div className="land-stagekeys" aria-hidden="true">
+      {rows.map((r, ri) => (
+        <div key={ri} className="land-stagekeys__row">
+          {r.map((k) => (
+            <span key={k} className={ri === 0 ? 'land-geez' : ''}>{k}</span>
+          ))}
+        </div>
+      ))}
+      <div className="land-stagekeys__row">
+        <span className="is-mod" style={{ flex: 1.4 }}>🌐</span>
+        <span style={{ flex: 5 }}>AkAI</span>
+        <span className="is-go" style={{ flex: 1.4 }}>↵</span>
+      </div>
+    </div>
+  );
+}
+
 function Themes() {
+  const [sel, setSel] = useState(0);
+  const cur = THEMES[sel];
   return (
     <section style={{ background: 'var(--ground-soft)' }}>
       <div className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
         <div className="flex flex-wrap items-end justify-between gap-6" style={{ marginBottom: 'clamp(32px, 5vw, 56px)' }}>
           <h2 className="land-display land-h2">
-            Themes that <span style={{ color: 'var(--saffron)' }}>move</span>
+            Pick a coat of <span style={{ color: 'var(--saffron)' }}>paint</span>
           </h2>
           <p className="land-lede" style={{ maxWidth: '38ch' }}>
             Live-animated backgrounds, Ethiopian themes and club colors. Your keyboard, repainted whenever you like.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-6">
-          {THEMES.map((t, k) => (
-            <div key={t.name} className="land-sign-shadow" style={{ transform: `rotate(${[-1.2, 0.8, -0.5, 1.1][k % 4]}deg)` }}>
-              <div className="land-sign" style={{ padding: 10 }}>
-                <div className="land-sign__art" style={{ aspectRatio: '3 / 4' }}>
-                  <Image src={t.src} alt={`${t.name} theme preview`} fill sizes="(max-width: 768px) 46vw, 22vw" className="object-cover" />
-                </div>
-                <div className="flex items-baseline justify-between" style={{ marginTop: 8 }}>
-                  <span className="land-display" style={{ fontSize: '1.05rem', }}>{t.name}</span>
-                  <span
-                    className="land-sign__cap"
-                    style={t.tag === 'Live' ? { color: 'var(--vermilion)', fontWeight: 700 } : undefined}
-                  >
-                    {t.tag}
-                  </span>
-                </div>
+
+        <div className="land-themes">
+          <div className="land-sign-shadow land-themes__stage" style={{ transform: 'rotate(-1deg)' }}>
+            <div className="land-sign" style={{ padding: 12 }}>
+              <div className="land-sign__art land-themes__art" key={cur.name}>
+                <Image src={cur.src} alt={`${cur.name} theme preview`} fill sizes="(max-width: 1024px) 90vw, 380px" className="object-cover" priority={false} />
+                <StageKeys />
+              </div>
+              <div className="flex items-baseline justify-between" style={{ marginTop: 10 }}>
+                <span className="land-display" style={{ fontSize: '1.7rem' }}>{cur.name}</span>
+                <span className="land-sign__cap" style={cur.tag === 'Live' ? { color: 'var(--vermilion)', fontWeight: 700 } : undefined}>{cur.tag}</span>
               </div>
             </div>
-          ))}
+          </div>
+
+          <div className="land-themes__rail" role="group" aria-label="Choose a theme">
+            {THEMES.map((t, k) => (
+              <button key={t.name} type="button" className="land-swatch" aria-pressed={sel === k} onClick={() => setSel(k)}>
+                <span className="land-swatch__img">
+                  <Image src={t.src} alt="" fill sizes="(max-width: 768px) 40vw, 180px" className="object-cover" />
+                </span>
+                <span className="land-swatch__name">{t.name}</span>
+                <span className="land-swatch__tag" style={t.tag === 'Live' ? { color: 'var(--vermilion)' } : undefined}>{t.tag}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -386,13 +415,13 @@ function Try() {
             Type a line <span style={{ color: 'var(--saffron)' }}>home</span>
           </h2>
           <p className="land-lede" style={{ marginTop: 24 }}>
-            This is the real AkAI keyboard running in your browser, not a mock-up. Switch between English and
-            Amharic, tap a consonant for its vowel forms, then try the themes, stickers, GIFs and AI translate tabs.
+            A working demo of the keyboard, right here. Type a line in English, switch to Amharic, tap a consonant for
+            its seven vowel forms, then press Translate.
           </p>
           <ul className="land-hints">
             <li><span className="land-hints__key land-geez" aria-hidden="true">ሀ</span> Tap a consonant to see its seven vowel forms.</li>
             <li><span className="land-hints__key" aria-hidden="true">🌐</span> The globe key switches between English and አማርኛ.</li>
-            <li><span className="land-hints__key" aria-hidden="true">🎨</span> The palette opens the themes, live and still.</li>
+            <li><span className="land-hints__key" aria-hidden="true">→</span> Translate sends only the line you typed, only when you press it.</li>
           </ul>
           <a href={APK} download={APK_FILE} className="land-btn land-btn--primary" style={{ marginTop: 32 }}>
             <Download size={20} aria-hidden="true" /> Download for Android
@@ -400,7 +429,7 @@ function Try() {
           <ApkNote style={{ marginTop: 14 }} />
         </div>
         <div className="mx-auto w-full" style={{ maxWidth: 360 }}>
-        <p className="land-tab" aria-hidden="true">Live · the real keyboard</p>
+        <p className="land-tab" aria-hidden="true">Try it · type a line</p>
         <div className="land-phone" style={{ maxWidth: "calc(100vw - 32px)" }}>
           <div className="land-phone__screen">
             <Suspense
