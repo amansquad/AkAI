@@ -32,6 +32,15 @@ export const THEMES: Record<string, ThemeDef> = {
     border: 'border-border/50', tabBar: 'bg-muted/20', tabActive: 'bg-primary', tabActiveText: 'text-primary-foreground',
     suggestion: 'bg-muted/60',
   },
+  // The website's own look: enamel teal board, white-enamel keys, saffron accent.
+  shopfront: {
+    name: 'Shopfront', flag: '🏪', category: 'solid',
+    bg: 'bg-[#083A40]', card: 'bg-[#0B4A52]', key: 'bg-[#11606A]', keyHover: 'hover:bg-[#177480]',
+    keyActive: 'bg-[#F2B632] text-[#0E2A33]', keyText: 'text-[#EEF3EC]',
+    specialKey: 'bg-[#0B4A52]', accent: 'bg-[#F2B632]', accentText: 'text-[#0E2A33]',
+    border: 'border-[#EEF3EC]/20', tabBar: 'bg-[#0B4A52]', tabActive: 'bg-[#F2B632]', tabActiveText: 'text-[#0E2A33]',
+    suggestion: 'bg-[#0B4A52]',
+  },
   midnight: {
     name: 'Midnight', flag: '🌙', category: 'solid',
     bg: 'bg-slate-950', card: 'bg-slate-900', key: 'bg-slate-800', keyHover: 'hover:bg-slate-700',

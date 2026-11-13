@@ -225,7 +225,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [nextWordSuggestions, setNextWordSuggestions] = useState<string[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const [theme, setTheme] = useState<ThemeName>('default');
+  const [theme, setTheme] = useState<ThemeName>('shopfront');
   const { resolvedTheme: appTheme, setTheme: setAppTheme } = useTheme();
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -641,6 +641,8 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
       catch (e) { console.error('Failed to load custom themes', e); }
     }
     const savedSettings = localStorage.getItem('akai-kb-settings');
+    const shopfrontSeen = !!localStorage.getItem('akai-kb-shopfront');
+    localStorage.setItem('akai-kb-shopfront', '1');
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
@@ -673,7 +675,9 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
         // Theme and language matter most as an IME: the keyboard is
         // dismissed and reopened constantly, and without these the user's
         // chosen theme and Ge'ez layout reset on every single open.
-        if (parsed.theme !== undefined) setTheme(parsed.theme);
+        // A theme picked before the Shopfront look arrived is shown the new
+        // look once; from then on the saved choice is honoured as before.
+        if (parsed.theme !== undefined && shopfrontSeen) setTheme(parsed.theme);
         if (parsed.language !== undefined) setLanguage(parsed.language);
         if (parsed.phonetic !== undefined) setPhonetic(parsed.phonetic);
         if (parsed.englishLayout !== undefined) setEnglishLayout(parsed.englishLayout);

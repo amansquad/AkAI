@@ -193,6 +193,24 @@
 .land-chip:hover { transform: translateY(-2px); }
 .land-chip[aria-pressed='true'] { background: var(--saffron); color: var(--ink); border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
 
+/* ---------- painted tab above the demo ---------- */
+.land-tab {
+  display: inline-block;
+  margin: 0 0 18px 6px;
+  padding: 6px 12px;
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--saffron);
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 var(--ground-deep);
+  transform: rotate(-2deg);
+}
+
 /* ---------- phone ---------- */
 .land-phone {
   width: min(100%, 360px);
@@ -201,7 +219,7 @@
   padding: 12px;
   background: var(--ink);
   border-radius: 38px;
-  box-shadow: 0 0 0 3px var(--on-ink), 10px 12px 0 3px var(--ground-deep);
+  box-shadow: 0 0 0 4px var(--saffron), 0 0 0 7px var(--ink), 14px 16px 0 7px var(--ground-deep);
 }
 .land-phone__screen {
   height: 640px;
