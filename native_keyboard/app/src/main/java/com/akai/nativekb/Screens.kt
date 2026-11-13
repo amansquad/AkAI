@@ -3,6 +3,7 @@ package com.akai.nativekb
 import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.provider.Settings
@@ -128,24 +129,12 @@ class OnboardingActivity : ThemedActivity() {
     }
 
     private fun badge(emoji: String): View = FrameLayout(this).apply {
-        background = object : android.graphics.drawable.Drawable() {
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-            override fun draw(canvas: Canvas) {
-                val cx = bounds.exactCenterX(); val cy = bounds.exactCenterY(); val r = bounds.width() / 2f
-                paint.style = Paint.Style.FILL
-                paint.shader = android.graphics.RadialGradient(cx, cy, r, intArrayOf(ColorUtils.setAlphaComponent(palette.accent, 0x44), 0), null, android.graphics.Shader.TileMode.CLAMP)
-                canvas.drawCircle(cx, cy, r, paint)
-                paint.shader = null
-                paint.style = Paint.Style.STROKE
-                paint.strokeWidth = ui.d * 1.5f
-                paint.color = ColorUtils.setAlphaComponent(palette.accent, 0x66)
-                canvas.drawCircle(cx, cy, r - ui.d, paint)
-            }
-            override fun setAlpha(a: Int) {}
-            override fun setColorFilter(f: android.graphics.ColorFilter?) {}
-            @Suppress("OVERRIDE_DEPRECATION") override fun getOpacity() = android.graphics.PixelFormat.TRANSLUCENT
-        }
-        addView(TextView(context).apply { text = emoji; textSize = 58f; gravity = Gravity.CENTER }, FrameLayout.LayoutParams(-1, -1))
+        background = SignDrawable(0xFFEEF3EC.toInt(), ui.d)
+        rotation = -4f
+        addView(TextView(context).apply {
+            text = emoji; textSize = 58f; gravity = Gravity.CENTER
+            setPadding(0, 0, ui.dp(SignDrawable.SHADOW_DP), ui.dp(SignDrawable.SHADOW_DP))
+        }, FrameLayout.LayoutParams(-1, -1))
     }
 
     private fun action(c: LinearLayout, kicker: String, headline: String, cardTitle: String, cardText: String, button: String, onClick: () -> Unit) {
@@ -198,43 +187,72 @@ class HomeActivity : ThemedActivity() {
     private fun build() {
         val c = column()
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        header.addView(ui.label("A", 20f, android.graphics.Color.WHITE, bold = true, gravity = Gravity.CENTER).apply {
-            background = ui.round(palette.accent, 13f)
-        }, LinearLayout.LayoutParams(ui.dp(42f), ui.dp(42f)))
-        header.addView(ui.title("Akai", 26f), LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(12f) })
+        header.addView(android.widget.ImageView(this).apply {
+            setImageResource(R.drawable.ic_launcher)
+            clipToOutline = true
+            outlineProvider = object : android.view.ViewOutlineProvider() {
+                override fun getOutline(v: View, o: android.graphics.Outline) = o.setRoundRect(0, 0, v.width, v.height, 12f * ui.d)
+            }
+        }, LinearLayout.LayoutParams(ui.dp(46f), ui.dp(46f)))
+        header.addView(ui.title("AkAI", 28f), LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = ui.dp(12f) })
         header.addView(ui.ghostButton("⚙") { startActivity(Intent(this, SettingsActivity::class.java)) })
         c.addView(header, LP_MATCH_WRAP)
+        c.addView(ui.gap(20f))
+
+        val ink = SignDrawable.INK
+        val enamel = 0xFFEEF3EC.toInt(); val vermilion = 0xFFD9482B.toInt(); val saffron = 0xFFF2B632.toInt(); val sky = 0xFF1B66B8.toInt()
+
+        // The board over the door: one sentence in both scripts, at equal weight.
+        c.addView(ui.sign(
+            enamel,
+            ui.label("ENGLISH · አማርኛ", 11f, ink, bold = true, spacing = 0.15f),
+            ui.gap(6f),
+            ui.label("Hello.", 44f, ink, bold = true, spacing = -0.02f),
+            ui.label("ሰላም።", 44f, vermilion, bold = true),
+            ui.gap(6f),
+            ui.label("One keyboard. Both languages.", 14f, ink),
+            tilt = -1.2f, pad = 14f,
+        ), LP_MATCH_WRAP)
         c.addView(ui.gap(18f))
 
         val tryBox = EditText(this).apply {
             hint = ui.tr("Tap here and type…")
-            setHintTextColor(ui.faint)
-            setTextColor(palette.text)
+            setHintTextColor(0x990E2A33.toInt())
+            setTextColor(ink)
             textSize = 16f
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 3
             gravity = Gravity.TOP
             setPadding(ui.dp(14f), ui.dp(12f), ui.dp(14f), ui.dp(12f))
-            background = ui.round(ColorUtils.setAlphaComponent(palette.text, 0x10), 14f, ColorUtils.setAlphaComponent(palette.text, 0x22))
+            background = ui.round(enamel, 10f, ink, 2f)
         }
-        c.addView(ui.card(
-            ui.label("Try Akai", 20f, palette.text, bold = true),
-            ui.label("Tap below and use Akai as your keyboard.", 14f, ui.dim),
+        c.addView(ui.sign(
+            saffron,
+            ui.label("Try Akai", 22f, ink, bold = true),
+            ui.label("Tap below and use Akai as your keyboard.", 14f, 0xCC0E2A33.toInt()),
             ui.gap(12f), tryBox,
+            tilt = 0.8f,
         ), LP_MATCH_WRAP)
 
         c.addView(ui.section("Features"))
         val grid = GridLayout(this).apply { columnCount = 2 }
+        val inks = listOf(vermilion to Color.WHITE, enamel to ink, sky to Color.WHITE, saffron to ink)
+        var n = 0
         fun feature(icon: String, name: String, sub: String, go: () -> Unit) {
-            val card = ui.card(
+            val (bg, fg) = inks[n % inks.size]
+            val card = ui.sign(
+                bg,
                 ui.label(icon, 26f), ui.gap(6f),
-                ui.label(name, 16f, palette.text, bold = true), ui.label(sub, 12f, ui.dim),
+                ui.label(name, 16f, fg, bold = true),
+                ui.label(sub, 12f, ColorUtils.setAlphaComponent(fg, 0xDD)),
+                tilt = if (n % 2 == 0) -0.8f else 0.8f, pad = 10f,
             )
+            n++
             card.setOnClickListener { go() }
             ui.pressable(card)
             grid.addView(card, GridLayout.LayoutParams(
                 GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f),
-            ).apply { width = 0; setMargins(ui.dp(5f), ui.dp(5f), ui.dp(5f), ui.dp(5f)) })
+            ).apply { width = 0; setMargins(ui.dp(4f), ui.dp(5f), ui.dp(4f), ui.dp(5f)) })
         }
         feature("🎨", "Live Themes", ui.tr("{n} themes", "n" to Themes.all.size)) { startActivity(Intent(this, ThemesActivity::class.java)) }
         feature("😀", "Emojis", "With skin tones") { SettingsActivity.open(this, SettingsActivity.EMOJI) }

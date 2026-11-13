@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A keyboard: a dark rounded tile with three rows of keys. -->
+<!-- A painted keycap on corrugated teal: the Ge'ez letter አ, the first fidel, with the Latin A as its key legend. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#1B1B1F"
-        android:pathData="M20,0 H88 A20,20 0 0 1 108,20 V88 A20,20 0 0 1 88,108 H20 A20,20 0 0 1 0,88 V20 A20,20 0 0 1 20,0 Z" />
-    <!-- Top row -->
-    <path android:fillColor="#6C8CFF" android:pathData="M20,30 h12 v12 h-12 z M38,30 h12 v12 h-12 z M56,30 h12 v12 h-12 z M74,30 h12 v12 h-12 z" />
-    <!-- Middle row -->
-    <path android:fillColor="#EDEDED" android:pathData="M26,48 h12 v12 h-12 z M44,48 h12 v12 h-12 z M62,48 h12 v12 h-12 z" />
-    <!-- Space bar -->
-    <path android:fillColor="#EDEDED" android:pathData="M26,66 h56 v12 h-56 z" />
+    <path android:fillColor="#0B5F66" android:pathData="M0,0 H108 V108 H0 Z" />
+    <group android:pivotX="54" android:pivotY="54" android:rotation="-6">
+        <path android:fillColor="#06161B" android:pathData="M34.59,27.63 H73.41 A10.12,10.12 0 0 1 83.53,37.76 V76.57 A10.12,10.12 0 0 1 73.41,86.7 H34.59 A10.12,10.12 0 0 1 24.47,76.57 V37.76 A10.12,10.12 0 0 1 34.59,27.63 Z" />
+        <path android:fillColor="#EEF3EC" android:strokeColor="#06161B" android:strokeWidth="1.69" android:pathData="M34.59,23.41 H73.41 A10.12,10.12 0 0 1 83.53,33.54 V72.35 A10.12,10.12 0 0 1 73.41,82.48 H34.59 A10.12,10.12 0 0 1 24.47,72.35 V33.54 A10.12,10.12 0 0 1 34.59,23.41 Z" />
+        <path android:fillColor="#D9482B" android:pathData="M40.9 76.3Q40.4 75.3 40.1 74.2Q39.8 73.1 39.8 71.6Q39.8 69.8 40.3 67.9Q40.8 66.1 41.6 64.1L44.9 55.6Q45.5 54 46 52.7Q46.5 51.5 46.5 50.2Q46.5 49 45.7 48.4Q44.9 47.8 43.2 47.8H40.1V41.1Q40.1 39.2 39.4 38.3Q38.8 37.4 37.2 37.4V34.2L49.4 33.4Q50.1 34.3 50.4 35.4Q50.7 36.6 50.7 38.3V43.8H52.6Q54.7 43.8 56 45Q57.3 46.2 57.3 48.2Q57.3 49.5 56.7 51.4Q56.1 53.4 54.9 56.5L51.8 65.1Q51.1 66.8 50.8 67.9Q50.5 69 50.5 69.9Q50.5 71.2 51.2 71.8Q51.9 72.3 53 72.3V75.5ZM62 76.3Q61.2 75.3 60.7 73.9Q60.2 72.6 60 70.4Q59.5 66.8 59.1 64.4Q58.7 62 58.1 60.5Q57.5 59.1 56.5 58.3Q55.6 57.5 54.1 57.2L55.6 52.9Q59.5 53.4 62.1 54.3Q64.7 55.3 66.3 57Q67.9 58.7 68.9 61.5Q69.8 64.2 70.3 68.3Q70.5 70.5 71.3 71.4Q72.1 72.3 73.7 72.3V75.5Z" />
+        <path android:strokeColor="#0E2A33" android:strokeWidth="0.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M30.8,34.8 L32.91,30.16 L35.02,34.8 M31.54,33.33 H34.28" />
+        <path android:fillColor="#F2B632" android:pathData="M74.14,31.43 a1.37,1.37 0 1 0 2.74,0 a1.37,1.37 0 1 0 -2.74,0 Z" />
+    </group>
 </vector>

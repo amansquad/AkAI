@@ -55,12 +55,12 @@ const THEMES = [
 ];
 
 /* Circular postmark with bilingual ring text. `n` re-keys the drop animation. */
-function Postmark({ n, size = 150 }: { n: number; size?: number }) {
+function Seal({ n, size = 150 }: { n: number; size?: number }) {
   const id = useId();
   return (
     <svg
       key={n}
-      className="land-postmark land-postmark--drop"
+      className="land-seal land-seal--drop"
       width={size}
       height={size}
       viewBox="0 0 160 160"
@@ -132,7 +132,7 @@ function Hero() {
       <header className="flex items-center justify-between" style={{ marginBottom: 'clamp(36px, 6vw, 72px)' }}>
         <a href="#top" className="flex items-center gap-3 no-underline" aria-label="AkAI home">
           <Image src="/akai-icon.png" alt="" width={44} height={44} className="rounded-[10px]" priority />
-          <span className="land-display" style={{ fontSize: '2rem', fontStretch: '100%' }}>AkAI</span>
+          <span className="land-display" style={{ fontSize: '2rem', }}>AkAI</span>
         </a>
         <a href={APK} download={APK_FILE} title={`AkAI ${apkInfo.version} for Android`} className="land-btn land-btn--ghost" style={{ minHeight: 44, padding: '0 1.1rem', fontSize: '0.9rem' }}>
           <Download size={18} aria-hidden="true" /> Download
@@ -141,10 +141,10 @@ function Hero() {
 
       <div className="grid items-center gap-12 lg:grid-cols-[1.3fr_1fr] lg:gap-8" id="top">
         <div>
-          <h1 className="land-display" style={{ fontSize: 'clamp(2.5rem, 7.6vw, 5.8rem)', fontStretch: '66%', textWrap: 'nowrap' }}>
+          <h1 className="land-display" style={{ fontSize: 'clamp(2.5rem, 7.6vw, 5.8rem)', textWrap: 'nowrap' }}>
             One keyboard.
             <br />
-            <span style={{ color: 'var(--yellow)' }}>Both languages.</span>
+            <span style={{ color: 'var(--saffron)' }}>Both languages.</span>
             <br />
             No compromise.
           </h1>
@@ -169,31 +169,31 @@ function Hero() {
             Example: &quot;{pair.en}&quot; becomes &quot;{pair.am}&quot;.
           </p>
           <div className="grid grid-cols-2 gap-3 sm:gap-5" aria-hidden="true">
-            <div className="land-stamp-shadow" style={{ transform: 'rotate(-3deg)' }}>
-              <div className="land-stamp">
+            <div className="land-sign-shadow" style={{ transform: 'rotate(-3deg)' }}>
+              <div className="land-sign">
                 <div
-                  className="land-stamp__art flex flex-col justify-between"
-                  style={{ background: 'var(--green)', color: '#fff', minHeight: 'clamp(220px, 34vw, 300px)', padding: 14 }}
+                  className="land-sign__art flex flex-col justify-between"
+                  style={{ background: 'var(--vermilion)', color: '#fff', minHeight: 'clamp(220px, 34vw, 300px)', padding: 14 }}
                 >
-                  <span className="land-stamp__cap">English · QWERTY</span>
-                  <p className="land-display" style={{ fontSize: 'clamp(1.5rem, 4.2vw, 2.3rem)', fontStretch: '80%', lineHeight: 1 }}>
+                  <span className="land-sign__cap">English · QWERTY</span>
+                  <p className="land-display" style={{ fontSize: 'clamp(1.5rem, 4.2vw, 2.3rem)', lineHeight: 1 }}>
                     {typed}
                     <span className="land-caret" />
                   </p>
                 </div>
                 <div className="flex items-end justify-between" style={{ marginTop: 10 }}>
-                  <span className="land-stamp__cap">Ethiopia</span>
-                  <span className="land-stamp__val" style={{ fontSize: '1.9rem' }}>EN</span>
+                  <span className="land-sign__cap">Ethiopia</span>
+                  <span className="land-sign__val" style={{ fontSize: '1.9rem' }}>EN</span>
                 </div>
               </div>
             </div>
-            <div className="land-stamp-shadow" style={{ transform: 'rotate(2.5deg) translateY(18px)' }}>
-              <div className="land-stamp">
+            <div className="land-sign-shadow" style={{ transform: 'rotate(2.5deg) translateY(18px)' }}>
+              <div className="land-sign">
                 <div
-                  className="land-stamp__art flex flex-col justify-between"
-                  style={{ background: 'var(--yellow)', color: 'var(--print)', minHeight: 'clamp(220px, 34vw, 300px)', padding: 14 }}
+                  className="land-sign__art flex flex-col justify-between"
+                  style={{ background: 'var(--saffron)', color: 'var(--ink)', minHeight: 'clamp(220px, 34vw, 300px)', padding: 14 }}
                 >
-                  <span className="land-stamp__cap">አማርኛ · ግዕዝ</span>
+                  <span className="land-sign__cap">አማርኛ · ግዕዝ</span>
                   <p
                     className="land-geez"
                     style={{
@@ -207,14 +207,14 @@ function Hero() {
                   </p>
                 </div>
                 <div className="flex items-end justify-between" style={{ marginTop: 10 }}>
-                  <span className="land-stamp__cap">ኢትዮጵያ</span>
-                  <span className="land-stamp__val land-geez" style={{ fontSize: '1.9rem', fontStretch: '100%' }}>አማ</span>
+                  <span className="land-sign__cap">ኢትዮጵያ</span>
+                  <span className="land-sign__val land-geez" style={{ fontSize: '1.9rem', }}>አማ</span>
                 </div>
               </div>
             </div>
           </div>
           <div className="absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2" style={{ marginLeft: 6 }}>
-            {sent && <Postmark n={mark} size={150} />}
+            {sent && <Seal n={mark} size={150} />}
           </div>
         </div>
       </div>
@@ -225,14 +225,14 @@ function Hero() {
 function Fidel() {
   const [pick, setPick] = useState('ሀ');
   return (
-    <section style={{ background: 'var(--ink-soft)' }}>
+    <section style={{ background: 'var(--ground-soft)' }}>
       <div className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
         <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
           <div>
             <h2 className="land-display land-h2">
               Every fidel.
               <br />
-              <span style={{ color: 'var(--yellow)' }}>All seven forms.</span>
+              <span style={{ color: 'var(--saffron)' }}>All seven forms.</span>
             </h2>
             <p className="land-lede" style={{ marginTop: 24 }}>
               The complete Ge&apos;ez script, each consonant with its vowel forms, typed natively. Amharic is not a
@@ -246,21 +246,21 @@ function Fidel() {
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-7" key={pick}>
+          <div className="grid grid-cols-4 content-start gap-3 sm:gap-5" key={pick}>
             {FIDEL[pick].map((g, k) => (
-              <div key={k} className="land-stamp-shadow">
-                <div className="land-stamp" style={{ ['--s' as string]: '11px', ['--r' as string]: '3.5px', padding: 9 }}>
+              <div key={k} className="land-sign-shadow">
+                <div className="land-sign" style={{ ['--s' as string]: '11px', ['--r' as string]: '3.5px', padding: 9 }}>
                   <div
-                    className="land-stamp__art flex items-center justify-center"
+                    className="land-sign__art flex items-center justify-center"
                     style={{
                       aspectRatio: '4 / 5',
-                      background: k % 2 ? 'var(--green)' : 'var(--red)',
+                      background: k % 2 ? 'var(--vermilion)' : 'var(--sky)',
                       color: '#fff',
                     }}
                   >
-                    <span className="land-geez" style={{ fontSize: 'clamp(2rem, 4.4vw, 3rem)' }}>{g}</span>
+                    <span className="land-geez" style={{ fontSize: 'clamp(2.2rem, 5.5vw, 4rem)' }}>{g}</span>
                   </div>
-                  <div className="land-stamp__cap land-geez" style={{ marginTop: 7, textAlign: 'center', letterSpacing: '0.04em', fontSize: '0.8rem' }}>
+                  <div className="land-sign__cap land-geez" style={{ marginTop: 7, textAlign: 'center', letterSpacing: '0.04em', fontSize: '0.8rem' }}>
                     {ORDERS[k]}
                   </div>
                 </div>
@@ -273,7 +273,7 @@ function Fidel() {
   );
 }
 
-function Stamp({
+function Sign({
   className = '',
   bg,
   fg,
@@ -291,39 +291,39 @@ function Stamp({
   mark?: string;
 }) {
   return (
-    <div className={`land-stamp-shadow ${className}`}>
-      <div className="land-stamp h-full">
-        <div className="land-stamp__art flex h-full flex-col justify-between gap-8" style={{ background: bg, color: fg, padding: 'clamp(18px, 3vw, 32px)' }}>
+    <div className={`land-sign-shadow ${className}`}>
+      <div className="land-sign h-full">
+        <div className="land-sign__art flex h-full flex-col justify-between gap-8" style={{ background: bg, color: fg, padding: 'clamp(18px, 3vw, 32px)' }}>
           <div className="flex items-start justify-between gap-4">
-            <span className="land-stamp__cap">{cap}</span>
-            <span className="land-stamp__val" style={{ fontSize: 'clamp(2.4rem, 5vw, 3.6rem)' }}>{val}</span>
+            <span className="land-sign__cap">{cap}</span>
+            <span className="land-sign__val" style={{ fontSize: 'clamp(2.4rem, 5vw, 3.6rem)' }}>{val}</span>
           </div>
           <div>{children}</div>
         </div>
-        {mark ? <div className="land-stamp__cap" style={{ marginTop: 10 }}>{mark}</div> : null}
+        {mark ? <div className="land-sign__cap" style={{ marginTop: 10 }}>{mark}</div> : null}
       </div>
     </div>
   );
 }
 
 function Sheet() {
-  const h = { fontSize: 'clamp(1.9rem, 4.2vw, 3.1rem)', fontStretch: '70%' } as const;
+  const h = { fontSize: 'clamp(1.9rem, 4.2vw, 3.1rem)', } as const;
   const p = { marginTop: 14, maxWidth: '40ch', lineHeight: 1.5, fontSize: '1.02rem' } as const;
   return (
     <section className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
       <h2 className="land-display land-h2" style={{ marginBottom: 'clamp(32px, 5vw, 56px)', maxWidth: '14ch' }}>
-        Built for <span style={{ color: 'var(--yellow)' }}>bilingual</span> speed
+        Built for <span style={{ color: 'var(--saffron)' }}>bilingual</span> speed
       </h2>
       <div className="grid gap-5 md:grid-cols-12 md:gap-7">
-        <Stamp className="md:col-span-7" bg="var(--green)" fg="#fff" cap="AI · Inline" val={<Languages size={46} aria-hidden="true" />} mark="Translation">
+        <Sign className="md:col-span-7" bg="var(--vermilion)" fg="#fff" cap="AI · Inline" val={<Languages size={46} aria-hidden="true" />} mark="Translation">
           <h3 className="land-display" style={h}>Translate without leaving the keyboard</h3>
           <p style={p}>English to Amharic and back, right where you type. No separate translator app, no copy and paste.</p>
-        </Stamp>
-        <Stamp className="md:col-span-5" bg="var(--yellow)" fg="var(--print)" cap="Canvas · AI" val={<PenLine size={46} aria-hidden="true" />} mark="Handwriting">
+        </Sign>
+        <Sign className="md:col-span-5" bg="var(--saffron)" fg="var(--ink)" cap="Canvas · AI" val={<PenLine size={46} aria-hidden="true" />} mark="Handwriting">
           <h3 className="land-display" style={h}>Draw a letter, get the fidel</h3>
           <p style={p}>Canvas handwriting recognition for the characters you don&apos;t want to hunt for.</p>
-        </Stamp>
-        <Stamp className="md:col-span-8" bg="var(--red)" fg="#fff" cap="Privacy" val={<ShieldCheck size={46} aria-hidden="true" />} mark="Sealed">
+        </Sign>
+        <Sign className="md:col-span-8" bg="var(--sky)" fg="#fff" cap="Privacy" val={<ShieldCheck size={46} aria-hidden="true" />} mark="Sealed">
           <h3 className="land-display" style={{ ...h, fontSize: 'clamp(2rem, 5vw, 3.8rem)' }}>
             Your typing stays on your phone.
           </h3>
@@ -331,11 +331,11 @@ function Sheet() {
             No keylogging, no accounts, no ads, no tracking. Translation, GIF search and voice send only what you give
             them, only when you use them. <a href="/privacy" style={{ color: 'inherit' }}>Read exactly what goes where.</a>
           </p>
-        </Stamp>
-        <Stamp className="md:col-span-4" bg="var(--ink)" fg="var(--on-ink)" cap="Stickers · GIFs" val={<Smile size={46} aria-hidden="true" />} mark="Expression">
+        </Sign>
+        <Sign className="md:col-span-4" bg="var(--enamel)" fg="var(--ink)" cap="Stickers · GIFs" val={<Smile size={46} aria-hidden="true" />} mark="Expression">
           <h3 className="land-display" style={h}>Say it with a sticker</h3>
           <p style={p}>Ethiopian collections and Giphy GIFs, inside the keyboard.</p>
-        </Stamp>
+        </Sign>
       </div>
     </section>
   );
@@ -343,28 +343,28 @@ function Sheet() {
 
 function Themes() {
   return (
-    <section style={{ background: 'var(--ink-soft)' }}>
+    <section style={{ background: 'var(--ground-soft)' }}>
       <div className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
         <div className="flex flex-wrap items-end justify-between gap-6" style={{ marginBottom: 'clamp(32px, 5vw, 56px)' }}>
           <h2 className="land-display land-h2">
-            Themes that <span style={{ color: 'var(--yellow)' }}>move</span>
+            Themes that <span style={{ color: 'var(--saffron)' }}>move</span>
           </h2>
           <p className="land-lede" style={{ maxWidth: '38ch' }}>
-            Live-animated backgrounds, Ethiopian themes and club colors. Your keyboard, collected like stamps.
+            Live-animated backgrounds, Ethiopian themes and club colors. Your keyboard, repainted whenever you like.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-6">
           {THEMES.map((t, k) => (
-            <div key={t.name} className="land-stamp-shadow" style={{ transform: `rotate(${[-1.2, 0.8, -0.5, 1.1][k % 4]}deg)` }}>
-              <div className="land-stamp" style={{ padding: 10 }}>
-                <div className="land-stamp__art" style={{ aspectRatio: '3 / 4' }}>
+            <div key={t.name} className="land-sign-shadow" style={{ transform: `rotate(${[-1.2, 0.8, -0.5, 1.1][k % 4]}deg)` }}>
+              <div className="land-sign" style={{ padding: 10 }}>
+                <div className="land-sign__art" style={{ aspectRatio: '3 / 4' }}>
                   <Image src={t.src} alt={`${t.name} theme preview`} fill sizes="(max-width: 768px) 46vw, 22vw" className="object-cover" />
                 </div>
                 <div className="flex items-baseline justify-between" style={{ marginTop: 8 }}>
-                  <span className="land-display" style={{ fontSize: '1.05rem', fontStretch: '85%' }}>{t.name}</span>
+                  <span className="land-display" style={{ fontSize: '1.05rem', }}>{t.name}</span>
                   <span
-                    className="land-stamp__cap"
-                    style={t.tag === 'Live' ? { color: 'var(--red)', fontWeight: 700 } : undefined}
+                    className="land-sign__cap"
+                    style={t.tag === 'Live' ? { color: 'var(--vermilion)', fontWeight: 700 } : undefined}
                   >
                     {t.tag}
                   </span>
@@ -384,7 +384,7 @@ function Try() {
       <div className="grid items-center gap-12 lg:grid-cols-[1fr_auto] lg:gap-24">
         <div>
           <h2 className="land-display land-h2">
-            Type a line <span style={{ color: 'var(--yellow)' }}>home</span>
+            Type a line <span style={{ color: 'var(--saffron)' }}>home</span>
           </h2>
           <p className="land-lede" style={{ marginTop: 24 }}>
             This is the real AkAI keyboard running in your browser, not a mock-up. Switch between English and
@@ -399,8 +399,8 @@ function Try() {
           <div className="land-phone__screen">
             <Suspense
               fallback={
-                <div className="flex h-full items-center justify-center" style={{ color: 'var(--print)' }}>
-                  <span className="land-stamp__cap">Loading keyboard…</span>
+                <div className="flex h-full items-center justify-center" style={{ color: 'var(--ink)' }}>
+                  <span className="land-sign__cap">Loading keyboard…</span>
                 </div>
               }
             >
@@ -416,13 +416,13 @@ function Try() {
 function Close() {
   return (
     <section className="land-wrap" style={{ paddingBlock: 'clamp(32px, 6vw, 80px) clamp(64px, 9vw, 120px)' }}>
-      <div className="land-stamp-shadow">
-        <div className="land-stamp" style={{ padding: 'clamp(14px, 2.4vw, 24px)', ['--s' as string]: '18px', ['--r' as string]: '6px' }}>
+      <div className="land-sign-shadow">
+        <div className="land-sign" style={{ padding: 'clamp(14px, 2.4vw, 24px)', ['--s' as string]: '18px', ['--r' as string]: '6px' }}>
           <div
-            className="land-stamp__art flex flex-col items-start justify-between gap-10 md:flex-row md:items-end"
-            style={{ background: 'var(--green)', color: '#fff', padding: 'clamp(24px, 5vw, 64px)' }}
+            className="land-sign__art flex flex-col items-start justify-between gap-10 md:flex-row md:items-end"
+            style={{ background: 'var(--vermilion)', color: '#fff', padding: 'clamp(24px, 5vw, 64px)' }}
           >
-            <h2 className="land-display" style={{ fontSize: 'clamp(3rem, 9vw, 7rem)', fontStretch: '66%' }}>
+            <h2 className="land-display" style={{ fontSize: 'clamp(3rem, 9vw, 7rem)', }}>
               Stop compromising.
               <br />
               Start typing.
@@ -443,7 +443,7 @@ function Close() {
 export default function Home() {
   return (
     <main className="land">
-      <div className="land-chevron" aria-hidden="true" />
+      <div className="land-ribs" aria-hidden="true" />
       <Hero />
       <Fidel />
       <Sheet />
@@ -451,9 +451,9 @@ export default function Home() {
       <Try />
       <Close />
       <footer>
-        <div className="land-chevron" aria-hidden="true" />
+        <div className="land-ribs" aria-hidden="true" />
         <div className="land-wrap flex flex-wrap items-center justify-between gap-4" style={{ paddingBlock: 28 }}>
-          <span className="land-display" style={{ fontSize: '1.5rem', fontStretch: '100%' }}>AkAI</span>
+          <span className="land-display" style={{ fontSize: '1.5rem', }}>AkAI</span>
           <span style={{ color: 'var(--on-ink-dim)', fontSize: '0.9rem' }}>
             English &amp; Amharic keyboard · <a href="/privacy">Privacy policy</a> · &copy; 2026 AkAI
           </span>
