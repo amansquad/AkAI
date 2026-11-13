@@ -389,6 +389,11 @@ function Try() {
             This is the real AkAI keyboard running in your browser, not a mock-up. Switch between English and
             Amharic, tap a consonant for its vowel forms, then try the themes, stickers, GIFs and AI translate tabs.
           </p>
+          <ul className="land-hints">
+            <li><span className="land-hints__key land-geez" aria-hidden="true">ሀ</span> Tap a consonant to see its seven vowel forms.</li>
+            <li><span className="land-hints__key" aria-hidden="true">🌐</span> The globe key switches between English and አማርኛ.</li>
+            <li><span className="land-hints__key" aria-hidden="true">🎨</span> The palette opens the themes, live and still.</li>
+          </ul>
           <a href={APK} download={APK_FILE} className="land-btn land-btn--primary" style={{ marginTop: 32 }}>
             <Download size={20} aria-hidden="true" /> Download for Android
           </a>

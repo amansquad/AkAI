@@ -3292,7 +3292,7 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   }
 
   return (
-    <div className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''}`}
+    <div data-kb-theme={theme} className={`flex flex-col h-full ${t.bg} rounded-lg overflow-hidden transition-colors duration-300 relative ${desktopView ? 'desktop-keyboard-layout' : ''} ${t.isLive ? 'live-keyboard-active' : ''}`}
       style={{ ...customBgStyle, ...(keyboardCssVars({ keyHeight, keyGap, keyTextSize, keyRadius, keyWeight }) as React.CSSProperties) }}>
       {/* Custom image/GIF background layer */}
       {customBgFile && (
