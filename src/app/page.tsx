@@ -42,15 +42,16 @@ const FIDEL: Record<string, string[]> = {
   'በ': ['በ', 'ቡ', 'ቢ', 'ባ', 'ቤ', 'ብ', 'ቦ'],
 };
 
+/* Real captures of the Android keyboard with each theme applied (public/themes/kb). */
 const THEMES = [
-  { name: 'Addis Ababa', src: '/themes/addis_ababa.png', tag: 'Ethiopian' },
-  { name: 'Nebula', src: '/themes/nebula_live.png', tag: 'Live' },
-  { name: 'Aurora', src: '/themes/aurora.png', tag: 'Theme' },
-  { name: 'St. George', src: '/themes/fb_stgeorge.png', tag: 'Club' },
-  { name: 'Starfield', src: '/themes/starfield_live.png', tag: 'Live' },
-  { name: 'Lava', src: '/themes/lava.png', tag: 'Theme' },
-  { name: 'Galaxy', src: '/themes/galaxy.png', tag: 'Theme' },
-  { name: 'Neon Pulse', src: '/themes/neon-pulse.png', tag: 'Theme' },
+  { name: 'Saint George FC', src: '/themes/kb/saint-george-fc.jpg', tag: 'Club' },
+  { name: 'Addis Ababa', src: '/themes/kb/addis-ababa.jpg', tag: 'Ethiopian' },
+  { name: 'Judah Lion', src: '/themes/kb/judah-lion.jpg', tag: 'Ethiopian' },
+  { name: 'Ethiopian Flag', src: '/themes/kb/ethiopian-flag.jpg', tag: 'Ethiopian' },
+  { name: 'Holy Maryam', src: '/themes/kb/faith_maryam.jpg', tag: 'Faith' },
+  { name: 'Aurora', src: '/themes/kb/aurora.jpg', tag: 'Live' },
+  { name: 'Lava', src: '/themes/kb/lava.jpg', tag: 'Live' },
+  { name: 'Starfield', src: '/themes/kb/starfield.jpg', tag: 'Live' },
 ];
 
 /* Circular postmark with bilingual ring text. `n` re-keys the drop animation. */
@@ -339,27 +340,6 @@ function Sheet() {
   );
 }
 
-/* A decorative keyboard drawn over a theme's wallpaper, so a theme reads as a keyboard, not a picture. */
-function StageKeys() {
-  const rows = [['ሀ', 'ለ', 'መ', 'ሰ', 'ቀ', 'በ', 'ተ', 'ነ'], ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i'], ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k']];
-  return (
-    <div className="land-stagekeys" aria-hidden="true">
-      {rows.map((r, ri) => (
-        <div key={ri} className="land-stagekeys__row">
-          {r.map((k) => (
-            <span key={k} className={ri === 0 ? 'land-geez' : ''}>{k}</span>
-          ))}
-        </div>
-      ))}
-      <div className="land-stagekeys__row">
-        <span className="is-mod" style={{ flex: 1.4 }}>🌐</span>
-        <span style={{ flex: 5 }}>AkAI</span>
-        <span className="is-go" style={{ flex: 1.4 }}>↵</span>
-      </div>
-    </div>
-  );
-}
-
 function Themes() {
   const [sel, setSel] = useState(0);
   const cur = THEMES[sel];
@@ -371,7 +351,7 @@ function Themes() {
             Pick a coat of <span style={{ color: 'var(--saffron)' }}>paint</span>
           </h2>
           <p className="land-lede" style={{ maxWidth: '38ch' }}>
-            Live-animated backgrounds, Ethiopian themes and club colors. Your keyboard, repainted whenever you like.
+            Live-animated backgrounds, Ethiopian scenes, club colors and faith themes. These are screenshots of the real keyboard.
           </p>
         </div>
 
@@ -379,8 +359,7 @@ function Themes() {
           <div className="land-sign-shadow land-themes__stage" style={{ transform: 'rotate(-1deg)' }}>
             <div className="land-sign" style={{ padding: 12 }}>
               <div className="land-sign__art land-themes__art" key={cur.name}>
-                <Image src={cur.src} alt={`${cur.name} theme preview`} fill sizes="(max-width: 1024px) 90vw, 380px" className="object-cover" priority={false} />
-                <StageKeys />
+                <Image src={cur.src} alt={`The AkAI keyboard with the ${cur.name} theme`} fill sizes="(max-width: 1024px) 90vw, 560px" className="object-cover" priority={false} />
               </div>
               <div className="flex items-baseline justify-between" style={{ marginTop: 10 }}>
                 <span className="land-display" style={{ fontSize: '1.7rem' }}>{cur.name}</span>
@@ -393,7 +372,7 @@ function Themes() {
             {THEMES.map((t, k) => (
               <button key={t.name} type="button" className="land-swatch" aria-pressed={sel === k} onClick={() => setSel(k)}>
                 <span className="land-swatch__img">
-                  <Image src={t.src} alt="" fill sizes="(max-width: 768px) 40vw, 180px" className="object-cover" />
+                  <Image src={t.src} alt="" fill sizes="(max-width: 768px) 44vw, 200px" className="object-cover" />
                 </span>
                 <span className="land-swatch__name">{t.name}</span>
                 <span className="land-swatch__tag" style={t.tag === 'Live' ? { color: 'var(--vermilion)' } : undefined}>{t.tag}</span>
@@ -409,7 +388,7 @@ function Themes() {
 function Try() {
   return (
     <section id="try" className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
-      <div className="grid items-center gap-12 lg:grid-cols-[1fr_auto] lg:gap-24">
+      <div className="grid items-center gap-12 lg:grid-cols-[1fr_360px] lg:gap-24">
         <div>
           <h2 className="land-display land-h2">
             Type a line <span style={{ color: 'var(--saffron)' }}>home</span>
@@ -428,7 +407,7 @@ function Try() {
           </a>
           <ApkNote style={{ marginTop: 14 }} />
         </div>
-        <div className="mx-auto w-full" style={{ maxWidth: 360 }}>
+        <div className="land-tryphone">
         <p className="land-tab" aria-hidden="true">Try it · type a line</p>
         <div className="land-phone" style={{ maxWidth: "calc(100vw - 32px)" }}>
           <div className="land-phone__screen">
