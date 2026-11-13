@@ -3,7 +3,7 @@
  * Provides offline support and caching strategies
  */
 
-const CACHE_NAME = 'akai-v1.0.0';
+const CACHE_NAME = 'akai-v1.1.0';
 const RUNTIME_CACHE = 'akai-runtime';
 
 // Assets to cache on install
