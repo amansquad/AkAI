@@ -33,8 +33,14 @@ export const metadata: Metadata = {
   description: "AkAI: The smartest bilingual keyboard for English and Amharic. AI translation, stickers, GIFs, handwriting, 170+ themes, Ethiopian numbers, word suggestions.",
   keywords: ["AkAI", "keyboard", "Amharic", "English", "bilingual", "AI translation", "Ge'ez", "stickers", "GIFs", "handwriting", "themes", "Ethiopian"],
   authors: [{ name: "AkAI Team" }],
+  // New file names (not akai-icon.png) so browsers and the service worker
+  // can't keep showing the old icon from their caches.
   icons: {
-    icon: "/akai-icon.png",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     title: "AkAI - Amharic Keyboard + AI",
