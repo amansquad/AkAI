@@ -300,7 +300,6 @@ function Sign({
           </div>
           <div>{children}</div>
         </div>
-        {mark ? <div className="land-sign__cap" style={{ marginTop: 10 }}>{mark}</div> : null}
       </div>
     </div>
   );
@@ -395,6 +394,8 @@ function Try() {
           </a>
           <ApkNote style={{ marginTop: 14 }} />
         </div>
+        <div className="mx-auto w-full" style={{ maxWidth: 360 }}>
+        <p className="land-tab" aria-hidden="true">Live · the real keyboard</p>
         <div className="land-phone" style={{ maxWidth: "calc(100vw - 32px)" }}>
           <div className="land-phone__screen">
             <Suspense
@@ -407,6 +408,7 @@ function Try() {
               <DemoKeyboard />
             </Suspense>
           </div>
+        </div>
         </div>
       </div>
     </section>
