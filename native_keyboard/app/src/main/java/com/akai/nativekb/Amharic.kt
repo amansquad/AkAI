@@ -141,10 +141,52 @@ object Amharic {
             .sortedWith(compareByDescending<String> { learned[it] ?: 0 }.thenBy { dict.rankOf(it) })
     }
 
+    private val prefixes = listOf("እንደ", "ስለ", "ከ", "በ", "ለ", "የ", "ም", "አል", "አይ", "እስከ", "ወደ", "ያ", "ይህ")
+    private val suffixes = listOf(
+        "ቻቸው", "ቻችን", "ቻችሁ", "ዎቹ", "ዎች", "ቸው", "ችን", "ችሁ", "ነት", "ዋ", "ኝ", "ህ", "ሽ", "ው", "ን", "ም", "ች", "ና", "ዎ", "ዋል", "ል",
+    )
+
+    /** The base form of a word ending in a plural "ቶች": the ት before ች comes back to its sixth order. */
+    private fun pluralStem(w: String): String? {
+        if (w.length < 3 || !w.endsWith("ች")) return null
+        val (base, order) = familyOf[w[w.length - 2]] ?: return null
+        if (order != 6) return null
+        val sixth = KeyboardData.amharicVowels[base.toString()]?.getOrNull(5) ?: return null
+        return w.substring(0, w.length - 2) + sixth
+    }
+
+    /**
+     * True when [w] is a listed word, or a listed word with a common prefix
+     * (የ, በ, ለ…) and/or suffix (ች, ን, ዎች, ቸው…) added. The list holds few inflected
+     * forms, so a word that fails this is not necessarily a typo, but one that passes never is.
+     */
+    fun isKnown(w: String, dict: Dictionary, learned: Map<String, Int> = emptyMap()): Boolean {
+        // Stems under three letters are too easy to hit by accident (ሰለ + ም would excuse the typo ሰለም).
+        fun listed(x: String) = x.length >= 3 && (x in dict || x in learned)
+        if (w in dict || w in learned) return true
+        fun sixth(x: String): String? {
+            val (base, _) = familyOf[x.lastOrNull() ?: return null] ?: return null
+            return KeyboardData.amharicVowels[base.toString()]?.getOrNull(5)?.let { x.dropLast(1) + it }
+        }
+        val stems = ArrayList<String>()
+        stems.add(w)
+        for (p in prefixes) if (w.startsWith(p) && w.length - p.length >= 3) stems.add(w.substring(p.length))
+        for (st in stems.toList()) {
+            for (sfx in suffixes) if (st.endsWith(sfx) && st.length - sfx.length >= 3) {
+                val bare = st.dropLast(sfx.length)
+                stems.add(bare)
+                // A vowel suffix (ው, ኧ) leaves the last letter in another order: ሰላሙ is ሰላም + ው.
+                sixth(bare)?.let { stems.add(it) }
+            }
+            pluralStem(st)?.let { stems.add(it) }
+        }
+        return stems.any { it != w && listed(it) }
+    }
+
     /** The correction for [typed], or null to leave it. Known and learned words are never changed. */
     fun correct(typed: String, dict: Dictionary?, learned: Map<String, Int> = emptyMap()): String? {
         if (dict == null || typed.length < 3 || !typed.all(::isFidel)) return null
-        if (typed in dict || typed in learned) return null
+        if (isKnown(typed, dict, learned)) return null
         return candidates(typed, dict, learned).firstOrNull()
     }
 }

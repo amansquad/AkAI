@@ -109,6 +109,14 @@ class AmharicTest {
         assertNull(Amharic.correct("selam", dict))
     }
 
+    @Test fun inflectedFormsOfListedWordsAreKnown() {
+        assertTrue(Amharic.isKnown("የሰላም", dict))
+        assertTrue(Amharic.isKnown("ሰላሞች", dict))
+        assertTrue(Amharic.isKnown("ሰላሙን", dict))
+        assertNull(Amharic.correct("የሰላም", dict))
+        assertTrue(!Amharic.isKnown("ሰለሰለ", dict))
+    }
+
     @Test fun suggestionsUseTheAmharicList() {
         val s = Suggest.forText("ሰለም", amharic = true, dict = dict)
         assertEquals("ሰላም", s.firstOrNull())
