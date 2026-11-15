@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Akai spell checker: Amharic and English, from the keyboard's own word lists. -->
+<spell-checker xmlns:android="http://schemas.android.com/apk/res/android"
+    android:label="@string/spellchecker_name">
+    <subtype android:label="@string/spellchecker_name" android:subtypeLocale="am" android:languageTag="am" />
+    <subtype android:label="@string/spellchecker_name" android:subtypeLocale="en" android:languageTag="en" />
+</spell-checker>
