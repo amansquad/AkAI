@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<input-method xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- supportsInlineSuggestions: password managers can show autofill chips on the keyboard (Android 11+). -->
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:supportsInlineSuggestions="true">
     <subtype
         android:imeSubtypeMode="keyboard"
         android:isAsciiCapable="true"

@@ -71,6 +71,8 @@ class PanelView(context: Context) : View(context) {
     var giphyKey = ""
     /** 0 for the default, then 1 (lightest) to 5 (darkest). */
     var skinTone = 0
+    /** Emoji per row: fewer means bigger emoji (Settings → Emoji size). */
+    var emojiCols = 8
 
     private val density = resources.displayMetrics.density
     private fun dp(v: Float) = v * density
@@ -163,6 +165,9 @@ class PanelView(context: Context) : View(context) {
     private var source = ""
     private var result: String? = null
     private var translateStatus: String? = null
+    /** 0 translates; the rest rewrite in the same language (see [Net.REWRITE_STYLES]). */
+    private var aiMode = 0
+    private val aiModes = listOf("Translate", "Fix spelling", "Formal", "Friendly", "Shorter")
 
     fun open(tab: Tab, recents: List<String>, clips: List<Clip>) {
         this.tab = tab
@@ -275,7 +280,7 @@ class PanelView(context: Context) : View(context) {
     private fun themeCellH() = width / 3f * 0.74f + dp(24f)
 
     private fun contentHeight(): Float = when (tab) {
-        Tab.EMOJI -> ((emojiCount() + 7) / 8) * (width / 8f)
+        Tab.EMOJI -> ((emojiCount() + emojiCols - 1) / emojiCols) * (width / emojiCols.toFloat())
         Tab.STICKERS -> ((stickerList().size + stickerCols() - 1) / stickerCols()) * stickerCell()
         Tab.GIF -> ((gifs.size + 2) / 3) * gifCell()
         Tab.CLIPBOARD -> clips.size * clipRowH()
@@ -474,11 +479,11 @@ class PanelView(context: Context) : View(context) {
             label(canvas, "Emoji you use will appear here", width / 2f, top + dp(60f), dp(14f), palette.hint)
             return
         }
-        val cell = width / 8f
+        val cell = width / emojiCols.toFloat()
         val first = max(0, (scrollY / cell).toInt())
-        val last = min((list.size + 7) / 8, first + ((height - top) / cell).toInt() + 2)
-        for (r in first until last) for (c in 0 until 8) {
-            val i = r * 8 + c
+        val last = min((list.size + emojiCols - 1) / emojiCols, first + ((height - top) / cell).toInt() + 2)
+        for (r in first until last) for (c in 0 until emojiCols) {
+            val i = r * emojiCols + c
             if (i >= list.size) break
             label(canvas, EmojiData.withTone(list[i], skinTone), cell * (c + 0.5f), top + r * cell + cell / 2f - scrollY, cell * 0.55f, palette.text)
         }
@@ -489,12 +494,12 @@ class PanelView(context: Context) : View(context) {
     /** A custom emoji pack, eight to a row like the ordinary emoji, moving ones playing. */
     private fun drawCustomEmoji(canvas: Canvas, list: List<Stickers.Sticker>) {
         val top = contentTop()
-        val cell = width / 8f
+        val cell = width / emojiCols.toFloat()
         val px = (cell * 0.82f).toInt().coerceAtLeast(1)
         val first = max(0, (scrollY / cell).toInt())
-        val last = min((list.size + 7) / 8, first + ((height - top) / cell).toInt() + 2)
-        for (r in first until last) for (c in 0 until 8) {
-            val i = r * 8 + c
+        val last = min((list.size + emojiCols - 1) / emojiCols, first + ((height - top) / cell).toInt() + 2)
+        for (r in first until last) for (c in 0 until emojiCols) {
+            val i = r * emojiCols + c
             if (i >= list.size) break
             val x = cell * c + (cell - px) / 2f
             val y = top + r * cell - scrollY + (cell - px) / 2f
@@ -747,8 +752,10 @@ class PanelView(context: Context) : View(context) {
         val pad = dp(8f)
         val w = width.toFloat()
         // Direction.
-        button(canvas, pad, top + dp(4f), w - pad, top + dp(40f),
-            if (translateToAmharic) "English  →  አማርኛ   (tap to swap)" else "አማርኛ  →  English   (tap to swap)")
+        // Direction on the left (translating only), what to do on the right (tap to change).
+        button(canvas, pad, top + dp(4f), w / 2f - dp(3f), top + dp(40f),
+            if (aiMode != 0) "Same language" else if (translateToAmharic) "EN → አማ  ⇄" else "አማ → EN  ⇄")
+        button(canvas, w / 2f + dp(3f), top + dp(4f), w - pad, top + dp(40f), aiModes[aiMode] + "  ▾")
         // Source.
         var y = top + dp(48f)
         val boxH = (height - top - dp(48f) - dp(52f) - dp(8f)) / 2f
@@ -756,9 +763,9 @@ class PanelView(context: Context) : View(context) {
             source.ifBlank { "Type something in the app first, then open this tab" }, source.isBlank())
         y += boxH + dp(4f)
         drawBox(canvas, pad, y, w - pad, y + boxH,
-            result ?: translateStatus ?: "The translation appears here", result == null)
+            result ?: translateStatus ?: (if (aiMode == 0) "The translation appears here" else "The rewritten text appears here"), result == null)
         val by = height - dp(44f)
-        button(canvas, pad, by, w / 2f - dp(3f), height - dp(4f), "Translate", accent = true)
+        button(canvas, pad, by, w / 2f - dp(3f), height - dp(4f), if (aiMode == 0) "Translate" else "Rewrite", accent = true)
         button(canvas, w / 2f + dp(3f), by, w - pad, height - dp(4f), "Replace")
     }
 
@@ -859,15 +866,23 @@ class PanelView(context: Context) : View(context) {
     private fun translate() {
         if (source.isBlank()) return
         if (serverUrl.isBlank()) { translateStatus = "Set the server address in the app's settings"; invalidate(); return }
-        translateStatus = "Translating…"
         result = null
-        invalidate()
-        Net.translate(serverUrl, source, translateToAmharic) { out ->
-            if (tab != Tab.TRANSLATE) return@translate
-            result = out
-            if (out == null) translateStatus = "Translation failed - is the server reachable?"
-            invalidate()
+        val asked = source
+        val done = { out: String? ->
+            if (tab == Tab.TRANSLATE && source == asked) {
+                result = out
+                if (out == null) translateStatus = if (aiMode == 0) "Translation failed - is the server reachable?" else "Rewrite failed - is the server reachable?"
+                invalidate()
+            }
         }
+        if (aiMode == 0) {
+            translateStatus = "Translating…"
+            Net.translate(serverUrl, source, translateToAmharic, done)
+        } else {
+            translateStatus = "Rewriting…"
+            Net.rewrite(serverUrl, source, Net.REWRITE_STYLES[aiMode - 1], done)
+        }
+        invalidate()
     }
 
     // ─── Touch ───────────────────────────────────────────────────────────
@@ -1015,7 +1030,11 @@ class PanelView(context: Context) : View(context) {
     private fun translateTap(x: Float, y: Float) {
         val top = contentTop()
         when {
-            y < top + dp(44f) -> { translateToAmharic = !translateToAmharic; result = null; translateStatus = null; invalidate() }
+            y < top + dp(44f) -> {
+                if (x > width / 2f) aiMode = (aiMode + 1) % aiModes.size
+                else if (aiMode == 0) translateToAmharic = !translateToAmharic
+                result = null; translateStatus = null; invalidate()
+            }
             y > height - dp(48f) -> {
                 if (x < width / 2f) translate()
                 else result?.let { host?.onPanelReplace(source.length, it) }
@@ -1102,12 +1121,12 @@ class PanelView(context: Context) : View(context) {
         if (y < top) return
         when (tab) {
             Tab.EMOJI -> {
-                val cell = width / 8f
-                val c = (x / cell).toInt().coerceIn(0, 7)
+                val cell = width / emojiCols.toFloat()
+                val c = (x / cell).toInt().coerceIn(0, emojiCols - 1)
                 val r = ((y - top + scrollY) / cell).toInt()
                 val custom = customEmoji()
-                if (custom != null) custom.stickers.getOrNull(r * 8 + c)?.let { host?.onPanelSticker(it) }
-                else emojiList().getOrNull(r * 8 + c)?.let { host?.onPanelText(EmojiData.withTone(it, skinTone), true) }
+                if (custom != null) custom.stickers.getOrNull(r * emojiCols + c)?.let { host?.onPanelSticker(it) }
+                else emojiList().getOrNull(r * emojiCols + c)?.let { host?.onPanelText(EmojiData.withTone(it, skinTone), true) }
             }
             Tab.STICKERS -> {
                 val cell = stickerCell()

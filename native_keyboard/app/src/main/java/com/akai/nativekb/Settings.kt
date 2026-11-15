@@ -275,6 +275,9 @@ class SettingsActivity : ThemedActivity() {
         Entry(TYPING, "Auto-correct Amharic", "ሰ ሠ vowel fix"),
         Entry(TYPING, "Learn the words I type", "dictionary personal remember"),
         Entry(TYPING, "Text shortcuts", "abbreviation expand snippet replace"),
+        Entry(EMOJI, "Emoji size", "bigger larger smaller emoji grid"),
+        Entry(TYPING, "Tidy up voice typing", "voice dictation punctuation filler clean"),
+        Entry(SIZE, "Floating keyboard", "float move drag tablet small"),
         Entry(TYPING, "Incognito mode", "private privacy history clipboard learn"),
         Entry(TYPING, "Forget learned words", "clear reset dictionary delete"),
         Entry(TYPING, "Swipe typing", "glide gesture slide"),
@@ -516,6 +519,9 @@ class SettingsActivity : ThemedActivity() {
         val oneHand = prefs.getInt(Prefs.ONE_HAND, 0)
         val width = ui.sliderRow("Width", 50, 95, prefs.getInt(Prefs.ONE_HAND_WIDTH, 80), "%") { put(Prefs.ONE_HAND_WIDTH, it) }
         width.visibility = if (oneHand > 0) View.VISIBLE else View.GONE
+        group(c, "Floating keyboard",
+            ui.switchRow("Floating keyboard", "A smaller keyboard over the app; drag the bar on top to move it", on(Prefs.FLOATING, false)) { put(Prefs.FLOATING, it) },
+        )
         group(c, "One-handed mode",
             ui.segmented("Move the keys towards", listOf("Off", "Left hand", "Right hand"), oneHand) {
                 put(Prefs.ONE_HAND, it)
@@ -574,7 +580,7 @@ class SettingsActivity : ThemedActivity() {
                 else { put(Prefs.PHONETIC, false); put(Prefs.AMHARIC_LAYOUT, amharic[it]) }
             },
             note("Phonetic types Amharic from Latin letters: \"selam\" gives ሰላም. Hold the language key to switch between fidel and phonetic."),
-            ui.switchRow("Tigrinya letters", "Adds ቐ (qhe) to the fidel board", on(Prefs.TIGRINYA, false)) { put(Prefs.TIGRINYA, it) },
+            ui.switchRow("Tigrinya and Blin letters", "Adds ቐ and ጘ to the fidel board; hold them for every form", on(Prefs.TIGRINYA, false)) { put(Prefs.TIGRINYA, it) },
         )
         val places = listOf(
             LangKey.SYMBOLS to ("Beside ?123" to "A key next to the symbols key"),
@@ -620,6 +626,7 @@ class SettingsActivity : ThemedActivity() {
             ui.switchRow("Auto-capitalization", "Capital at the start of a sentence", on(Prefs.AUTOCAP, true)) { put(Prefs.AUTOCAP, it) },
             ui.switchRow("Double-space period", "Two spaces after a word make a full stop", on(Prefs.DOUBLE_SPACE, true)) { put(Prefs.DOUBLE_SPACE, it) },
             ui.switchRow("Space after punctuation", "After . ! ? ; : the next letter starts with a space", on(Prefs.AUTO_SPACE, false)) { put(Prefs.AUTO_SPACE, it) },
+            ui.switchRow("Tidy up voice typing", "Adds punctuation and drops filler words after you speak. Sends what you said to your Akai server", on(Prefs.VOICE_TIDY, false)) { put(Prefs.VOICE_TIDY, it) },
         )
     }
 
@@ -656,6 +663,7 @@ class SettingsActivity : ThemedActivity() {
     private fun emojiPage(c: LinearLayout) {
         group(c, "Emoji",
             ui.segmented("Skin tone", listOf("Default", "1", "2", "3", "4", "5"), prefs.getInt(Prefs.SKIN_TONE, 0)) { put(Prefs.SKIN_TONE, it) },
+            ui.segmented("Emoji size", listOf("Small", "Normal", "Large", "Huge"), listOf(9, 8, 7, 6).indexOf(prefs.getInt(Prefs.EMOJI_COLS, 8)).coerceAtLeast(1)) { put(Prefs.EMOJI_COLS, listOf(9, 8, 7, 6)[it]) },
         )
         group(c, "GIFs",
             field("Giphy API key", Prefs.GIPHY_KEY, "Paste your key", true,
@@ -803,6 +811,7 @@ class SettingsActivity : ThemedActivity() {
 
         group(c, "Privacy",
             note("Learned words and settings are kept on this phone, and words are never learned from password, email or number fields. Text goes to your Akai server only when you use Translate, or for handwriting the phone can't read. GIFs come from Giphy through the Akai server (or directly, with your own key), and voice typing uses your phone's speech service."),
+            note("Rewrite, and Tidy up voice typing when it is on, also send the text to your Akai server."),
         )
         group(c, "Credits",
             note("English word list from FrequencyWords by Hermit Dave, CC BY-SA 4.0.\nHandwriting by Google ML Kit digital ink recognition.\nGIFs powered by Giphy."),

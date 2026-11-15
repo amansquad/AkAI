@@ -89,6 +89,15 @@ object Icons {
                 c.drawOval(r, stroke)
                 c.drawLine(3f, 12f, 21f, 12f, stroke)
             }
+            TOOL_SPEAK -> {
+                // A speaker with two sound waves.
+                path.reset()
+                path.moveTo(3.5f, 9.5f); path.lineTo(7.5f, 9.5f); path.lineTo(12f, 5f)
+                path.lineTo(12f, 19f); path.lineTo(7.5f, 14.5f); path.lineTo(3.5f, 14.5f); path.close()
+                c.drawPath(path, stroke)
+                r.set(11f, 8.5f, 18f, 15.5f); c.drawArc(r, -50f, 100f, false, stroke)
+                r.set(11f, 5f, 21.5f, 19f); c.drawArc(r, -50f, 100f, false, stroke)
+            }
             TOOL_THEMES -> {
                 path.reset()
                 // A painter's palette: round, with a thumb hole and three dabs of paint.

@@ -38,6 +38,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private lateinit var keys: KeyboardView
     private lateinit var panel: PanelView
     private lateinit var container: FrameLayout
+    /** Holds the keys and panels; floats over the app in floating mode. */
+    private lateinit var card: FrameLayout
+    private lateinit var handle: View
+    private var floating = false
     private val handler = Handler(Looper.getMainLooper())
 
     // ─── State ───────────────────────────────────────────────────────────
@@ -103,6 +107,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private var holdClear = false
     private var holdClearMs = 800
     private var skinTone = 0
+    private var emojiCols = 8
     private var serverUrl = ""
     private var giphyKey = ""
     private var oneHandWidth = 80
@@ -150,6 +155,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     override fun onDestroy() {
         super.onDestroy()
         voice?.destroy()
+        speaker?.destroy()
         VoiceBridge.onResult = null
         clipboard?.removePrimaryClipChangedListener(clipListener)
         handler.removeCallbacksAndMessages(null)
@@ -162,11 +168,23 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
         keys = KeyboardView(this).also { it.listener = this }
         panel = PanelView(this).also { it.host = this; it.visibility = View.GONE }
-        container = FrameLayout(this).apply {
+        chips = InlineChips(this)
+        handle = floatHandle()
+        card = FrameLayout(this).apply {
             addView(keys, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
             addView(panel, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+            addView(chips.view, chips.layoutParams())
+            addView(handle, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, handleH(), android.view.Gravity.TOP))
+            // Rows come and go (word of the day, suggestions, panels): keep a floating card on screen.
+            addOnLayoutChangeListener { v, _, top, _, bottom, _, oldTop, _, oldBottom ->
+                if (floating && bottom - top != oldBottom - oldTop) v.post { placeCard(v.translationX, v.translationY) }
+            }
+        }
+        container = FrameLayout(this).apply {
+            addView(card, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, android.view.Gravity.BOTTOM))
             // Leave room only for what the system really draws over the keyboard.
             // Adding the full navigation-bar height blindly left a dead band on
             // phones whose navigation bar already sits below the keyboard.
@@ -211,6 +229,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         holdClear = p.getBoolean(Prefs.HOLD_CLEAR, false)
         holdClearMs = p.getInt(Prefs.HOLD_CLEAR_MS, 800)
         skinTone = p.getInt(Prefs.SKIN_TONE, 0)
+        floating = p.getBoolean(Prefs.FLOATING, false)
+        emojiCols = p.getInt(Prefs.EMOJI_COLS, 8)
         // Blank means the AkAI website, which serves /api/translate itself.
         serverUrl = (p.getString(Prefs.SERVER_URL, "") ?: "").trim().ifBlank { Net.SITE }
         giphyKey = p.getString(Prefs.GIPHY_KEY, "") ?: ""
@@ -248,16 +268,17 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             panel.serverUrl = serverUrl
             panel.giphyKey = giphyKey
             panel.skinTone = skinTone
+            panel.emojiCols = emojiCols
             panel.themeId = Themes.find(theme).id
             keys.applySettings(look())
             keys.setTools(tools)
             panel.applyTheme(theme)
-            container.setBackgroundColor(Themes.palette(this, theme).background)
+            applyFloating()
         }
     }
 
     private fun look() = KeyLook(
-        theme, heightPercent, hints, oneHand, oneHandWidth, pressAnim, longPress, liveBg,
+        theme, heightPercent, hints, if (floating) 0 else oneHand, oneHandWidth, pressAnim, longPress, liveBg,
         longPressMs, keyGap, keyRadius, labelSize, keyWeight, keyBorders, glide,
     )
 
@@ -434,6 +455,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        if (::chips.isInitialized) chips.hide()
         super.onFinishInputView(finishingInput)
         voice?.cancel()
         if (habits.dirty > 0) saveLearned()
@@ -914,7 +936,124 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         showPanel(tab)
     }
 
+    // ─── Floating keyboard ───────────────────────────────────────────────
+
+    private fun handleH() = (20 * resources.displayMetrics.density).toInt()
+
+    /** The bar along the top of the floating keyboard: drag it to move the keyboard. */
+    private fun floatHandle(): View = object : View(this) {
+        private val pill = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        private var downX = 0f
+        private var downY = 0f
+        private var startX = 0f
+        private var startY = 0f
+
+        override fun onDraw(c: android.graphics.Canvas) {
+            pill.color = Themes.palette(context, theme).text
+            pill.alpha = 90
+            val d = resources.displayMetrics.density
+            val w = 36 * d
+            c.drawRoundRect(width / 2f - w / 2f, height / 2f - 2 * d, width / 2f + w / 2f, height / 2f + 2 * d, 2 * d, 2 * d, pill)
+        }
+
+        @android.annotation.SuppressLint("ClickableViewAccessibility")
+        override fun onTouchEvent(e: android.view.MotionEvent): Boolean {
+            when (e.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> { downX = e.rawX; downY = e.rawY; startX = card.translationX; startY = card.translationY }
+                android.view.MotionEvent.ACTION_MOVE -> placeCard(startX + e.rawX - downX, startY + e.rawY - downY)
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
+                    savePref { putInt(Prefs.FLOAT_X, card.translationX.toInt()); putInt(Prefs.FLOAT_Y, card.translationY.toInt()) }
+            }
+            return true
+        }
+    }.apply { contentDescription = "Drag to move the keyboard" }
+
+    /** Moves the floating keyboard, keeping it on screen. */
+    private fun placeCard(x: Float, y: Float) {
+        val maxX = (container.width - card.width).coerceAtLeast(0).toFloat()
+        val maxY = (container.height - container.paddingBottom - card.height).coerceAtLeast(0).toFloat()
+        card.translationX = x.coerceIn(0f, maxX)
+        card.translationY = y.coerceIn(0f, maxY)
+    }
+
+    /** Lays the keyboard out docked along the bottom, or as a smaller card over the app. */
+    private fun applyFloating() {
+        if (!::card.isInitialized) return
+        val bg = Themes.palette(this, theme).background
+        val dm = resources.displayMetrics
+        val lp = card.layoutParams as FrameLayout.LayoutParams
+        val top = if (floating) handleH() else 0
+        for (v in listOf(keys, panel, chips.view)) (v.layoutParams as FrameLayout.LayoutParams).topMargin = top
+        handle.visibility = if (floating) View.VISIBLE else View.GONE
+        if (floating) {
+            container.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            container.minimumHeight = dm.heightPixels
+            card.background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(bg); cornerRadius = 18 * dm.density
+            }
+            card.clipToOutline = true
+            card.elevation = 8 * dm.density
+            lp.width = (dm.widthPixels * 0.8f).toInt()
+            lp.gravity = android.view.Gravity.TOP or android.view.Gravity.START
+            card.layoutParams = lp
+            val p = getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
+            container.post {
+                val x = p.getInt(Prefs.FLOAT_X, -1).takeIf { it >= 0 }?.toFloat() ?: ((container.width - card.width) / 2f)
+                val y = p.getInt(Prefs.FLOAT_Y, -1).takeIf { it >= 0 }?.toFloat() ?: Float.MAX_VALUE
+                placeCard(x, y)
+            }
+        } else {
+            container.setBackgroundColor(bg)
+            container.minimumHeight = 0
+            card.background = null
+            card.elevation = 0f
+            card.translationX = 0f
+            card.translationY = 0f
+            lp.width = FrameLayout.LayoutParams.MATCH_PARENT
+            lp.gravity = android.view.Gravity.BOTTOM
+            card.layoutParams = lp
+        }
+    }
+
+    /** Floating: the app keeps its full size, and only the card takes touches. */
+    override fun onComputeInsets(outInsets: Insets) {
+        super.onComputeInsets(outInsets)
+        if (!floating || !::card.isInitialized || !card.isShown) return
+        val h = window?.window?.decorView?.height ?: return
+        outInsets.contentTopInsets = h
+        outInsets.visibleTopInsets = h
+        val at = IntArray(2)
+        card.getLocationInWindow(at)
+        outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+        outInsets.touchableRegion.set(at[0], at[1], at[0] + card.width, at[1] + card.height)
+    }
+
     // ─── Toolbar, panels, clipboard, voice ───────────────────────────────
+
+    private var speaker: Speaker? = null
+    private lateinit var chips: InlineChips
+
+    /** Asks the password manager for autofill chips (Android 11+). */
+    override fun onCreateInlineSuggestionsRequest(uiExtras: android.os.Bundle): android.view.inputmethod.InlineSuggestionsRequest? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && ::chips.isInitialized) chips.request() else null
+
+    override fun onInlineSuggestionsResponse(response: android.view.inputmethod.InlineSuggestionsResponse): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || !::chips.isInitialized) return false
+        chips.setBackground(Themes.palette(this, theme).background)
+        return chips.show(response)
+    }
+
+    /** Reads the selection, or else the field's text, aloud; a second tap stops it. */
+    private fun readAloud() {
+        val s = speaker ?: Speaker(this).also { speaker = it }
+        if (s.speaking) { s.stop(); return }
+        val ic = currentInputConnection ?: return
+        val text = ic.getSelectedText(0)?.takeIf { it.isNotBlank() }
+            ?: ((ic.getTextBeforeCursor(4000, 0) ?: "").toString() + (ic.getTextAfterCursor(4000, 0) ?: ""))
+        // Never read a password field out loud.
+        if (field == FieldKind.PASSWORD) return
+        s.speak(text.toString())
+    }
 
     override fun onToolbar(action: Int) {
         when (action) {
@@ -926,6 +1065,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             TOOL_WRITE -> showPanel(PanelView.Tab.WRITE)
             TOOL_TRANSLATE -> showPanel(PanelView.Tab.TRANSLATE)
             TOOL_THEMES -> showPanel(PanelView.Tab.THEMES)
+            TOOL_SPEAK -> readAloud()
             TOOL_VOICE -> {
                 voiceAmharic = amharic
                 showPanel(PanelView.Tab.VOICE)
@@ -1023,10 +1163,36 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         ic.setComposingText(startVoicePrefix() + text, 1)
     }
 
+    /**
+     * With "Tidy up voice typing" on, the server adds punctuation and drops filler
+     * words. The words go in at once; the tidy version replaces them only if they
+     * are still the last thing in the field when it comes back.
+     */
+    private fun tidyVoice(typed: String) {
+        val p = getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
+        if (!p.getBoolean(Prefs.VOICE_TIDY, false) || incognito || serverUrl.isBlank() || plainField) return
+        val words = typed.trimStart()
+        if (words.split(' ').size < 3) return
+        Net.rewrite(serverUrl, words, "voice") { tidy ->
+            val ic = currentInputConnection ?: return@rewrite
+            if (tidy == null || tidy == words) return@rewrite
+            val before = ic.getTextBeforeCursor(words.length, 0)?.toString() ?: return@rewrite
+            if (before != words) return@rewrite
+            ic.beginBatchEdit()
+            ic.deleteSurroundingText(words.length, 0)
+            ic.commitText(tidy, 1)
+            ic.endBatchEdit()
+        }
+    }
+
     override fun onVoiceDone(text: String?) {
         val ic = currentInputConnection
         if (ic != null) {
-            if (text != null) ic.commitText(startVoicePrefix() + text, 1)
+            if (text != null) {
+                val typed = startVoicePrefix() + text
+                ic.commitText(typed, 1)
+                tidyVoice(typed)
+            }
             // Nothing more is coming: the words so far stay as typed.
             else if (voicePrefix != null) ic.finishComposingText()
         }
@@ -1094,7 +1260,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         keys.applySettings(look())
         panel.applyTheme(theme)
         panel.themeId = id
-        container.setBackgroundColor(Themes.palette(this, theme).background)
+        applyFloating()
         onKeyFeedback()
     }
 
@@ -1271,6 +1437,10 @@ object Prefs {
     const val RECENTS = "recent_emoji"
     const val LEARN = "learn_words"
     const val INCOGNITO = "incognito"
+    const val FLOATING = "floating"
+    const val FLOAT_X = "float_x"
+    const val FLOAT_Y = "float_y"
+    const val VOICE_TIDY = "voice_tidy"
     const val TIGRINYA = "tigrinya_letters"
     const val SHORTCUTS = "text_shortcuts"
     const val LEARNED = "learned_words"
@@ -1283,6 +1453,7 @@ object Prefs {
     const val HOLD_CLEAR = "hold_backspace_clears"
     const val HOLD_CLEAR_MS = "hold_backspace_ms"
     const val SKIN_TONE = "skin_tone"
+    const val EMOJI_COLS = "emoji_columns"
     /** Where handwriting and translation are sent. Blank turns those two off. */
     const val SERVER_URL = "server_url"
     /** The language of the app's own screens (not the typing language). */

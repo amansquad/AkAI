@@ -87,6 +87,19 @@ object Net {
         ui { done(result) }
     }
 
+    /** What the rewrite modes ask the server for, in the panel's order after "Translate". */
+    val REWRITE_STYLES = listOf("fix", "formal", "friendly", "shorter")
+
+    /** The same text, rewritten in its own language by the AkAI server. */
+    fun rewrite(server: String, text: String, style: String, done: (String?) -> Unit) = background {
+        val body = JSONObject().put("text", text).put("style", style).toString()
+        val r = request("${base(server)}/api/rewrite", body)
+        val result = if (r != null && r.code == 200) try {
+            JSONObject(String(r.body)).optString("text").takeIf { it.isNotBlank() }
+        } catch (e: Exception) { null } else null
+        ui { done(result) }
+    }
+
     /** Translation on the AkAI server. */
     fun translate(server: String, text: String, toAmharic: Boolean, done: (String?) -> Unit) = background {
         val body = JSONObject()
