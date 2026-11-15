@@ -1715,8 +1715,8 @@ export default function KeyboardApp({ onTextChange, isIme = false, settingsOnly 
   // ─── Render Panels ─────────────────────────────────────────────────
   const renderSuggestions = () => {
     const showWotd = showWordOfTheDay && suggestions.length === 0 && nextWordSuggestions.length === 0 && text === '';
-    const dayIndex = new Date().getDate() % 5;
-    const wotd = language === 'english' ? WORD_OF_THE_DAY_EN[dayIndex] : WORD_OF_THE_DAY_AM[dayIndex];
+    const dayIndex = new Date().getDate();
+    const wotd = language === 'english' ? WORD_OF_THE_DAY_EN[dayIndex % WORD_OF_THE_DAY_EN.length] : WORD_OF_THE_DAY_AM[dayIndex % WORD_OF_THE_DAY_AM.length];
 
     return (
       <div className="flex items-center gap-1.5 px-2 py-1.5 overflow-x-auto scrollbar-hide">
