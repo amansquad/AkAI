@@ -60,7 +60,7 @@ class LayoutOptions(
     val cursorRow: Boolean = false,
     /** Where the language switch lives: one of [LangKey]. */
     val langKey: String = LangKey.SYMBOLS,
-    /** Adds Tigrinya's ቐ to the fidel board. */
+    /** Adds ቐ (Tigrinya, Blin) and ጘ (Blin) to the fidel board. */
     val tigrinya: Boolean = false,
 )
 
@@ -314,7 +314,8 @@ object Layouts {
             val vowelRow = List(MAX_VOWELS) { Key(KeyKind.VOWEL, "", 1f, special = true) }
             val source = if (o.amharicLayout == "frequency") KeyboardData.amharicFrequencyRows else KeyboardData.amharicRows
             val rows = source.map { r ->
-                val keys = (if (o.tigrinya && r.contains("ጸ")) r + "ቐ" else r).map { fidel(it) }
+                val extra = when { !o.tigrinya -> null; "ጸ" in r -> "ቐ"; "ዐ" in r -> "ጘ"; else -> null }
+                val keys = (if (extra != null) r + extra else r).map { fidel(it) }
                 // Shorter rows are centred rather than stretched.
                 val pad = (9 - keys.size) / 2f
                 if (pad > 0f) listOf(spacer(pad)) + keys + spacer(pad) else keys
