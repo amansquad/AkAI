@@ -88,7 +88,12 @@ object Suggest {
                 amharic -> Amharic.completions(cur, dict, 3)
                 else -> dict.completions(cur, 3)
             }
-            fix + own + fromDict + (suggestions[cur] ?: suggestions[cur.take(2)] ?: suggestions[cur.take(1)] ?: emptyList())
+            // Digits become Ge'ez numerals, and ዛሬ (today) offers today's Ethiopian date.
+            val ethiopic = if (!amharic) emptyList() else listOfNotNull(
+                if (cur.length in 1..12 && cur.all { it in '0'..'9' }) Ethiopic.numeral(cur.toLong()) else null,
+                if (cur == "ዛሬ") "ዛሬ " + Ethiopic.today().spoken() else null,
+            )
+            ethiopic + fix + own + fromDict + (suggestions[cur] ?: suggestions[cur.take(2)] ?: suggestions[cur.take(1)] ?: emptyList())
         }
         val out = list.distinct().take(room)
         return if (emoji != null) out + emoji else out
@@ -116,7 +121,7 @@ object Suggest {
     }
 
     /** True for a suggestion that is an emoji rather than a word. */
-    fun isEmoji(s: String) = s.isNotEmpty() && !Character.isLetterOrDigit(s.codePointAt(0))
+    fun isEmoji(s: String) = s.isNotEmpty() && !Character.isLetterOrDigit(s.codePointAt(0)) && s[0] !in 'ሀ'..'᎟'
 
     /** Length of the word being typed, which a tapped suggestion replaces. */
     fun currentWordLength(before: CharSequence): Int {
