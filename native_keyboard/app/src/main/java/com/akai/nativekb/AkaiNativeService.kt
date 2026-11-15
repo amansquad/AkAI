@@ -90,9 +90,16 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private var pressAnim = true
     private var liveBg = true
     private var longPress = true
-    private var learnOn = true
+    private var learnPref = true
+    private var incognito = false
+    /** Text shortcuts: a typed abbreviation (lower case) and what it becomes. */
+    private var shortcuts: Map<String, String> = emptyMap()
+    /** The app asked for no personalised learning (Chrome incognito tabs, banking apps). */
+    private var appNoLearn = false
+    private val learnOn get() = learnPref && !incognito && !appNoLearn
     private var englishLayout = "qwerty"
     private var amharicLayout = "traditional"
+    private var tigrinya = false
     private var holdClear = false
     private var holdClearMs = 800
     private var skinTone = 0
@@ -124,8 +131,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     /** Items the user pinned. These are saved, because pinning them is a deliberate choice. */
     private val pinned = LinkedHashSet<String>()
     /** Words the user has typed, with how often. */
-    private val learned = HashMap<String, Int>()
-    private var learnedDirty = 0
+    private val habits = Habits()
+    private val learned get() = habits.words
     private var clipboard: ClipboardManager? = null
     private val clipListener = ClipboardManager.OnPrimaryClipChangedListener { readClipboard() }
 
@@ -190,7 +197,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         numberRow = p.getBoolean(Prefs.NUMBER_ROW, false)
         suggestOn = p.getBoolean(Prefs.SUGGEST, true)
         recents = (p.getString(Prefs.RECENTS, "") ?: "").split(' ').filter { it.isNotEmpty() }
-        learnOn = p.getBoolean(Prefs.LEARN, true)
+        learnPref = p.getBoolean(Prefs.LEARN, true)
+        incognito = p.getBoolean(Prefs.INCOGNITO, false)
+        shortcuts = Shortcuts.parse(p.getString(Prefs.SHORTCUTS, "").orEmpty())
         autoCap = p.getBoolean(Prefs.AUTOCAP, true)
         doubleSpace = p.getBoolean(Prefs.DOUBLE_SPACE, true)
         pressAnim = p.getBoolean(Prefs.PRESS_ANIM, true)
@@ -198,6 +207,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         longPress = p.getBoolean(Prefs.LONG_PRESS, true)
         englishLayout = p.getString(Prefs.ENGLISH_LAYOUT, "qwerty") ?: "qwerty"
         amharicLayout = p.getString(Prefs.AMHARIC_LAYOUT, "traditional") ?: "traditional"
+        tigrinya = p.getBoolean(Prefs.TIGRINYA, false)
         holdClear = p.getBoolean(Prefs.HOLD_CLEAR, false)
         holdClearMs = p.getInt(Prefs.HOLD_CLEAR_MS, 800)
         skinTone = p.getInt(Prefs.SKIN_TONE, 0)
@@ -226,11 +236,12 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
                 for (i in 0 until a.length()) pinned.add(a.getString(i))
             } catch (e: Exception) { /* a bad value just means nothing is pinned */ }
         }
-        if (learned.isEmpty()) {
-            (p.getString(Prefs.LEARNED, "") ?: "").split('\n').forEach { line ->
-                val i = line.lastIndexOf('\t')
-                if (i > 0) line.substring(i + 1).toIntOrNull()?.let { learned[line.substring(0, i)] = it }
-            }
+        // "Forget learned words" removes the saved copy; drop the one in memory too.
+        if (habits.dirty == 0 && !p.contains(Prefs.LEARNED)) habits.clear()
+        if (habits.words.isEmpty() && habits.pairs.isEmpty() && habits.emoji.isEmpty()) {
+            Habits.decode(p.getString(Prefs.LEARNED, "") ?: "", habits.words)
+            Habits.decode(p.getString(Prefs.LEARNED_PAIRS, "") ?: "", habits.pairs)
+            Habits.decode(p.getString(Prefs.LEARNED_EMOJI, "") ?: "", habits.emoji)
         }
         if (::keys.isInitialized) {
             keys.holdClearMs = if (holdClear) holdClearMs.toLong() else 0L
@@ -258,6 +269,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         super.onStartInputView(editor, restarting)
         info = editor
         field = classify(editor)
+        appNoLearn = editor != null && (editor.imeOptions and 0x1000000) != 0 // IME_FLAG_NO_PERSONALIZED_LEARNING
         padDismissed = false
         symbols = false
         translit = Translit.EMPTY
@@ -327,7 +339,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         val options = LayoutOptions(
             enterLabel(), numberRow, backToPad = digitField && padDismissed,
             englishLayout = englishLayout, amharicLayout = amharicLayout, cursorRow = cursorRow && !searching,
-            langKey = langKey,
+            langKey = langKey, tigrinya = tigrinya,
         )
         val layout = Layouts.build(id, showAmharic, options, if (phonetic) LayoutId.PHONETIC else LayoutId.FIDEL)
         // The toolbar's language button, on the boards that have a language key.
@@ -381,7 +393,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         val before = currentInputConnection?.getTextBeforeCursor(40, 0)
         keys.setSuggestions(
             if (before == null) emptyList()
-            else Suggest.forText(before, amharic, if (learnOn) learned else emptyMap(), if (amharic) Words.am else Words.en),
+            else Suggest.forText(
+                before, amharic, if (learnOn) learned else emptyMap(), if (amharic) Words.am else Words.en,
+                pairs = if (learnOn) habits.pairs else emptyMap(), emojiHabits = if (learnOn) habits.emoji else emptyMap(),
+            ),
         )
     }
 
@@ -395,28 +410,33 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private fun learnWordBefore() {
         if (!learnOn || plainField || digitField) return
         val before = currentInputConnection?.getTextBeforeCursor(40, 0) ?: return
-        val n = Suggest.currentWordLength(before)
-        if (n < 2) return
-        val word = before.substring(before.length - n).trim { !it.isLetter() }
-        if (word.length < 2 || !word.all { it.isLetter() }) return
-        val key = word.lowercase()
-        learned[key] = (learned[key] ?: 0) + 1
-        if (learned.size > 3000) {
-            // Forget the least-used words rather than growing without end.
-            learned.entries.sortedBy { it.value }.take(500).forEach { learned.remove(it.key) }
-        }
-        if (++learnedDirty >= 20) saveLearned()
+        val (word, prev) = Suggest.lastTwo(before)
+        if (word == null) return
+        habits.learnWord(word, prev)
+        if (habits.dirty >= 20) saveLearned()
+    }
+
+    /** Remembers that the emoji [emoji] was put after the word just before the cursor. */
+    private fun learnEmojiBefore(before: CharSequence, emoji: String) {
+        if (!learnOn || plainField || digitField) return
+        val word = Suggest.lastTwo(before).first ?: return
+        habits.learnEmoji(word, emoji)
+        if (habits.dirty >= 20) saveLearned()
     }
 
     private fun saveLearned() {
-        learnedDirty = 0
-        savePref { putString(Prefs.LEARNED, learned.entries.joinToString("\n") { "${it.key}\t${it.value}" }) }
+        habits.dirty = 0
+        savePref {
+            putString(Prefs.LEARNED, Habits.encode(habits.words))
+            putString(Prefs.LEARNED_PAIRS, Habits.encode(habits.pairs))
+            putString(Prefs.LEARNED_EMOJI, Habits.encode(habits.emoji))
+        }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         voice?.cancel()
-        if (learnedDirty > 0) saveLearned()
+        if (habits.dirty > 0) saveLearned()
     }
 
     override fun onClearSentence() {
@@ -440,7 +460,27 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     override fun onSuggestion(word: String) {
         val ic = currentInputConnection ?: return
         val before = ic.getTextBeforeCursor(40, 0) ?: ""
+        if (Suggest.isEmoji(word)) {
+            // An emoji goes after the word, not in place of it.
+            learnEmojiBefore(before, word)
+            val gap = if (before.isNotEmpty() && !before.last().isWhitespace()) " " else ""
+            ic.commitText("$gap$word ", 1)
+            recents = (listOf(word) + recents.filter { it != word }).take(24)
+            savePref { putString(Prefs.RECENTS, recents.joinToString(" ")) }
+            translit = Translit.EMPTY
+            glideAlts = emptyList()
+            lastCorrection = null
+            spaceBeforeNextLetter = false
+            keys.setVowels(emptyList())
+            return
+        }
         val n = Suggest.currentWordLength(before)
+        if (learnOn && !plainField && !digitField) {
+            // Picking a suggestion counts as typing the word.
+            val (_, prev) = Suggest.lastTwo(before.substring(0, before.length - n) + word)
+            val clean = Suggest.clean(word)
+            if (clean.length >= 2 && clean.all { it.isLetter() }) habits.learnWord(clean, prev)
+        }
         val capitalised = n > 0 && before[before.length - n].isUpperCase() && !amharic
         val out = if (capitalised) word.replaceFirstChar { it.uppercase() } else word
         ic.beginBatchEdit()
@@ -506,8 +546,26 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     }
 
     /** Fixes the word just before the cursor, before [separator] is typed after it. */
-    private fun correctWordBefore(separator: String) {
-        if (!correcting) return
+    /** Turns a typed abbreviation into its full text. True when it did, so no spell-fix follows. */
+    private fun expandShortcut(separator: String): Boolean {
+        if (shortcuts.isEmpty() || plainField || digitField || emojiQuery != null) return false
+        val ic = currentInputConnection ?: return false
+        val before = ic.getTextBeforeCursor(48, 0)?.toString() ?: return false
+        var i = before.length
+        while (i > 0 && (before[i - 1].isLetterOrDigit() || before[i - 1] == '\'')) i--
+        val typed = before.substring(i)
+        if (typed.isEmpty()) return false
+        if (i > 0 && before[i - 1] in "@/_.-#") return false
+        val full = shortcuts[typed.lowercase()] ?: return false
+        ic.beginBatchEdit()
+        ic.deleteSurroundingText(typed.length, 0)
+        ic.commitText(full, 1)
+        ic.endBatchEdit()
+        lastCorrection = Triple(typed, full, separator)
+        return true
+    }
+
+    private fun correctWordBefore(separator: String) {        if (!correcting) return
         val ic = currentInputConnection ?: return
         val before = ic.getTextBeforeCursor(48, 0)?.toString() ?: return
         var i = before.length
@@ -623,7 +681,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             return
         }
         lastCorrection = null
-        correctWordBefore(" ")
+        if (!expandShortcut(" ")) correctWordBefore(" ")
         learnWordBefore()
         translit = Translit.EMPTY
         keys.setVowels(emptyList())
@@ -827,7 +885,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     }
 
     override fun onSearchPick(emoji: String) {
-        currentInputConnection?.commitText(emoji, 1)
+        currentInputConnection?.let { ic ->
+            ic.getTextBeforeCursor(40, 0)?.let { learnEmojiBefore(it, emoji) }
+            ic.commitText(emoji, 1)
+        }
         recents = (listOf(emoji) + recents.filter { it != emoji }).take(24)
         savePref { putString(Prefs.RECENTS, recents.joinToString(" ")) }
     }
@@ -984,6 +1045,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             onKeyFeedback()
             return
         }
+        if (isEmoji) ic.getTextBeforeCursor(40, 0)?.let { learnEmojiBefore(it, text) }
         ic.commitText(text, 1)
         if (isEmoji) {
             recents = (listOf(text) + recents.filter { it != text }).take(24)
@@ -1145,6 +1207,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     }
 
     private fun readClipboard() {
+        if (incognito) return
         val clip: ClipData = try { clipboard?.primaryClip } catch (e: Exception) { null } ?: return
         if (clip.itemCount == 0) return
         // Never keep what the source marked sensitive, such as a copied password.
@@ -1207,10 +1270,16 @@ object Prefs {
     const val SUGGEST = "suggest"
     const val RECENTS = "recent_emoji"
     const val LEARN = "learn_words"
+    const val INCOGNITO = "incognito"
+    const val TIGRINYA = "tigrinya_letters"
+    const val SHORTCUTS = "text_shortcuts"
     const val LEARNED = "learned_words"
     const val PINNED = "pinned_clips"
     const val ENGLISH_LAYOUT = "english_layout"
     const val AMHARIC_LAYOUT = "amharic_layout"
+    /** Which word follows which, and which emoji goes with a word, as the user types. */
+    const val LEARNED_PAIRS = "learned_pairs"
+    const val LEARNED_EMOJI = "learned_emoji"
     const val HOLD_CLEAR = "hold_backspace_clears"
     const val HOLD_CLEAR_MS = "hold_backspace_ms"
     const val SKIN_TONE = "skin_tone"

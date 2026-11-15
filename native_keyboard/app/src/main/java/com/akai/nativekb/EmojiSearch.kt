@@ -102,6 +102,24 @@ object EmojiSearch {
         "sa" to "saudi arabia", "ae" to "uae emirates", "il" to "israel", "tr" to "turkey", "ru" to "russia",
     )
 
+    /** Words too common or too vague to suggest an emoji for. */
+    private val noEmoji = setOf(
+        "the", "and", "you", "for", "with", "that", "this", "are", "was", "but", "not", "can", "all", "new",
+        "one", "two", "man", "men", "key", "sign", "mark", "symbol", "button", "face", "red", "big", "small",
+    )
+
+    /**
+     * One emoji that plainly stands for [word] ("pizza" → 🍕, "love" → ❤️), or null.
+     * A word only counts when it is an everyday word from the list above, or the whole
+     * name or its last word ("red heart" for "heart"), so a half-typed word suggests nothing.
+     */
+    fun forWord(word: String): String? {
+        val w = word.lowercase()
+        if (w.length < 3 || w in noEmoji) return null
+        extra[w]?.let { return it.first() }
+        return index.firstOrNull { it.words.size <= 3 && it.words.last() == w }?.emoji
+    }
+
     /** Emoji matching every word of [query] (each as a word start), best first. */
     fun search(query: String, limit: Int = 40): List<String> {
         val terms = query.lowercase().trim().split(Regex("\\s+")).filter { it.isNotEmpty() }

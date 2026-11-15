@@ -274,6 +274,8 @@ class SettingsActivity : ThemedActivity() {
         Entry(TYPING, "Auto-correct", "typos fix spelling"),
         Entry(TYPING, "Auto-correct Amharic", "ሰ ሠ vowel fix"),
         Entry(TYPING, "Learn the words I type", "dictionary personal remember"),
+        Entry(TYPING, "Text shortcuts", "abbreviation expand snippet replace"),
+        Entry(TYPING, "Incognito mode", "private privacy history clipboard learn"),
         Entry(TYPING, "Forget learned words", "clear reset dictionary delete"),
         Entry(TYPING, "Swipe typing", "glide gesture slide"),
         Entry(TYPING, "Long-press popups", "hold accents vowel delay"),
@@ -435,6 +437,30 @@ class SettingsActivity : ThemedActivity() {
         }
     }
 
+    private fun shortcutsField(): View {
+        val box = styled(EditText(this)).apply {
+            hint = "addr = 12 Bole Road, Addis Ababa"
+            minLines = 3
+            gravity = Gravity.TOP
+            setText(prefs.getString(Prefs.SHORTCUTS, ""))
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            addTextChangedListener(object : android.text.TextWatcher {
+                override fun afterTextChanged(s: android.text.Editable?) { put(Prefs.SHORTCUTS, s?.toString().orEmpty()) }
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            })
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, ui.dp(8f), 0, ui.dp(8f))
+            addView(ui.label("Text shortcuts", 15f, palette.text, bold = true))
+            addView(ui.gap(6f))
+            addView(box, wrap)
+            addView(ui.gap(4f))
+            addView(ui.label("One per line, like: addr = my full address. Type the short word and press space to expand it; backspace undoes it.", 12f, ui.dim))
+        }
+    }
+
     private fun testField(h: String, type: Int = InputType.TYPE_CLASS_TEXT): EditText =
         styled(EditText(this)).apply { hint = ui.tr(h); inputType = type }
 
@@ -548,6 +574,7 @@ class SettingsActivity : ThemedActivity() {
                 else { put(Prefs.PHONETIC, false); put(Prefs.AMHARIC_LAYOUT, amharic[it]) }
             },
             note("Phonetic types Amharic from Latin letters: \"selam\" gives ሰላም. Hold the language key to switch between fidel and phonetic."),
+            ui.switchRow("Tigrinya letters", "Adds ቐ (qhe) to the fidel board", on(Prefs.TIGRINYA, false)) { put(Prefs.TIGRINYA, it) },
         )
         val places = listOf(
             LangKey.SYMBOLS to ("Beside ?123" to "A key next to the symbols key"),
@@ -567,7 +594,7 @@ class SettingsActivity : ThemedActivity() {
         val forget = ui.label("Forget learned words", 15f, palette.accent, bold = true).apply {
             setPadding(0, ui.dp(12f), 0, ui.dp(4f))
             setOnClickListener {
-                prefs.edit().remove(Prefs.LEARNED).apply()
+                prefs.edit().remove(Prefs.LEARNED).remove(Prefs.LEARNED_PAIRS).remove(Prefs.LEARNED_EMOJI).apply()
                 Toast.makeText(context, ui.tr("Learned words cleared"), Toast.LENGTH_SHORT).show()
             }
         }
@@ -576,6 +603,8 @@ class SettingsActivity : ThemedActivity() {
             ui.switchRow("Auto-correct", "Fixes English typos when you finish a word; backspace undoes it", on(Prefs.AUTOCORRECT, true)) { put(Prefs.AUTOCORRECT, it) },
             ui.switchRow("Auto-correct Amharic", "Fixes a wrong vowel or a sound-alike letter (ሰ for ሠ) when you finish a word. Off, the fix is still offered first in the suggestions", on(Prefs.AUTOCORRECT_AM, false)) { put(Prefs.AUTOCORRECT_AM, it) },
             ui.switchRow("Learn the words I type", "Never in password, email or number fields", on(Prefs.LEARN, true)) { put(Prefs.LEARN, it) },
+            ui.switchRow("Incognito mode", "Stop learning words and saving copied text until you turn it off", on(Prefs.INCOGNITO, false)) { put(Prefs.INCOGNITO, it) },
+            shortcutsField(),
             forget,
         )
         group(c, "Gestures",

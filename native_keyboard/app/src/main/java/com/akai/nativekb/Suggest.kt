@@ -1,25 +1,82 @@
 package com.akai.nativekb
 
-/** Word suggestions: the user's own words, the language's dictionary, then the web keyboard's word lists. */
+/**
+ * What the keyboard has learned about one person: how often they type each word,
+ * which word tends to follow which, and which emoji they put after a word.
+ * Everything stays on the phone.
+ */
+class Habits {
+    /** Words typed, with how often. */
+    val words = HashMap<String, Int>()
+    /** "previous\tnext" pairs, with how often. */
+    val pairs = HashMap<String, Int>()
+    /** "word\temoji" pairs, with how often. */
+    val emoji = HashMap<String, Int>()
+    var dirty = 0
+
+    fun bump(map: HashMap<String, Int>, key: String, limit: Int) {
+        map[key] = (map[key] ?: 0) + 1
+        if (map.size > limit) {
+            // Forget the least-used entries rather than growing without end.
+            map.entries.sortedBy { it.value }.take(limit / 6).forEach { map.remove(it.key) }
+        }
+        dirty++
+    }
+
+    fun learnWord(word: String, prev: String?) {
+        bump(words, word, 3000)
+        if (prev != null) bump(pairs, "$prev\t$word", 4000)
+    }
+
+    fun learnEmoji(word: String, emoji: String) = bump(this.emoji, "$word\t$emoji", 1500)
+
+    fun clear() { words.clear(); pairs.clear(); emoji.clear(); dirty = 0 }
+
+    companion object {
+        fun encode(map: Map<String, Int>) = map.entries.joinToString("\n") { "${it.key}\t${it.value}" }
+
+        fun decode(text: String, into: MutableMap<String, Int>) {
+            text.split('\n').forEach { line ->
+                val i = line.lastIndexOf('\t')
+                if (i > 0) line.substring(i + 1).toIntOrNull()?.let { into[line.substring(0, i)] = it }
+            }
+        }
+    }
+}
+
+/** Word suggestions: the user's own habits, the language's dictionary, then the web keyboard's word lists. */
 object Suggest {
-    /** [before] is the text left of the cursor. Returns up to three words. */
+    /**
+     * [before] is the text left of the cursor. Returns up to three suggestions: words,
+     * with an emoji as the last one when the word just typed has one.
+     * [pairs] and [emojiHabits] are the user's own (see [Habits]).
+     */
     fun forText(
         before: CharSequence, amharic: Boolean, learned: Map<String, Int> = emptyMap(), dict: Dictionary? = null,
+        pairs: Map<String, Int> = emptyMap(), emojiHabits: Map<String, Int> = emptyMap(), withEmoji: Boolean = true,
     ): List<String> {
         val suggestions = if (amharic) KeyboardData.suggestionsAm else KeyboardData.suggestionsEn
         val next = if (amharic) KeyboardData.nextWordAm else KeyboardData.nextWordEn
         val words = before.toString().trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
         val endsWithSpace = before.isNotEmpty() && before.last().isWhitespace()
 
+        // The word an emoji would stand for: the one just finished, or the one being typed if it is complete.
+        val subject = words.lastOrNull()
+        val emoji = if (withEmoji && subject != null) emojiFor(clean(subject), amharic, emojiHabits) else null
+        val room = if (emoji != null) 2 else 3
+
         val list = if (endsWithSpace || words.isEmpty()) {
-            val prev = words.lastOrNull()?.lowercase()?.trim { !it.isLetter() }.orEmpty()
-            next[prev] ?: suggestions[""] ?: emptyList()
+            val prev = words.lastOrNull()?.let(::clean).orEmpty()
+            // What this person usually types after this word comes first.
+            val own = if (prev.isEmpty()) emptyList() else after(prev, pairs)
+            own + (next[prev] ?: suggestions[""] ?: emptyList())
         } else {
             val cur = words.last().lowercase()
-            // Words the user has typed before come first, most-used first.
+            val prev = words.getOrNull(words.size - 2)?.let(::clean)
+            // Words the user has typed before come first; ones they type after the previous word count extra.
             val own = learned.entries
                 .filter { it.key.length > cur.length && it.key.startsWith(cur) }
-                .sortedByDescending { it.value }
+                .sortedByDescending { it.value + 3 * (if (prev != null) pairs["$prev\t${it.key}"] ?: 0 else 0) }
                 .take(2)
                 .map { it.key }
             // A word that is not a word gets offered the same fix auto-correct would make.
@@ -33,8 +90,33 @@ object Suggest {
             }
             fix + own + fromDict + (suggestions[cur] ?: suggestions[cur.take(2)] ?: suggestions[cur.take(1)] ?: emptyList())
         }
-        return list.distinct().take(3)
+        val out = list.distinct().take(room)
+        return if (emoji != null) out + emoji else out
     }
+
+    /** Words this person has typed after [prev], most often first. */
+    private fun after(prev: String, pairs: Map<String, Int>): List<String> {
+        val head = "$prev\t"
+        return pairs.entries
+            .filter { it.key.startsWith(head) }
+            .sortedByDescending { it.value }
+            .take(3)
+            .map { it.key.substring(head.length) }
+    }
+
+    /** A word without the punctuation around it, in lower case. */
+    fun clean(word: String) = word.lowercase().trim { !it.isLetter() }
+
+    /** The emoji for [word]: the one this person uses with it, else a common match. */
+    fun emojiFor(word: String, amharic: Boolean, habits: Map<String, Int>): String? {
+        if (word.length < 2) return null
+        val head = "$word\t"
+        habits.entries.filter { it.key.startsWith(head) }.maxByOrNull { it.value }?.let { return it.key.substring(head.length) }
+        return if (amharic) null else EmojiSearch.forWord(word)
+    }
+
+    /** True for a suggestion that is an emoji rather than a word. */
+    fun isEmoji(s: String) = s.isNotEmpty() && !Character.isLetterOrDigit(s.codePointAt(0))
 
     /** Length of the word being typed, which a tapped suggestion replaces. */
     fun currentWordLength(before: CharSequence): Int {
@@ -44,5 +126,21 @@ object Suggest {
             n++
         }
         return n
+    }
+
+    /** The last word in [before] and the one before it (null across a sentence end or line break). */
+    fun lastTwo(before: CharSequence): Pair<String?, String?> {
+        val s = before.toString()
+        val n = currentWordLength(s)
+        val last = clean(s.substring(s.length - n)).takeIf { it.length >= 2 && it.all(Char::isLetter) }
+        val rest = s.substring(0, s.length - n)
+        val gap = rest.takeLastWhile { it.isWhitespace() }
+        if (gap.isEmpty() || '\n' in gap) return last to null
+        val body = rest.trimEnd()
+        val m = body.length - currentWordLength(body)
+        val raw = body.substring(m)
+        if (raw.isEmpty() || raw.last() in ".!?።፧") return last to null
+        val prev = clean(raw).takeIf { it.length >= 2 && it.all(Char::isLetter) }
+        return last to prev
     }
 }

@@ -21,6 +21,35 @@ class LogicTest {
         assertEquals(listOf("tomorrow", "tomato"), out.take(2))
     }
 
+    @Test fun nextWordFollowsWhatTheUserTypes() {
+        val pairs = mapOf("good\tmorning" to 4, "good\tluck" to 1)
+        val out = Suggest.forText("good ", false, pairs = pairs, withEmoji = false)
+        assertEquals("morning", out.first())
+    }
+
+    @Test fun emojiRidesAlongWithTheWord() {
+        val out = Suggest.forText("I love ", false)
+        assertTrue(Suggest.isEmoji(out.last()))
+        assertTrue(out.size <= 3)
+    }
+
+    @Test fun usersOwnEmojiBeatsTheDefault() {
+        val out = Suggest.forText("pizza ", false, emojiHabits = mapOf("pizza\t😋" to 3))
+        assertEquals("😋", out.last())
+    }
+
+    @Test fun halfTypedWordsGetNoEmoji() {
+        assertTrue(Suggest.forText("I lov", false).none(Suggest::isEmoji))
+    }
+
+    @Test fun habitsKeepWordPairs() {
+        val h = Habits()
+        val (word, prev) = Suggest.lastTwo("see you tomorrow")
+        h.learnWord(word!!, prev)
+        assertEquals(1, h.pairs["you\ttomorrow"])
+        assertEquals(null, Suggest.lastTwo("Done. Tomorrow").second)
+    }
+
     @Test fun suggestionsAreCappedAndDistinct() {
         val out = Suggest.forText("th", false, mapOf("the" to 1))
         assertTrue(out.size <= 3)
@@ -47,5 +76,12 @@ class LogicTest {
     @Test fun giphyCatalogueIsAvailableWithoutAKey() {
         assertTrue(KeyboardData.gifs.size > 50)
         assertTrue(Gifs.categories.all { c -> c == "Trending" || KeyboardData.gifs.any { it.category == c } })
+    }
+
+    @Test fun shortcutsParseOnePerLine() {
+        val m = Shortcuts.parse(listOf("Addr = 12 Bole Road", "bad line", "= nothing", "brb=be right back", "no way = x").joinToString("\n"))
+        assertEquals("12 Bole Road", m["addr"])
+        assertEquals("be right back", m["brb"])
+        assertEquals(2, m.size)
     }
 }

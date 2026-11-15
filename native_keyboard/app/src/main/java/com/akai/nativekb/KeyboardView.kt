@@ -278,8 +278,9 @@ class KeyboardView(context: Context) : View(context) {
     private var wordOfDay: Pair<String, String>? = null
     fun setWordOfDay(w: Pair<String, String>?) {
         if (wordOfDay == w) return
-        val heightChanges = (wordOfDay == null) != (w == null)
+        val before = wotdH()
         wordOfDay = w
+        val heightChanges = before != wotdH()
         cacheValid = false
         if (heightChanges) { requestLayout(); computeGeometry(width) }
         invalidate()
@@ -312,7 +313,51 @@ class KeyboardView(context: Context) : View(context) {
     private val toolCell get() = min(dp(40f), (width - 2 * padSide - dp(40f)) / max(1, shownTools().size))
     /** The word-of-the-day row's height (nothing when it is off). */
     private val wotdRowH = dp(28f)
-    private fun wotdH() = if (showStrip && wordOfDay != null && search == null) wotdRowH else 0f
+    private val wotdLineH = dp(15f)
+    private fun wotdH(): Float {
+        if (!showStrip || wordOfDay == null || search != null) return 0f
+        val lines = wotdPlan() ?: return wotdRowH
+        return dp(22f) + lines.size * wotdLineH + dp(4f)
+    }
+
+    /**
+     * How the word of the day is laid out: null when the definition fits beside the word,
+     * otherwise the definition wrapped onto up to two lines under it, so a long one is still readable.
+     */
+    private var wotdKey = ""
+    private var wotdLines: List<String>? = null
+    private fun wotdPlan(): List<String>? {
+        val w = wordOfDay ?: return null
+        if (width <= 0) return null
+        val key = "${w.first}|${w.second}|$width"
+        if (key == wotdKey) return wotdLines
+        wotdKey = key
+        val right = width - padSide - dp(8f)
+        text.typeface = Typeface.DEFAULT_BOLD
+        text.textSize = wotdRowH * 0.36f
+        var x = padSide + dp(8f) + text.measureText("✦ WORD OF THE DAY") + dp(10f)
+        text.textSize = wotdRowH * 0.5f
+        x += text.measureText(w.first) + dp(8f)
+        text.typeface = Typeface.DEFAULT
+        text.textSize = wotdRowH * 0.4f
+        wotdLines = if (text.measureText(w.second) <= right - x) null else {
+            val avail = right - (padSide + dp(8f))
+            val lines = ArrayList<String>()
+            var line = ""
+            val rest = ArrayDeque(w.second.split(' '))
+            while (rest.isNotEmpty() && lines.size < 2) {
+                val next = if (line.isEmpty()) rest.first() else line + " " + rest.first()
+                if (line.isNotEmpty() && text.measureText(next) > avail) { lines.add(line); line = "" }
+                else { line = next; rest.removeFirst() }
+            }
+            if (line.isNotEmpty() && lines.size < 2) lines.add(line)
+            // Whatever still doesn't fit ends in an ellipsis on the last line.
+            if (rest.isNotEmpty()) lines[lines.size - 1] = ellipsize(lines.last() + " " + rest.joinToString(" "), avail)
+            else lines[lines.size - 1] = ellipsize(lines.last(), avail)
+            lines
+        }
+        return wotdLines
+    }
 
     /** Where the suggestions start: right of the toolbar buttons. */
     private fun toolsEnd() = padSide + toolCell * shownTools().size
@@ -697,8 +742,10 @@ class KeyboardView(context: Context) : View(context) {
 
     /** The row above the toolbar: "✦ WORD OF THE DAY  Resilient  Able to withstand…". */
     private fun drawWordOfDay(canvas: Canvas, w: Pair<String, String>) {
-        val h = wotdRowH
+        val lines = wotdPlan()
+        val h = if (lines == null) wotdRowH else dp(22f)
         var x = padSide + dp(8f)
+        val left = x
         val right = width - padSide - dp(8f)
         text.textAlign = Paint.Align.LEFT
         text.alpha = 255
@@ -714,16 +761,22 @@ class KeyboardView(context: Context) : View(context) {
         val word = ellipsize(w.first, right - x)
         canvas.drawText(word, x, base(), text)
         x += text.measureText(word) + dp(8f)
-        if (x < right - dp(30f)) {
-            text.typeface = Typeface.DEFAULT
-            text.textSize = h * 0.4f
-            text.color = palette.hint
+        text.typeface = Typeface.DEFAULT
+        text.textSize = wotdRowH * 0.4f
+        text.color = palette.hint
+        if (lines != null) {
+            for ((i, l) in lines.withIndex()) {
+                val top = h + i * wotdLineH
+                canvas.drawText(l, left, top + wotdLineH / 2f - (text.descent() + text.ascent()) / 2f, text)
+            }
+        } else if (x < right - dp(30f)) {
             canvas.drawText(ellipsize(w.second, right - x), x, base(), text)
         }
         // A hairline separates it from the toolbar.
+        val bottom = wotdH()
         fill.color = palette.hint
         fill.alpha = 60
-        canvas.drawRect(padSide, h - 1f, width - padSide, h, fill)
+        canvas.drawRect(padSide, bottom - 1f, width - padSide, bottom, fill)
         fill.alpha = 255
         text.textAlign = Paint.Align.CENTER
     }
