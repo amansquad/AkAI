@@ -31,7 +31,7 @@ data class Key(
     val cased: Boolean = false,
 )
 
-enum class LayoutId { LETTERS, PHONETIC, FIDEL, SYMBOLS, SYMBOLS2, NUMBER, PHONE, DATETIME }
+enum class LayoutId { LETTERS, PHONETIC, FIDEL, ARABIC, SYMBOLS, SYMBOLS2, NUMBER, PHONE, DATETIME }
 
 class Layout(
     val id: LayoutId,
@@ -105,13 +105,16 @@ object Layouts {
 
     /** Long-press extras on the symbols board: currencies, maths, quotes, fractions. */
     private val symbolAlternates: Map<String, List<String>> = mapOf(
-        "1" to listOf("¹", "½", "⅓", "¼", "⅛"),
-        "2" to listOf("²", "⅔"),
-        "3" to listOf("³", "¾", "⅜"),
-        "4" to listOf("⁴"),
-        "5" to listOf("⅝"),
-        "7" to listOf("⅞"),
-        "0" to listOf("°", "ⁿ", "∅"),
+        "6" to listOf("٦"),
+        "8" to listOf("٨"),
+        "9" to listOf("٩"),
+        "1" to listOf("١", "¹", "½", "⅓", "¼", "⅛"),
+        "2" to listOf("٢", "²", "⅔"),
+        "3" to listOf("٣", "³", "¾", "⅜"),
+        "4" to listOf("٤", "⁴"),
+        "5" to listOf("٥", "⅝"),
+        "7" to listOf("٧", "⅞"),
+        "0" to listOf("٠", "°", "ⁿ", "∅"),
         "@" to listOf("©", "®", "™"),
         "#" to listOf("№", "♯"),
         "\$" to listOf("€", "£", "¥", "¢", "₹", "₩", "₿", "Br"),
@@ -132,10 +135,10 @@ object Layouts {
         "*" to listOf("★", "☆", "†", "‡"),
         "\"" to listOf("“", "”", "„", "«", "»"),
         "'" to listOf("‘", "’", "‚", "`", "‹", "›"),
-        ";" to listOf("፤"),
+        ";" to listOf("፤", "؛"),
         ":" to listOf("፡", "፥", "፦"),
         "!" to listOf("¡", "‼"),
-        "?" to listOf("¿", "‽", "፧"),
+        "?" to listOf("¿", "‽", "፧", "؟"),
         "~" to listOf("^", "`", "≈"),
         "." to listOf("…", "·", "•", "።"),
         "," to listOf("፣", "،"),
@@ -172,6 +175,30 @@ object Layouts {
 
     private fun numberRow() = chars("1234567890")
 
+    /** The Arabic board: the standard 101 layout, left to right as printed. Hamza and alef forms are under their letters. */
+    private val arabicLetters = listOf("ضصثقفغعهخحج", "شسيبلاتنمكط", "ظزرذدءؤوةى").map { r -> r.map { it.toString() } }
+    private val arabicAlternates: Map<String, List<String>> = mapOf(
+        "ا" to listOf("أ", "إ", "آ", "ء", "ٱ"),
+        "ي" to listOf("ئ", "ى"),
+        "و" to listOf("ؤ"),
+        "ه" to listOf("ة"),
+        "ك" to listOf("گ"),
+        "ب" to listOf("پ"),
+        "ج" to listOf("چ"),
+        "ف" to listOf("ڤ"),
+    )
+    /** Fathatan, dammatan, kasratan, fatha, damma, kasra, shadda, sukun, then the semicolon. */
+    private val arabicMarks = listOf("ً", "ٌ", "ٍ", "َ", "ُ", "ِ", "ّ", "ْ", "؛")
+    private const val ARABIC_DIGITS = "١٢٣٤٥٦٧٨٩٠"
+
+    private fun arabicRows(numberRow: Boolean): List<List<Key>> {
+        val rows = arabicLetters.map { r -> r.map { Key(KeyKind.CHAR, it, alternates = arabicAlternates[it].orEmpty()) } }.toMutableList()
+        rows[2] = rows[2] + backspace(1.4f)
+        // Latin digits, as on the other boards; the Arabic-Indic ones are a long press away.
+        if (numberRow) rows.add(0, "1234567890".mapIndexed { i, d -> Key(KeyKind.CHAR, d.toString(), alternates = listOf(ARABIC_DIGITS[i].toString())) })
+        return rows
+    }
+
     private fun cursorRow() = listOf(
         Key(KeyKind.CURSOR, "⇤", output = "home"),
         Key(KeyKind.CURSOR, "◀", 1.4f, output = "left"),
@@ -199,7 +226,7 @@ object Layouts {
     fun build(id: LayoutId, amharicSymbols: Boolean, o: LayoutOptions, amharicBoard: LayoutId = LayoutId.FIDEL): Layout {
         val l = withCursorRow(buildBase(id, amharicSymbols, o), o)
         if (l.isPad) return l
-        val letterBoards = listOf(LayoutId.LETTERS, amharicBoard).map { withCursorRow(buildBase(it, amharicSymbols, o), o) }
+        val letterBoards = listOf(LayoutId.LETTERS, LayoutId.ARABIC, amharicBoard).map { withCursorRow(buildBase(it, amharicSymbols, o), o) }
         return Layout(l.id, l.rows, l.rowHeightDp, sameHeightAs = letterBoards)
     }
 
@@ -248,7 +275,7 @@ object Layouts {
             if (page == 1) LayoutId.SYMBOLS else LayoutId.SYMBOLS2,
             rows + listOf(
                 listOf(
-                    Key(KeyKind.SYMBOLS, if (amharicSymbols) o.lang.key else "ABC", 1.5f),
+                    Key(KeyKind.SYMBOLS, if (amharicSymbols || o.lang == Lang.AR) o.lang.key else "ABC", 1.5f),
                     sym(","),
                     Key(KeyKind.SPACE, o.lang.title, 4.8f),
                     sym("."),
@@ -291,6 +318,20 @@ object Layouts {
                         (if (o.lang == Lang.OM) listOf(ch("'")) else emptyList()),
                     Key(KeyKind.SPACE, o.lang.title, if (o.lang == Lang.OM) 3.2f else 4.2f),
                     listOf(ch("."), enter(o.enterLabel, 1.5f)),
+                    o.nextLang.key, 1.2f,
+                ),
+            )
+            Layout(id, rows, rowHeightDp = if (o.numberRow) 46f else 50f)
+        }
+
+        LayoutId.ARABIC -> {
+            val rows = arabicRows(o.numberRow).toMutableList()
+            rows.add(
+                bottomRow(
+                    o,
+                    listOf(Key(KeyKind.SYMBOLS, "؟١٢٣", 1.4f), Key(KeyKind.CHAR, "،", alternates = arabicMarks)),
+                    Key(KeyKind.SPACE, o.lang.title, 4.2f),
+                    listOf(Key(KeyKind.CHAR, ".", alternates = listOf("؟", "!", "…")), enter(o.enterLabel, 1.5f)),
                     o.nextLang.key, 1.2f,
                 ),
             )

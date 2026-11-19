@@ -31,10 +31,15 @@ class Speaker(private val context: Context) {
             return
         }
         val amharic = t.any { it in 'ሀ'..'᎟' }
-        val locale = if (amharic) Locale("am", "ET") else Locale.getDefault()
+        val arabic = !amharic && t.any { it in '؀'..'ۿ' }
+        val locale = when { amharic -> Locale("am", "ET"); arabic -> Locale("ar"); else -> Locale.getDefault() }
         val ok = engine.setLanguage(locale)
         if (ok == TextToSpeech.LANG_MISSING_DATA || ok == TextToSpeech.LANG_NOT_SUPPORTED) {
-            tell(if (amharic) "No Amharic voice on this phone. Install one in system text-to-speech settings" else "No voice for this language")
+            tell(when {
+                amharic -> "No Amharic voice on this phone. Install one in system text-to-speech settings"
+                arabic -> "No Arabic voice on this phone. Install one in system text-to-speech settings"
+                else -> "No voice for this language"
+            })
             return
         }
         engine.speak(t, TextToSpeech.QUEUE_FLUSH, null, "akai-read")

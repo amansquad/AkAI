@@ -28,14 +28,19 @@ enum class Lang(
     AM("am", "አማርኛ", "አማ", true, "am-ET", "am", "። ", "words_am.txt"),
     TI("ti", "ትግርኛ", "ትግ", true, "ti-ET", "ti", "። ", "words_ti.txt"),
     /** Written in Latin letters (Qubee), so it shares the English board. */
-    OM("om", "Afaan Oromoo", "OM", false, "om-ET", "om", ". ", "words_om.txt");
+    OM("om", "Afaan Oromoo", "OM", false, "om-ET", "om", ". ", "words_om.txt"),
+    /** Arabic script, written right to left, with no capitals. */
+    AR("ar", "العربية", "ع", false, "ar-SA", "ar", ". ", "words_ar.txt");
+
+    /** Has no upper and lower case, so no auto-capitals. */
+    val caseless get() = geez || this == AR
 
     companion object {
         fun fromCode(code: String?): Lang? = entries.firstOrNull { it.code == code }
 
         /** The languages the language key cycles through, in order. */
-        fun enabled(tigrinya: Boolean, oromo: Boolean = false, amharic: Boolean = true): List<Lang> =
-            listOfNotNull(EN, AM.takeIf { amharic }, TI.takeIf { tigrinya }, OM.takeIf { oromo })
+        fun enabled(tigrinya: Boolean, oromo: Boolean = false, amharic: Boolean = true, arabic: Boolean = false): List<Lang> =
+            listOfNotNull(EN, AM.takeIf { amharic }, TI.takeIf { tigrinya }, OM.takeIf { oromo }, AR.takeIf { arabic })
 
         /** The one after [current] in [list]; the first when [current] is not in it. */
         fun next(current: Lang, list: List<Lang>): Lang {

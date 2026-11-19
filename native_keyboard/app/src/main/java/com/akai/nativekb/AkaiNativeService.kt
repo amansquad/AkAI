@@ -52,7 +52,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private var tigrinyaLang = false
     private var oromoLang = false
     private var amharicLang = true
-    private fun enabledLangs() = Lang.enabled(tigrinyaLang, oromoLang, amharicLang)
+    private var arabicLang = false
+    private fun enabledLangs() = Lang.enabled(tigrinyaLang, oromoLang, amharicLang, arabicLang)
     private var phonetic = false
     private var symbols = false
     /** On the symbols board, whether the second page (=\<) is showing. */
@@ -216,6 +217,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         tigrinyaLang = p.getBoolean(Prefs.TIGRINYA_LANG, false)
         oromoLang = p.getBoolean(Prefs.OROMO_LANG, false)
         amharicLang = p.getBoolean(Prefs.AMHARIC_LANG, true)
+        arabicLang = p.getBoolean(Prefs.ARABIC_LANG, false)
         lang = Lang.fromCode(p.getString(Prefs.LANG, null)) ?: if (p.getBoolean(Prefs.AMHARIC, false)) Lang.AM else Lang.EN
         if (lang !in enabledLangs()) lang = Lang.EN
         phonetic = p.getBoolean(Prefs.PHONETIC, false)
@@ -365,6 +367,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             }
             symbols -> if (symbolsPage2) LayoutId.SYMBOLS2 else LayoutId.SYMBOLS
             showAmharic -> if (phonetic) LayoutId.PHONETIC else LayoutId.FIDEL
+            lang == Lang.AR && !plainField -> LayoutId.ARABIC
             else -> LayoutId.LETTERS
         }
         layoutId = id
@@ -377,7 +380,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         )
         val layout = Layouts.build(id, showAmharic, options, if (phonetic) LayoutId.PHONETIC else LayoutId.FIDEL)
         // The toolbar's language button, on the boards that have a language key.
-        val letterBoard = id == LayoutId.LETTERS || id == LayoutId.PHONETIC || id == LayoutId.FIDEL
+        val letterBoard = id == LayoutId.LETTERS || id == LayoutId.PHONETIC || id == LayoutId.FIDEL || id == LayoutId.ARABIC
         keys.setLanguageTool(if (langKey == LangKey.TOOLBAR && letterBoard && !searching) Lang.next(lang, enabledLangs()).key else null)
         keys.spaceSwitch = langKey == LangKey.SPACE
         keys.setVowels(emptyList())
@@ -407,7 +410,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         if (!::keys.isInitialized || plainField || !autoCap || emojiQuery != null) return
         if (keys.shiftState == 2) return // caps lock stays
         // Capitals mean something in phonetic typing (T is ጠ), so never add them.
-        if (geez) { keys.shiftState = 0; return }
+        if (lang.caseless) { keys.shiftState = 0; return }
         val ic = currentInputConnection
         val e = info
         val caps = if (ic != null && e != null && e.inputType != InputType.TYPE_NULL) {
@@ -519,7 +522,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             val clean = Suggest.clean(word)
             if (Suggest.isWord(clean)) habits.learnWord(clean, prev)
         }
-        val capitalised = n > 0 && before[before.length - n].isUpperCase() && !geez
+        val capitalised = n > 0 && before[before.length - n].isUpperCase() && !lang.caseless
         val out = if (capitalised) word.replaceFirstChar { it.uppercase() } else word
         ic.beginBatchEdit()
         if (n > 0) ic.deleteSurroundingText(n, 0)
@@ -568,9 +571,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         if (sentenceEnd) updateAutoCaps()
         // Auto-space after punctuation: the space waits for the next letter, so
         // "3.5", "..." and a following space or newline come out right.
-        if (autoSpace && !plainField && !digitField && c != null && (c in ".!?;:" || text == "።" || text == "፣")) {
+        if (autoSpace && !plainField && !digitField && c != null && (c in ".!?;:" || text == "።" || text == "፣" || text == "،" || text == "؟" || text == "؛")) {
             spaceBeforeNextLetter = true
-            if (sentenceEnd && autoCap && !geez && keys.shiftState == 0) keys.shiftState = 1
+            if (sentenceEnd && autoCap && !lang.caseless && keys.shiftState == 0) keys.shiftState = 1
         }
     }
 
@@ -1467,6 +1470,7 @@ object Prefs {
     const val TIGRINYA_LANG = "tigrinya_language"
     const val OROMO_LANG = "oromo_language"
     const val AMHARIC_LANG = "amharic_language"
+    const val ARABIC_LANG = "arabic_language"
     const val LANG = "language"
     const val SHORTCUTS = "text_shortcuts"
     const val LEARNED = "learned_words"

@@ -91,10 +91,12 @@ object Words {
         private set
     @Volatile var om: Dictionary? = null
         private set
+    @Volatile var ar: Dictionary? = null
+        private set
     private var started = false
 
     /** The word list of [lang], once loaded. */
-    fun of(lang: Lang): Dictionary? = when (lang) { Lang.EN -> en; Lang.AM -> am; Lang.TI -> ti; Lang.OM -> om }
+    fun of(lang: Lang): Dictionary? = when (lang) { Lang.EN -> en; Lang.AM -> am; Lang.TI -> ti; Lang.OM -> om; Lang.AR -> ar }
 
     fun load(context: Context) {
         if (started) return
@@ -107,6 +109,7 @@ object Words {
             try { am = Amharic.dictionary(read(Lang.AM.wordsAsset)) } catch (e: Exception) { }
             try { ti = Amharic.dictionary(read(Lang.TI.wordsAsset)) } catch (e: Exception) { }
             try { om = Dictionary(read(Lang.OM.wordsAsset)) } catch (e: Exception) { }
+            try { ar = Dictionary(read(Lang.AR.wordsAsset)) } catch (e: Exception) { }
         }.start()
     }
 }

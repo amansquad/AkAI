@@ -1030,11 +1030,11 @@ class KeyboardView(context: Context) : View(context) {
             if (style == PopupStyle.GLITCH && p < 1f) {
                 // Split-colour ghosts either side, fading as it settles.
                 val off = dp(2.5f) * (1f - p)
-                text.color = withAlpha(0xFF00FFFF.toInt(), 0.6f * (1f - p)); canvas.drawText(alt, ax - off, base, text)
-                text.color = withAlpha(0xFFFF00FF.toInt(), 0.6f * (1f - p)); canvas.drawText(alt, ax + off, base, text)
+                text.color = withAlpha(0xFF00FFFF.toInt(), 0.6f * (1f - p)); canvas.drawText(shown(alt), ax - off, base, text)
+                text.color = withAlpha(0xFFFF00FF.toInt(), 0.6f * (1f - p)); canvas.drawText(shown(alt), ax + off, base, text)
             }
             text.color = withAlpha(color, ci)
-            canvas.drawText(alt, ax, base + lift, text)
+            canvas.drawText(shown(alt), ax, base + lift, text)
         }
         text.alpha = 255
         canvas.restore()
@@ -1172,7 +1172,7 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     /** Boards that can switch language (the symbol and number boards cannot). */
-    private fun hasLanguage(l: Layout) = l.id == LayoutId.LETTERS || l.id == LayoutId.PHONETIC || l.id == LayoutId.FIDEL
+    private fun hasLanguage(l: Layout) = l.id == LayoutId.LETTERS || l.id == LayoutId.PHONETIC || l.id == LayoutId.FIDEL || l.id == LayoutId.ARABIC
 
     /** A held space bar, ready to switch language: an accent outline and arrows at both ends. */
     private fun drawSpaceArmed(canvas: Canvas, t: Touch) {
@@ -1189,6 +1189,10 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawText("◀", rect.left + dp(16f), base, text)
         canvas.drawText("▶", rect.right - dp(16f), base, text)
     }
+
+    /** A lone Arabic vowel mark is drawn on a tatweel so it can be seen; typing it still sends the mark alone. */
+    private fun shown(alt: String) =
+        if (alt.length == 1 && (alt[0] in 'ً'..'ٟ' || alt[0] == 'ٰ')) "ـ$alt" else alt
 
     /** A letter a swipe can pass over: English and phonetic letters, and the fidel consonants. */
     private fun swipeable(l: Layout, k: Key): Boolean = k.kind == KeyKind.CHAR && k.output.length == 1 && when (l.id) {

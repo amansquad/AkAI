@@ -21,6 +21,43 @@ class LangTest {
         assertEquals(Lang.EN, Lang.next(Lang.OM, all))
     }
 
+    @Test fun arabicJoinsTheCycleLast() {
+        assertEquals(listOf(Lang.EN, Lang.AM, Lang.TI, Lang.OM, Lang.AR), Lang.enabled(true, true, true, true))
+        assertEquals(Lang.AR, Lang.next(Lang.EN, Lang.enabled(false, false, amharic = false, arabic = true)))
+        assertTrue(Lang.AR.caseless && Lang.AM.caseless && !Lang.EN.caseless && !Lang.OM.caseless)
+    }
+
+    @Test fun arabicBoardHasEveryLetterAndItsPunctuation() {
+        val o = LayoutOptions(lang = Lang.AR, nextLang = Lang.EN)
+        val keys = Layouts.build(LayoutId.ARABIC, false, o).rows.flatten()
+        val letters = keys.filter { it.kind == KeyKind.CHAR }.map { it.label }.toSet()
+        // The 28 letters of the alphabet, directly or under another letter (hamza forms).
+        val alphabet = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي"
+        val reachable = letters + keys.flatMap { it.alternates }
+        assertTrue(alphabet.filter { it.toString() !in reachable }.toString(), alphabet.all { it.toString() in reachable })
+        assertTrue("ة" in reachable && "ى" in reachable && "ء" in reachable && "ئ" in reachable && "ؤ" in reachable)
+        // Arabic comma, with the vowel marks on a long press, and question mark.
+        val comma = keys.first { it.label == "،" }
+        assertTrue("َ" in comma.alternates && "ّ" in comma.alternates)
+        assertTrue(keys.any { it.label == "." && "؟" in it.alternates })
+        assertTrue(keys.any { it.kind == KeyKind.SPACE && it.label == "العربية" })
+        assertTrue(keys.none { it.kind == KeyKind.SHIFT })
+    }
+
+    @Test fun arabicDigitsAreOnTheNumberRow() {
+        val o = LayoutOptions(lang = Lang.AR, numberRow = true)
+        val row = Layouts.build(LayoutId.ARABIC, false, o).rows.first()
+        assertEquals("١", row.first { it.label == "1" }.alternates.single())
+    }
+
+    @Test fun arabicSuggestionsHaveNoEnglishFixesOrEmoji() {
+        val out = Suggest.forText("السلام ", false, lang = Lang.AR)
+        assertEquals("عليكم", out.first())
+        assertTrue(out.none { Suggest.isEmoji(it) })
+        val completed = Suggest.forText("مر", false, lang = Lang.AR, dict = Dictionary(listOf("مرحبا", "مرة")))
+        assertTrue("مرحبا" in completed)
+    }
+
     @Test fun amharicCanBeLeftOut() {
         assertEquals(listOf(Lang.EN, Lang.OM), Lang.enabled(false, true, amharic = false))
         assertEquals(listOf(Lang.EN), Lang.enabled(false, false, amharic = false))
