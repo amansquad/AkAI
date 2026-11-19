@@ -1,6 +1,6 @@
 {
-  "versionCode": 10020,
-  "versionName": "1.0.20",
+  "versionCode": 10021,
+  "versionName": "1.0.21",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Lyrics now teach next words: lines you put in from the Lyrics tab are learned as word pairs on your phone, so they show up as suggestions."
+  "notes": "Clipboard: remove any copied item with the ✕, and keep copied pictures and screenshots like text (turn on Keep copied pictures in Settings)."
 }

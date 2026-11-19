@@ -1278,7 +1278,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     /** Clears the history; pinned items stay, because pinning them was deliberate. */
     override fun onPanelClearClipboard() {
+        val old = clips.toList()
         clips.clear()
+        old.forEach { dropClipFile(it) }
         panel.setClips(clipList())
     }
 
@@ -1428,20 +1430,91 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         }
     }
 
+    private fun clipImageDir() = java.io.File(filesDir, "clipimgs").apply { mkdirs() }
+
     private fun readClipboard() {
         if (incognito) return
         val clip: ClipData = try { clipboard?.primaryClip } catch (e: Exception) { null } ?: return
         if (clip.itemCount == 0) return
         // Never keep what the source marked sensitive, such as a copied password.
         if (clip.description?.extras?.getBoolean("android.content.extra.IS_SENSITIVE") == true) return
-        val value = clip.getItemAt(0).coerceToText(this)?.toString()?.trim().orEmpty()
+        val item = clip.getItemAt(0)
+        val uri = item.uri
+        val isPicture = uri != null && clip.description?.hasMimeType("image/*") == true
+        if (isPicture) {
+            // Pictures (screenshots, copied images) only when the user switched that on.
+            if (getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE).getBoolean(Prefs.CLIP_IMAGES, false)) saveClipImage(uri!!)
+            return
+        }
+        val value = item.coerceToText(this)?.toString()?.trim().orEmpty()
         if (value.isEmpty()) return
+        addClip(value)
+    }
+
+    private fun addClip(value: String) {
         clips.remove(value)
         clips.add(0, value)
-        while (clips.size > 20) clips.removeAt(clips.size - 1)
+        while (clips.size > 20) dropClipFile(clips.removeAt(clips.size - 1))
         if (::panel.isInitialized && panel.visibility == View.VISIBLE && panel.tab == PanelView.Tab.CLIPBOARD) {
             panel.setClips(clipList())
         }
+    }
+
+    /** Deletes a picture's file once nothing (history or pins) refers to it. */
+    private fun dropClipFile(text: String) {
+        if (!text.startsWith(Clip.IMAGE_MARK) || text in pinned || text in clips) return
+        java.io.File(clipImageDir(), text.removePrefix(Clip.IMAGE_MARK)).delete()
+    }
+
+    /** Copies a clipboard picture into the app's own storage (small, off the main thread). */
+    private fun saveClipImage(uri: Uri) {
+        Thread {
+            try {
+                val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return@Thread
+                if (bytes.isEmpty() || bytes.size > 15_000_000) return@Thread
+                val name = java.security.MessageDigest.getInstance("MD5").digest(bytes)
+                    .joinToString("") { "%02x".format(it) } + ".png"
+                val file = java.io.File(clipImageDir(), name)
+                if (!file.exists()) {
+                    val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                    var sample = 1
+                    while (bounds.outWidth / sample > 1600 || bounds.outHeight / sample > 1600) sample *= 2
+                    val bmp = android.graphics.BitmapFactory.decodeByteArray(
+                        bytes, 0, bytes.size, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample },
+                    ) ?: return@Thread
+                    file.outputStream().use { bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                }
+                val key = Clip.IMAGE_MARK + name
+                android.os.Handler(mainLooper).post { addClip(key) }
+            } catch (e: Exception) { /* a picture we can't read is simply not kept */ }
+        }.start()
+    }
+
+    override fun onPanelRemoveClip(text: String) {
+        clips.remove(text)
+        if (pinned.remove(text)) savePref { putString(Prefs.PINNED, org.json.JSONArray(pinned.toList()).toString()) }
+        dropClipFile(text)
+        panel.setClips(clipList())
+        onKeyFeedback()
+    }
+
+    override fun onPanelClipImage(fileName: String) {
+        val editor = info ?: return
+        val file = java.io.File(clipImageDir(), fileName)
+        val accepts = EditorInfoCompat.getContentMimeTypes(editor).any { it == "image/png" || it == "image/*" }
+        val live = currentInputConnection ?: return
+        if (!file.exists() || !accepts) {
+            Toast.makeText(this, UiText.t(this, "This field can't take pictures"), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+        val flags = if (Build.VERSION.SDK_INT >= 25) InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION else 0
+        val sent = InputConnectionCompat.commitContent(
+            live, editor, InputContentInfoCompat(uri, ClipDescription("Picture", arrayOf("image/png")), null), flags, null,
+        )
+        if (!sent) Toast.makeText(this, UiText.t(this, "This field can't take pictures"), Toast.LENGTH_SHORT).show()
+        onKeyFeedback()
     }
 
     // ─── Feedback ────────────────────────────────────────────────────────
@@ -1493,6 +1566,7 @@ object Prefs {
     const val RECENTS = "recent_emoji"
     const val LEARN = "learn_words"
     const val INCOGNITO = "incognito"
+    const val CLIP_IMAGES = "clip_images"
     const val FLOATING = "floating"
     const val FLOAT_X = "float_x"
     const val FLOAT_Y = "float_y"

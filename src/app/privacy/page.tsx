@@ -63,7 +63,7 @@ const SENT = [
 
 const KEPT = [
   'Everything you type. AkAI does not record, upload or log your keystrokes.',
-  'The words it learns for suggestions, your clipboard history, pinned items, and recent emoji.',
+  'The words it learns for suggestions, your clipboard history, pinned items, and recent emoji. Copied pictures and screenshots are kept in the clipboard only if you turn on Keep copied pictures; they stay on your phone and you can remove each one.',
   'Your settings and themes, including themes you make.',
   'Handwriting models, which are downloaded once from Google and then run on your phone.',
 ];

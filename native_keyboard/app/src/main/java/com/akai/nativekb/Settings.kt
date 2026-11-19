@@ -285,6 +285,7 @@ class SettingsActivity : ThemedActivity() {
         Entry(TYPING, "Tidy up voice typing", "voice dictation punctuation filler clean"),
         Entry(SIZE, "Floating keyboard", "float move drag tablet small"),
         Entry(TYPING, "Incognito mode", "private privacy history clipboard learn"),
+        Entry(TYPING, "Keep copied pictures", "screenshot image picture clipboard photo save"),
         Entry(TYPING, "Forget learned words", "clear reset dictionary delete"),
         Entry(TYPING, "Swipe typing", "glide gesture slide"),
         Entry(TYPING, "Long-press popups", "hold accents vowel delay"),
@@ -631,6 +632,7 @@ class SettingsActivity : ThemedActivity() {
             ui.switchRow("Auto-correct Amharic", "Fixes a wrong vowel or a sound-alike letter (ሰ for ሠ) when you finish a word. Off, the fix is still offered first in the suggestions", on(Prefs.AUTOCORRECT_AM, false)) { put(Prefs.AUTOCORRECT_AM, it) },
             ui.switchRow("Learn the words I type", "Never in password, email or number fields", on(Prefs.LEARN, true)) { put(Prefs.LEARN, it) },
             ui.switchRow("Incognito mode", "Stop learning words and saving copied text until you turn it off", on(Prefs.INCOGNITO, false)) { put(Prefs.INCOGNITO, it) },
+            ui.switchRow("Keep copied pictures", "Save screenshots and copied images in the clipboard, like text. Stored only on this phone", on(Prefs.CLIP_IMAGES, false)) { put(Prefs.CLIP_IMAGES, it) },
             shortcutsField(),
             forget,
         )

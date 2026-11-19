@@ -25,12 +25,21 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-class Clip(val text: String, val pinned: Boolean)
+class Clip(val text: String, val pinned: Boolean) {
+    /** Copied pictures and screenshots are kept as files; their text is IMAGE_MARK + the file name. */
+    val isImage get() = text.startsWith(IMAGE_MARK)
+    val fileName get() = text.removePrefix(IMAGE_MARK)
+    companion object { const val IMAGE_MARK = "\u0001img:" }
+}
 
 interface PanelHost {
     fun onPanelText(text: String, isEmoji: Boolean)
     fun onPanelClose()
     fun onPanelClearClipboard()
+    /** Removes one clipboard item (and un-pins it). */
+    fun onPanelRemoveClip(text: String)
+    /** Sends a clipboard picture to the app being typed into. */
+    fun onPanelClipImage(fileName: String)
     fun onPanelTogglePin(text: String)
     fun onPanelGif(item: GifItem)
     fun onPanelSticker(sticker: Stickers.Sticker)
@@ -745,6 +754,20 @@ class PanelView(context: Context) : View(context) {
         if (song != null) label(canvas, "Lyrics from LRCLIB", width / 2f, top + count * rowH - scrollY + dp(12f), dp(10f), palette.hint)
     }
 
+    private val clipThumbs = HashMap<String, android.graphics.Bitmap?>()
+    private val clipThumbDst = RectF()
+
+    private fun clipThumb(name: String): android.graphics.Bitmap? = clipThumbs.getOrPut(name) {
+        try {
+            val file = java.io.File(java.io.File(context.filesDir, "clipimgs"), name)
+            val o = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeFile(file.path, o)
+            var sample = 1
+            while (o.outWidth / (sample * 2) >= 160 && o.outHeight / (sample * 2) >= 160) sample *= 2
+            android.graphics.BitmapFactory.decodeFile(file.path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+        } catch (e: Throwable) { null }
+    }
+
     private fun drawClips(canvas: Canvas) {
         val top = contentTop()
         if (clips.isEmpty()) {
@@ -762,9 +785,29 @@ class PanelView(context: Context) : View(context) {
             fill.color = if (clip.pinned) palette.popup else palette.key
             canvas.drawRoundRect(rect, radius, radius, fill)
             text.color = palette.text
-            val shown = TextUtils.ellipsize(clip.text.replace('\n', ' '), TextPaint(text), rect.width() - dp(44f), TextUtils.TruncateAt.END)
-            canvas.drawText(shown.toString(), rect.left + dp(12f), rect.centerY() - (text.descent() + text.ascent()) / 2f, text)
-            if (clip.pinned) label(canvas, "📌", rect.right - dp(16f), rect.centerY(), dp(14f), palette.text)
+            var textLeft = rect.left + dp(12f)
+            val shownText: String
+            if (clip.isImage) {
+                val bmp = clipThumb(clip.fileName)
+                val side = rect.height() - dp(8f)
+                if (bmp != null) {
+                    val s = minOf(side / bmp.width, side / bmp.height)
+                    val w = bmp.width * s; val h = bmp.height * s
+                    val l = rect.left + dp(8f) + (side - w) / 2f; val t = rect.centerY() - h / 2f
+                    clipThumbDst.set(l, t, l + w, t + h)
+                    canvas.drawBitmap(bmp, null, clipThumbDst, null)
+                }
+                textLeft = rect.left + dp(8f) + side + dp(10f)
+                shownText = tr("Picture")
+            } else shownText = clip.text.replace('\n', ' ')
+            text.textAlign = Paint.Align.LEFT
+            val room = rect.right - dp(if (clip.pinned) 76f else 48f) - textLeft
+            val shown = TextUtils.ellipsize(shownText, TextPaint(text), room, TextUtils.TruncateAt.END)
+            canvas.drawText(shown.toString(), textLeft, rect.centerY() - (text.descent() + text.ascent()) / 2f, text)
+            if (clip.pinned) label(canvas, "📌", rect.right - dp(44f), rect.centerY(), dp(14f), palette.text)
+            text.textAlign = Paint.Align.CENTER
+            label(canvas, "✕", rect.right - dp(18f), rect.centerY(), dp(15f), palette.hint)
+            text.textAlign = Paint.Align.LEFT
         }
         text.textAlign = Paint.Align.CENTER
         label(canvas, "Hold an item to pin it", width / 2f, height - dp(10f), dp(10f), palette.hint)
@@ -1282,7 +1325,13 @@ class PanelView(context: Context) : View(context) {
             }
             Tab.CLIPBOARD -> {
                 val i = ((y - top + scrollY) / clipRowH()).toInt()
-                clips.getOrNull(i)?.let { host?.onPanelText(it.text, false) }
+                clips.getOrNull(i)?.let {
+                    when {
+                        x > width - dp(44f) -> { clipThumbs.remove(it.fileName); host?.onPanelRemoveClip(it.text) }
+                        it.isImage -> host?.onPanelClipImage(it.fileName)
+                        else -> host?.onPanelText(it.text, false)
+                    }
+                }
             }
             Tab.LYRICS -> {
                 val i = ((y - top + scrollY) / lyricRowH()).toInt()
