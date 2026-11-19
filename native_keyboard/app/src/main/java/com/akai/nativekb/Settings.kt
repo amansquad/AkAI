@@ -667,7 +667,8 @@ class SettingsActivity : ThemedActivity() {
     private fun toolbarPage(c: LinearLayout) {
         val chosen = (prefs.getString(Prefs.TOOLBAR, Tools.DEFAULT) ?: Tools.DEFAULT).split(',').toMutableSet()
         val toolRows = Tools.all.filter { it.first.first != TOOL_SETTINGS }.map { (t, spoken) ->
-            ui.switchRow("${t.third}   ${ui.tr(spoken)}", "", t.second in chosen) { on ->
+            // The GIF tool's own icon is the word "GIF", which doubled up with its name ("GIF   GIFs"), so the list uses a picture instead.
+            ui.switchRow("${if (t.third == "GIF") "🎞️" else t.third}   ${ui.tr(spoken)}", "", t.second in chosen) { on ->
                 if (on) chosen.add(t.second) else chosen.remove(t.second)
                 put(Prefs.TOOLBAR, chosen.filter { it.isNotBlank() }.joinToString(","))
             }

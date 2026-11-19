@@ -1,6 +1,6 @@
 {
-  "versionCode": 10018,
-  "versionName": "1.0.18",
+  "versionCode": 10019,
+  "versionName": "1.0.19",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Settings, Toolbar now shows the tool names in your language, including Lyrics, Clipboard and Handwriting."
+  "notes": "Tidier Settings, Toolbar list: the GIF tool no longer shows its name twice."
 }
