@@ -57,6 +57,8 @@ interface PanelHost {
     fun onPanelStickerSearch(current: String)
     /** The search button in the lyrics tab: type a song or artist on the keys, starting from [current]. */
     fun onPanelLyricsSearch(current: String)
+    /** Lyrics put in from the Lyrics tab: the host may learn which words follow which. */
+    fun onPanelLearn(text: String)
     /** Something in the voice tab: the mic, the language, the setup button, or leaving the tab. */
     fun onPanelVoice(action: PanelView.VoiceAction)
 }
@@ -1193,7 +1195,7 @@ class PanelView(context: Context) : View(context) {
             i == 0 -> host?.onPanelClose()
             i in 1 until tabNames.size -> if (tabAt(i) != tab) enter(tabAt(i)!!)
             tab == Tab.CLIPBOARD -> host?.onPanelClearClipboard()
-            tab == Tab.LYRICS -> lyricsSong?.let { host?.onPanelText(it.lines.take(40).joinToString("\n"), false) }
+            tab == Tab.LYRICS -> lyricsSong?.let { val all = it.lines.take(40).joinToString("\n"); host?.onPanelText(all, false); host?.onPanelLearn(all) }
             tab == Tab.EMOJI || tab == Tab.STICKERS || tab == Tab.GIF -> host?.onPanelText("\b", false)
         }
     }
@@ -1285,7 +1287,7 @@ class PanelView(context: Context) : View(context) {
             Tab.LYRICS -> {
                 val i = ((y - top + scrollY) / lyricRowH()).toInt()
                 val song = lyricsSong
-                if (song != null) song.lines.getOrNull(i)?.let { host?.onPanelText("$it ", false) }
+                if (song != null) song.lines.getOrNull(i)?.let { host?.onPanelText("$it ", false); host?.onPanelLearn(it) }
                 else lyricsSongs.getOrNull(i)?.let { lyricsSong = it; resetScroll(); invalidate() }
             }
             else -> {}

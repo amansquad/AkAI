@@ -834,7 +834,7 @@ class SettingsActivity : ThemedActivity() {
         group(c, "Privacy",
             note("Learned words and settings are kept on this phone, and words are never learned from password, email or number fields. Text goes to your Akai server only when you use Translate, or for handwriting the phone can't read. GIFs come from Giphy through the Akai server (or directly, with your own key), and voice typing uses your phone's speech service."),
             note("Rewrite, and Tidy up voice typing when it is on, also send the text to your Akai server."),
-            note("The Lyrics tab sends the song or artist you search for to LRCLIB (lrclib.net), and nothing else. Lyrics are shown, not saved."),
+            note("The Lyrics tab sends the song or artist you search for to LRCLIB (lrclib.net), and nothing else. Lyrics are shown, not saved. Lines you put in teach the keyboard which words follow which, on this phone only, like anything you type (switch off with Learn the words I type)."),
         )
         group(c, "Credits",
             note("English word list from FrequencyWords by Hermit Dave, CC BY-SA 4.0.\nHandwriting by Google ML Kit digital ink recognition.\nGIFs powered by Giphy."),

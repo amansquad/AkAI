@@ -937,6 +937,13 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     override fun onPanelLyricsSearch(current: String) = startSearch(PanelView.Tab.LYRICS, start = current)
 
+    /** Lines put in from the Lyrics tab teach next-word pairs, like typing does (and only if learning is on). */
+    override fun onPanelLearn(text: String) {
+        if (!learnOn || plainField || digitField) return
+        habits.learnPhrase(text)
+        if (habits.dirty >= 20) saveLearned()
+    }
+
     private fun startSearch(tab: PanelView.Tab?, start: String) {
         closePanel()
         searchTab = tab

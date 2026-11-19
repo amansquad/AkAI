@@ -96,6 +96,21 @@ class LogicTest {
         assertTrue(chat.all { (k, v) -> k !in v })
     }
 
+    @Test fun lyricLinesTeachNextWordPairsButNotWords() {
+        val h = Habits()
+        h.learnPhrase("ዓይኖች አያዩ ብርሃን የላቸው\nHello, it's me")
+        // The pairs inside a line are learned, in any script...
+        assertEquals("አያዩ", Suggest.forText("ዓይኖች ", true, pairs = h.pairs, lang = Lang.AM).first())
+        assertEquals("it's", Suggest.forText("hello ", false, pairs = h.pairs).first())
+        // ...but not across lines, and the words themselves are not added to what you "typed".
+        assertTrue(h.pairs.none { it.key.startsWith("የላቸው\t") })
+        assertTrue(h.words.isEmpty())
+        // A long song cannot flood the table.
+        val big = Habits()
+        big.learnPhrase((1..300).joinToString(" ") { "word" + "x".repeat(it % 7 + 1) + it.toString().map { c -> 'a' + (c - '0') }.joinToString("") })
+        assertTrue(big.pairs.size <= 120)
+    }
+
     @Test fun lyricsAreParsedAndCleaned() {
         val json = """[
           {"artistName":"Teddy Afro","trackName":"Teddy Afro - Teddy Afro - Lambadina [Official Video]","plainLyrics":"[Chorus]\nline one\n\nline two","instrumental":false},

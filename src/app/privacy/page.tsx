@@ -38,8 +38,8 @@ const SENT = [
   {
     name: 'Song lyrics',
     what: 'The song or artist you type in the Lyrics tab. Nothing else, and not what you are typing in other fields.',
-    where: 'LRCLIB (lrclib.net), a free community lyrics service, which sees your phone’s address and the search words, under its own terms. AkAI does not store lyrics; they are shown and not kept.',
-    when: 'Only when you search in the Lyrics tab.',
+    where: 'LRCLIB (lrclib.net), a free community lyrics service, which sees your phone’s address and the search words, under its own terms. AkAI does not store lyrics; they are shown and not kept. Lines you put in teach the keyboard which words follow which (word pairs only, on your phone, never sent anywhere), the same as what you type, and Learn the words I type turns it off.',
+    when: 'Searching happens only when you search in the Lyrics tab. Learning word pairs happens when you put a line in.',
   },
   {
     name: 'Sticker packs',

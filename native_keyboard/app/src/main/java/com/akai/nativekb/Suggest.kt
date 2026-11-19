@@ -28,6 +28,24 @@ class Habits {
         if (prev != null) bump(pairs, "$prev\t$word", 4000)
     }
 
+    /**
+     * Learns which word follows which in [text], a line of a song put in with the Lyrics tab.
+     * Only the pairs are kept (not the words, nothing of the song itself), so these words
+     * come up as next-word suggestions just as ones you typed do. Pairs never cross a line.
+     */
+    fun learnPhrase(text: String) {
+        var added = 0
+        for (line in text.split('\n')) {
+            var prev: String? = null
+            for (raw in line.split(Regex("\\s+"))) {
+                val w = Suggest.clean(raw)
+                if (!Suggest.isWord(w)) { prev = null; continue }
+                if (prev != null && added < 120) { bump(pairs, "$prev\t$w", 4000); added++ }
+                prev = w
+            }
+        }
+    }
+
     fun learnEmoji(word: String, emoji: String) = bump(this.emoji, "$word\t$emoji", 1500)
 
     fun clear() { words.clear(); pairs.clear(); emoji.clear(); dirty = 0 }
