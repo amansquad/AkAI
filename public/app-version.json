@@ -1,6 +1,6 @@
 {
-  "versionCode": 10013,
-  "versionName": "1.0.13",
+  "versionCode": 10014,
+  "versionName": "1.0.14",
   "url": "/AkAI-keyboard.apk",
-  "notes": "New Lyrics tab: search a song or artist and tap lines to insert them, including Amharic songs."
+  "notes": "New languages: Tigrinya, Afaan Oromoo, Arabic (standard and phonetic) and Somali. Turn them on in Settings, Languages. The translate panel covers them too."
 }
