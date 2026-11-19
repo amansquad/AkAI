@@ -13,8 +13,8 @@ android {
         targetSdk = 36
         // Read by scripts/apk-info.mjs for the website's download button and
         // public/app-version.json, so the update check sees the same numbers.
-        versionCode = 10010
-        versionName = "1.0.10"
+        versionCode = 10011
+        versionName = "1.0.11"
     }
 
     // Release signing reads keystore.properties (git-ignored) when it exists:
