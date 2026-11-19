@@ -29,9 +29,9 @@ const notoSansEthiopic = Noto_Sans_Ethiopic({
 });
 
 export const metadata: Metadata = {
-  title: "AkAI - Amharic Keyboard + AI | English & Amharic Bilingual Keyboard",
-  description: "AkAI: The smartest bilingual keyboard for English and Amharic. AI translation, stickers, GIFs, handwriting, 170+ themes, Ethiopian numbers, word suggestions.",
-  keywords: ["AkAI", "keyboard", "Amharic", "English", "bilingual", "AI translation", "Ge'ez", "stickers", "GIFs", "handwriting", "themes", "Ethiopian"],
+  title: "AkAI - Amharic, Tigrinya, Oromo, Somali & Arabic Keyboard + AI",
+  description: "AkAI: The smartest multilingual keyboard for Amharic, Tigrinya, Oromo, Somali, Arabic and English. AI translation, stickers, GIFs, handwriting, 170+ themes, Ethiopian numbers, word suggestions.",
+  keywords: ["AkAI", "keyboard", "Amharic", "Tigrinya", "Oromo", "Somali", "Arabic", "English", "multilingual", "AI translation", "Ge'ez", "stickers", "GIFs", "handwriting", "themes", "Ethiopian"],
   authors: [{ name: "AkAI Team" }],
   // New file names (not akai-icon.png) so browsers and the service worker
   // can't keep showing the old icon from their caches.
@@ -43,14 +43,14 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    title: "AkAI - Amharic Keyboard + AI",
-    description: "English & Amharic keyboard with AI translation, handwriting, themes",
+    title: "AkAI - Multilingual Keyboard + AI",
+    description: "Amharic, Tigrinya, Oromo, Somali, Arabic & English keyboard with AI translation, handwriting, themes",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AkAI - Amharic Keyboard + AI",
-    description: "English & Amharic keyboard with AI translation, handwriting, themes",
+    title: "AkAI - Multilingual Keyboard + AI",
+    description: "Amharic, Tigrinya, Oromo, Somali, Arabic & English keyboard with AI translation, handwriting, themes",
   },
 };
 

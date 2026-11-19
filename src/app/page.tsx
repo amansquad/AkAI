@@ -42,6 +42,16 @@ const FIDEL: Record<string, string[]> = {
   'በ': ['በ', 'ቡ', 'ቢ', 'ባ', 'ቤ', 'ብ', 'ቦ'],
 };
 
+/* The six typing languages of the native keyboard. */
+const LANGS = [
+  { name: 'English', native: 'English', hello: 'Hello, how are you?', how: 'QWERTY, Dvorak, AZERTY, Colemak or QWERTZ', bg: 'var(--vermilion)', fg: '#fff' },
+  { name: 'Amharic', native: 'አማርኛ', hello: 'ሰላም፣ እንዴት ነህ?', how: 'Full fidel board, or phonetic: "selam" gives ሰላም', bg: 'var(--saffron)', fg: 'var(--ink)' },
+  { name: 'Tigrinya', native: 'ትግርኛ', hello: 'ሰላም፣ kemey aleKa?', how: 'The same fidel board, with Tigrinya words and phonetic typing', bg: 'var(--sky)', fg: '#fff' },
+  { name: 'Oromo', native: 'Afaan Oromoo', hello: 'Akkam jirta?', how: 'Qubee on the Latin board, with ch, dh, ny, ph and sh digraphs', bg: 'var(--enamel)', fg: 'var(--ink)' },
+  { name: 'Somali', native: 'Af-Soomaali', hello: 'Salaan, sidee tahay?', how: 'Latin board plus an apostrophe key for the letter ayn', bg: 'var(--saffron)', fg: 'var(--ink)', },
+  { name: 'Arabic', native: 'العربية', hello: 'مرحبا، كيف حالك؟', how: 'Right to left, with a phonetic board: "salaam" gives سلام', bg: 'var(--vermilion)', fg: '#fff', rtl: true },
+];
+
 /* Real captures of the Android keyboard with each theme applied (public/themes/kb). */
 const THEMES = [
   { name: 'Saint George FC', src: '/themes/kb/saint-george-fc.jpg', tag: 'Club' },
@@ -144,13 +154,13 @@ function Hero() {
           <h1 className="land-display" style={{ fontSize: 'clamp(2.5rem, 7.6vw, 5.8rem)', textWrap: 'nowrap' }}>
             One keyboard.
             <br />
-            <span style={{ color: 'var(--saffron)' }}>Both languages.</span>
+            <span style={{ color: 'var(--saffron)' }}>Six languages.</span>
             <br />
             No compromise.
           </h1>
           <p className="land-lede" style={{ marginTop: 'clamp(20px, 3vw, 32px)' }}>
-            Native Ge&apos;ez script and English QWERTY, with AI translation built into the typing surface. Made for
-            Ethiopia&apos;s bilingual reality.
+            Amharic, Tigrinya, Oromo, Somali, Arabic and English on one keyboard, with AI translation built into the
+            typing surface. Made for the Horn of Africa&apos;s many languages.
           </p>
           <div className="flex flex-wrap gap-3" style={{ marginTop: 32 }}>
             <a href={APK} download={APK_FILE} className="land-btn land-btn--primary">
@@ -235,8 +245,8 @@ function Fidel() {
               <span style={{ color: 'var(--saffron)' }}>All seven forms.</span>
             </h2>
             <p className="land-lede" style={{ marginTop: 24 }}>
-              The complete Ge&apos;ez script, each consonant with its vowel forms, typed natively. Amharic is not a
-              layer on top of an English keyboard here. Pick a letter and see its family.
+              The complete Ge&apos;ez script, each consonant with its vowel forms, typed natively, for Amharic and
+              Tigrinya alike. The fidel is not a layer on top of an English keyboard here. Pick a letter and see its family.
             </p>
             <div role="group" aria-label="Choose a consonant" className="flex flex-wrap gap-2" style={{ marginTop: 28 }}>
               {Object.keys(FIDEL).map((c) => (
@@ -269,6 +279,40 @@ function Fidel() {
           </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function LanguagesSection() {
+  return (
+    <section className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
+      <div className="flex flex-wrap items-end justify-between gap-6" style={{ marginBottom: 'clamp(32px, 5vw, 56px)' }}>
+        <h2 className="land-display land-h2">
+          Six languages,
+          <br />
+          <span style={{ color: 'var(--saffron)' }}>one globe key.</span>
+        </h2>
+        <p className="land-lede" style={{ maxWidth: '40ch' }}>
+          Turn on the ones you write in under Settings, Languages. The globe key cycles through them, and the menus can
+          speak them too. English is always there for email, web addresses and passwords.
+        </p>
+      </div>
+      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 md:gap-7" style={{ listStyle: 'none', padding: 0 }}>
+        {LANGS.map((l) => (
+          <li key={l.name}>
+            <Sign bg={l.bg} fg={l.fg} cap={l.name} val={<span lang={l.name === 'Arabic' ? 'ar' : undefined} className="land-geez" style={{ fontSize: '0.6em' }}>{l.native}</span>}>
+              <p
+                className="land-display"
+                dir={l.rtl ? 'rtl' : undefined}
+                style={{ fontSize: 'clamp(1.3rem, 2.4vw, 1.8rem)', lineHeight: 1.2, textAlign: l.rtl ? 'right' : undefined }}
+              >
+                {l.hello}
+              </p>
+              <p style={{ marginTop: 10, lineHeight: 1.45, fontSize: '0.95rem' }}>{l.how}</p>
+            </Sign>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -311,12 +355,12 @@ function Sheet() {
   return (
     <section className="land-wrap" style={{ paddingBlock: 'clamp(64px, 9vw, 120px)' }}>
       <h2 className="land-display land-h2" style={{ marginBottom: 'clamp(32px, 5vw, 56px)', maxWidth: '14ch' }}>
-        Built for <span style={{ color: 'var(--saffron)' }}>bilingual</span> speed
+        Built for <span style={{ color: 'var(--saffron)' }}>multilingual</span> speed
       </h2>
       <div className="grid gap-5 md:grid-cols-12 md:gap-7">
         <Sign className="md:col-span-7" bg="var(--vermilion)" fg="#fff" cap="AI · Inline" val={<Languages size={46} aria-hidden="true" />} mark="Translation">
           <h3 className="land-display" style={h}>Translate without leaving the keyboard</h3>
-          <p style={p}>English to Amharic and back, right where you type. No separate translator app, no copy and paste.</p>
+          <p style={p}>Between English, Amharic, Tigrinya, Oromo, Somali and Arabic, right where you type. No separate translator app, no copy and paste.</p>
         </Sign>
         <Sign className="md:col-span-5" bg="var(--saffron)" fg="var(--ink)" cap="Canvas · AI" val={<PenLine size={46} aria-hidden="true" />} mark="Handwriting">
           <h3 className="land-display" style={h}>Draw a letter, get the fidel</h3>
@@ -461,6 +505,7 @@ export default function Home() {
       <div className="land-ribs" aria-hidden="true" />
       <Hero />
       <Fidel />
+      <LanguagesSection />
       <Sheet />
       <Themes />
       <Try />
@@ -470,7 +515,7 @@ export default function Home() {
         <div className="land-wrap flex flex-wrap items-center justify-between gap-4" style={{ paddingBlock: 28 }}>
           <span className="land-display" style={{ fontSize: '1.5rem', }}>AkAI</span>
           <span style={{ color: 'var(--on-ink-dim)', fontSize: '0.9rem' }}>
-            English &amp; Amharic keyboard · <a href="/privacy">Privacy policy</a> · &copy; 2026 AkAI
+            English, Amharic, Tigrinya, Oromo, Somali &amp; Arabic keyboard · <a href="/privacy">Privacy policy</a> · &copy; 2026 AkAI
           </span>
         </div>
       </footer>
