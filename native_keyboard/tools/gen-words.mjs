@@ -6,7 +6,7 @@
 // Download that file, then run from native_keyboard/:
 //   node tools/gen-words.mjs path/to/en_50k.txt
 import fs from 'node:fs';
-import { contractions, moreContractions, slang } from './words-extra.mjs';
+import { contractions, moreContractions, slang, memes } from './words-extra.mjs';
 
 const input = process.argv[2];
 if (!input) throw new Error('usage: node tools/gen-words.mjs en_50k.txt');
@@ -33,6 +33,7 @@ for (const line of fs.readFileSync(input, 'utf8').split(/\r?\n/)) {
   if (out.length === 60) contractions.forEach(add);
   if (out.length === 400) moreContractions.forEach(add);
   if (out.length === 4000) slang.filter((w) => w.length > 1).forEach(add);
+  if (out.length === 4150) memes.filter((w) => w.length > 1).forEach(add);
   if (out.length >= LIMIT) break;
 }
 

@@ -24,3 +24,16 @@ export const slang = ["bruh", "bro", "lowkey", "highkey", "vibe", "vibes", "vibi
   "ty", "pls", "plz", "rn", "af", "asf", "deadass", "bffr", "oomf", "pov", "npc", "w", "l", "ratio", "touchgrass",
   "glowup", "situationship", "aura", "mewing", "gaslight", "gatekeep", "girlboss", "boujee", "chill", "cap", "nocap",
   "tea", "spill", "cheugy", "extra", "iykyk", "lit", "fire", "hits", "ate", "serve", "valid", "wig", "main", "era"];
+
+// Internet and meme words. Inserted just after the slang, so they are offered as completions
+// but never take over auto-correct from an ordinary word.
+export const memes = ["meme", "memes", "memed", "memeing", "dank", "stonks", "doge", "pepe", "wojak", "chad",
+  "gigachad", "karen", "boomer", "zoomer", "doomer", "poggers", "pog", "pogchamp", "kek", "lul", "copium", "hopium",
+  "sheesh", "oof", "bonk", "rickroll", "rickrolled", "bamboozled", "bamboozle", "noice", "yoink", "vibecheck",
+  "sussy", "amogus", "rizzler", "fanum", "hodl", "rekt", "pwned", "noob", "sadge", "trollface", "trolling",
+  "doomscroll", "doomscrolling", "brainrot", "mogged", "mogging", "looksmaxxing", "cheems", "baka", "sksksk",
+  "yass", "wholesome", "unhinged", "greentext", "copypasta", "clownery", "clowned", "ratioed", "cancelled",
+  "viral", "trending", "clout", "flop", "hottake", "reaction", "emotional", "ohio", "grindset", "sigmagrindset",
+  "npcs", "lore", "canon", "reddit", "tiktok", "tiktoks", "fyp", "fypage", "dm", "dms", "gif", "gifs", "ggwp", "gg",
+  "ez", "pepega", "kappa", "monkas", "copege", "gamer", "gamers", "stonk", "bingus", "sheeeesh", "chungus", "yeeted",
+  "oomfs", "bffs", "gucci", "bestfriend", "relatable", "mood", "same", "bruhh", "bruhhh", "lmaooo", "frfr", "deadass"];

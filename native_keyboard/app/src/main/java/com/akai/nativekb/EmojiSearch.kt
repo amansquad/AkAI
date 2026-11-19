@@ -81,6 +81,14 @@ object EmojiSearch {
         "stan" to "🙌", "shook" to "😳", "based" to "🗿", "sigma" to "🗿", "omg" to "😱 🤯", "lmao" to "😂 🤣",
         "lmfao" to "🤣", "rofl" to "🤣", "smh" to "🤦", "brb" to "⏳", "ily" to "❤️ 🥰", "idk" to "🤷", "yolo" to "🤪",
         "fomo" to "😰", "bday" to "🎂 🎉", "glowup" to "✨", "aura" to "✨", "ate" to "😋 🔥", "snatched" to "😍",
+        // Memes
+        "meme" to "😂 🤡", "memes" to "😂 🤡", "stonks" to "📈 🤑", "stonk" to "📈", "doge" to "🐕", "pepe" to "🐸",
+        "chad" to "🗿 😎", "gigachad" to "🗿", "karen" to "💁‍♀️", "boomer" to "👴", "zoomer" to "📱", "poggers" to "😮",
+        "pog" to "😮", "kek" to "🤣", "sheesh" to "🥶 😮", "oof" to "😬", "bonk" to "🔨 🐕", "rickroll" to "🎤 🕺",
+        "noob" to "👶 🎮", "gg" to "🎮 🤝", "rekt" to "💀", "clout" to "📈 😎", "viral" to "🔥 📱", "brainrot" to "🧠 💀",
+        "doomscrolling" to "📱 😵", "troll" to "🧌", "trolling" to "🧌", "copium" to "😭 💨", "sadge" to "😢",
+        "bamboozled" to "🤪", "unhinged" to "🤪", "clowned" to "🤡", "gamer" to "🎮", "gamers" to "🎮", "tiktok" to "🎵 📱",
+        "wholesome" to "🥹 💖", "cancelled" to "🚫",
     ).mapValues { it.value.split(' ') }
 
     private class Entry(val emoji: String, val words: List<String>)

@@ -61,6 +61,13 @@ class LogicTest {
         assertEquals(1, Habits().also { h -> Suggest.lastTwo("we'll").first?.let { h.learnWord(it, null) } }.words["we'll"])
     }
 
+    @Test fun memeWordsAreSuggestedButDoNotRewriteOrdinaryWords() {
+        val d = Dictionary(java.io.File("src/main/assets/words_en.txt").readLines().filter { it.isNotBlank() })
+        assertTrue("stonks" in d && "poggers" in d && "gigachad" in d && "brainrot" in d)
+        assertTrue("gigach" .let { "gigachad" in d.completions(it, 5) })
+        assertEquals("the", Suggest.forText("teh", false, dict = d).first())
+    }
+
     @Test fun suggestionsAreCappedAndDistinct() {
         val out = Suggest.forText("th", false, mapOf("the" to 1))
         assertTrue(out.size <= 3)
