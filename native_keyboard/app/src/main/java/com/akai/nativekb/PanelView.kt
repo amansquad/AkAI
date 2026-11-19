@@ -55,6 +55,8 @@ interface PanelHost {
     fun onPanelGifSearch(current: String)
     /** The search button in the sticker tab: type words on the keys, starting from [current]. */
     fun onPanelStickerSearch(current: String)
+    /** The search button in the lyrics tab: type a song or artist on the keys, starting from [current]. */
+    fun onPanelLyricsSearch(current: String)
     /** Something in the voice tab: the mic, the language, the setup button, or leaving the tab. */
     fun onPanelVoice(action: PanelView.VoiceAction)
 }
@@ -66,7 +68,7 @@ interface PanelHost {
  */
 class PanelView(context: Context) : View(context) {
 
-    enum class Tab { EMOJI, STICKERS, GIF, CLIPBOARD, WRITE, TRANSLATE, THEMES, VOICE }
+    enum class Tab { EMOJI, STICKERS, GIF, CLIPBOARD, WRITE, TRANSLATE, THEMES, VOICE, LYRICS }
     enum class VoiceAction { MIC, LANGUAGE, SETUP, LEAVE }
 
     var host: PanelHost? = null
@@ -135,6 +137,13 @@ class PanelView(context: Context) : View(context) {
     private var gifs: List<GifItem> = emptyList()
     private var gifNote: String? = null
     private var gifLoading = false
+
+    /** Lyrics tab: the search being shown, the songs it found, and the song opened (its lines are what you tap). */
+    private var lyricsQuery: String? = null
+    private var lyricsSongs: List<Song> = emptyList()
+    private var lyricsSong: Song? = null
+    private var lyricsLoading = false
+    private var lyricsNote: String? = null
 
     private val strokes = ArrayList<Path>()
     private var current: Path? = null
@@ -229,6 +238,23 @@ class PanelView(context: Context) : View(context) {
         resetScroll()
     }
 
+    /** Show the songs found for [query]; the Lyrics tab opens on them. */
+    fun searchLyrics(query: String) {
+        lyricsQuery = query
+        lyricsSongs = emptyList()
+        lyricsSong = null
+        lyricsNote = null
+        lyricsLoading = true
+        resetScroll()
+        Lyrics.search(query) { found ->
+            if (query != lyricsQuery) return@search
+            lyricsLoading = false
+            lyricsSongs = found.orEmpty()
+            lyricsNote = if (found == null) "Can't reach the lyrics service" else null
+            invalidate()
+        }
+    }
+
     private fun loadGifs() {
         gifLoading = true
         gifNote = null
@@ -260,7 +286,7 @@ class PanelView(context: Context) : View(context) {
         scroller.forceFinished(true)
     }
 
-    private fun hasCategoryRow() = tab == Tab.EMOJI || tab == Tab.STICKERS || tab == Tab.GIF || tab == Tab.THEMES
+    private fun hasCategoryRow() = tab == Tab.EMOJI || tab == Tab.STICKERS || tab == Tab.GIF || tab == Tab.THEMES || tab == Tab.LYRICS
     private fun contentTop() = tabH + if (hasCategoryRow()) catH else 0f
 
     private fun emojiList(): List<String> =
@@ -291,6 +317,7 @@ class PanelView(context: Context) : View(context) {
         resetScroll()
     }
     private fun clipRowH() = dp(52f)
+    private fun lyricRowH() = dp(46f)
     private fun themeCellH() = width / 3f * 0.74f + dp(24f)
 
     private fun contentHeight(): Float = when (tab) {
@@ -298,6 +325,7 @@ class PanelView(context: Context) : View(context) {
         Tab.STICKERS -> ((stickerList().size + stickerCols() - 1) / stickerCols()) * stickerCell()
         Tab.GIF -> ((gifs.size + 2) / 3) * gifCell()
         Tab.CLIPBOARD -> clips.size * clipRowH()
+        Tab.LYRICS -> (lyricsSong?.lines?.size ?: lyricsSongs.size) * lyricRowH() + if (lyricsSong != null) dp(24f) else 0f
         Tab.THEMES -> ((themeList().size + 2) / 3) * themeCellH()
         else -> 0f
     }
@@ -353,17 +381,18 @@ class PanelView(context: Context) : View(context) {
             Tab.TRANSLATE -> drawTranslate(canvas)
             Tab.THEMES -> drawThemes(canvas)
             Tab.VOICE -> drawVoice(canvas)
+            Tab.LYRICS -> drawLyrics(canvas)
         }
         if (layer >= 0) canvas.restoreToCount(layer)
         canvas.restore()
         if (k < 1f) postInvalidateOnAnimation()
     }
 
-    private val tabNames = arrayOf("ABC", "😀", "🧸", "GIF", "📋", "✍️", "🌐", "🎨")
+    private val tabNames = arrayOf("ABC", "😀", "🧸", "GIF", "📋", "✍️", "🌐", "🎨", "🎵")
     private fun tabAt(i: Int) = when (i) {
-        1 -> Tab.EMOJI; 2 -> Tab.STICKERS; 3 -> Tab.GIF; 4 -> Tab.CLIPBOARD; 5 -> Tab.WRITE; 6 -> Tab.TRANSLATE; 7 -> Tab.THEMES; else -> null
+        1 -> Tab.EMOJI; 2 -> Tab.STICKERS; 3 -> Tab.GIF; 4 -> Tab.CLIPBOARD; 5 -> Tab.WRITE; 6 -> Tab.TRANSLATE; 7 -> Tab.THEMES; 8 -> Tab.LYRICS; else -> null
     }
-    private val tabIcons = arrayOf(null, TOOL_EMOJI, TOOL_STICKERS, TOOL_GIF, TOOL_CLIPBOARD, TOOL_WRITE, TOOL_TRANSLATE, TOOL_THEMES)
+    private val tabIcons = arrayOf(null, TOOL_EMOJI, TOOL_STICKERS, TOOL_GIF, TOOL_CLIPBOARD, TOOL_WRITE, TOOL_TRANSLATE, TOOL_THEMES, null)
 
     /** The tab row has one more cell than tabs: backspace or "Clear" at the end. */
     private fun tabCell() = width / (tabNames.size + 1f)
@@ -388,12 +417,28 @@ class PanelView(context: Context) : View(context) {
         when (tab) {
             Tab.EMOJI, Tab.STICKERS, Tab.GIF -> label(canvas, "⌫", last, tabH / 2f, dp(18f), palette.text)
             Tab.CLIPBOARD -> if (clips.isNotEmpty()) label(canvas, "Clear", last, tabH / 2f, dp(11f), palette.hint)
+            Tab.LYRICS -> if (lyricsSong != null) label(canvas, "All", last, tabH / 2f, dp(11f), palette.hint)
             else -> {}
         }
     }
 
     private fun drawCategories(canvas: Canvas) {
-        if (tab == Tab.EMOJI) {
+        if (tab == Tab.LYRICS) {
+            // One bar: the search box, or (inside a song) a way back to the results.
+            rect.set(dp(4f), tabH, width - dp(4f), tabH + catH - dp(3f))
+            fill.color = palette.key
+            canvas.drawRoundRect(rect, radius, radius, fill)
+            val song = lyricsSong
+            val shown = when {
+                song != null -> "‹  ${song.artist} – ${song.title}"
+                lyricsQuery != null -> "🔍  $lyricsQuery"
+                else -> "🔍  Search songs and artists"
+            }
+            text.textSize = dp(13f)
+            text.typeface = Typeface.DEFAULT_BOLD
+            val fit = TextUtils.ellipsize(tr(shown), TextPaint(text), rect.width() - dp(20f), TextUtils.TruncateAt.END).toString()
+            label(canvas, fit, rect.centerX(), tabH + catH / 2f - dp(1f), dp(13f), if (lyricsQuery == null && song == null) palette.hint else palette.text, bold = true)
+        } else if (tab == Tab.EMOJI) {
             // The first cell searches; the rest are recent and the categories.
             // Then a cell for each installed custom emoji pack, showing its first emoji.
             val icons = listOf("🔍", "🕘") + EmojiData.categories.map { it.icon }
@@ -641,6 +686,54 @@ class PanelView(context: Context) : View(context) {
             val name = TextUtils.ellipsize((if (def.live.isNotEmpty()) "● " else "") + def.name, TextPaint(text), w, TextUtils.TruncateAt.END).toString()
             label(canvas, name, x + w / 2f, y + h + dp(10f), dp(11f), if (def.id == themeId) palette.accent else palette.text, bold = def.id == themeId)
         }
+    }
+
+    private fun drawLyrics(canvas: Canvas) {
+        val top = contentTop()
+        val song = lyricsSong
+        if (song == null && lyricsSongs.isEmpty()) {
+            val q = lyricsQuery
+            when {
+                lyricsLoading -> label(canvas, "Searching…", width / 2f, top + dp(60f), dp(14f), palette.hint)
+                lyricsNote != null -> label(canvas, lyricsNote.orEmpty(), width / 2f, top + dp(60f), dp(14f), palette.hint)
+                q != null -> label(canvas, UiText.t(context, "No songs found for \"{q}\"", "q" to q), width / 2f, top + dp(60f), dp(14f), palette.hint)
+                else -> {
+                    label(canvas, "Search a song or an artist,", width / 2f, top + dp(50f), dp(14f), palette.hint)
+                    label(canvas, "then tap the lines you want to use", width / 2f, top + dp(74f), dp(14f), palette.hint)
+                }
+            }
+            return
+        }
+        val rowH = lyricRowH()
+        val count = song?.lines?.size ?: lyricsSongs.size
+        text.textAlign = Paint.Align.LEFT
+        text.textSize = dp(14f)
+        for (i in 0 until count) {
+            val y = top + i * rowH - scrollY
+            if (y + rowH < top || y > height) continue
+            rect.set(dp(8f), y + dp(3f), width - dp(8f), y + rowH - dp(3f))
+            fill.color = palette.key
+            canvas.drawRoundRect(rect, radius, radius, fill)
+            text.typeface = Typeface.DEFAULT
+            text.color = palette.text
+            val room = rect.width() - dp(24f)
+            if (song != null) {
+                val shown = TextUtils.ellipsize(song.lines[i], TextPaint(text), room, TextUtils.TruncateAt.END)
+                canvas.drawText(shown.toString(), rect.left + dp(12f), rect.centerY() - (text.descent() + text.ascent()) / 2f, text)
+            } else {
+                val s = lyricsSongs[i]
+                val shown = TextUtils.ellipsize(s.title, TextPaint(text), room, TextUtils.TruncateAt.END)
+                canvas.drawText(shown.toString(), rect.left + dp(12f), rect.centerY() - dp(5f) - (text.descent() + text.ascent()) / 2f, text)
+                text.textSize = dp(11f)
+                text.color = palette.hint
+                canvas.drawText(TextUtils.ellipsize(s.artist, TextPaint(text), room, TextUtils.TruncateAt.END).toString(),
+                    rect.left + dp(12f), rect.centerY() + dp(10f) - (text.descent() + text.ascent()) / 2f, text)
+                text.textSize = dp(14f)
+            }
+        }
+        text.textAlign = Paint.Align.CENTER
+        // Lyrics come from LRCLIB and belong to their writers, so say where they are from.
+        if (song != null) label(canvas, "Lyrics from LRCLIB", width / 2f, top + count * rowH - scrollY + dp(12f), dp(10f), palette.hint)
     }
 
     private fun drawClips(canvas: Canvas) {
@@ -1093,11 +1186,17 @@ class PanelView(context: Context) : View(context) {
             i == 0 -> host?.onPanelClose()
             i in 1 until tabNames.size -> if (tabAt(i) != tab) enter(tabAt(i)!!)
             tab == Tab.CLIPBOARD -> host?.onPanelClearClipboard()
+            tab == Tab.LYRICS -> lyricsSong?.let { host?.onPanelText(it.lines.take(40).joinToString("\n"), false) }
             tab == Tab.EMOJI || tab == Tab.STICKERS || tab == Tab.GIF -> host?.onPanelText("\b", false)
         }
     }
 
     private fun categoryTap(x: Float) {
+        if (tab == Tab.LYRICS) {
+            if (lyricsSong != null) { lyricsSong = null; resetScroll(); invalidate() }
+            else host?.onPanelLyricsSearch(lyricsQuery.orEmpty())
+            return
+        }
         if (tab == Tab.EMOJI) {
             val n = EmojiData.categories.size + 2 + emojiPacks().size
             val i = (x / (width.toFloat() / n)).toInt().coerceIn(0, n - 1)
@@ -1175,6 +1274,12 @@ class PanelView(context: Context) : View(context) {
             Tab.CLIPBOARD -> {
                 val i = ((y - top + scrollY) / clipRowH()).toInt()
                 clips.getOrNull(i)?.let { host?.onPanelText(it.text, false) }
+            }
+            Tab.LYRICS -> {
+                val i = ((y - top + scrollY) / lyricRowH()).toInt()
+                val song = lyricsSong
+                if (song != null) song.lines.getOrNull(i)?.let { host?.onPanelText("$it ", false) }
+                else lyricsSongs.getOrNull(i)?.let { lyricsSong = it; resetScroll(); invalidate() }
             }
             else -> {}
         }

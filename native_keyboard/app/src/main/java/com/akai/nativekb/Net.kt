@@ -27,10 +27,11 @@ object Net {
     class Response(val code: Int, val body: ByteArray)
 
     /** Never throws: a failure is a null. */
-    fun request(url: String, json: String? = null): Response? = try {
+    fun request(url: String, json: String? = null, userAgent: String? = null): Response? = try {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 10_000
         c.readTimeout = 25_000
+        if (userAgent != null) c.setRequestProperty("User-Agent", userAgent)
         if (json != null) {
             c.requestMethod = "POST"
             c.doOutput = true

@@ -36,6 +36,12 @@ const SENT = [
     when: 'Only when you open the GIF panel or one of its categories.',
   },
   {
+    name: 'Song lyrics',
+    what: 'The song or artist you type in the Lyrics tab. Nothing else, and not what you are typing in other fields.',
+    where: 'LRCLIB (lrclib.net), a free community lyrics service, which sees your phone’s address and the search words, under its own terms. AkAI does not store lyrics; they are shown and not kept.',
+    when: 'Only when you search in the Lyrics tab.',
+  },
+  {
     name: 'Sticker packs',
     what: 'What you search for in the Sticker Marketplace, which pack you install or the Telegram link you paste, and requests for that pack’s pictures. Installing also sends the same random phone number as Community themes, so a pack counts one install per phone.',
     where: 'The AkAI website, which looks packs up on Telegram with its own bot; Telegram sees the website, not your phone. The pack is then kept on your phone.',

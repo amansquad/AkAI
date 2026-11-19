@@ -65,4 +65,6 @@ dependencies {
     // On-device handwriting (English and Amharic); its models download on first use.
     implementation 'com.google.mlkit:digital-ink-recognition:19.0.0'
     testImplementation 'junit:junit:4.13.2'
+    // The real org.json, because Android's is a stub in plain unit tests (test-only: not in the APK).
+    testImplementation 'org.json:json:20231013'
 }

@@ -83,6 +83,21 @@ class LogicTest {
         assertTrue(Suggest.forText("ሰላ", true, nextWords = table, lang = Lang.AM).none { it == table[unknown]?.first() })
     }
 
+    @Test fun lyricsAreParsedAndCleaned() {
+        val json = """[
+          {"artistName":"Teddy Afro","trackName":"Teddy Afro - Teddy Afro - Lambadina [Official Video]","plainLyrics":"[Chorus]\nline one\n\nline two","instrumental":false},
+          {"artistName":"Teddy Afro","trackName":"Lambadina","plainLyrics":"duplicate","instrumental":false},
+          {"artistName":"X","trackName":"Beat","plainLyrics":null,"instrumental":true},
+          {"artistName":"Y","trackName":"Empty","plainLyrics":"","instrumental":false}
+        ]"""
+        val songs = Lyrics.parse(json)!!
+        assertEquals(1, songs.size)
+        assertEquals("Lambadina", songs[0].title)
+        assertEquals(listOf("line one", "line two"), songs[0].lines)
+        assertEquals("Teddy Afro", Lyrics.clean("Teddy Afro", "Teddy Afro"))
+        assertEquals(null, Lyrics.parse("not json"))
+    }
+
     @Test fun suggestionsAreCappedAndDistinct() {
         val out = Suggest.forText("th", false, mapOf("the" to 1))
         assertTrue(out.size <= 3)

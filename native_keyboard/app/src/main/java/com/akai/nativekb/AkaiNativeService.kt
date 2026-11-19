@@ -78,6 +78,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private fun searchLabel() = when (searchTab) {
         PanelView.Tab.GIF -> "GIFs"
         PanelView.Tab.STICKERS -> "stickers"
+        PanelView.Tab.LYRICS -> "songs"
         else -> null
     }
     /** Other readings of the last swipe, offered in the strip until the next key. */
@@ -921,6 +922,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     override fun onPanelStickerSearch(current: String) = startSearch(PanelView.Tab.STICKERS, start = current)
 
+    override fun onPanelLyricsSearch(current: String) = startSearch(PanelView.Tab.LYRICS, start = current)
+
     private fun startSearch(tab: PanelView.Tab?, start: String) {
         closePanel()
         searchTab = tab
@@ -956,7 +959,11 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         emojiQuery = null
         searchTab = null
         refreshLayout()
-        if (tab == PanelView.Tab.STICKERS) panel.searchStickers(q) else panel.searchGifs(q)
+        when (tab) {
+            PanelView.Tab.STICKERS -> panel.searchStickers(q)
+            PanelView.Tab.LYRICS -> panel.searchLyrics(q)
+            else -> panel.searchGifs(q)
+        }
         showPanel(tab)
     }
 
