@@ -95,10 +95,23 @@ object Words {
         private set
     @Volatile var so: Dictionary? = null
         private set
+    /** Words that most often follow a word, in Amharic (assets/nextword_am.txt), once loaded. */
+    @Volatile var nextAm: Map<String, List<String>>? = null
+        private set
     private var started = false
 
     /** The word list of [lang], once loaded. */
     fun of(lang: Lang): Dictionary? = when (lang) { Lang.EN -> en; Lang.AM -> am; Lang.TI -> ti; Lang.OM -> om; Lang.AR -> ar; Lang.SO -> so }
+
+    /** "word<TAB>next1 next2 next3" lines into a map. */
+    fun parseNextWords(lines: List<String>): Map<String, List<String>> {
+        val out = HashMap<String, List<String>>(lines.size * 2)
+        for (l in lines) {
+            val i = l.indexOf('	')
+            if (i > 0) out[l.substring(0, i)] = l.substring(i + 1).split(' ').filter { it.isNotEmpty() }
+        }
+        return out
+    }
 
     fun load(context: Context) {
         if (started) return
@@ -109,6 +122,7 @@ object Words {
             // No list just means completions fall back to the small built-in ones.
             try { en = Dictionary(read(Lang.EN.wordsAsset)) } catch (e: Exception) { }
             try { am = Amharic.dictionary(read(Lang.AM.wordsAsset)) } catch (e: Exception) { }
+            try { nextAm = parseNextWords(read("nextword_am.txt")) } catch (e: Exception) { }
             try { ti = Amharic.dictionary(read(Lang.TI.wordsAsset)) } catch (e: Exception) { }
             try { om = Dictionary(read(Lang.OM.wordsAsset)) } catch (e: Exception) { }
             try { ar = Dictionary(read(Lang.AR.wordsAsset)) } catch (e: Exception) { }

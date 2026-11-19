@@ -189,6 +189,19 @@ then run, from this folder:
 
     node tools/gen-words-am.mjs path/to/amwiki-latest-pages-articles.xml
 
+## Amharic next-word prediction
+After a finished Amharic word and a space, the strip offers the words that
+usually come next. The user's own habits come first, then a few built-in
+everyday pairs, then `app/src/main/assets/nextword_am.txt`: for about 8,000 of the
+most common words, the three words that most often follow it in Amharic
+Wikipedia (CC BY-SA 4.0, so this file is too; pairs seen at least four times,
+never across a sentence end, only words from `words_am.txt`). Wikipedia is
+formal, so the table suits writing more than chat; the keyboard's own learning
+adjusts to the person. To rebuild it, unpack the same dump as the word list and
+run, from this folder:
+
+    node tools/gen-nextword-am.mjs path/to/amwiki-latest-pages-articles.xml
+
 ## Privacy
 - Clipboard history is kept in memory only. Pinned items are saved, because you
   pinned them. Anything the source marks sensitive is skipped.

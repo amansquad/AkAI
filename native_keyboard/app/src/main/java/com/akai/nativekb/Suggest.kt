@@ -55,6 +55,8 @@ object Suggest {
         before: CharSequence, amharic: Boolean, learned: Map<String, Int> = emptyMap(), dict: Dictionary? = null,
         pairs: Map<String, Int> = emptyMap(), emojiHabits: Map<String, Int> = emptyMap(), withEmoji: Boolean = true,
         lang: Lang = if (amharic) Lang.AM else Lang.EN,
+        /** What usually follows a word, from a bundled table (Amharic): offered after the user's own habits. */
+        nextWords: Map<String, List<String>>? = null,
     ): List<String> {
         val suggestions = when (lang) { Lang.TI -> TigrinyaData.suggestions; Lang.OM -> OromoData.suggestions; Lang.AR -> ArabicData.suggestions; Lang.SO -> SomaliData.suggestions; Lang.AM -> KeyboardData.suggestionsAm; Lang.EN -> KeyboardData.suggestionsEn }
         val next = when (lang) { Lang.TI -> TigrinyaData.nextWord; Lang.OM -> OromoData.nextWord; Lang.AR -> ArabicData.nextWord; Lang.SO -> SomaliData.nextWord; Lang.AM -> KeyboardData.nextWordAm; Lang.EN -> KeyboardData.nextWordEn }
@@ -70,7 +72,9 @@ object Suggest {
             val prev = words.lastOrNull()?.let(::clean).orEmpty()
             // What this person usually types after this word comes first.
             val own = if (prev.isEmpty()) emptyList() else after(prev, pairs)
-            own + (next[prev] ?: suggestions[""] ?: emptyList())
+            // The few everyday pairs built in come before the big table, which is formal (it is from Wikipedia).
+            val known = next[prev].orEmpty() + nextWords?.get(prev).orEmpty()
+            own + known.ifEmpty { suggestions[""] ?: emptyList() }
         } else {
             val cur = words.last().lowercase()
             val prev = words.getOrNull(words.size - 2)?.let(::clean)

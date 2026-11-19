@@ -68,6 +68,21 @@ class LogicTest {
         assertEquals("the", Suggest.forText("teh", false, dict = d).first())
     }
 
+    @Test fun amharicNextWordsComeFromTheBundledTableAfterYourOwnHabits() {
+        val table = Words.parseNextWords(java.io.File("src/main/assets/nextword_am.txt").readLines().filter { it.isNotBlank() })
+        assertTrue(table.size > 5000)
+        // A word the built-in everyday list lacks gets the table's guesses.
+        val unknown = table.keys.first { it !in KeyboardData.nextWordAm }
+        val got = Suggest.forText("$unknown ", true, nextWords = table, lang = Lang.AM)
+        assertEquals(table.getValue(unknown).take(3), got.take(3))
+        // The everyday pairs stay first, and the user's own habits come before both.
+        assertEquals(KeyboardData.nextWordAm.getValue("ሰላም").first(), Suggest.forText("ሰላም ", true, nextWords = table, lang = Lang.AM).first())
+        val own = Suggest.forText("$unknown ", true, pairs = mapOf("$unknown	ቤት" to 5), nextWords = table, lang = Lang.AM)
+        assertEquals("ቤት", own.first())
+        // Mid-word, nothing changes: completions, not next words.
+        assertTrue(Suggest.forText("ሰላ", true, nextWords = table, lang = Lang.AM).none { it == table[unknown]?.first() })
+    }
+
     @Test fun suggestionsAreCappedAndDistinct() {
         val out = Suggest.forText("th", false, mapOf("the" to 1))
         assertTrue(out.size <= 3)
