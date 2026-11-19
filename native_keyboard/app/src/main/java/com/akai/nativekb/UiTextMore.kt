@@ -94,7 +94,7 @@ internal val UI_TEXT_MORE: Map<String, Array<String>> = mapOf(
     "Normal" to r("መደበኛ", "ልሙድ", "Idilee", "Caadi", "عادي"),
     "Large" to r("ትልቅ", "ዓቢ", "Guddaa", "Weyn", "كبير"),
     "Huge" to r("በጣም ትልቅ", "ኣዝዩ ዓቢ", "Baay'ee guddaa", "Aad u weyn", "كبير جدًا"),
-    "Lyrics" to r("የዘፈን ግጥም", "", "", "Erayada heesaha", "كلمات الأغاني"),
+    "Lyrics" to r("የዘፈን ግጥም", "ግጥሚ ደርፊ", "Jechoota weedduu", "Erayada heesaha", "كلمات الأغاني"),
     "Read aloud" to r("ጮክ ብሎ አንብብ", "ብዓውታ ኣንብብ", "Sagaleedhaan dubbisi", "Kor u akhri", "القراءة بصوت عالٍ"),
     "Nothing to read yet" to r("እስካሁን የሚነበብ የለም", "ክሳብ ሕጂ ዝንበብ የለን", "Ammaaf wanti dubbifamu hin jiru", "Weli waxba lama akhrin karo", "لا يوجد ما يُقرأ بعد"),
     "This phone has no text-to-speech engine" to r("ይህ ስልክ የጽሑፍ ወደ ንግግር ሞተር የለውም", "እዚ ስልኪ ሞተር ጽሑፍ ናብ ዘረባ የብሉን", "Bilbilli kun meeshaa barreeffama gara sagaleetti hin qabu", "Taleefankan ma laha matoor qoraal-ilaa-cod", "لا يحتوي هذا الهاتف على محرك تحويل النص إلى كلام"),
