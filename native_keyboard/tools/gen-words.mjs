@@ -6,6 +6,7 @@
 // Download that file, then run from native_keyboard/:
 //   node tools/gen-words.mjs path/to/en_50k.txt
 import fs from 'node:fs';
+import { contractions, moreContractions, slang } from './words-extra.mjs';
 
 const input = process.argv[2];
 if (!input) throw new Error('usage: node tools/gen-words.mjs en_50k.txt');
@@ -15,11 +16,6 @@ const LIMIT = 20000;
 // the whole words are added near the top instead.
 const fragments = new Set(['don', 'isn', 'didn', 'doesn', 'wasn', 'couldn', 'wouldn', 'shouldn', 'aren',
   'hasn', 'weren', 'ain', 'll', 've', 're', 'mustn', 'needn', 'hadn', 'mightn', 'shan']);
-const contractions = ["i'm", "don't", "it's", "that's", "you're", "can't", "i'll", "didn't", "we're",
-  "won't", "i've", "let's", "he's", "what's", "there's", "they're", "doesn't", "isn't", "she's",
-  "wasn't", "you've", "i'd", "we'll", "you'll", "couldn't", "wouldn't", "haven't", "aren't",
-  "we've", "shouldn't", "they'll", "who's", "here's", "you'd", "he'll", "she'll", "hasn't",
-  "weren't", "they've", "we'd", "he'd", "she'd", "they'd", "ain't", "where's", "how's", "it'll"];
 // Never offered while swiping or suggested as a correction.
 const blocked = /^(fuck|shit|bitch|cunt|cock|dick|pussy|nigg|fag|whore|slut|bastard|asshole|motherf|retard|twat|wank|prick|ass$|asses$|damn)/;
 
@@ -35,6 +31,8 @@ for (const line of fs.readFileSync(input, 'utf8').split(/\r?\n/)) {
   add(w);
   // Slot the contractions in among the most common words.
   if (out.length === 60) contractions.forEach(add);
+  if (out.length === 400) moreContractions.forEach(add);
+  if (out.length === 4000) slang.filter((w) => w.length > 1).forEach(add);
   if (out.length >= LIMIT) break;
 }
 

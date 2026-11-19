@@ -501,7 +501,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             // Picking a suggestion counts as typing the word.
             val (_, prev) = Suggest.lastTwo(before.substring(0, before.length - n) + word)
             val clean = Suggest.clean(word)
-            if (clean.length >= 2 && clean.all { it.isLetter() }) habits.learnWord(clean, prev)
+            if (Suggest.isWord(clean)) habits.learnWord(clean, prev)
         }
         val capitalised = n > 0 && before[before.length - n].isUpperCase() && !amharic
         val out = if (capitalised) word.replaceFirstChar { it.uppercase() } else word

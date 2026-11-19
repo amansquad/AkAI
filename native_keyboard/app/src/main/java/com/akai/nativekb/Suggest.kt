@@ -80,7 +80,8 @@ object Suggest {
                 .take(2)
                 .map { it.key }
             // A word that is not a word gets offered the same fix auto-correct would make.
-            val fix = listOfNotNull(
+            // (Not while an apostrophe is the last thing typed: "there'" is heading for "there's", not "there".)
+            val fix = if (cur.endsWith("'")) emptyList() else listOfNotNull(
                 if (amharic) Amharic.correct(cur, dict, learned) else dict?.let { AutoCorrect.correct(cur, it, learned) },
             )
             val fromDict = when {
@@ -93,10 +94,14 @@ object Suggest {
                 if (cur.length in 1..12 && cur.all { it in '0'..'9' }) Ethiopic.numeral(cur.toLong()) else null,
                 if (cur == "ዛሬ") "ዛሬ " + Ethiopic.today().spoken() else null,
             )
-            ethiopic + fix + own + fromDict + (suggestions[cur] ?: suggestions[cur.take(2)] ?: suggestions[cur.take(1)] ?: emptyList())
+            // A half-typed contraction, or the start of a longer English word ("riz" for "rizz"), completes before it gets "fixed".
+            val completing = "'" in cur || (!amharic && cur.length >= 3 && fromDict.isNotEmpty() && cur !in AutoCorrect.fixes)
+            val words3 = if (completing) own + fromDict + fix else fix + own + fromDict
+            ethiopic + words3 + (suggestions[cur] ?: suggestions[cur.take(2)] ?: suggestions[cur.take(1)] ?: emptyList())
         }
         val out = list.distinct().take(room)
-        return if (emoji != null) out + emoji else out
+        // The emoji goes second: a long toolbar leaves room for only two, and it must not be the one cut off.
+        return if (emoji != null) out.take(1) + emoji + out.drop(1) else out
     }
 
     /** Words this person has typed after [prev], most often first. */
@@ -111,6 +116,9 @@ object Suggest {
 
     /** A word without the punctuation around it, in lower case. */
     fun clean(word: String) = word.lowercase().trim { !it.isLetter() }
+
+    /** A word worth remembering: letters, with apostrophes inside it ("there're"). */
+    fun isWord(w: String) = w.length >= 2 && w.all { it.isLetter() || it == '\'' }
 
     /** The emoji for [word]: the one this person uses with it, else a common match. */
     fun emojiFor(word: String, amharic: Boolean, habits: Map<String, Int>): String? {
@@ -137,7 +145,7 @@ object Suggest {
     fun lastTwo(before: CharSequence): Pair<String?, String?> {
         val s = before.toString()
         val n = currentWordLength(s)
-        val last = clean(s.substring(s.length - n)).takeIf { it.length >= 2 && it.all(Char::isLetter) }
+        val last = clean(s.substring(s.length - n)).takeIf(::isWord)
         val rest = s.substring(0, s.length - n)
         val gap = rest.takeLastWhile { it.isWhitespace() }
         if (gap.isEmpty() || '\n' in gap) return last to null
@@ -145,7 +153,7 @@ object Suggest {
         val m = body.length - currentWordLength(body)
         val raw = body.substring(m)
         if (raw.isEmpty() || raw.last() in ".!?።፧") return last to null
-        val prev = clean(raw).takeIf { it.length >= 2 && it.all(Char::isLetter) }
+        val prev = clean(raw).takeIf(::isWord)
         return last to prev
     }
 }

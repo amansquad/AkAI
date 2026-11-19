@@ -29,13 +29,13 @@ class LogicTest {
 
     @Test fun emojiRidesAlongWithTheWord() {
         val out = Suggest.forText("I love ", false)
-        assertTrue(Suggest.isEmoji(out.last()))
+        assertTrue(Suggest.isEmoji(out[1]))
         assertTrue(out.size <= 3)
     }
 
     @Test fun usersOwnEmojiBeatsTheDefault() {
         val out = Suggest.forText("pizza ", false, emojiHabits = mapOf("pizza\t😋" to 3))
-        assertEquals("😋", out.last())
+        assertEquals("😋", out[1])
     }
 
     @Test fun halfTypedWordsGetNoEmoji() {
@@ -48,6 +48,17 @@ class LogicTest {
         h.learnWord(word!!, prev)
         assertEquals(1, h.pairs["you\ttomorrow"])
         assertEquals(null, Suggest.lastTwo("Done. Tomorrow").second)
+    }
+
+    @Test fun contractionsAndSlangAreSuggested() {
+        val d = Dictionary(java.io.File("src/main/assets/words_en.txt").readLines().filter { it.isNotBlank() })
+        assertTrue("there're" in d.completions("there'", 10))
+        assertEquals("there're", Suggest.forText("there'r", false, dict = d).first())
+        assertTrue(Suggest.forText("He'", false, dict = d).none { it == "he" })
+        assertTrue("he'll" in Suggest.forText("He'l", false, dict = d))
+        assertTrue("rizz" in d && "bussin" in d && "delulu" in d)
+        assertEquals("rizz", Suggest.forText("riz", false, dict = d).first())
+        assertEquals(1, Habits().also { h -> Suggest.lastTwo("we'll").first?.let { h.learnWord(it, null) } }.words["we'll"])
     }
 
     @Test fun suggestionsAreCappedAndDistinct() {

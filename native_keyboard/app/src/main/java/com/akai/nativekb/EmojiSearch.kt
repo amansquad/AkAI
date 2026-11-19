@@ -72,6 +72,15 @@ object EmojiSearch {
         "dead" to "💀 😵",
         "shrug" to "🤷",
         "facepalm" to "🤦",
+        // Slang
+        "bruh" to "😐 💀", "slay" to "💅 ✨ 🔥", "slayed" to "💅 ✨", "cap" to "🧢", "nocap" to "🧢", "sus" to "🤨 👀",
+        "rizz" to "😏 😎", "goat" to "🐐", "bussin" to "🔥 😋", "vibe" to "✨ 😌", "vibes" to "✨ 😌", "vibing" to "🎶 😌",
+        "cringe" to "😬", "ghosted" to "👻", "ghosting" to "👻", "lowkey" to "🤫", "highkey" to "😍", "yeet" to "🚀",
+        "bestie" to "👯 💕", "cooked" to "💀 🍳", "tea" to "🍵 ☕", "mid" to "😐", "simp" to "🥺", "delulu" to "🤪",
+        "ick" to "🤢", "drip" to "💧 🥶", "bet" to "🤝 👍", "fam" to "👨‍👩‍👧‍👦 🤝", "salty" to "🧂 😒", "flex" to "💪",
+        "stan" to "🙌", "shook" to "😳", "based" to "🗿", "sigma" to "🗿", "omg" to "😱 🤯", "lmao" to "😂 🤣",
+        "lmfao" to "🤣", "rofl" to "🤣", "smh" to "🤦", "brb" to "⏳", "ily" to "❤️ 🥰", "idk" to "🤷", "yolo" to "🤪",
+        "fomo" to "😰", "bday" to "🎂 🎉", "glowup" to "✨", "aura" to "✨", "ate" to "😋 🔥", "snatched" to "😍",
     ).mapValues { it.value.split(' ') }
 
     private class Entry(val emoji: String, val words: List<String>)
