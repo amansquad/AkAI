@@ -50,7 +50,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private val geez get() = lang.geez
     /** Tigrinya is in the language key's cycle. */
     private var tigrinyaLang = false
-    private fun enabledLangs() = Lang.enabled(tigrinyaLang)
+    private var oromoLang = false
+    private fun enabledLangs() = Lang.enabled(tigrinyaLang, oromoLang)
     private var phonetic = false
     private var symbols = false
     /** On the symbols board, whether the second page (=\<) is showing. */
@@ -212,6 +213,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         hapticLevel = p.getInt(Prefs.HAPTIC, 3)
         sound = p.getBoolean(Prefs.SOUND, false)
         tigrinyaLang = p.getBoolean(Prefs.TIGRINYA_LANG, false)
+        oromoLang = p.getBoolean(Prefs.OROMO_LANG, false)
         lang = Lang.fromCode(p.getString(Prefs.LANG, null)) ?: if (p.getBoolean(Prefs.AMHARIC, false)) Lang.AM else Lang.EN
         if (lang !in enabledLangs()) lang = Lang.AM
         phonetic = p.getBoolean(Prefs.PHONETIC, false)
@@ -368,7 +370,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             enterLabel(), numberRow, backToPad = digitField && padDismissed,
             englishLayout = englishLayout, amharicLayout = amharicLayout, cursorRow = cursorRow && !searching,
             langKey = langKey, tigrinya = tigrinya || lang == Lang.TI,
-            lang = lang, nextLang = Lang.next(lang, enabledLangs()),
+            // Email, search and number fields type English whatever the language.
+            lang = if (plainField || digitField || searching) Lang.EN else lang, nextLang = Lang.next(lang, enabledLangs()),
         )
         val layout = Layouts.build(id, showAmharic, options, if (phonetic) LayoutId.PHONETIC else LayoutId.FIDEL)
         // The toolbar's language button, on the boards that have a language key.
@@ -572,7 +575,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     // ─── Auto-correct ────────────────────────────────────────────────────
 
     private val correcting get() = !plainField && !digitField && when (layoutId) {
-        LayoutId.LETTERS -> autoCorrect && !geez
+        // English only: its fixes and word list are not Oromo's.
+        LayoutId.LETTERS -> autoCorrect && lang == Lang.EN
         // Off unless asked for: the Amharic list is small next to all the forms a word can take.
         LayoutId.FIDEL, LayoutId.PHONETIC -> autoCorrectAm
         else -> false
@@ -852,7 +856,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             else -> Spelling.LETTERS
         }
         val english = spelling == Spelling.LETTERS
-        val words = Glide.decode(xs, ys, keys, keyW, Words.of(lang),
+        val words = Glide.decode(xs, ys, keys, keyW,
+            // Latin letters in an Amharic or Tigrinya session (an email field) are English.
+            Words.of(if (english && geez) Lang.EN else lang),
             if (learnOn) learned else emptyMap(), spelling = spelling)
         if (words.isEmpty()) { onKeyFeedback(); return }
         // Capitals mean other letters in phonetic typing, and fidel has none.
@@ -1440,7 +1446,7 @@ object Prefs {
     const val NAME = "akai_native"
     const val HAPTIC = "haptic_level"
     const val SOUND = "sound"
-    const val AMHARIC = "geez"
+    const val AMHARIC = "amharic"
     const val PHONETIC = "phonetic"
     const val THEME = "theme"
     const val HEIGHT = "height_percent"
@@ -1457,6 +1463,7 @@ object Prefs {
     const val VOICE_TIDY = "voice_tidy"
     const val TIGRINYA = "tigrinya_letters"
     const val TIGRINYA_LANG = "tigrinya_language"
+    const val OROMO_LANG = "oromo_language"
     const val LANG = "language"
     const val SHORTCUTS = "text_shortcuts"
     const val LEARNED = "learned_words"

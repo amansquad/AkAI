@@ -56,14 +56,14 @@ object Suggest {
         pairs: Map<String, Int> = emptyMap(), emojiHabits: Map<String, Int> = emptyMap(), withEmoji: Boolean = true,
         lang: Lang = if (amharic) Lang.AM else Lang.EN,
     ): List<String> {
-        val suggestions = when (lang) { Lang.TI -> TigrinyaData.suggestions; Lang.AM -> KeyboardData.suggestionsAm; Lang.EN -> KeyboardData.suggestionsEn }
-        val next = when (lang) { Lang.TI -> TigrinyaData.nextWord; Lang.AM -> KeyboardData.nextWordAm; Lang.EN -> KeyboardData.nextWordEn }
+        val suggestions = when (lang) { Lang.TI -> TigrinyaData.suggestions; Lang.OM -> OromoData.suggestions; Lang.AM -> KeyboardData.suggestionsAm; Lang.EN -> KeyboardData.suggestionsEn }
+        val next = when (lang) { Lang.TI -> TigrinyaData.nextWord; Lang.OM -> OromoData.nextWord; Lang.AM -> KeyboardData.nextWordAm; Lang.EN -> KeyboardData.nextWordEn }
         val words = before.toString().trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
         val endsWithSpace = before.isNotEmpty() && before.last().isWhitespace()
 
         // The word an emoji would stand for: the one just finished, or the one being typed if it is complete.
         val subject = words.lastOrNull()
-        val emoji = if (withEmoji && subject != null) emojiFor(clean(subject), amharic, emojiHabits) else null
+        val emoji = if (withEmoji && subject != null && lang != Lang.OM) emojiFor(clean(subject), amharic, emojiHabits) else null
         val room = if (emoji != null) 2 else 3
 
         val list = if (endsWithSpace || words.isEmpty()) {
@@ -82,7 +82,8 @@ object Suggest {
                 .map { it.key }
             // A word that is not a word gets offered the same fix auto-correct would make.
             // (Not while an apostrophe is the last thing typed: "there'" is heading for "there's", not "there".)
-            val fix = if (cur.endsWith("'")) emptyList() else listOfNotNull(
+            // (English fixes such as "dont" are not Oromo, so Oromo gets completions only.)
+            val fix = if (cur.endsWith("'") || lang == Lang.OM) emptyList() else listOfNotNull(
                 if (amharic) Amharic.correct(cur, dict, learned) else dict?.let { AutoCorrect.correct(cur, it, learned) },
             )
             val fromDict = when {

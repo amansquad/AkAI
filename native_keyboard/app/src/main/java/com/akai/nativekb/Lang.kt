@@ -26,13 +26,16 @@ enum class Lang(
 ) {
     EN("en", "English", "EN", false, "en-US", "en-US", ". ", "words_en.txt"),
     AM("am", "አማርኛ", "አማ", true, "am-ET", "am", "። ", "words_am.txt"),
-    TI("ti", "ትግርኛ", "ትግ", true, "ti-ET", "ti", "። ", "words_ti.txt");
+    TI("ti", "ትግርኛ", "ትግ", true, "ti-ET", "ti", "። ", "words_ti.txt"),
+    /** Written in Latin letters (Qubee), so it shares the English board. */
+    OM("om", "Afaan Oromoo", "OM", false, "om-ET", "om", ". ", "words_om.txt");
 
     companion object {
         fun fromCode(code: String?): Lang? = entries.firstOrNull { it.code == code }
 
         /** The languages the language key cycles through, in order. */
-        fun enabled(tigrinya: Boolean): List<Lang> = if (tigrinya) listOf(EN, AM, TI) else listOf(EN, AM)
+        fun enabled(tigrinya: Boolean, oromo: Boolean = false): List<Lang> =
+            listOf(EN, AM) + listOfNotNull(TI.takeIf { tigrinya }, OM.takeIf { oromo })
 
         /** The one after [current] in [list]; the first when [current] is not in it. */
         fun next(current: Lang, list: List<Lang>): Lang {

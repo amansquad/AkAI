@@ -250,7 +250,7 @@ object Layouts {
                 listOf(
                     Key(KeyKind.SYMBOLS, if (amharicSymbols) o.lang.key else "ABC", 1.5f),
                     sym(","),
-                    Key(KeyKind.SPACE, if (amharicSymbols) o.lang.title else "English", 4.8f),
+                    Key(KeyKind.SPACE, o.lang.title, 4.8f),
                     sym("."),
                     enter(o.enterLabel, 1.5f),
                 ),
@@ -286,8 +286,10 @@ object Layouts {
             rows.add(
                 bottomRow(
                     o,
-                    listOf(Key(KeyKind.SYMBOLS, "?123", 1.4f), if (o.backToPad) Key(KeyKind.PAD_ABC, "123") else ch(",")),
-                    Key(KeyKind.SPACE, "English", 4.2f),
+                    listOf(Key(KeyKind.SYMBOLS, "?123", 1.4f), if (o.backToPad) Key(KeyKind.PAD_ABC, "123") else ch(",")) +
+                        // The hudhaa (ba'e, har'a) is a letter of Oromo, so it gets a key of its own.
+                        (if (o.lang == Lang.OM) listOf(ch("'")) else emptyList()),
+                    Key(KeyKind.SPACE, o.lang.title, if (o.lang == Lang.OM) 3.2f else 4.2f),
                     listOf(ch("."), enter(o.enterLabel, 1.5f)),
                     o.nextLang.key, 1.2f,
                 ),

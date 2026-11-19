@@ -581,6 +581,7 @@ class SettingsActivity : ThemedActivity() {
             },
             note("Phonetic types Amharic from Latin letters: \"selam\" gives ሰላም. Hold the language key to switch between fidel and phonetic."),
             ui.switchRow("Tigrinya keyboard (ትግርኛ)", "Adds Tigrinya to the language key, with its own suggestions and word list", on(Prefs.TIGRINYA_LANG, false)) { put(Prefs.TIGRINYA_LANG, it) },
+            ui.switchRow("Afaan Oromoo keyboard", "Adds Afaan Oromoo to the language key: Latin letters with an apostrophe key and its own suggestions", on(Prefs.OROMO_LANG, false)) { put(Prefs.OROMO_LANG, it) },
             ui.switchRow("Tigrinya and Blin letters", "Adds ቐ and ጘ to the fidel board; hold them for every form", on(Prefs.TIGRINYA, false)) { put(Prefs.TIGRINYA, it) },
         )
         val places = listOf(
