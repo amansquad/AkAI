@@ -58,6 +58,23 @@ class LangTest {
         assertTrue("مرحبا" in completed)
     }
 
+    @Test fun somaliJoinsTheCycleAndSharesOromosRules() {
+        val all = Lang.enabled(true, true, true, true, true)
+        assertEquals(Lang.SO, all.last())
+        assertTrue(Lang.SO.ownLatin && Lang.OM.ownLatin && !Lang.EN.ownLatin && !Lang.AR.ownLatin)
+        assertTrue(!Lang.SO.geez && !Lang.SO.caseless)
+        val keys = Layouts.build(LayoutId.LETTERS, false, LayoutOptions(lang = Lang.SO, nextLang = Lang.EN)).rows.flatten()
+        assertTrue(keys.any { it.kind == KeyKind.CHAR && it.label == "'" })
+        assertTrue(keys.any { it.kind == KeyKind.SPACE && it.label == "Af-Soomaali" })
+    }
+
+    @Test fun somaliSuggestionsHaveNoEnglishFixesOrEmoji() {
+        assertEquals("iska", Suggest.forText("", false, lang = Lang.SO).first())
+        val out = Suggest.forText("sidee ", false, lang = Lang.SO)
+        assertEquals("tahay", out.first())
+        assertTrue(out.none { Suggest.isEmoji(it) })
+    }
+
     @Test fun amharicCanBeLeftOut() {
         assertEquals(listOf(Lang.EN, Lang.OM), Lang.enabled(false, true, amharic = false))
         assertEquals(listOf(Lang.EN), Lang.enabled(false, false, amharic = false))

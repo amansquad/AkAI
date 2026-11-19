@@ -176,7 +176,7 @@ class SettingsActivity : ThemedActivity() {
             val langs = listOfNotNull(
                 "English", if (on(Prefs.AMHARIC_LANG, true)) "አማርኛ" else null,
                 if (on(Prefs.TIGRINYA_LANG, false)) "ትግርኛ" else null, if (on(Prefs.OROMO_LANG, false)) "Oromoo" else null,
-                if (on(Prefs.ARABIC_LANG, false)) "العربية" else null,
+                if (on(Prefs.ARABIC_LANG, false)) "العربية" else null, if (on(Prefs.SOMALI_LANG, false)) "Soomaali" else null,
             ).joinToString(", ")
             listOfNotNull(langs, en, am, switch).joinToString(" · ")
         }
@@ -272,7 +272,7 @@ class SettingsActivity : ThemedActivity() {
         Entry(KEYS, "Label size", "font text letters bigger smaller"),
         Entry(KEYS, "Letter weight", "bold thin light font boldness"),
         Entry(KEYS, "Corner hints", "symbols digits small hint"),
-        Entry(LANGUAGES, "Typing languages", "enable add language amharic tigrinya ትግርኛ oromo oromoo afaan qubee arabic عربي العربية english"),
+        Entry(LANGUAGES, "Typing languages", "enable add language amharic tigrinya ትግርኛ oromo oromoo afaan qubee arabic عربي العربية somali soomaali english"),
         Entry(LANGUAGES, "English layout", "qwerty dvorak azerty colemak qwertz"),
         Entry(LANGUAGES, "Amharic keyboard", "fidel phonetic geez ግዕዝ አማርኛ frequency"),
         Entry(LANGUAGES, "Language switch", "globe change language key toolbar space"),
@@ -579,6 +579,7 @@ class SettingsActivity : ThemedActivity() {
             ui.switchRow("Amharic (አማርኛ)", "Fidel and phonetic typing", on(Prefs.AMHARIC_LANG, true)) { put(Prefs.AMHARIC_LANG, it) },
             ui.switchRow("Tigrinya (ትግርኛ)", "Fidel and phonetic typing, with its own suggestions and word list", on(Prefs.TIGRINYA_LANG, false)) { put(Prefs.TIGRINYA_LANG, it) },
             ui.switchRow("Arabic (العربية)", "Right-to-left letters; hold the comma key for vowel marks (harakat), and a digit for Arabic-Indic numbers", on(Prefs.ARABIC_LANG, false)) { put(Prefs.ARABIC_LANG, it) },
+            ui.switchRow("Somali (Af-Soomaali)", "Latin letters with an apostrophe key, and its own suggestions and word list", on(Prefs.SOMALI_LANG, false)) { put(Prefs.SOMALI_LANG, it) },
             ui.switchRow("Afaan Oromoo", "Latin letters with an apostrophe key, and its own suggestions and word list", on(Prefs.OROMO_LANG, false)) { put(Prefs.OROMO_LANG, it) },
         )
         group(c, "English",

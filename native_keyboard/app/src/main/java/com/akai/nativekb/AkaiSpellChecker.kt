@@ -48,8 +48,8 @@ class AkaiSpellChecker : SpellCheckerService() {
                 val dict = Words.en ?: return ok
                 val lower = word.lowercase()
                 if (lower in dict || lower in learned || word.first().isUpperCase()) return ok
-                // Oromo is Latin too: a word in its list is not an English typo.
-                if (Words.om?.let { lower in it } == true) return ok
+                // Oromo and Somali are Latin too: a word in their lists is not an English typo.
+                if (Words.om?.let { lower in it } == true || Words.so?.let { lower in it } == true) return ok
                 AutoCorrect.candidates(lower, dict, learned)
             } else return ok
             // Unknown and nothing close: probably a real word the list lacks, so leave it.

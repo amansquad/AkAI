@@ -53,7 +53,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private var oromoLang = false
     private var amharicLang = true
     private var arabicLang = false
-    private fun enabledLangs() = Lang.enabled(tigrinyaLang, oromoLang, amharicLang, arabicLang)
+    private var somaliLang = false
+    private fun enabledLangs() = Lang.enabled(tigrinyaLang, oromoLang, amharicLang, arabicLang, somaliLang)
     private var phonetic = false
     private var symbols = false
     /** On the symbols board, whether the second page (=\<) is showing. */
@@ -218,6 +219,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         oromoLang = p.getBoolean(Prefs.OROMO_LANG, false)
         amharicLang = p.getBoolean(Prefs.AMHARIC_LANG, true)
         arabicLang = p.getBoolean(Prefs.ARABIC_LANG, false)
+        somaliLang = p.getBoolean(Prefs.SOMALI_LANG, false)
         lang = Lang.fromCode(p.getString(Prefs.LANG, null)) ?: if (p.getBoolean(Prefs.AMHARIC, false)) Lang.AM else Lang.EN
         if (lang !in enabledLangs()) lang = Lang.EN
         phonetic = p.getBoolean(Prefs.PHONETIC, false)
@@ -1471,6 +1473,7 @@ object Prefs {
     const val OROMO_LANG = "oromo_language"
     const val AMHARIC_LANG = "amharic_language"
     const val ARABIC_LANG = "arabic_language"
+    const val SOMALI_LANG = "somali_language"
     const val LANG = "language"
     const val SHORTCUTS = "text_shortcuts"
     const val LEARNED = "learned_words"

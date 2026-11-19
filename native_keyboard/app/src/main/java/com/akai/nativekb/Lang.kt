@@ -30,7 +30,15 @@ enum class Lang(
     /** Written in Latin letters (Qubee), so it shares the English board. */
     OM("om", "Afaan Oromoo", "OM", false, "om-ET", "om", ". ", "words_om.txt"),
     /** Arabic script, written right to left, with no capitals. */
-    AR("ar", "العربية", "ع", false, "ar-SA", "ar", ". ", "words_ar.txt");
+    AR("ar", "العربية", "ع", false, "ar-SA", "ar", ". ", "words_ar.txt"),
+    /** Latin letters, with the apostrophe for the letter ayn (sa'ad). */
+    SO("so", "Af-Soomaali", "SO", false, "so-SO", "so", ". ", "words_so.txt");
+
+    /**
+     * A Latin-script language that is not English (Oromo, Somali): it types on the English
+     * board plus an apostrophe key, with its own words, and none of English's fixes.
+     */
+    val ownLatin get() = this == OM || this == SO
 
     /** Has no upper and lower case, so no auto-capitals. */
     val caseless get() = geez || this == AR
@@ -39,8 +47,10 @@ enum class Lang(
         fun fromCode(code: String?): Lang? = entries.firstOrNull { it.code == code }
 
         /** The languages the language key cycles through, in order. */
-        fun enabled(tigrinya: Boolean, oromo: Boolean = false, amharic: Boolean = true, arabic: Boolean = false): List<Lang> =
-            listOfNotNull(EN, AM.takeIf { amharic }, TI.takeIf { tigrinya }, OM.takeIf { oromo }, AR.takeIf { arabic })
+        fun enabled(tigrinya: Boolean, oromo: Boolean = false, amharic: Boolean = true, arabic: Boolean = false,
+            somali: Boolean = false,
+        ): List<Lang> =
+            listOfNotNull(EN, AM.takeIf { amharic }, TI.takeIf { tigrinya }, OM.takeIf { oromo }, AR.takeIf { arabic }, SO.takeIf { somali })
 
         /** The one after [current] in [list]; the first when [current] is not in it. */
         fun next(current: Lang, list: List<Lang>): Lang {

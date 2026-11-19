@@ -24,14 +24,18 @@ const word = /[a-z]+(?:'[a-z]+)*/g;
 const xml = fs.readFileSync(input, 'utf8');
 const counts = new Map();
 let pages = 0;
-for (const m of xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)) {
+for (const page of xml.matchAll(/<page>([\s\S]*?)<\/page>/g)) {
+  // Articles only: not templates, modules (code), categories or talk pages.
+  if (!/<ns>0<\/ns>/.test(page[1])) continue;
+  const m = page[1].match(/<text[^>]*>([\s\S]*?)<\/text>/);
+  if (!m) continue;
   let t = m[1];
   if (/^#(REDIRECT|Ergi)/i.test(t)) continue;
   pages++;
+  for (let i = 0; i < 6; i++) t = t.replace(/\{\{[^{}]*\}\}/g, ' ');
   t = t
     .replace(/&lt;ref[\s\S]*?(\/&gt;|&lt;\/ref&gt;)/g, ' ')
     .replace(/&lt;[^&]*?&gt;/g, ' ')
-    .replace(/\{\{[\s\S]*?\}\}/g, ' ')
     .replace(/\{\|[\s\S]*?\|\}/g, ' ')
     .replace(/\[\[(?:[^\]|]*:)[^\]]*\]\]/g, ' ')
     .replace(/https?:\/\/\S+/g, ' ')

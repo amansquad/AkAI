@@ -314,9 +314,9 @@ object Layouts {
                 bottomRow(
                     o,
                     listOf(Key(KeyKind.SYMBOLS, "?123", 1.4f), if (o.backToPad) Key(KeyKind.PAD_ABC, "123") else ch(",")) +
-                        // The hudhaa (ba'e, har'a) is a letter of Oromo, so it gets a key of its own.
-                        (if (o.lang == Lang.OM) listOf(ch("'")) else emptyList()),
-                    Key(KeyKind.SPACE, o.lang.title, if (o.lang == Lang.OM) 3.2f else 4.2f),
+                        // The apostrophe is a letter of Oromo (hudhaa: ba'e) and Somali (ayn: sa'ad), so it gets a key of its own.
+                        (if (o.lang.ownLatin) listOf(ch("'")) else emptyList()),
+                    Key(KeyKind.SPACE, o.lang.title, if (o.lang.ownLatin) 3.2f else 4.2f),
                     listOf(ch("."), enter(o.enterLabel, 1.5f)),
                     o.nextLang.key, 1.2f,
                 ),

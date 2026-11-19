@@ -5,5 +5,6 @@
     <subtype android:label="@string/spellchecker_name" android:subtypeLocale="am" android:languageTag="am" />
     <subtype android:label="@string/spellchecker_name" android:subtypeLocale="ti" android:languageTag="ti" />
     <subtype android:label="@string/spellchecker_name" android:subtypeLocale="om" android:languageTag="om" />
+    <subtype android:label="@string/spellchecker_name" android:subtypeLocale="so" android:languageTag="so" />
     <subtype android:label="@string/spellchecker_name" android:subtypeLocale="en" android:languageTag="en" />
 </spell-checker>
