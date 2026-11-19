@@ -81,6 +81,62 @@ class LangTest {
         assertEquals("Tigrinya", Lang.TI.serverName)
     }
 
+    @Test fun arabicPhoneticTypesWordsFromLatinLetters() {
+        assertEquals("سلام", ArabicTranslit.render("salaam"))
+        assertEquals("شكرا", ArabicTranslit.render("shukraa"))
+        assertEquals("مرحبا", ArabicTranslit.render("marHabaa"))
+        assertEquals("يوم", ArabicTranslit.render("yawm"))
+        assertEquals("خير", ArabicTranslit.render("khiir"))
+        assertEquals("أنا", ArabicTranslit.render("Anaa"))
+        assertEquals("عربي", ArabicTranslit.render("Earabii"))
+        // Letters already Arabic (the long-press ones) pass through.
+        assertEquals("سلامة", ArabicTranslit.render("salaamة"))
+    }
+
+    @Test fun arabicPhoneticStateReRendersTheWholeWord() {
+        var state = Translit.EMPTY
+        var shown = ""
+        for (c in "salaam") {
+            val step = Translit.press(state, c, Lang.AR)
+            shown = shown.dropLast(step.replaceLast) + step.insert
+            state = step.next
+        }
+        assertEquals("سلام", shown)
+        // A space ends the word; backspace steps the spelling back.
+        assertEquals(0, Translit.press(state, ' ', Lang.AR).replaceLast)
+        assertEquals("سلا", Translit.backspace(state, Lang.AR)!!.insert)
+        // An apostrophe is a letter in Arabic but ends a word in Amharic.
+        assertEquals("ء", Translit.press(Translit.EMPTY, '\'', Lang.AR).insert)
+    }
+
+    @Test fun tigrinyaPhoneticUsesSeraXAndQ() {
+        assertEquals("ጸ", Translit.latinToFidel("xe", tigrinya = true))
+        assertEquals("ፀ", Translit.latinToFidel("Xe", tigrinya = true))
+        assertEquals("ቐ", Translit.latinToFidel("Qe", tigrinya = true))
+        // Amharic keeps X as ሸ.
+        assertEquals("ሸ", Translit.latinToFidel("Xe"))
+    }
+
+    @Test fun arabicPhoneticBoardIsLatinWithArabicPunctuation() {
+        val o = LayoutOptions(lang = Lang.AR, nextLang = Lang.EN)
+        val keys = Layouts.build(LayoutId.PHONETIC, false, o).rows.flatten()
+        assertTrue(keys.any { it.label == "q" } && keys.none { it.label == "።" })
+        assertTrue(keys.any { it.label == "،" && "َ" in it.alternates })
+        assertTrue("أ" in keys.first { it.label == "a" }.alternates)
+        assertTrue(keys.any { it.kind == KeyKind.SPACE && it.label == "العربية" })
+    }
+
+    @Test fun oromoAndSomaliLettersHaveDigraphLongPresses() {
+        fun keys(l: Lang) = Layouts.build(LayoutId.LETTERS, false, LayoutOptions(lang = l)).rows.flatten()
+        assertEquals("dh", keys(Lang.OM).first { it.label == "d" }.alternates.first())
+        assertEquals("ph", keys(Lang.OM).first { it.label == "p" }.alternates.first())
+        assertEquals("kh", keys(Lang.SO).first { it.label == "k" }.alternates.first())
+        // English keeps its own accents and gets no digraphs.
+        assertTrue(keys(Lang.EN).first { it.label == "d" }.alternates.none { it == "dh" })
+        // The digit hint of the top row survives.
+        assertEquals("2", keys(Lang.SO).first { it.label == "w" }.hint)
+    }
+
     @Test fun amharicCanBeLeftOut() {
         assertEquals(listOf(Lang.EN, Lang.OM), Lang.enabled(false, true, amharic = false))
         assertEquals(listOf(Lang.EN), Lang.enabled(false, false, amharic = false))

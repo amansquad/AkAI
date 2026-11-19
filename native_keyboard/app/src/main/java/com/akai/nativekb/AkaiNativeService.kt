@@ -53,6 +53,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private var oromoLang = false
     private var amharicLang = true
     private var arabicLang = false
+    /** Arabic typed from Latin letters instead of the Arabic board. */
+    private var arabicPhonetic = false
     private var somaliLang = false
     private fun enabledLangs() = Lang.enabled(tigrinyaLang, oromoLang, amharicLang, arabicLang, somaliLang)
     private var phonetic = false
@@ -220,6 +222,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         oromoLang = p.getBoolean(Prefs.OROMO_LANG, false)
         amharicLang = p.getBoolean(Prefs.AMHARIC_LANG, true)
         arabicLang = p.getBoolean(Prefs.ARABIC_LANG, false)
+        arabicPhonetic = p.getBoolean(Prefs.ARABIC_PHONETIC, false)
         somaliLang = p.getBoolean(Prefs.SOMALI_LANG, false)
         lang = Lang.fromCode(p.getString(Prefs.LANG, null)) ?: if (p.getBoolean(Prefs.AMHARIC, false)) Lang.AM else Lang.EN
         if (lang !in enabledLangs()) lang = Lang.EN
@@ -370,7 +373,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             }
             symbols -> if (symbolsPage2) LayoutId.SYMBOLS2 else LayoutId.SYMBOLS
             showAmharic -> if (phonetic) LayoutId.PHONETIC else LayoutId.FIDEL
-            lang == Lang.AR && !plainField -> LayoutId.ARABIC
+            lang == Lang.AR && !plainField -> if (arabicPhonetic) LayoutId.PHONETIC else LayoutId.ARABIC
             else -> LayoutId.LETTERS
         }
         layoutId = id
@@ -557,7 +560,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             if (c != null && c.isLetter()) ic.commitText(" ", 1)
         }
         if (phoneticActive && text.length == 1) {
-            applyTranslit(Translit.press(translit, text[0]))
+            applyTranslit(Translit.press(translit, text[0], lang))
         } else {
             ic.commitText(text, 1)
             translit = Translit.EMPTY
@@ -586,7 +589,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         // English only: its fixes and word list are not Oromo's.
         LayoutId.LETTERS -> autoCorrect && lang == Lang.EN
         // Off unless asked for: the Amharic list is small next to all the forms a word can take.
-        LayoutId.FIDEL, LayoutId.PHONETIC -> autoCorrectAm
+        LayoutId.FIDEL, LayoutId.PHONETIC -> autoCorrectAm && geez
         else -> false
     }
 
@@ -705,7 +708,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         spaceBeforeNextLetter = false
         if (undoCorrection()) return
         if (phoneticActive) {
-            val step = Translit.backspace(translit)
+            val step = Translit.backspace(translit, lang)
             if (step != null) { applyTranslit(step); return }
         }
         keys.setVowels(emptyList())
@@ -806,6 +809,14 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     /** Holding the language key: flip Amharic between fidel and phonetic (going to Amharic if needed). */
     override fun onPhonetic() {
         if (emojiQuery != null) { emojiQuery = null; searchTab = null }
+        // Arabic has its own standard and phonetic boards.
+        if (lang == Lang.AR) {
+            arabicPhonetic = !arabicPhonetic
+            translit = Translit.EMPTY
+            savePref { putBoolean(Prefs.ARABIC_PHONETIC, arabicPhonetic) }
+            refreshLayout()
+            return
+        }
         if (!geez) { lang = enabledLangs().firstOrNull { it.geez } ?: return; symbols = false; keys.shiftState = 0; savePref { putString(Prefs.LANG, lang.code); putBoolean(Prefs.AMHARIC, true) } }
         phonetic = !phonetic
         translit = Translit.EMPTY
@@ -849,7 +860,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     /** The touch that started the swipe typed a letter on landing; take it back. */
     override fun onGlideStart() {
         // Phonetically the letter may have re-spelt the word ("se" + l is ሰል), so step the spelling back.
-        val step = if (phoneticActive) Translit.backspace(translit) else null
+        val step = if (phoneticActive) Translit.backspace(translit, lang) else null
         if (step != null) applyTranslit(step)
         else currentInputConnection?.deleteSurroundingTextInCodePoints(1, 0)
         vowelChanges = false
@@ -858,6 +869,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     override fun onGlide(xs: FloatArray, ys: FloatArray, keys: Map<Char, FloatArray>, keyW: Float, shifted: Boolean) {
         val ic = currentInputConnection ?: return
+        // Swipe typing knows Latin and fidel spellings only.
+        if (lang == Lang.AR) { onKeyFeedback(); return }
         val spelling = when (layoutId) {
             LayoutId.FIDEL -> Amharic.FIDEL
             LayoutId.PHONETIC -> Amharic.PHONETIC
@@ -1096,6 +1109,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             TOOL_WRITE -> showPanel(PanelView.Tab.WRITE)
             TOOL_TRANSLATE -> showPanel(PanelView.Tab.TRANSLATE)
             TOOL_THEMES -> showPanel(PanelView.Tab.THEMES)
+            TOOL_LYRICS -> showPanel(PanelView.Tab.LYRICS)
             TOOL_SPEAK -> readAloud()
             TOOL_VOICE -> {
                 voiceLang = lang
@@ -1481,6 +1495,7 @@ object Prefs {
     const val OROMO_LANG = "oromo_language"
     const val AMHARIC_LANG = "amharic_language"
     const val ARABIC_LANG = "arabic_language"
+    const val ARABIC_PHONETIC = "arabic_phonetic"
     const val SOMALI_LANG = "somali_language"
     const val LANG = "language"
     const val SHORTCUTS = "text_shortcuts"

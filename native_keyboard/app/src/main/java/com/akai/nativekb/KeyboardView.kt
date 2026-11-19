@@ -39,6 +39,7 @@ const val TOOL_WRITE = 6
 const val TOOL_TRANSLATE = 7
 const val TOOL_THEMES = 8
 const val TOOL_SPEAK = 9
+const val TOOL_LYRICS = 10
 
 object Tools {
     /** Pref name, icon and spoken name, in the order they appear. */
@@ -50,6 +51,7 @@ object Tools {
         Triple(TOOL_WRITE, "handwriting", "✍️") to "Handwriting",
         Triple(TOOL_TRANSLATE, "translate", "🌐") to "Translate",
         Triple(TOOL_THEMES, "themes", "🎨") to "Themes",
+        Triple(TOOL_LYRICS, "lyrics", "🎵") to "Lyrics",
         Triple(TOOL_SPEAK, "speak", "🔊") to "Read aloud",
         Triple(TOOL_VOICE, "voice", "🎤") to "Voice typing",
         Triple(TOOL_SETTINGS, "settings", "⚙️") to "Keyboard settings",

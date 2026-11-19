@@ -115,6 +115,16 @@ object Icons {
                 c.drawCircle(15.5f, 8.5f, 1.4f, solid)
                 c.drawCircle(8.5f, 15.5f, 1.4f, solid)
             }
+            TOOL_LYRICS -> {
+                // Two beamed notes.
+                c.drawCircle(7.5f, 17.5f, 2.7f, solid)
+                c.drawCircle(16.5f, 15.5f, 2.7f, solid)
+                c.drawLine(10.2f, 17.2f, 10.2f, 6.5f, stroke)
+                c.drawLine(19.2f, 15.2f, 19.2f, 4.5f, stroke)
+                stroke.strokeWidth = 3f
+                c.drawLine(10.2f, 6.8f, 19.2f, 4.8f, stroke)
+                stroke.strokeWidth = 1.8f
+            }
             TOOL_VOICE -> {
                 r.set(9f, 3f, 15f, 14f)
                 c.drawRoundRect(r, 3f, 3f, stroke)

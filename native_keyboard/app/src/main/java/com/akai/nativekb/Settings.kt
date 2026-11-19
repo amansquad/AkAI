@@ -597,6 +597,12 @@ class SettingsActivity : ThemedActivity() {
             note("Phonetic types Amharic from Latin letters: \"selam\" gives ሰላም. Hold the language key to switch between fidel and phonetic."),
             ui.switchRow("Tigrinya and Blin letters", "Adds ቐ and ጘ to the fidel board; hold them for every form", on(Prefs.TIGRINYA, false)) { put(Prefs.TIGRINYA, it) },
         )
+        group(c, "Arabic",
+            ui.segmented("Keyboard", listOf("Arabic letters", "Phonetic (Latin)"), if (on(Prefs.ARABIC_PHONETIC, false)) 1 else 0) {
+                put(Prefs.ARABIC_PHONETIC, it == 1)
+            },
+            note("Phonetic types Arabic from Latin letters: \"salaam\" gives سلام. A doubled vowel is a long one (aa ا, ee ي, oo و); S D T Z H E give ص ض ط ظ ح ع. Hold the language key to switch boards."),
+        )
         val places = listOf(
             LangKey.SYMBOLS to ("Beside ?123" to "A key next to the symbols key"),
             LangKey.TOOLBAR to ("In the toolbar" to "The first button on the top row, before emoji; stays put while you type"),

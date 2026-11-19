@@ -188,6 +188,15 @@ object Layouts {
         "ف" to listOf("ڤ"),
     )
     /** Fathatan, dammatan, kasratan, fatha, damma, kasra, shadda, sukun, then the semicolon. */
+    /** Extra letters under the Latin keys of the phonetic board (the heavy and throaty ones are capitals). */
+    private val arabicPhoneticAlternates: Map<String, List<String>> = mapOf(
+        "a" to listOf("أ", "إ", "آ"), "y" to listOf("ى", "ئ"), "w" to listOf("ؤ"), "h" to listOf("ة"),
+    )
+    /** Long presses that type two letters: the Latin digraphs of Oromo and Somali. */
+    private val digraphs: Map<Lang, Map<String, String>> = mapOf(
+        Lang.OM to mapOf("c" to "ch", "d" to "dh", "n" to "ny", "p" to "ph", "s" to "sh", "t" to "ts", "z" to "zy"),
+        Lang.SO to mapOf("d" to "dh", "k" to "kh", "s" to "sh"),
+    )
     private val arabicMarks = listOf("ً", "ٌ", "ٍ", "َ", "ُ", "ِ", "ّ", "ْ", "؛")
     private const val ARABIC_DIGITS = "١٢٣٤٥٦٧٨٩٠"
 
@@ -308,7 +317,10 @@ object Layouts {
 
     private fun buildBase(id: LayoutId, amharicSymbols: Boolean, o: LayoutOptions): Layout = when (id) {
         LayoutId.LETTERS -> {
-            val rows = letterRows(o.englishLayout, ::letter).toMutableList()
+            // Oromo and Somali write sounds with two letters: the second is on a long press of the first.
+            val dig = digraphs[o.lang].orEmpty()
+            val make = { c: String -> letter(c).let { k -> dig[c]?.let { d -> k.copy(alternates = listOf(d) + k.alternates) } ?: k } }
+            val rows = letterRows(o.englishLayout, make).toMutableList()
             if (o.numberRow) rows.add(0, numberRow())
             rows.add(
                 bottomRow(
@@ -339,15 +351,17 @@ object Layouts {
         }
 
         LayoutId.PHONETIC -> {
-            val rows = letterRows(o.englishLayout, ::plainLetter).toMutableList()
-            if (o.numberRow) rows.add(0, numberRow())
+            val arabic = o.lang == Lang.AR
+            val rows = letterRows(o.englishLayout, if (arabic) { c -> plainLetter(c).copy(alternates = arabicPhoneticAlternates[c].orEmpty()) } else ::plainLetter).toMutableList()
+            if (o.numberRow) rows.add(0, if (arabic) arabicRows(true)[0] else numberRow())
             // One language key: fidel or phonetic is a setting, or a long press on it.
             rows.add(
                 bottomRow(
                     o,
-                    listOf(Key(KeyKind.SYMBOLS, "፩፪", 1.3f)),
-                    Key(KeyKind.SPACE, o.lang.title, 4.7f),
-                    listOf(ch("።"), enter(o.enterLabel, 1.5f)),
+                    if (arabic) listOf(Key(KeyKind.SYMBOLS, "؟١٢٣", 1.3f), Key(KeyKind.CHAR, "،", alternates = arabicMarks))
+                    else listOf(Key(KeyKind.SYMBOLS, "፩፪", 1.3f)),
+                    Key(KeyKind.SPACE, o.lang.title, if (arabic) 3.7f else 4.7f),
+                    listOf(ch(if (arabic) "." else "።"), enter(o.enterLabel, 1.5f)),
                     o.nextLang.key, 1.2f,
                 ),
             )

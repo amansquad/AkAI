@@ -28,6 +28,9 @@ object Translit {
         "K" to "ኸ", "Z" to "ዠ", "H" to "ሐ",
     )
 
+    /** Tigrinya's SERA: x is ጸ, X is ፀ (Amharic uses X for ሸ) and Q is ቐ. */
+    private val consonantsTigrinya = consonants + mapOf("x" to "ጸ", "X" to "ፀ", "Q" to "ቐ")
+
     private val vowelsAfterConsonant = mapOf(
         "e" to ORDER_AE, "u" to ORDER_U, "i" to ORDER_I, "a" to ORDER_A,
         "E" to ORDER_E, "ee" to ORDER_E, "o" to ORDER_O, "wa" to ORDER_WA, "W" to ORDER_WA,
@@ -60,7 +63,8 @@ object Translit {
         return null
     }
 
-    fun latinToFidel(latin: String): String {
+    fun latinToFidel(latin: String, tigrinya: Boolean = false): String {
+        val consonants = if (tigrinya) consonantsTigrinya else consonants
         val out = StringBuilder()
         var i = 0
         while (i < latin.length) {
@@ -92,23 +96,32 @@ object Translit {
     private const val BOUNDARY = " \t\n.,!?;:'\"()[]{}-–—/\\፡።፣፤፥፦፧፨"
     fun isWordBoundary(c: Char) = BOUNDARY.indexOf(c) >= 0
 
+    /** Arabic words may hold an apostrophe (ء) and are cut by Arabic punctuation too. */
+    private fun isBoundary(c: Char, lang: Lang) =
+        if (lang == Lang.AR) c != '\'' && (isWordBoundary(c) || c in "،؛؟") else isWordBoundary(c)
+
+    private fun render(latin: String, lang: Lang) = when (lang) {
+        Lang.AR -> ArabicTranslit.render(latin)
+        else -> latinToFidel(latin, tigrinya = lang == Lang.TI)
+    }
+
     class State(val buffer: String = "", val rendered: String = "")
     class Step(val replaceLast: Int, val insert: String, val next: State)
 
     val EMPTY = State()
 
-    fun press(state: State, c: Char): Step {
-        if (isWordBoundary(c)) return Step(0, c.toString(), EMPTY)
+    fun press(state: State, c: Char, lang: Lang = Lang.AM): Step {
+        if (isBoundary(c, lang)) return Step(0, c.toString(), EMPTY)
         val buffer = state.buffer + c
-        val rendered = latinToFidel(buffer)
+        val rendered = render(buffer, lang)
         return Step(state.rendered.length, rendered, State(buffer, rendered))
     }
 
     /** Null when not inside a word: the caller deletes a character itself. */
-    fun backspace(state: State): Step? {
+    fun backspace(state: State, lang: Lang = Lang.AM): Step? {
         if (state.buffer.isEmpty()) return null
         val buffer = state.buffer.dropLast(1)
-        val rendered = latinToFidel(buffer)
+        val rendered = render(buffer, lang)
         return Step(state.rendered.length, rendered, State(buffer, rendered))
     }
 }
