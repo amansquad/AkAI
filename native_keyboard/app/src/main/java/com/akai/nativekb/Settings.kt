@@ -667,7 +667,7 @@ class SettingsActivity : ThemedActivity() {
     private fun toolbarPage(c: LinearLayout) {
         val chosen = (prefs.getString(Prefs.TOOLBAR, Tools.DEFAULT) ?: Tools.DEFAULT).split(',').toMutableSet()
         val toolRows = Tools.all.filter { it.first.first != TOOL_SETTINGS }.map { (t, spoken) ->
-            ui.switchRow("${t.third}   $spoken", "", t.second in chosen) { on ->
+            ui.switchRow("${t.third}   ${ui.tr(spoken)}", "", t.second in chosen) { on ->
                 if (on) chosen.add(t.second) else chosen.remove(t.second)
                 put(Prefs.TOOLBAR, chosen.filter { it.isNotBlank() }.joinToString(","))
             }

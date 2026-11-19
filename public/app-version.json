@@ -1,6 +1,6 @@
 {
-  "versionCode": 10017,
-  "versionName": "1.0.17",
+  "versionCode": 10018,
+  "versionName": "1.0.18",
   "url": "/AkAI-keyboard.apk",
-  "notes": "The Lyrics tool now has Tigrinya and Afaan Oromoo names."
+  "notes": "Settings, Toolbar now shows the tool names in your language, including Lyrics, Clipboard and Handwriting."
 }

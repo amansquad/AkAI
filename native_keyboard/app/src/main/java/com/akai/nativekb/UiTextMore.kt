@@ -94,6 +94,8 @@ internal val UI_TEXT_MORE: Map<String, Array<String>> = mapOf(
     "Normal" to r("መደበኛ", "ልሙድ", "Idilee", "Caadi", "عادي"),
     "Large" to r("ትልቅ", "ዓቢ", "Guddaa", "Weyn", "كبير"),
     "Huge" to r("በጣም ትልቅ", "ኣዝዩ ዓቢ", "Baay'ee guddaa", "Aad u weyn", "كبير جدًا"),
+    "Clipboard" to r("ቅንጥብ ሰሌዳ", "ቅንጥብ ሰሌዳ", "Kiliippoordii", "Looxa koobiga", "الحافظة"),
+    "Handwriting" to r("የእጅ ጽሑፍ", "ብኢድ ምጽሓፍ", "Barreeffama harkaa", "Far gacmeed", "الكتابة اليدوية"),
     "Lyrics" to r("የዘፈን ግጥም", "ግጥሚ ደርፊ", "Jechoota weedduu", "Erayada heesaha", "كلمات الأغاني"),
     "Read aloud" to r("ጮክ ብሎ አንብብ", "ብዓውታ ኣንብብ", "Sagaleedhaan dubbisi", "Kor u akhri", "القراءة بصوت عالٍ"),
     "Nothing to read yet" to r("እስካሁን የሚነበብ የለም", "ክሳብ ሕጂ ዝንበብ የለን", "Ammaaf wanti dubbifamu hin jiru", "Weli waxba lama akhrin karo", "لا يوجد ما يُقرأ بعد"),
