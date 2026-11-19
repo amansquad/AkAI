@@ -1,6 +1,6 @@
 {
-  "versionCode": 10012,
-  "versionName": "1.0.12",
+  "versionCode": 10013,
+  "versionName": "1.0.13",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Amharic next-word suggestions: after a word you get the words that most often follow it, after your own habits."
+  "notes": "New Lyrics tab: search a song or artist and tap lines to insert them, including Amharic songs."
 }
