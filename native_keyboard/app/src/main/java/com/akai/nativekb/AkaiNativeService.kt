@@ -45,7 +45,12 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private val handler = Handler(Looper.getMainLooper())
 
     // ─── State ───────────────────────────────────────────────────────────
-    private var amharic = false
+    private var lang = Lang.EN
+    /** Typing in a Ge'ez-script language (Amharic or Tigrinya). */
+    private val geez get() = lang.geez
+    /** Tigrinya is in the language key's cycle. */
+    private var tigrinyaLang = false
+    private fun enabledLangs() = Lang.enabled(tigrinyaLang)
     private var phonetic = false
     private var symbols = false
     /** On the symbols board, whether the second page (=\<) is showing. */
@@ -206,7 +211,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         CustomThemes.refresh(this)
         hapticLevel = p.getInt(Prefs.HAPTIC, 3)
         sound = p.getBoolean(Prefs.SOUND, false)
-        amharic = p.getBoolean(Prefs.AMHARIC, false)
+        tigrinyaLang = p.getBoolean(Prefs.TIGRINYA_LANG, false)
+        lang = Lang.fromCode(p.getString(Prefs.LANG, null)) ?: if (p.getBoolean(Prefs.AMHARIC, false)) Lang.AM else Lang.EN
+        if (lang !in enabledLangs()) lang = Lang.AM
         phonetic = p.getBoolean(Prefs.PHONETIC, false)
         theme = p.getString(Prefs.THEME, "system") ?: "system"
         heightPercent = p.getInt(Prefs.HEIGHT, 100)
@@ -344,7 +351,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         if (!::keys.isInitialized) return
         val searching = emojiQuery != null
         // Emoji names are English, so searching always uses the English letters.
-        val showAmharic = amharic && !plainField && !digitField && !searching
+        val showAmharic = geez && !plainField && !digitField && !searching
         val id = when {
             searching -> LayoutId.LETTERS
             digitField && !padDismissed -> when (field) {
@@ -360,12 +367,13 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         val options = LayoutOptions(
             enterLabel(), numberRow, backToPad = digitField && padDismissed,
             englishLayout = englishLayout, amharicLayout = amharicLayout, cursorRow = cursorRow && !searching,
-            langKey = langKey, tigrinya = tigrinya,
+            langKey = langKey, tigrinya = tigrinya || lang == Lang.TI,
+            lang = lang, nextLang = Lang.next(lang, enabledLangs()),
         )
         val layout = Layouts.build(id, showAmharic, options, if (phonetic) LayoutId.PHONETIC else LayoutId.FIDEL)
         // The toolbar's language button, on the boards that have a language key.
         val letterBoard = id == LayoutId.LETTERS || id == LayoutId.PHONETIC || id == LayoutId.FIDEL
-        keys.setLanguageTool(if (langKey == LangKey.TOOLBAR && letterBoard && !searching) (if (id == LayoutId.LETTERS) "አማ" else "EN") else null)
+        keys.setLanguageTool(if (langKey == LangKey.TOOLBAR && letterBoard && !searching) Lang.next(lang, enabledLangs()).key else null)
         keys.spaceSwitch = langKey == LangKey.SPACE
         keys.setVowels(emptyList())
         keys.setSearch(emojiQuery, searchResults(), searchLabel())
@@ -394,7 +402,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         if (!::keys.isInitialized || plainField || !autoCap || emojiQuery != null) return
         if (keys.shiftState == 2) return // caps lock stays
         // Capitals mean something in phonetic typing (T is ጠ), so never add them.
-        if (amharic) { keys.shiftState = 0; return }
+        if (geez) { keys.shiftState = 0; return }
         val ic = currentInputConnection
         val e = info
         val caps = if (ic != null && e != null && e.inputType != InputType.TYPE_NULL) {
@@ -415,14 +423,17 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         keys.setSuggestions(
             if (before == null) emptyList()
             else Suggest.forText(
-                before, amharic, if (learnOn) learned else emptyMap(), if (amharic) Words.am else Words.en,
+                before, geez, if (learnOn) learned else emptyMap(), Words.of(lang),
                 pairs = if (learnOn) habits.pairs else emptyMap(), emojiHabits = if (learnOn) habits.emoji else emptyMap(),
+                lang = lang,
             ),
         )
     }
 
     private fun wordOfDay(): Pair<String, String>? {
-        val list = if (amharic) KeyboardData.wordOfTheDayAm else KeyboardData.wordOfTheDayEn
+        // Only Amharic and English have a word of the day so far.
+        if (lang == Lang.TI) return null
+        val list = if (geez) KeyboardData.wordOfTheDayAm else KeyboardData.wordOfTheDayEn
         if (list.isEmpty()) return null
         return list[java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH) % list.size]
     }
@@ -503,7 +514,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             val clean = Suggest.clean(word)
             if (Suggest.isWord(clean)) habits.learnWord(clean, prev)
         }
-        val capitalised = n > 0 && before[before.length - n].isUpperCase() && !amharic
+        val capitalised = n > 0 && before[before.length - n].isUpperCase() && !geez
         val out = if (capitalised) word.replaceFirstChar { it.uppercase() } else word
         ic.beginBatchEdit()
         if (n > 0) ic.deleteSurroundingText(n, 0)
@@ -554,14 +565,14 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         // "3.5", "..." and a following space or newline come out right.
         if (autoSpace && !plainField && !digitField && c != null && (c in ".!?;:" || text == "።" || text == "፣")) {
             spaceBeforeNextLetter = true
-            if (sentenceEnd && autoCap && !amharic && keys.shiftState == 0) keys.shiftState = 1
+            if (sentenceEnd && autoCap && !geez && keys.shiftState == 0) keys.shiftState = 1
         }
     }
 
     // ─── Auto-correct ────────────────────────────────────────────────────
 
     private val correcting get() = !plainField && !digitField && when (layoutId) {
-        LayoutId.LETTERS -> autoCorrect && !amharic
+        LayoutId.LETTERS -> autoCorrect && !geez
         // Off unless asked for: the Amharic list is small next to all the forms a word can take.
         LayoutId.FIDEL, LayoutId.PHONETIC -> autoCorrectAm
         else -> false
@@ -597,7 +608,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         // Part of a longer token such as an address or a number: leave it.
         if (i > 0 && (before[i - 1].isLetterOrDigit() || before[i - 1] in "@/_.-#")) return
         val known = if (learnOn) learned else emptyMap()
-        val fix = (if (amharic) Amharic.correct(typed, Words.am, known) else AutoCorrect.correct(typed, Words.en, known)) ?: return
+        val fix = (if (geez) Amharic.correct(typed, Words.of(lang), known) else AutoCorrect.correct(typed, Words.en, known)) ?: return
         if (fix == typed) return
         ic.beginBatchEdit()
         ic.deleteSurroundingText(typed.length, 0)
@@ -714,7 +725,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             if (before != null && before.length == 2 && before[1] == ' ' &&
                 !before[0].isWhitespace() && before[0] != '.') {
                 ic.deleteSurroundingText(1, 0)
-                ic.commitText(if (amharic) "። " else ". ", 1)
+                ic.commitText(lang.sentenceEnd, 1)
                 lastSpaceAt = 0L
                 lastCorrection = null
                 updateAutoCaps()
@@ -771,19 +782,19 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     override fun onLanguage() {
         if (emojiQuery != null) { emojiQuery = null; searchTab = null }
-        amharic = !amharic
+        lang = Lang.next(lang, enabledLangs())
         symbols = false
         translit = Translit.EMPTY
-        savePref { putBoolean(Prefs.AMHARIC, amharic) }
+        savePref { putString(Prefs.LANG, lang.code); putBoolean(Prefs.AMHARIC, geez) }
         keys.shiftState = 0
         refreshLayout()
-        if (!amharic) updateAutoCaps()
+        if (!geez) updateAutoCaps()
     }
 
     /** Holding the language key: flip Amharic between fidel and phonetic (going to Amharic if needed). */
     override fun onPhonetic() {
         if (emojiQuery != null) { emojiQuery = null; searchTab = null }
-        if (!amharic) { amharic = true; symbols = false; keys.shiftState = 0; savePref { putBoolean(Prefs.AMHARIC, true) } }
+        if (!geez) { lang = Lang.AM; symbols = false; keys.shiftState = 0; savePref { putString(Prefs.LANG, lang.code); putBoolean(Prefs.AMHARIC, true) } }
         phonetic = !phonetic
         translit = Translit.EMPTY
         savePref { putBoolean(Prefs.PHONETIC, phonetic) }
@@ -841,7 +852,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             else -> Spelling.LETTERS
         }
         val english = spelling == Spelling.LETTERS
-        val words = Glide.decode(xs, ys, keys, keyW, if (english) Words.en else Words.am,
+        val words = Glide.decode(xs, ys, keys, keyW, Words.of(lang),
             if (learnOn) learned else emptyMap(), spelling = spelling)
         if (words.isEmpty()) { onKeyFeedback(); return }
         // Capitals mean other letters in phonetic typing, and fidel has none.
@@ -1067,7 +1078,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             TOOL_THEMES -> showPanel(PanelView.Tab.THEMES)
             TOOL_SPEAK -> readAloud()
             TOOL_VOICE -> {
-                voiceAmharic = amharic
+                voiceLang = lang
                 showPanel(PanelView.Tab.VOICE)
                 voiceInput().start(voiceTag())
             }
@@ -1117,8 +1128,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private var voice: VoiceInput? = null
     private fun voiceInput() = voice ?: VoiceInput(this, this).also { voice = it }
     /** The voice tab's language, which starts as the keyboard's and can be switched there. */
-    private var voiceAmharic = false
-    private fun voiceTag() = if (voiceAmharic) "am-ET" else "en-US"
+    private var voiceLang = Lang.EN
+    private fun voiceNext() = Lang.next(voiceLang, enabledLangs())
+    private fun voiceTag() = voiceLang.voiceTag
     /** What goes before the words being spoken (a space or nothing); null when nothing is being spoken. */
     private var voicePrefix: String? = null
 
@@ -1135,9 +1147,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         when (action) {
             PanelView.VoiceAction.MIC -> if (v.status.active) v.stop() else v.start(voiceTag())
             PanelView.VoiceAction.LANGUAGE -> {
-                voiceAmharic = !voiceAmharic
+                voiceLang = voiceNext()
                 if (v.status.active) { v.cancel(); v.start(voiceTag()) }
-                else panel.setVoice(v.status, voiceAmharic)
+                else panel.setVoice(v.status, voiceLang, voiceNext())
             }
             PanelView.VoiceAction.SETUP -> {
                 val screen = if (v.status.phase == VoiceStatus.Phase.NEEDS_PERMISSION) Intent(this, MicPermissionActivity::class.java)
@@ -1150,7 +1162,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     }
 
     override fun onVoiceStatus(status: VoiceStatus) {
-        if (::panel.isInitialized) panel.setVoice(status, voiceAmharic)
+        if (::panel.isInitialized) panel.setVoice(status, voiceLang, voiceNext())
     }
 
     override fun onVoiceLevel(level: Float) {
@@ -1251,7 +1263,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         onKeyFeedback()
     }
 
-    override fun panelAmharic() = amharic
+    override fun panelAmharic() = geez
+    override fun panelLang() = lang
+    override fun panelVoiceNext() = voiceNext()
 
     /** A theme was picked in the keyboard's Themes tab: save it and recolour right away. */
     override fun onPanelTheme(id: String) {
@@ -1426,7 +1440,7 @@ object Prefs {
     const val NAME = "akai_native"
     const val HAPTIC = "haptic_level"
     const val SOUND = "sound"
-    const val AMHARIC = "amharic"
+    const val AMHARIC = "geez"
     const val PHONETIC = "phonetic"
     const val THEME = "theme"
     const val HEIGHT = "height_percent"
@@ -1442,6 +1456,8 @@ object Prefs {
     const val FLOAT_Y = "float_y"
     const val VOICE_TIDY = "voice_tidy"
     const val TIGRINYA = "tigrinya_letters"
+    const val TIGRINYA_LANG = "tigrinya_language"
+    const val LANG = "language"
     const val SHORTCUTS = "text_shortcuts"
     const val LEARNED = "learned_words"
     const val PINNED = "pinned_clips"

@@ -23,7 +23,7 @@ object Translit {
         "v" to "ቨ", "t" to "ተ", "n" to "ነ", "k" to "ከ", "w" to "ወ", "z" to "ዘ", "y" to "የ",
         "d" to "ደ", "j" to "ጀ", "g" to "ገ", "f" to "ፈ", "p" to "ፐ",
         "sh" to "ሸ", "ch" to "ቸ", "zh" to "ዠ", "ny" to "ኘ", "kh" to "ኸ", "ts" to "ጸ",
-        "hh" to "ሐ", "tss" to "ፀ",
+        "hh" to "ሐ", "tss" to "ፀ", "qh" to "ቐ",
         "T" to "ጠ", "C" to "ጨ", "P" to "ጰ", "S" to "ጸ", "X" to "ሸ", "N" to "ኘ",
         "K" to "ኸ", "Z" to "ዠ", "H" to "ሐ",
     )

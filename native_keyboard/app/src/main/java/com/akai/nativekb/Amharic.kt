@@ -33,7 +33,7 @@ object Amharic {
     private val latinConsonant: Map<Char, List<String>> = mapOf(
         'ሀ' to listOf("h"), 'ለ' to listOf("l"), 'ሐ' to listOf("h"), 'መ' to listOf("m"),
         'ሠ' to listOf("s"), 'ረ' to listOf("r"), 'ሰ' to listOf("s"), 'ሸ' to listOf("sh"),
-        'ቀ' to listOf("q", "k"), 'በ' to listOf("b"), 'ቨ' to listOf("v"), 'ተ' to listOf("t"),
+        'ቀ' to listOf("q", "k"), 'ቐ' to listOf("qh"), 'በ' to listOf("b"), 'ቨ' to listOf("v"), 'ተ' to listOf("t"),
         'ቸ' to listOf("ch"), 'ኀ' to listOf("h"), 'ነ' to listOf("n"), 'ኘ' to listOf("ny", "gn"),
         'አ' to listOf(""), 'ዐ' to listOf(""), 'ከ' to listOf("k"), 'ኸ' to listOf("h", "kh"),
         'ወ' to listOf("w"), 'ዘ' to listOf("z"), 'ዠ' to listOf("zh"), 'የ' to listOf("y"),

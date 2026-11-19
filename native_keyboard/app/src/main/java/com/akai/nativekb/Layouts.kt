@@ -62,6 +62,9 @@ class LayoutOptions(
     val langKey: String = LangKey.SYMBOLS,
     /** Adds ቐ (Tigrinya, Blin) and ጘ (Blin) to the fidel board. */
     val tigrinya: Boolean = false,
+    /** The language being typed, and the one the language key switches to. */
+    val lang: Lang = Lang.EN,
+    val nextLang: Lang = Lang.AM,
 )
 
 /** Places for the language switch, chosen in Settings → Languages. */
@@ -245,9 +248,9 @@ object Layouts {
             if (page == 1) LayoutId.SYMBOLS else LayoutId.SYMBOLS2,
             rows + listOf(
                 listOf(
-                    Key(KeyKind.SYMBOLS, if (amharicSymbols) "አማ" else "ABC", 1.5f),
+                    Key(KeyKind.SYMBOLS, if (amharicSymbols) o.lang.key else "ABC", 1.5f),
                     sym(","),
-                    Key(KeyKind.SPACE, if (amharicSymbols) "አማርኛ" else "English", 4.8f),
+                    Key(KeyKind.SPACE, if (amharicSymbols) o.lang.title else "English", 4.8f),
                     sym("."),
                     enter(o.enterLabel, 1.5f),
                 ),
@@ -286,7 +289,7 @@ object Layouts {
                     listOf(Key(KeyKind.SYMBOLS, "?123", 1.4f), if (o.backToPad) Key(KeyKind.PAD_ABC, "123") else ch(",")),
                     Key(KeyKind.SPACE, "English", 4.2f),
                     listOf(ch("."), enter(o.enterLabel, 1.5f)),
-                    "አማ", 1.2f,
+                    o.nextLang.key, 1.2f,
                 ),
             )
             Layout(id, rows, rowHeightDp = if (o.numberRow) 46f else 50f)
@@ -300,9 +303,9 @@ object Layouts {
                 bottomRow(
                     o,
                     listOf(Key(KeyKind.SYMBOLS, "፩፪", 1.3f)),
-                    Key(KeyKind.SPACE, "አማርኛ", 4.7f),
+                    Key(KeyKind.SPACE, o.lang.title, 4.7f),
                     listOf(ch("።"), enter(o.enterLabel, 1.5f)),
-                    "EN", 1.2f,
+                    o.nextLang.key, 1.2f,
                 ),
             )
             Layout(id, rows, rowHeightDp = if (o.numberRow) 46f else 50f)
@@ -326,9 +329,9 @@ object Layouts {
                     bottomRow(
                         o,
                         listOf(Key(KeyKind.SYMBOLS, "፩፪", 1.2f), ch("፣")),
-                        Key(KeyKind.SPACE, "አማርኛ", 3.9f),
+                        Key(KeyKind.SPACE, o.lang.title, 3.9f),
                         listOf(ch("።"), backspace(1.2f), enter(o.enterLabel, 1.2f)),
-                        "EN", 1.1f,
+                        o.nextLang.key, 1.1f,
                     ),
                 ),
                 rowHeightDp = 41f,

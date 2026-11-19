@@ -41,6 +41,8 @@ class AkaiSpellChecker : SpellCheckerService() {
             val fixes: List<String> = if (word.all(Amharic::isFidel)) {
                 val dict = Words.am ?: return ok
                 if (word.length < 3 || Amharic.isKnown(word, dict, learned)) return ok
+                // Tigrinya shares the script: a word in its list is not a typo.
+                if (Words.ti?.let { Amharic.isKnown(word, it, learned) } == true) return ok
                 Amharic.candidates(word, dict, learned)
             } else if (word.all { it in 'a'..'z' || it in 'A'..'Z' || it == '\'' }) {
                 val dict = Words.en ?: return ok

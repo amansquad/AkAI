@@ -21,10 +21,10 @@ object Handwriting {
 
     /** One stroke is a list of (x, y, time in ms). */
     fun recognize(
-        strokes: List<List<FloatArray>>, amharic: Boolean,
+        strokes: List<List<FloatArray>>, lang: Lang,
         status: (String) -> Unit, done: (List<String>?) -> Unit,
     ) {
-        val tag = if (amharic) "am" else "en-US"
+        val tag = lang.inkTag
         val id = try { DigitalInkRecognitionModelIdentifier.fromLanguageTag(tag) } catch (e: Exception) { null }
         if (id == null) { done(null); return }
         val model = DigitalInkRecognitionModel.builder(id).build()
@@ -55,8 +55,7 @@ object Handwriting {
             .addOnSuccessListener { have ->
                 if (have) { downloaded.add(tag); read() }
                 else {
-                    status(if (amharic) "Getting the Amharic handwriting model (about 20 MB, only once)…"
-                           else "Getting the English handwriting model (about 20 MB, only once)…")
+                    status("Getting the ${lang.title} handwriting model (about 20 MB, only once)…")
                     manager.download(model, DownloadConditions.Builder().build())
                         .addOnSuccessListener { downloaded.add(tag); read() }
                         .addOnFailureListener { done(null) }

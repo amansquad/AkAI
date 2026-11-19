@@ -54,9 +54,10 @@ object Suggest {
     fun forText(
         before: CharSequence, amharic: Boolean, learned: Map<String, Int> = emptyMap(), dict: Dictionary? = null,
         pairs: Map<String, Int> = emptyMap(), emojiHabits: Map<String, Int> = emptyMap(), withEmoji: Boolean = true,
+        lang: Lang = if (amharic) Lang.AM else Lang.EN,
     ): List<String> {
-        val suggestions = if (amharic) KeyboardData.suggestionsAm else KeyboardData.suggestionsEn
-        val next = if (amharic) KeyboardData.nextWordAm else KeyboardData.nextWordEn
+        val suggestions = when (lang) { Lang.TI -> TigrinyaData.suggestions; Lang.AM -> KeyboardData.suggestionsAm; Lang.EN -> KeyboardData.suggestionsEn }
+        val next = when (lang) { Lang.TI -> TigrinyaData.nextWord; Lang.AM -> KeyboardData.nextWordAm; Lang.EN -> KeyboardData.nextWordEn }
         val words = before.toString().trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
         val endsWithSpace = before.isNotEmpty() && before.last().isWhitespace()
 

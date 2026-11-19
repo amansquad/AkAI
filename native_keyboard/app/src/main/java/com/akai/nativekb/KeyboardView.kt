@@ -1515,7 +1515,7 @@ class KeyboardView(context: Context) : View(context) {
         KeyKind.BACKSPACE -> "Backspace"
         KeyKind.ENTER -> if (key.label == "↵") "Enter" else key.label
         KeyKind.SPACE -> "Space"
-        KeyKind.SYMBOLS -> if (key.label == "ABC" || key.label == "አማ") "Letters" else "Numbers and symbols"
+        KeyKind.SYMBOLS -> if (key.label == "ABC" || Lang.entries.any { it.key == key.label }) "Letters" else "Numbers and symbols"
         KeyKind.LANGUAGE -> "Switch language"
         KeyKind.SYMBOLS_PAGE -> if (key.label == "=\\<") "More symbols" else "Back to numbers"
         KeyKind.PAD_ABC -> if (key.label == "123") "Number pad" else "Letters"

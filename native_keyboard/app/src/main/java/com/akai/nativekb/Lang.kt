@@ -1,0 +1,43 @@
+package com.akai.nativekb
+
+/**
+ * The languages the keyboard types. Everything that differs between them lives
+ * here, so the rest of the code asks the language instead of testing a flag.
+ *
+ * Amharic and Tigrinya share the Ge'ez (fidel) boards and transliteration.
+ */
+enum class Lang(
+    /** Stored in preferences. */
+    val code: String,
+    /** The name on the space bar and the voice tab. */
+    val title: String,
+    /** The short label on the language key that switches to this language. */
+    val key: String,
+    /** Typed with the fidel boards (or their phonetic version). */
+    val geez: Boolean,
+    /** For speech recognition. */
+    val voiceTag: String,
+    /** For the handwriting recognizer's model. */
+    val inkTag: String,
+    /** Typed at the end of a sentence, space included. */
+    val sentenceEnd: String,
+    /** The asset with this language's words, one per line, most common first. */
+    val wordsAsset: String,
+) {
+    EN("en", "English", "EN", false, "en-US", "en-US", ". ", "words_en.txt"),
+    AM("am", "አማርኛ", "አማ", true, "am-ET", "am", "። ", "words_am.txt"),
+    TI("ti", "ትግርኛ", "ትግ", true, "ti-ET", "ti", "። ", "words_ti.txt");
+
+    companion object {
+        fun fromCode(code: String?): Lang? = entries.firstOrNull { it.code == code }
+
+        /** The languages the language key cycles through, in order. */
+        fun enabled(tigrinya: Boolean): List<Lang> = if (tigrinya) listOf(EN, AM, TI) else listOf(EN, AM)
+
+        /** The one after [current] in [list]; the first when [current] is not in it. */
+        fun next(current: Lang, list: List<Lang>): Lang {
+            val i = list.indexOf(current)
+            return list[(i + 1) % list.size]
+        }
+    }
+}

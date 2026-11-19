@@ -39,6 +39,10 @@ interface PanelHost {
     fun panelTextBefore(): String
     fun onPanelReplace(oldLength: Int, newText: String)
     fun panelAmharic(): Boolean
+    /** The keyboard's current language. */
+    fun panelLang(): Lang
+    /** The language the voice tab would switch to. */
+    fun panelVoiceNext(): Lang
     /** The clipboard history as it is right now, including anything copied since the panel opened. */
     fun panelClips(): List<Clip>
     /** The user picked a theme in the Themes tab. */
@@ -144,14 +148,16 @@ class PanelView(context: Context) : View(context) {
     private val recognizeTask = Runnable { recognize() }
 
     private var voice = VoiceStatus(VoiceStatus.Phase.IDLE)
-    private var voiceAmharic = false
+    private var voiceLang = Lang.EN
+    private var voiceNext = Lang.AM
     /** The latest loudness, and the one drawn, which follows it smoothly. */
     private var voiceLevel = 0f
     private var voiceShown = 0f
 
-    fun setVoice(status: VoiceStatus, amharic: Boolean) {
+    fun setVoice(status: VoiceStatus, lang: Lang, next: Lang) {
         voice = status
-        voiceAmharic = amharic
+        voiceLang = lang
+        voiceNext = next
         if (!status.active) voiceLevel = 0f
         if (tab == Tab.VOICE) invalidate()
     }
@@ -704,9 +710,8 @@ class PanelView(context: Context) : View(context) {
         if (strokes.isEmpty()) return
         writeStatus = "Reading…"
         invalidate()
-        val amharic = host?.panelAmharic() == true
         // On the phone first: private, and works offline once the model is there.
-        Handwriting.recognize(strokePoints.toList(), amharic,
+        Handwriting.recognize(strokePoints.toList(), host?.panelLang() ?: Lang.EN,
             status = { if (tab == Tab.WRITE) { writeStatus = it; invalidate() } },
         ) { found ->
             if (tab != Tab.WRITE) return@recognize
@@ -781,7 +786,7 @@ class PanelView(context: Context) : View(context) {
         val pad = dp(8f)
         val w = width.toFloat()
         button(canvas, pad, top + dp(4f), w - pad, top + dp(40f),
-            if (voiceAmharic) "አማርኛ   (tap for English)" else "English   (tap for አማርኛ)")
+            "${voiceLang.title}   (tap for ${voiceNext.title})")
 
         val cx = w / 2f
         val cy = voiceMicY()

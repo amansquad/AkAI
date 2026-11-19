@@ -3,5 +3,6 @@
 <spell-checker xmlns:android="http://schemas.android.com/apk/res/android"
     android:label="@string/spellchecker_name">
     <subtype android:label="@string/spellchecker_name" android:subtypeLocale="am" android:languageTag="am" />
+    <subtype android:label="@string/spellchecker_name" android:subtypeLocale="ti" android:languageTag="ti" />
     <subtype android:label="@string/spellchecker_name" android:subtypeLocale="en" android:languageTag="en" />
 </spell-checker>
