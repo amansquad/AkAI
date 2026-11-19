@@ -51,7 +51,8 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     /** Tigrinya is in the language key's cycle. */
     private var tigrinyaLang = false
     private var oromoLang = false
-    private fun enabledLangs() = Lang.enabled(tigrinyaLang, oromoLang)
+    private var amharicLang = true
+    private fun enabledLangs() = Lang.enabled(tigrinyaLang, oromoLang, amharicLang)
     private var phonetic = false
     private var symbols = false
     /** On the symbols board, whether the second page (=\<) is showing. */
@@ -214,8 +215,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         sound = p.getBoolean(Prefs.SOUND, false)
         tigrinyaLang = p.getBoolean(Prefs.TIGRINYA_LANG, false)
         oromoLang = p.getBoolean(Prefs.OROMO_LANG, false)
+        amharicLang = p.getBoolean(Prefs.AMHARIC_LANG, true)
         lang = Lang.fromCode(p.getString(Prefs.LANG, null)) ?: if (p.getBoolean(Prefs.AMHARIC, false)) Lang.AM else Lang.EN
-        if (lang !in enabledLangs()) lang = Lang.AM
+        if (lang !in enabledLangs()) lang = Lang.EN
         phonetic = p.getBoolean(Prefs.PHONETIC, false)
         theme = p.getString(Prefs.THEME, "system") ?: "system"
         heightPercent = p.getInt(Prefs.HEIGHT, 100)
@@ -798,7 +800,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     /** Holding the language key: flip Amharic between fidel and phonetic (going to Amharic if needed). */
     override fun onPhonetic() {
         if (emojiQuery != null) { emojiQuery = null; searchTab = null }
-        if (!geez) { lang = Lang.AM; symbols = false; keys.shiftState = 0; savePref { putString(Prefs.LANG, lang.code); putBoolean(Prefs.AMHARIC, true) } }
+        if (!geez) { lang = enabledLangs().firstOrNull { it.geez } ?: return; symbols = false; keys.shiftState = 0; savePref { putString(Prefs.LANG, lang.code); putBoolean(Prefs.AMHARIC, true) } }
         phonetic = !phonetic
         translit = Translit.EMPTY
         savePref { putBoolean(Prefs.PHONETIC, phonetic) }
@@ -1464,6 +1466,7 @@ object Prefs {
     const val TIGRINYA = "tigrinya_letters"
     const val TIGRINYA_LANG = "tigrinya_language"
     const val OROMO_LANG = "oromo_language"
+    const val AMHARIC_LANG = "amharic_language"
     const val LANG = "language"
     const val SHORTCUTS = "text_shortcuts"
     const val LEARNED = "learned_words"

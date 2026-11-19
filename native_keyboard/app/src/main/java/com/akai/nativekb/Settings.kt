@@ -173,7 +173,11 @@ class SettingsActivity : ThemedActivity() {
                 LangKey.RIGHT -> ui.tr("switch beside space")
                 else -> null
             }
-            listOfNotNull(en, am, switch).joinToString(" · ")
+            val langs = listOfNotNull(
+                "English", if (on(Prefs.AMHARIC_LANG, true)) "አማርኛ" else null,
+                if (on(Prefs.TIGRINYA_LANG, false)) "ትግርኛ" else null, if (on(Prefs.OROMO_LANG, false)) "Oromoo" else null,
+            ).joinToString(", ")
+            listOfNotNull(langs, en, am, switch).joinToString(" · ")
         }
         TYPING -> listOfNotNull(
             if (on(Prefs.SUGGEST, true)) ui.tr("suggestions") else null,
@@ -267,6 +271,7 @@ class SettingsActivity : ThemedActivity() {
         Entry(KEYS, "Label size", "font text letters bigger smaller"),
         Entry(KEYS, "Letter weight", "bold thin light font boldness"),
         Entry(KEYS, "Corner hints", "symbols digits small hint"),
+        Entry(LANGUAGES, "Typing languages", "enable add language amharic tigrinya ትግርኛ oromo oromoo afaan qubee english"),
         Entry(LANGUAGES, "English layout", "qwerty dvorak azerty colemak qwertz"),
         Entry(LANGUAGES, "Amharic keyboard", "fidel phonetic geez ግዕዝ አማርኛ frequency"),
         Entry(LANGUAGES, "Language switch", "globe change language key toolbar space"),
@@ -567,6 +572,13 @@ class SettingsActivity : ThemedActivity() {
     private fun languagesPage(c: LinearLayout) {
         val english = listOf("qwerty", "dvorak", "azerty", "colemak", "qwertz")
         val amharic = listOf("traditional", "frequency")
+        // Which languages the language key cycles through. English is always on: email and search fields need it.
+        group(c, "Typing languages",
+            note("English is always on: email, search and number fields need it."),
+            ui.switchRow("Amharic (አማርኛ)", "Fidel and phonetic typing", on(Prefs.AMHARIC_LANG, true)) { put(Prefs.AMHARIC_LANG, it) },
+            ui.switchRow("Tigrinya (ትግርኛ)", "Fidel and phonetic typing, with its own suggestions and word list", on(Prefs.TIGRINYA_LANG, false)) { put(Prefs.TIGRINYA_LANG, it) },
+            ui.switchRow("Afaan Oromoo", "Latin letters with an apostrophe key, and its own suggestions and word list", on(Prefs.OROMO_LANG, false)) { put(Prefs.OROMO_LANG, it) },
+        )
         group(c, "English",
             ui.segmented("Layout", english.map { it.replaceFirstChar { ch -> ch.uppercase() } },
                 english.indexOf(prefs.getString(Prefs.ENGLISH_LAYOUT, "qwerty")).coerceAtLeast(0)) { put(Prefs.ENGLISH_LAYOUT, english[it]) },
@@ -580,8 +592,6 @@ class SettingsActivity : ThemedActivity() {
                 else { put(Prefs.PHONETIC, false); put(Prefs.AMHARIC_LAYOUT, amharic[it]) }
             },
             note("Phonetic types Amharic from Latin letters: \"selam\" gives ሰላም. Hold the language key to switch between fidel and phonetic."),
-            ui.switchRow("Tigrinya keyboard (ትግርኛ)", "Adds Tigrinya to the language key, with its own suggestions and word list", on(Prefs.TIGRINYA_LANG, false)) { put(Prefs.TIGRINYA_LANG, it) },
-            ui.switchRow("Afaan Oromoo keyboard", "Adds Afaan Oromoo to the language key: Latin letters with an apostrophe key and its own suggestions", on(Prefs.OROMO_LANG, false)) { put(Prefs.OROMO_LANG, it) },
             ui.switchRow("Tigrinya and Blin letters", "Adds ቐ and ጘ to the fidel board; hold them for every form", on(Prefs.TIGRINYA, false)) { put(Prefs.TIGRINYA, it) },
         )
         val places = listOf(

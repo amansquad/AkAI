@@ -21,6 +21,11 @@ class LangTest {
         assertEquals(Lang.EN, Lang.next(Lang.OM, all))
     }
 
+    @Test fun amharicCanBeLeftOut() {
+        assertEquals(listOf(Lang.EN, Lang.OM), Lang.enabled(false, true, amharic = false))
+        assertEquals(listOf(Lang.EN), Lang.enabled(false, false, amharic = false))
+    }
+
     @Test fun oromoIsLatinWithAnApostropheKey() {
         assertEquals(false, Lang.OM.geez)
         val o = LayoutOptions(lang = Lang.OM, nextLang = Lang.EN)

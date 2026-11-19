@@ -34,8 +34,8 @@ enum class Lang(
         fun fromCode(code: String?): Lang? = entries.firstOrNull { it.code == code }
 
         /** The languages the language key cycles through, in order. */
-        fun enabled(tigrinya: Boolean, oromo: Boolean = false): List<Lang> =
-            listOf(EN, AM) + listOfNotNull(TI.takeIf { tigrinya }, OM.takeIf { oromo })
+        fun enabled(tigrinya: Boolean, oromo: Boolean = false, amharic: Boolean = true): List<Lang> =
+            listOfNotNull(EN, AM.takeIf { amharic }, TI.takeIf { tigrinya }, OM.takeIf { oromo })
 
         /** The one after [current] in [list]; the first when [current] is not in it. */
         fun next(current: Lang, list: List<Lang>): Lang {
