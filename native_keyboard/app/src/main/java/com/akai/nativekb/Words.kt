@@ -113,6 +113,13 @@ object Words {
         return out
     }
 
+    /** [first]'s followers, then [then]'s, for each word. */
+    fun mergeNext(first: Map<String, List<String>>, then: Map<String, List<String>>): Map<String, List<String>> {
+        val out = HashMap<String, List<String>>(then)
+        for ((k, v) in first) out[k] = (v + then[k].orEmpty()).distinct()
+        return out
+    }
+
     fun load(context: Context) {
         if (started) return
         started = true
@@ -122,7 +129,11 @@ object Words {
             // No list just means completions fall back to the small built-in ones.
             try { en = Dictionary(read(Lang.EN.wordsAsset)) } catch (e: Exception) { }
             try { am = Amharic.dictionary(read(Lang.AM.wordsAsset)) } catch (e: Exception) { }
-            try { nextAm = parseNextWords(read("nextword_am.txt")) } catch (e: Exception) { }
+            try {
+                // Everyday chat pairs (chat_am.txt, written by hand) come before the Wikipedia table, which is formal.
+                val chat = try { parseNextWords(read("chat_am.txt")) } catch (e: Exception) { emptyMap() }
+                nextAm = mergeNext(chat, parseNextWords(read("nextword_am.txt")))
+            } catch (e: Exception) { }
             try { ti = Amharic.dictionary(read(Lang.TI.wordsAsset)) } catch (e: Exception) { }
             try { om = Dictionary(read(Lang.OM.wordsAsset)) } catch (e: Exception) { }
             try { ar = Dictionary(read(Lang.AR.wordsAsset)) } catch (e: Exception) { }

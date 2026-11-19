@@ -72,8 +72,8 @@ object Suggest {
             val prev = words.lastOrNull()?.let(::clean).orEmpty()
             // What this person usually types after this word comes first.
             val own = if (prev.isEmpty()) emptyList() else after(prev, pairs)
-            // The few everyday pairs built in come before the big table, which is formal (it is from Wikipedia).
-            val known = next[prev].orEmpty() + nextWords?.get(prev).orEmpty()
+            // The bundled table (everyday chat pairs, then Wikipedia's) comes before the few pairs built in.
+            val known = nextWords?.get(prev).orEmpty() + next[prev].orEmpty()
             own + known.ifEmpty { suggestions[""] ?: emptyList() }
         } else {
             val cur = words.last().lowercase()

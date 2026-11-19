@@ -75,12 +75,25 @@ class LogicTest {
         val unknown = table.keys.first { it !in KeyboardData.nextWordAm }
         val got = Suggest.forText("$unknown ", true, nextWords = table, lang = Lang.AM)
         assertEquals(table.getValue(unknown).take(3), got.take(3))
-        // The everyday pairs stay first, and the user's own habits come before both.
-        assertEquals(KeyboardData.nextWordAm.getValue("ሰላም").first(), Suggest.forText("ሰላም ", true, nextWords = table, lang = Lang.AM).first())
+        // The user's own habits come before the table.
         val own = Suggest.forText("$unknown ", true, pairs = mapOf("$unknown	ቤት" to 5), nextWords = table, lang = Lang.AM)
         assertEquals("ቤት", own.first())
         // Mid-word, nothing changes: completions, not next words.
         assertTrue(Suggest.forText("ሰላ", true, nextWords = table, lang = Lang.AM).none { it == table[unknown]?.first() })
+    }
+
+    @Test fun amharicChatPairsComeBeforeTheFormalTable() {
+        val chat = Words.parseNextWords(java.io.File("src/main/assets/chat_am.txt").readLines().filter { it.isNotBlank() })
+        val wiki = Words.parseNextWords(java.io.File("src/main/assets/nextword_am.txt").readLines().filter { it.isNotBlank() })
+        val table = Words.mergeNext(chat, wiki)
+        assertTrue(chat.size > 80)
+        // "How" (እንዴት) is followed by "are you" (ነህ), not Wikipedia's "ይሆናል".
+        assertEquals("ነህ", Suggest.forText("እንዴት ", true, nextWords = table, lang = Lang.AM).first())
+        // Words the chat table lacks still get Wikipedia's guesses.
+        val rare = wiki.keys.first { it !in chat && it !in KeyboardData.nextWordAm }
+        assertEquals(wiki.getValue(rare).take(3), Suggest.forText("$rare ", true, nextWords = table, lang = Lang.AM).take(3))
+        // No word suggests itself.
+        assertTrue(chat.all { (k, v) -> k !in v })
     }
 
     @Test fun lyricsAreParsedAndCleaned() {
