@@ -191,7 +191,7 @@ object Stickers {
      * main thread: every Paint and Path here is its own.
      */
     fun render(st: Sticker, size: Int): Bitmap {
-        st.image?.let { return renderPicture(it, size) }
+        st.image?.let { return renderPicture(it, size, st.isEmoji) }
         val u = size / 100f // designed on a 100-unit square
         // 1. The badge, the emoji and the caption, on their own.
         val art = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
@@ -273,16 +273,40 @@ object Stickers {
     }
 
     /** A pack's picture, scaled to fit a transparent square [size] pixels across. */
-    private fun renderPicture(image: String, size: Int): Bitmap {
+    private fun renderPicture(image: String, size: Int, emoji: Boolean = false): Bitmap {
         val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val src = StickerPacks.decode(image, size) ?: return out
+        // Decode at twice the size so scaling down stays sharp.
+        val src = StickerPacks.decode(image, size * 2) ?: return out
+        val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        if (emoji && isPhoto(src)) {
+            // A photo (no cut-out): crop it to a rounded square, so it sits in a row like an emoji.
+            val side = minOf(src.width, src.height)
+            val crop = android.graphics.Rect((src.width - side) / 2, (src.height - side) / 2, (src.width + side) / 2, (src.height + side) / 2)
+            val box = RectF(size * 0.04f, size * 0.04f, size * 0.96f, size * 0.96f)
+            val c = Canvas(out)
+            val layer = c.saveLayer(box, null)
+            c.drawRoundRect(box, size * 0.22f, size * 0.22f, Paint(Paint.ANTI_ALIAS_FLAG))
+            paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+            c.drawBitmap(src, crop, box, paint)
+            c.restoreToCount(layer)
+            src.recycle()
+            return out
+        }
         val k = minOf(size.toFloat() / src.width, size.toFloat() / src.height)
         val w = src.width * k
         val h = src.height * k
         val dst = RectF((size - w) / 2f, (size - h) / 2f, (size + w) / 2f, (size + h) / 2f)
-        Canvas(out).drawBitmap(src, null, dst, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+        Canvas(out).drawBitmap(src, null, dst, paint)
         src.recycle()
         return out
+    }
+
+    /** True when the picture has no see-through corners: a photo, not a cut-out. */
+    private fun isPhoto(b: Bitmap): Boolean {
+        if (!b.hasAlpha()) return true
+        val w = b.width - 1
+        val h = b.height - 1
+        return listOf(b.getPixel(0, 0), b.getPixel(w, 0), b.getPixel(0, h), b.getPixel(w, h)).all { Color.alpha(it) > 240 }
     }
 
     /** One line if it fits (or can't be split), else two, split at the space nearest the middle. */

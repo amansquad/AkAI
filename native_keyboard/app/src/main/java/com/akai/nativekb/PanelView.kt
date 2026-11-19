@@ -392,7 +392,7 @@ class PanelView(context: Context) : View(context) {
     private fun tabAt(i: Int) = when (i) {
         1 -> Tab.EMOJI; 2 -> Tab.STICKERS; 3 -> Tab.GIF; 4 -> Tab.CLIPBOARD; 5 -> Tab.WRITE; 6 -> Tab.TRANSLATE; 7 -> Tab.THEMES; 8 -> Tab.LYRICS; else -> null
     }
-    private val tabIcons = arrayOf(null, TOOL_EMOJI, TOOL_STICKERS, TOOL_GIF, TOOL_CLIPBOARD, TOOL_WRITE, TOOL_TRANSLATE, TOOL_THEMES, null)
+    private val tabIcons = arrayOf(null, TOOL_EMOJI, TOOL_STICKERS, TOOL_GIF, TOOL_CLIPBOARD, TOOL_WRITE, TOOL_TRANSLATE, TOOL_THEMES, TOOL_LYRICS)
 
     /** The tab row has one more cell than tabs: backspace or "Clear" at the end. */
     private fun tabCell() = width / (tabNames.size + 1f)
@@ -453,9 +453,10 @@ class PanelView(context: Context) : View(context) {
                 if (i < icons.size) {
                     label(canvas, icons[i], cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(18f), palette.text)
                 } else {
-                    val px = min(catH - dp(12f), cell - dp(6f)).toInt().coerceAtLeast(1)
+                    // The same height as the emoji glyphs beside it, on the same line.
+                    val px = min(dp(24f), cell - dp(6f)).toInt().coerceAtLeast(1)
                     packs[i - icons.size].icon?.let { Stickers.thumbnail(it, px, redraw) }
-                        ?.let { canvas.drawBitmap(it, cell * (i + 0.5f) - px / 2f, tabH + (catH - dp(3f) - px) / 2f, null) }
+                        ?.let { canvas.drawBitmap(it, cell * (i + 0.5f) - px / 2f, tabH + catH / 2f - dp(1f) - px / 2f, null) }
                 }
             }
         } else if (tab == Tab.STICKERS) {
@@ -564,7 +565,13 @@ class PanelView(context: Context) : View(context) {
             val y = top + r * cell - scrollY + (cell - px) / 2f
             val moving = Stickers.animated(list[i], px, animCallback, redraw)
             if (moving != null) {
-                moving.setBounds(x.toInt(), y.toInt(), (x + px).toInt(), (y + px).toInt())
+                // Fitted into the square, keeping its shape.
+                val w = moving.intrinsicWidth.coerceAtLeast(1).toFloat()
+                val h = moving.intrinsicHeight.coerceAtLeast(1).toFloat()
+                val k = min(px / w, px / h)
+                val l = x + (px - w * k) / 2f
+                val t = y + (px - h * k) / 2f
+                moving.setBounds(l.toInt(), t.toInt(), (l + w * k).toInt(), (t + h * k).toInt())
                 moving.draw(canvas)
             } else Stickers.thumbnail(list[i], px, redraw)?.let { canvas.drawBitmap(it, x, y, null) }
         }
