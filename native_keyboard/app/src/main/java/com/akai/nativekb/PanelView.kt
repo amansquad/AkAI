@@ -41,6 +41,8 @@ interface PanelHost {
     fun panelAmharic(): Boolean
     /** The keyboard's current language. */
     fun panelLang(): Lang
+    /** The languages the keyboard has switched on, English first. */
+    fun panelLangs(): List<Lang>
     /** The language the voice tab would switch to. */
     fun panelVoiceNext(): Lang
     /** The clipboard history as it is right now, including anything copied since the panel opened. */
@@ -167,7 +169,9 @@ class PanelView(context: Context) : View(context) {
         if (tab == Tab.VOICE) invalidate()
     }
 
-    private var translateToAmharic = true
+    /** The non-English side of the translation, and whether the text goes into it (else it comes out of it into English). */
+    private var foreign = Lang.AM
+    private var toForeign = true
     private var source = ""
     private var result: String? = null
     private var translateStatus: String? = null
@@ -196,7 +200,11 @@ class PanelView(context: Context) : View(context) {
             Tab.CLIPBOARD -> host?.let { clips = it.panelClips() }
             Tab.TRANSLATE -> {
                 source = host?.panelTextBefore().orEmpty().takeLast(300)
-                translateToAmharic = host?.panelAmharic() != true
+                val now = host?.panelLang() ?: Lang.EN
+                val others = (host?.panelLangs() ?: listOf(Lang.EN, Lang.AM)).filter { it != Lang.EN }
+                // Typing a foreign language: translate it to English. Typing English: translate into a foreign one.
+                foreign = if (now != Lang.EN) now else others.firstOrNull() ?: Lang.AM
+                toForeign = now == Lang.EN
                 result = null
                 translateStatus = null
             }
@@ -758,8 +766,14 @@ class PanelView(context: Context) : View(context) {
         val w = width.toFloat()
         // Direction.
         // Direction on the left (translating only), what to do on the right (tap to change).
-        button(canvas, pad, top + dp(4f), w / 2f - dp(3f), top + dp(40f),
-            if (aiMode != 0) "Same language" else if (translateToAmharic) "EN → አማ  ⇄" else "አማ → EN  ⇄")
+        // Left: the language pair (tap to pick another language), then ⇄ to turn it around.
+        val swapX = w / 2f - dp(3f) - dp(44f)
+        if (aiMode != 0) button(canvas, pad, top + dp(4f), w / 2f - dp(3f), top + dp(40f), "Same language")
+        else {
+            val pair = if (toForeign) "EN → ${foreign.key}" else "${foreign.key} → EN"
+            button(canvas, pad, top + dp(4f), swapX - dp(3f), top + dp(40f), "$pair  ▾")
+            button(canvas, swapX, top + dp(4f), w / 2f - dp(3f), top + dp(40f), "⇄")
+        }
         button(canvas, w / 2f + dp(3f), top + dp(4f), w - pad, top + dp(40f), aiModes[aiMode] + "  ▾")
         // Source.
         var y = top + dp(48f)
@@ -882,7 +896,7 @@ class PanelView(context: Context) : View(context) {
         }
         if (aiMode == 0) {
             translateStatus = "Translating…"
-            Net.translate(serverUrl, source, translateToAmharic, done)
+            Net.translate(serverUrl, source, if (toForeign) Lang.EN else foreign, if (toForeign) foreign else Lang.EN, done)
         } else {
             translateStatus = "Rewriting…"
             Net.rewrite(serverUrl, source, Net.REWRITE_STYLES[aiMode - 1], done)
@@ -1037,7 +1051,14 @@ class PanelView(context: Context) : View(context) {
         when {
             y < top + dp(44f) -> {
                 if (x > width / 2f) aiMode = (aiMode + 1) % aiModes.size
-                else if (aiMode == 0) translateToAmharic = !translateToAmharic
+                else if (aiMode == 0) {
+                    if (x > width / 2f - dp(3f) - dp(44f)) toForeign = !toForeign
+                    else {
+                        // The next switched-on language, wrapping round.
+                        val others = (host?.panelLangs() ?: listOf(Lang.EN, Lang.AM)).filter { it != Lang.EN }
+                        if (others.isNotEmpty()) foreign = others[(others.indexOf(foreign) + 1) % others.size]
+                    }
+                }
                 result = null; translateStatus = null; invalidate()
             }
             y > height - dp(48f) -> {

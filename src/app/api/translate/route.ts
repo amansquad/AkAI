@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const CODES: Record<string, string> = { english: 'en', amharic: 'am' };
+// What the apps send: the language's English name.
+const CODES: Record<string, string> = {
+  english: 'en',
+  amharic: 'am',
+  tigrinya: 'ti',
+  oromo: 'om',
+  arabic: 'ar',
+  somali: 'so',
+};
 const code = (lang: string) => CODES[lang.trim().toLowerCase()] ?? lang.trim().toLowerCase();
 
 const decodeEntities = (s: string) =>
@@ -40,10 +48,10 @@ async function viaOpenAI(text: string, sourceLang: string, targetLang: string): 
     messages: [
       {
         role: 'system',
-        content: `You are a professional translator specializing in English and Amharic (አማርኛ) translation.
+        content: `You are a professional translator between English, Amharic (አማርኛ), Tigrinya (ትግርኛ), Oromo (Afaan Oromoo), Arabic (العربية) and Somali (Af-Soomaali).
 You translate text accurately while preserving meaning, tone, and context.
-When translating to Amharic, use proper Ge'ez script.
-When translating from Amharic to English, provide natural English translations.
+Write each language in its usual script: Ge'ez script for Amharic and Tigrinya, Arabic script for Arabic, and Latin letters (Qubee) for Oromo.
+When translating into English, provide natural English translations.
 Only return the translated text, nothing else. No explanations, no notes, just the translation.`,
       },
       { role: 'user', content: `Translate the following text from ${sourceLang} to ${targetLang}:\n\n${text}` },

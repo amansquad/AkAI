@@ -75,6 +75,12 @@ class LangTest {
         assertTrue(out.none { Suggest.isEmoji(it) })
     }
 
+    /** The server maps these names to language codes, so every language needs its own. */
+    @Test fun everyLanguageHasADistinctServerName() {
+        assertEquals(Lang.entries.size, Lang.entries.map { it.serverName }.toSet().size)
+        assertEquals("Tigrinya", Lang.TI.serverName)
+    }
+
     @Test fun amharicCanBeLeftOut() {
         assertEquals(listOf(Lang.EN, Lang.OM), Lang.enabled(false, true, amharic = false))
         assertEquals(listOf(Lang.EN), Lang.enabled(false, false, amharic = false))

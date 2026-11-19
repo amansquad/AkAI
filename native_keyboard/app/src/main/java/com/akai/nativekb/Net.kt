@@ -101,11 +101,11 @@ object Net {
     }
 
     /** Translation on the AkAI server. */
-    fun translate(server: String, text: String, toAmharic: Boolean, done: (String?) -> Unit) = background {
+    fun translate(server: String, text: String, from: Lang, to: Lang, done: (String?) -> Unit) = background {
         val body = JSONObject()
             .put("text", text)
-            .put("sourceLang", if (toAmharic) "English" else "Amharic")
-            .put("targetLang", if (toAmharic) "Amharic" else "English")
+            .put("sourceLang", from.serverName)
+            .put("targetLang", to.serverName)
             .toString()
         val r = request("${base(server)}/api/translate", body)
         val result = if (r != null && r.code == 200) try {

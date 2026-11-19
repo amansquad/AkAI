@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `You edit text typed on a phone keyboard. The text may be Amharic (Ge'ez script), English, or a mix.
+          content: `You edit text typed on a phone keyboard. The text may be Amharic or Tigrinya (Ge'ez script), Oromo or Somali (Latin letters), Arabic, English, or a mix.
 ${STYLES[style]}
 Keep the same language and script as the input: never translate, and never turn Ge'ez script into Latin letters or the reverse.
 Keep names, numbers, links and emoji as they are.

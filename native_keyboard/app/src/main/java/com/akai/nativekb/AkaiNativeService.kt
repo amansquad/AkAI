@@ -1278,6 +1278,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     override fun panelAmharic() = geez
     override fun panelLang() = lang
+    override fun panelLangs() = enabledLangs()
     override fun panelVoiceNext() = voiceNext()
 
     /** A theme was picked in the keyboard's Themes tab: save it and recolour right away. */

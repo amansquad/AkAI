@@ -40,6 +40,9 @@ enum class Lang(
      */
     val ownLatin get() = this == OM || this == SO
 
+    /** The name the translation server knows it by. */
+    val serverName get() = when (this) { EN -> "English"; AM -> "Amharic"; TI -> "Tigrinya"; OM -> "Oromo"; AR -> "Arabic"; SO -> "Somali" }
+
     /** Has no upper and lower case, so no auto-capitals. */
     val caseless get() = geez || this == AR
 
