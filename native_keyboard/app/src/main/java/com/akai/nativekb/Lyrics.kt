@@ -52,7 +52,13 @@ object Lyrics {
         val whole = title.trim()
         var t = whole.replace(Regex("\\s*[\\[(](official|lyrics?|video|audio|hd|4k)[^\\])]*[\\])]", RegexOption.IGNORE_CASE), "").trim()
         // Uploads often repeat the artist, even twice ("Teddy Afro - Teddy Afro - Song").
-        if (artist.isNotEmpty()) while (t.startsWith("$artist - ", ignoreCase = true)) t = t.substring(artist.length + 3).trim()
+        if (artist.isNotEmpty()) {
+            val prefix = Regex("^" + Regex.escape(artist) + "\\s*[-–—]\\s+", RegexOption.IGNORE_CASE)
+            while (true) {
+                val m = prefix.find(t) ?: break
+                t = t.substring(m.range.last + 1).trim()
+            }
+        }
         // A song named after its artist keeps its name.
         return t.ifEmpty { whole }
     }

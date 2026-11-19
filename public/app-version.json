@@ -1,6 +1,6 @@
 {
-  "versionCode": 10014,
-  "versionName": "1.0.14",
+  "versionCode": 10015,
+  "versionName": "1.0.15",
   "url": "/AkAI-keyboard.apk",
-  "notes": "New languages: Tigrinya, Afaan Oromoo, Arabic (standard and phonetic) and Somali. Turn them on in Settings, Languages. The translate panel covers them too."
+  "notes": "Lyrics is now a toolbar tool: turn it on in Settings, Toolbar. Song titles are tidier too."
 }

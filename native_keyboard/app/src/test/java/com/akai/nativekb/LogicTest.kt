@@ -95,6 +95,7 @@ class LogicTest {
         assertEquals("Lambadina", songs[0].title)
         assertEquals(listOf("line one", "line two"), songs[0].lines)
         assertEquals("Teddy Afro", Lyrics.clean("Teddy Afro", "Teddy Afro"))
+        assertEquals("Lambadina", Lyrics.clean("Teddy Afro  -  Teddy Afro – Lambadina (Official Video)", "Teddy Afro"))
         assertEquals(null, Lyrics.parse("not json"))
     }
 
