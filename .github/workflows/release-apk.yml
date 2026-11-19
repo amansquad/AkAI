@@ -1,0 +1,104 @@
+# Builds the signed native keyboard and publishes it as a GitHub Release.
+#
+# Trigger: push a tag like v1.0.11 (it must match versionName in
+# native_keyboard/app/build.gradle), or run it by hand from the Actions tab.
+#
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   ANDROID_KEYSTORE_BASE64  the release .jks, base64 encoded
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+name: Release APK
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native_keyboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Read version
+        id: ver
+        run: |
+          NAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle)
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Check the tag matches the app version
+        if: github.ref_type == 'tag'
+        run: |
+          if [ "${{ github.ref_name }}" != "${{ steps.ver.outputs.tag }}" ]; then
+            echo "Tag ${{ github.ref_name }} does not match versionName ${{ steps.ver.outputs.name }} in app/build.gradle"
+            exit 1
+          fi
+
+      - name: Set up signing
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then echo "ANDROID_KEYSTORE_BASE64 secret is missing"; exit 1; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Unit tests
+        run: chmod +x gradlew && ./gradlew :app:testDebugUnitTest
+
+      - name: Build signed release
+        run: ./gradlew :app:assembleRelease
+
+      - name: Name the APK
+        id: apk
+        run: |
+          SRC=app/build/outputs/apk/release/app-release.apk
+          test -f "$SRC" || { echo "No signed app-release.apk (is signing set up?)"; exit 1; }
+          OUT="AkAI-keyboard-${{ steps.ver.outputs.tag }}.apk"
+          cp "$SRC" "$OUT"
+          # A stable name too, so releases/latest/download/AkAI-keyboard.apk always works.
+          cp "$SRC" AkAI-keyboard.apk
+          echo "file=$OUT" >> "$GITHUB_OUTPUT"
+          sha256sum "$OUT" AkAI-keyboard.apk | tee SHA256SUMS.txt
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ github.workspace }}
+        run: |
+          TAG="${{ steps.ver.outputs.tag }}"
+          NOTES=$(node -e 'try{process.stdout.write(require("./public/app-version.json").notes||"")}catch(e){}')
+          [ -n "$NOTES" ] || NOTES="AkAI keyboard $TAG"
+          D=native_keyboard
+          FILES=("$D/${{ steps.apk.outputs.file }}" "$D/AkAI-keyboard.apk" "$D/SHA256SUMS.txt")
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${FILES[@]}" --clobber
+          else
+            gh release create "$TAG" "${FILES[@]}" --title "AkAI keyboard $TAG" --notes "$NOTES" --target "${{ github.sha }}"
+          fi
+
+      - name: Remove signing files
+        if: always()
+        run: rm -f keystore.properties "$RUNNER_TEMP/release.jks"

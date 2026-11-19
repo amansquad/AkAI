@@ -99,6 +99,21 @@ repository root run `npm run apk:info`. That writes `public/app-version.json`
 and the download button's version and size from the same numbers (add `notes`
 to `app-version.json` by hand if you want them).
 
+## GitHub Releases
+Pushing a tag builds the signed release in GitHub Actions
+(`.github/workflows/release-apk.yml`) and attaches the APK to a release. After
+raising `versionCode`/`versionName` and committing:
+
+    git tag v1.0.11 && git push origin v1.0.11
+
+The tag must match `versionName`. The release holds `AkAI-keyboard-v1.0.11.apk`,
+`AkAI-keyboard.apk` (so `https://github.com/amansquad/AkAI/releases/latest/download/AkAI-keyboard.apk`
+always points at the newest) and `SHA256SUMS.txt`. The release notes come from
+`notes` in `public/app-version.json`. One-time setup: add the repository secrets
+`ANDROID_KEYSTORE_BASE64` (the `.jks`, base64), `ANDROID_KEYSTORE_PASSWORD`,
+`ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`. This sits beside the website
+download; it doesn't replace `npm run apk:info`.
+
 ## Community themes
 Themes → Community lists themes people shared, most installed or newest
 first. Tapping one copies it into Mine and uses it. Long-press one of your own
