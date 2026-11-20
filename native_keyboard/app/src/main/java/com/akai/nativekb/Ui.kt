@@ -249,7 +249,12 @@ class Ui(val context: Context, val p: Palette) {
         }
         options.forEachIndexed { i, o ->
             val c = label(o, 13f, dim, bold = true, gravity = Gravity.CENTER).apply {
-                setPadding(dp(8f), dp(9f), dp(8f), dp(9f))
+                setPadding(dp(4f), dp(9f), dp(4f), dp(9f))
+                // A large phone font must not break a word in half ("Regula r"): one word stays on
+                // one line and shrinks to fit; two words may take two lines.
+                maxLines = if (' ' in this.text) 2 else 1
+                androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                    this, 9, 13, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
                 setOnClickListener { paint(i); onPick(i) }
             }
             cells.add(c)
