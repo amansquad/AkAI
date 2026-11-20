@@ -266,7 +266,7 @@
 .kd__brand { display: inline-flex; align-items: center; gap: 8px; font-family: var(--f-display); font-weight: 900; font-size: 1.35rem; text-transform: uppercase; }
 .kd__brand img { border-radius: 8px; border: 2px solid var(--ink); }
 .kd__seg { display: inline-flex; border: 2.5px solid var(--ink); border-radius: 10px; overflow: hidden; background: var(--ground-soft); box-shadow: 0 3px 0 var(--ink); }
-.kd__seg button { min-width: 44px; min-height: 34px; padding: 0 10px; border: 0; background: transparent; color: var(--on-ink); font-weight: 800; font-size: 0.85rem; }
+.kd__seg button { min-width: 34px; min-height: 34px; padding: 0 6px; border: 0; background: transparent; color: var(--on-ink); font-weight: 800; font-size: 0.78rem; }
 .kd__seg button[aria-pressed='true'] { background: var(--saffron); color: var(--ink); }
 
 .kd__sheet { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 6px 12px 12px; }

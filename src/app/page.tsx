@@ -438,12 +438,12 @@ function Try() {
             Type a line <span style={{ color: 'var(--saffron)' }}>home</span>
           </h2>
           <p className="land-lede" style={{ marginTop: 24 }}>
-            A working demo of the keyboard, right here. Type a line in English, switch to Amharic, tap a consonant for
+            A working demo of the keyboard, right here. Type a line in English, switch to another language, tap a fidel consonant for
             its seven vowel forms, then press Translate.
           </p>
           <ul className="land-hints">
             <li><span className="land-hints__key land-geez" aria-hidden="true">ሀ</span> Tap a consonant to see its seven vowel forms.</li>
-            <li><span className="land-hints__key" aria-hidden="true">🌐</span> The globe key switches between English and አማርኛ.</li>
+            <li><span className="land-hints__key" aria-hidden="true">🌐</span> The globe key cycles through English, አማርኛ, ትግርኛ, Oromo, Somali and العربية.</li>
             <li><span className="land-hints__key" aria-hidden="true">→</span> Translate sends only the line you typed, only when you press it.</li>
           </ul>
           <a href={APK} download={APK_FILE} className="land-btn land-btn--primary" style={{ marginTop: 32 }}>
