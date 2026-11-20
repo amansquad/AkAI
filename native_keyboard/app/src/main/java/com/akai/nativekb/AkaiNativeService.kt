@@ -155,6 +155,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     override fun onCreate() {
         super.onCreate()
+        Net.device = Community.device(this)
         VoiceBridge.onResult = { spoken ->
             currentInputConnection?.commitText(spoken, 1)
             translit = Translit.EMPTY

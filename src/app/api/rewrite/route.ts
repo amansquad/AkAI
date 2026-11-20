@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { checkAiLimit } from '@/lib/ai-limits';
 
 /** What each keyboard rewrite mode asks for. The text always stays in its own language and script. */
 const STYLES: Record<string, string> = {
@@ -31,6 +32,8 @@ export async function POST(request: NextRequest) {
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({ error: 'Rewriting is not set up on this server' }, { status: 503 });
   }
+  const limited = await checkAiLimit(request, 'rewrite');
+  if (limited) return limited;
 
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });

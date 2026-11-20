@@ -26,12 +26,33 @@ object Net {
 
     class Response(val code: Int, val body: ByteArray)
 
+    /**
+     * The phone's random id (Community.device), sent with the AI calls so the
+     * server can count them per phone. Set when the keyboard starts.
+     */
+    @Volatile var device: String? = null
+
+    /** True when the last AI call was refused for the day's limit (HTTP 429). */
+    @Volatile var limited = false
+        private set
+
+    const val LIMIT_MESSAGE = "Today's limit is reached - try again tomorrow"
+
+    /** POSTs to one of the AI routes with the phone's id; notes a daily-limit refusal. */
+    private fun aiRequest(url: String, json: String): Response? =
+        request(url, json, headers = device?.let { mapOf("X-AkAI-Device" to it) } ?: emptyMap())
+            .also { limited = it?.code == 429 }
+
     /** Never throws: a failure is a null. */
-    fun request(url: String, json: String? = null, userAgent: String? = null): Response? = try {
+    fun request(
+        url: String, json: String? = null, userAgent: String? = null,
+        headers: Map<String, String> = emptyMap(),
+    ): Response? = try {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 10_000
         c.readTimeout = 25_000
         if (userAgent != null) c.setRequestProperty("User-Agent", userAgent)
+        for ((k, v) in headers) c.setRequestProperty(k, v)
         if (json != null) {
             c.requestMethod = "POST"
             c.doOutput = true
@@ -75,7 +96,7 @@ object Net {
     /** Handwriting recognition on the AkAI server. Answers with candidates, or null. */
     fun recognize(server: String, dataUrl: String, amharic: Boolean, done: (List<String>?) -> Unit) = background {
         val body = JSONObject().put("image", dataUrl).put("language", if (amharic) "amharic" else "english").toString()
-        val r = request("${base(server)}/api/handwriting-recognize", body)
+        val r = aiRequest("${base(server)}/api/handwriting-recognize", body)
         val result = if (r != null && r.code == 200) try {
             val o = JSONObject(String(r.body))
             val out = ArrayList<String>()
@@ -94,7 +115,7 @@ object Net {
     /** The same text, rewritten in its own language by the AkAI server. */
     fun rewrite(server: String, text: String, style: String, done: (String?) -> Unit) = background {
         val body = JSONObject().put("text", text).put("style", style).toString()
-        val r = request("${base(server)}/api/rewrite", body)
+        val r = aiRequest("${base(server)}/api/rewrite", body)
         val result = if (r != null && r.code == 200) try {
             JSONObject(String(r.body)).optString("text").takeIf { it.isNotBlank() }
         } catch (e: Exception) { null } else null
@@ -108,7 +129,7 @@ object Net {
             .put("sourceLang", from.serverName)
             .put("targetLang", to.serverName)
             .toString()
-        val r = request("${base(server)}/api/translate", body)
+        val r = aiRequest("${base(server)}/api/translate", body)
         val result = if (r != null && r.code == 200) try {
             JSONObject(String(r.body)).optString("translation").takeIf { it.isNotBlank() }
         } catch (e: Exception) { null } else null

@@ -897,7 +897,7 @@ class PanelView(context: Context) : View(context) {
 
         Net.recognize(serverUrl, dataUrl, host?.panelAmharic() == true) { found ->
             if (tab != Tab.WRITE) return@recognize
-            if (found == null) { writeStatus = "Couldn't read that - is the server reachable?"; candidates = emptyList() }
+            if (found == null) { writeStatus = if (Net.limited) Net.LIMIT_MESSAGE else "Couldn't read that - is the server reachable?"; candidates = emptyList() }
             else { candidates = found; writeStatus = if (found.isEmpty()) "Nothing recognised" else null }
             invalidate()
         }
@@ -1035,7 +1035,7 @@ class PanelView(context: Context) : View(context) {
         val done = { out: String? ->
             if (tab == Tab.TRANSLATE && source == asked) {
                 result = out
-                if (out == null) translateStatus = if (aiMode == 0) "Translation failed - is the server reachable?" else "Rewrite failed - is the server reachable?"
+                if (out == null) translateStatus = if (Net.limited) Net.LIMIT_MESSAGE else if (aiMode == 0) "Translation failed - is the server reachable?" else "Rewrite failed - is the server reachable?"
                 invalidate()
             }
         }

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { checkAiLimit } from '@/lib/ai-limits';
+
+/** A drawing is a small PNG or JPEG data URL; anything else (or bigger) is refused. */
+const MAX_IMAGE_CHARS = 1_500_000;
+const IMAGE_DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,8 +16,17 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (typeof image !== 'string' || image.length > MAX_IMAGE_CHARS || !IMAGE_DATA_URL.test(image)) {
+      return NextResponse.json({ error: 'image must be a PNG, JPEG or WebP data URL under 1 MB' }, { status: 413 });
+    }
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: 'Handwriting is not set up on this server' }, { status: 503 });
+    }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
+    const limited = await checkAiLimit(request, 'handwriting');
+    if (limited) return limited;
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const langInstruction = language === 'amharic'
       ? `The user is writing in Amharic using Ge'ez script (ፊደል). Identify what they wrote. Provide suggestions as both individual characters (ፊደላት) and complete words (ቃላት) in Amharic. Common Amharic words include: ሰላም (hello), አመሰግናለሁ (thank you), እንዴት ነህ (how are you), ደህና (fine/okay), ምን (what), የት (where), እሺ (okay), አይ (no), አዎ (yes).`

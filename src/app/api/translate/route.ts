@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { checkAiLimit } from '@/lib/ai-limits';
+
+/** Longer text is refused, so one call can't cost much. */
+const MAX_CHARS = 2000;
 
 // What the apps send: the language's English name.
 const CODES: Record<string, string> = {
@@ -85,6 +89,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (typeof text !== 'string' || text.length > MAX_CHARS) {
+      return NextResponse.json({ error: `Text must be at most ${MAX_CHARS} characters` }, { status: 413 });
+    }
+
+    const limited = await checkAiLimit(request, 'translate');
+    if (limited) return limited;
 
     const from = code(sourceLang);
     const to = code(targetLang);

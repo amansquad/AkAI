@@ -7,6 +7,7 @@
 //   npm run themes:db -- hidden         themes hidden by reports
 //   npm run themes:db -- restore <id>   show a hidden theme again and clear its reports
 //   npm run themes:db -- delete <id>    remove a theme for good
+//   npm run themes:db -- ai             today's translate/rewrite/handwriting calls
 import { neon } from '@neondatabase/serverless';
 
 const url = process.env.DATABASE_URL;
@@ -45,6 +46,14 @@ const SCHEMA = [
     created_at timestamptz not null default now(),
     primary key (theme_id, device)
   )`,
+  // Daily AI call counts (src/lib/ai-limits.ts). caller '*' is everyone together.
+  `create table if not exists ai_usage (
+    caller text not null,
+    feature text not null,
+    day date not null,
+    calls integer not null default 0,
+    primary key (caller, feature, day)
+  )`,
 ];
 
 switch (command) {
@@ -52,6 +61,14 @@ switch (command) {
     for (const statement of SCHEMA) await sql.query(statement);
     console.log('Community themes tables are ready.');
     break;
+  case 'ai': {
+    const rows = await sql`select feature, calls from ai_usage where caller = '*' and day = current_date order by feature`;
+    const [callers] = await sql`select count(distinct caller)::int as n from ai_usage where caller <> '*' and day = current_date`;
+    if (!rows.length) console.log('No AI calls today.');
+    for (const r of rows) console.log(`${r.feature}: ${r.calls} calls today`);
+    console.log(`${callers.n} callers today`);
+    break;
+  }
   case 'stats': {
     const [r] = await sql`select count(*) filter (where not hidden)::int as shown, count(*) filter (where hidden)::int as hidden, coalesce(sum(installs), 0)::int as installs from community_themes`;
     console.log(`${r.shown} shown, ${r.hidden} hidden, ${r.installs} installs`);
