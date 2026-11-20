@@ -75,7 +75,18 @@ function ffmpegPath(): string | null {
 
 export const canConvert = () => ffmpegPath() !== null;
 
-export type Output = 'still' | 'anim' | 'gif';
+export type Output = 'still' | 'anim' | 'gif' | 'emoji_anim' | 'emoji_gif';
+
+// Custom emoji are 100 px. Sent as they are, Telegram and WhatsApp stretch them
+// to sticker size and they come out huge and blurry. To send, each is drawn at
+// 160 px in the middle of a clear 512 px sticker, so it shows small and sharp.
+// Corners are rounded as in the keyboard's emoji grid (a no-op on cut-outs,
+// whose corners are clear already).
+const EMOJI_FIT =
+  'fps=15,scale=160:160:force_original_aspect_ratio=decrease:flags=lanczos,format=rgba,' +
+  "geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':" +
+  "a='if(gt(hypot(max(0,abs(X-W/2)-(W/2-0.22*W)),max(0,abs(Y-H/2)-(H/2-0.22*W))),0.22*W),0,alpha(X,Y))'," +
+  'pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0';
 
 // The same settings as native_keyboard/tools/fetch-sticker-pack.mjs, so built-in
 // and imported packs look alike.
@@ -88,6 +99,16 @@ const FILTERS: Record<Output, string[]> = {
   gif: [
     '-vf',
     'fps=12,scale=240:240:force_original_aspect_ratio=decrease:flags=lanczos,split[a][b];' +
+      '[a]palettegen=reserve_transparent=1:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle:alpha_threshold=128',
+    '-loop', '0', '-f', 'gif',
+  ],
+  emoji_anim: [
+    '-vf', EMOJI_FIT,
+    '-c:v', 'libwebp_anim', '-loop', '0', '-quality', '70', '-compression_level', '4', '-pix_fmt', 'yuva420p', '-f', 'webp',
+  ],
+  emoji_gif: [
+    '-vf',
+    `${EMOJI_FIT},split[a][b];` +
       '[a]palettegen=reserve_transparent=1:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle:alpha_threshold=128',
     '-loop', '0', '-f', 'gif',
   ],

@@ -4,11 +4,13 @@ import {
 } from '@/lib/telegram-stickers';
 
 /**
- * GET /api/stickers/file?pack=<name>&sticker=<file_unique_id>[&as=still|anim|gif]
+ * GET /api/stickers/file?pack=<name>&sticker=<file_unique_id>[&as=still|anim|gif|emoji_anim|emoji_gif]
  *
  * One sticker, fetched from Telegram so the bot token never leaves the server.
  * still (the default): the sticker itself, or for a moving one its first frame
  * (or Telegram's preview). anim and gif: a video sticker converted with ffmpeg.
+ * emoji_anim and emoji_gif: a moving custom emoji, centred small on a clear
+ * 512 px sticker for sending, so apps don't stretch it.
  * A sticker never changes, so the CDN keeps each answer for a year and the
  * conversion runs once.
  */
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest) {
   const pack = p.get('pack') || '';
   const id = p.get('sticker') || '';
   const as = (p.get('as') || 'still') as Output;
-  if (!PACK_NAME.test(pack) || !/^[A-Za-z0-9_-]{4,64}$/.test(id) || !['still', 'anim', 'gif'].includes(as)) {
+  if (!PACK_NAME.test(pack) || !/^[A-Za-z0-9_-]{4,64}$/.test(id) || !['still', 'anim', 'gif', 'emoji_anim', 'emoji_gif'].includes(as)) {
     return fail('Bad request', 400);
   }
   if (!TELEGRAM_BOT_TOKEN) return fail("Sticker import isn't set up on this server yet", 503);
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
     if (sticker.is_video) {
       const video = await download(sticker.file_id, MAX_BYTES);
       const out = video && (await convert(video.bytes, as));
-      if (out) return send(out, as === 'gif' ? 'image/gif' : 'image/webp');
+      if (out) return send(out, as.endsWith('gif') ? 'image/gif' : 'image/webp');
       if (as !== 'still') return fail("This server can't convert moving stickers", 501);
     } else if (as !== 'still') {
       return fail('Not a video sticker', 400);
