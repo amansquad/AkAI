@@ -187,7 +187,13 @@ profanity removed. That file is under the same licence. To rebuild it, download
 frequent words in the text of [Amharic Wikipedia](https://am.wikipedia.org),
 licensed CC BY-SA 4.0 (so this file is too), with the everyday words from the
 web keyboard's suggestion lists placed near the top, since Wikipedia is formal.
-To rebuild it, download and unpack
+It also holds every single-word entry of English
+[Wiktionary's Amharic lemmas](https://en.wiktionary.org/wiki/Category:Amharic_lemmas)
+(CC BY-SA 4.0), such as verbs in their dictionary form and everyday nouns
+Wikipedia rarely uses: one already among the 20,000 keeps its place, the rest
+go at the end in place of the rarest Wikipedia words. They are kept in
+`tools/data/wiktionary-am-lemmas.txt`; `node tools/fetch-wiktionary-am.mjs`
+refreshes that file. To rebuild the list, download and unpack
 `https://dumps.wikimedia.org/amwiki/latest/amwiki-latest-pages-articles.xml.bz2`,
 then run, from this folder:
 

@@ -8,7 +8,12 @@
 //   node tools/gen-words-am.mjs path/to/amwiki-latest-pages-articles.xml
 //
 // Wikipedia is written formally, so the everyday words from the web
-// keyboard's suggestion lists (KeyboardData.kt) are slotted in near the top.
+// keyboard's suggestion lists (KeyboardData.kt) are slotted in near the top,
+// and every single-word entry of English Wiktionary's Amharic lemmas
+// (CC BY-SA 4.0, tools/data/wiktionary-am-lemmas.txt, refreshed by
+// tools/fetch-wiktionary-am.mjs) is kept: one already ranked keeps its place, the
+// rest go at the end, most frequent in Wikipedia first, in place of the rarest
+// Wikipedia-only words.
 import fs from 'node:fs';
 
 const input = process.argv[2];
@@ -43,6 +48,9 @@ for (const name of ['suggestionsAm', 'nextWordAm']) {
   for (const w of kd.slice(start, end).match(word) ?? []) if (!everyday.includes(w)) everyday.push(w);
 }
 
+// Dictionary headwords from Wiktionary.
+const lemmas = fs.readFileSync('tools/data/wiktionary-am-lemmas.txt', 'utf8').split('\n').filter((w) => w.match(word)?.[0] === w);
+
 const ranked = [...counts].filter(([, n]) => n >= MIN_COUNT).sort((a, b) => b[1] - a[1]).map(([w]) => w);
 const out = [];
 const seen = new Set();
@@ -50,8 +58,14 @@ const add = (w) => { if (!seen.has(w)) { seen.add(w); out.push(w); } };
 for (const w of ranked) {
   add(w);
   if (out.length === 100) everyday.forEach(add);
-  if (out.length >= LIMIT) break;
 }
+// The lemmas not ranked, most frequent in Wikipedia first (stable for ties).
+const unranked = lemmas.filter((w) => !seen.has(w)).sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0));
+unranked.forEach(add);
+// Back to LIMIT by dropping the rarest words that are neither everyday nor lemmas.
+const keep = new Set([...everyday, ...lemmas]);
+let drop = out.length - LIMIT;
+for (let i = out.length - 1; drop > 0 && i >= 0; i--) if (!keep.has(out[i])) { out.splice(i, 1); drop--; }
 
 fs.writeFileSync('app/src/main/assets/words_am.txt', out.join('\n') + '\n');
-console.log(`${pages} pages, ${counts.size} distinct words, ${everyday.length} everyday; wrote ${out.length}`);
+console.log(`${pages} pages, ${counts.size} distinct words, ${everyday.length} everyday, ${lemmas.length} lemmas (${unranked.length} unranked); wrote ${out.length}`);
