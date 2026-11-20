@@ -10,6 +10,8 @@
 //   npm run themes:db -- ai             today's translate/rewrite/handwriting calls
 //   npm run themes:db -- crashes        the newest crash reports from the app, grouped
 //   npm run themes:db -- crashes clear  delete all crash reports
+//   npm run themes:db -- chatid         after messaging the sticker bot, shows your chat id
+//                                       (TELEGRAM_ALERT_CHAT_ID in Vercel, for the daily crash digest)
 import { neon } from '@neondatabase/serverless';
 
 const url = process.env.DATABASE_URL;
@@ -74,6 +76,19 @@ switch (command) {
     for (const statement of SCHEMA) await sql.query(statement);
     console.log('Community themes tables are ready.');
     break;
+  case 'chatid': {
+    const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+    if (!token) { console.error('TELEGRAM_BOT_TOKEN is not in .env.local.'); break; }
+    const r = await fetch(`https://api.telegram.org/bot${token}/getUpdates`).then((x) => x.json());
+    const chats = new Map();
+    for (const u of r.result ?? []) {
+      const c = (u.message ?? u.channel_post ?? u.my_chat_member)?.chat;
+      if (c) chats.set(c.id, c.title ?? [c.first_name, c.last_name].filter(Boolean).join(' ') ?? c.username);
+    }
+    if (!chats.size) console.log('No messages yet. Send the bot any message in Telegram, then run this again.');
+    for (const [id, name] of chats) console.log(`${id}  ${name}`);
+    break;
+  }
   case 'crashes': {
     if (id === 'clear') {
       const rows = await sql`delete from crash_reports returning id`;

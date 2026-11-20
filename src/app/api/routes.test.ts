@@ -6,6 +6,7 @@ import { POST as translate } from './translate/route';
 import { POST as rewrite } from './rewrite/route';
 import { POST as handwriting } from './handwriting-recognize/route';
 import { POST as crash } from './crash/route';
+import { GET as crashDigest } from './cron/crash-digest/route';
 
 const post = (body: unknown) =>
   new NextRequest('https://x.test/api', {
@@ -60,6 +61,20 @@ describe('/api/handwriting-recognize', () => {
   });
   it('says so when OpenAI is not set up', async () => {
     expect((await handwriting(post({ image: png }))).status).toBe(503);
+  });
+});
+
+describe('/api/cron/crash-digest', () => {
+  it('refuses callers without the cron secret', async () => {
+    process.env.CRON_SECRET = 'right';
+    expect((await crashDigest(new Request('https://x.test', { headers: { authorization: 'Bearer wrong' } }))).status).toBe(401);
+    delete process.env.CRON_SECRET;
+    expect((await crashDigest(new Request('https://x.test', { headers: { authorization: 'Bearer ' } }))).status).toBe(401);
+  });
+  it('says so when alerts are not set up', async () => {
+    process.env.CRON_SECRET = 'right';
+    const res = await crashDigest(new Request('https://x.test', { headers: { authorization: 'Bearer right' } }));
+    expect(res.status).toBe(503);
   });
 });
 
