@@ -109,7 +109,10 @@ class ThemeEditorActivity : ThemedActivity() {
             "cherry_blossom" to "Blossom", "autumn" to "Leaves", "rainbow" to "Rainbow", "starfield" to "Stars",
             "fireflies" to "Fireflies", "bokeh" to "Bokeh", "ripples" to "Ripples", "lava_lamp" to "Lava lamp",
             "fireworks" to "Fireworks", "meteor" to "Meteors", "storm" to "Storm", "matrix" to "Matrix",
-            "cyberpunk" to "Cyberpunk", "neon_pulse" to "Neon",
+            "cyberpunk" to "Cyberpunk", "neon_pulse" to "Neon", "solar" to "Sun",
+            "galaxy_spiral" to "Galaxy", "nebula_live" to "Nebula", "waterfall_live" to "Waterfall",
+            "magma_live" to "Magma", "plasma_live" to "Plasma", "bubbles_live" to "Bubbles",
+            "deep_sea_live" to "Deep sea", "ocean_waves_live" to "Waves", "obsidian_live" to "Obsidian",
         )
 
         private val EMOJIS = listOf("🎨", "✨", "🌙", "☀️", "🌊", "🔥", "🌸", "🍃", "💎", "🖤", "💜", "💙", "💚", "🧡", "❤️", "⭐", "🦁", "☕", "🎵", "🇪🇹")

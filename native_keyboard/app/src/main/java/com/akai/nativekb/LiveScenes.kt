@@ -73,6 +73,8 @@ object LiveScenes {
         val t = type.lowercase()
         // The cultural themes with no picture get scenes of their own first.
         if (CulturalScenes.paint(canvas, w, h, time, t)) return
+        // Live themes that once borrowed another theme's scene have their own now.
+        if (MoreLiveScenes.paint(canvas, w, h, time, t)) return
         when {
             t.contains("prism") -> prism(canvas, w, h, time)
             t.contains("fireflies") -> fireflies(canvas, w, h, time)

@@ -26,6 +26,23 @@ const OVERRIDES = {
   // so do the same: the ornate cross, and the Maryam icon picture.
   faith_orthodox: { live: 'ortho_cross' },
   faith_maryam: { live: '/faith/maryam' },
+  // Flutter gives sixteen live themes only three animations between them
+  // (aurora, fire, ocean), so Snowfall looked exactly like Aurora. Each gets a
+  // scene of its own: the first four already existed, the rest are in
+  // MoreLiveScenes.kt.
+  snowfall: { live: 'snow' },
+  autumn: { live: 'autumn' },
+  'neon-pulse': { live: 'neon_pulse' },
+  'sunset-glow': { live: 'solar' },
+  galaxy: { live: 'galaxy_spiral' },
+  obsidian: { live: 'obsidian_live' },
+  waterfall: { live: 'waterfall_live' },
+  lava: { live: 'magma_live' },
+  plasma: { live: 'plasma_live' },
+  bubbles: { live: 'bubbles_live' },
+  'deep-sea': { live: 'deep_sea_live' },
+  // nebula_live and ocean_waves_live are Flutter's own names; they now have
+  // scenes in MoreLiveScenes instead of falling into aurora and ocean.
 };
 
 /** Palettes in the order the Flutter app lists them (its `all` lists). */
