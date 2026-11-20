@@ -1,6 +1,6 @@
 {
-  "versionCode": 10026,
-  "versionName": "1.0.26",
+  "versionCode": 10028,
+  "versionName": "1.0.28",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Moving custom emoji now have rounded corners in the emoji panel, matching the still ones and how they look when sent."
+  "notes": "The keyboard now follows your phone's font size and font. New in Settings: choose the keyboard font, toolbar and panel text size, and suggestion bar height. The Amharic keyboard knows about 750 more everyday words and verbs. Report a sticker pack from its page. Nebula Space and Plasma themes look better."
 }
