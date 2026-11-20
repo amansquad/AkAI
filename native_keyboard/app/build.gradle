@@ -15,6 +15,15 @@ android {
         // public/app-version.json, so the update check sees the same numbers.
         versionCode = 10022
         versionName = "1.0.22"
+
+        // The Google Play build (`./gradlew -Pplay=true :app:bundleRelease`).
+        // Play doesn't allow an app to update itself from elsewhere, so that
+        // build sends "Check for updates" to its Play listing instead of the
+        // website's APK. Everything else is the same.
+        buildConfigField "boolean", "PLAY_BUILD", (project.findProperty('play') == 'true').toString()
+    }
+    buildFeatures {
+        buildConfig = true
     }
 
     // Release signing reads keystore.properties (git-ignored) when it exists:

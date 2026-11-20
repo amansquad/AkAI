@@ -33,7 +33,7 @@ Full native Ge'ez-script QWERTY plus English in one keyboard, with AI translatio
 - Canvas-based AI handwriting recognition for Amharic character entry.
 - Stickers and GIFs, including Ethiopian-themed collections (Giphy-backed).
 - 20+ themes including live/animated themes and football-club (team) themes; theming is a real, differentiated feature, not decoration.
-- Privacy-first: on-device, no keylogging, no data collection — an explicit, repeated claim in current marketing copy.
+- Privacy-first: typing, learned words and settings stay on the phone; no keylogging, accounts, ads or tracking. The online features (translate, rewrite, handwriting fallback, GIFs, lyrics, stickers, community themes) send only what the user gives them, when used — `/privacy` lists exactly what goes where. Don't claim "no data ever leaves the phone".
 - Distribution: Android via Play Store (primary); the web app also self-hosts a browser-runnable version of the keyboard.
 
 ## Brand Commitments

@@ -7,15 +7,27 @@ export const metadata: Metadata = {
   description: 'What the AkAI keyboard keeps on your phone, and the few things it sends, only when you ask it to.',
 };
 
-const UPDATED = '13 November 2026';
+const UPDATED = '20 November 2026';
 
 /** One thing the keyboard can send: what goes, where, and when. */
 const SENT = [
   {
     name: 'Translate',
     what: 'Up to 300 characters before the cursor in the field you are typing in (never from a password field).',
-    where: 'The AkAI website, which passes it to OpenAI to translate and returns the result. The website does not store it; OpenAI handles it under its API data policy, which does not use it for training.',
+    where: 'The AkAI website, which passes it to a translation service and returns the result: Google Cloud Translation or OpenAI, or, if both are unavailable, MyMemory (mymemory.translated.net). The website does not store the text. Each service handles it under its own policy; Google’s and OpenAI’s API terms do not use it for training, while MyMemory, a free service, may keep translations it is sent.',
     when: 'Only when you open the translate panel and ask for a translation.',
+  },
+  {
+    name: 'Rewrite and voice tidy-up',
+    what: 'Up to 300 characters before the cursor (Rewrite), or what you just dictated (Tidy up voice typing, off unless you turn it on).',
+    where: 'The AkAI website, which passes it to OpenAI and returns the rewritten text. The website does not store it; OpenAI’s API terms do not use it for training.',
+    when: 'Only when you pick Fix, Formal, Friendly or Shorter in the translate panel, or after you dictate with Tidy up voice typing on.',
+  },
+  {
+    name: 'Daily limits on the AI features',
+    what: 'With Translate, Rewrite and handwriting, the same random phone number as Community themes (or, from the website, your network address), so the website can count calls per day.',
+    where: 'The AkAI website’s database (Neon, through Vercel), stored only scrambled, as a number of calls per feature per day, never with the text. Counts older than a week are deleted.',
+    when: 'Each time you use one of those features.',
   },
   {
     name: 'Handwriting',

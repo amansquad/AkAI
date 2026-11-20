@@ -1,4 +1,5 @@
-# Builds the signed native keyboard and publishes it as a GitHub Release.
+# Builds the signed native keyboard and publishes it as a GitHub Release,
+# with the Google Play bundle (.aab) beside the APK.
 #
 # Trigger: push a tag like v1.0.11 (it must match versionName in
 # native_keyboard/app/build.gradle), or run it by hand from the Actions tab.
@@ -71,6 +72,13 @@ jobs:
       - name: Build signed release
         run: ./gradlew :app:assembleRelease
 
+      # The Google Play upload: an app bundle built with -Pplay=true, which
+      # leaves updating to Play. Attached to the release, not offered as a download.
+      - name: Build Play bundle
+        run: |
+          ./gradlew -Pplay=true :app:bundleRelease
+          cp app/build/outputs/bundle/release/app-release.aab "AkAI-keyboard-${{ steps.ver.outputs.tag }}-play.aab"
+
       - name: Name the APK
         id: apk
         run: |
@@ -92,7 +100,7 @@ jobs:
           NOTES=$(node -e 'try{process.stdout.write(require("./public/app-version.json").notes||"")}catch(e){}')
           [ -n "$NOTES" ] || NOTES="AkAI keyboard $TAG"
           D=native_keyboard
-          FILES=("$D/${{ steps.apk.outputs.file }}" "$D/AkAI-keyboard.apk" "$D/SHA256SUMS.txt")
+          FILES=("$D/${{ steps.apk.outputs.file }}" "$D/AkAI-keyboard.apk" "$D/SHA256SUMS.txt" "$D/AkAI-keyboard-$TAG-play.aab")
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${FILES[@]}" --clobber
           else

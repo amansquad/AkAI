@@ -368,6 +368,15 @@ class SettingsActivity : ThemedActivity() {
 
     /** Asks the Akai website for its newest build and offers it if it is newer. */
     private fun checkForUpdates(status: TextView?) {
+        // Installed from Google Play: Play does the updating.
+        if (BuildConfig.PLAY_BUILD) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName")))
+            } catch (e: Exception) {
+                openLink("https://play.google.com/store/apps/details?id=$packageName")
+            }
+            return
+        }
         if (checking) return
         checking = true
         status?.text = "Checking…"
@@ -835,7 +844,7 @@ class SettingsActivity : ThemedActivity() {
 
         group(c, "Privacy",
             note("Learned words and settings are kept on this phone, and words are never learned from password, email or number fields. Text goes to your Akai server only when you use Translate, or for handwriting the phone can't read. GIFs come from Giphy through the Akai server (or directly, with your own key), and voice typing uses your phone's speech service."),
-            note("Rewrite, and Tidy up voice typing when it is on, also send the text to your Akai server."),
+            note("Rewrite, and Tidy up voice typing when it is on, also send the text to your Akai server. These AI features send a random number this phone made, too, so the server can count daily use; it never learns who you are."),
             note("The Lyrics tab sends the song or artist you search for to LRCLIB (lrclib.net), and nothing else. Lyrics are shown, not saved. Lines you put in teach the keyboard which words follow which, on this phone only, like anything you type (switch off with Learn the words I type)."),
         )
         group(c, "Credits",

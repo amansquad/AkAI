@@ -99,6 +99,10 @@ repository root run `npm run apk:info`. That writes `public/app-version.json`
 and the download button's version and size from the same numbers (add `notes`
 to `app-version.json` by hand if you want them).
 
+## Google Play
+The Play build is the same app built with `-Pplay=true` (updates then come
+from Play). How to build it and fill in the Play Console: `PLAY_STORE.md`.
+
 ## GitHub Releases
 Pushing a tag builds the signed release in GitHub Actions
 (`.github/workflows/release-apk.yml`) and attaches the APK to a release. After
