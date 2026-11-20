@@ -6,7 +6,8 @@
 //   npm run stickers:db -- add <t.me link> [title]   add a pack (addstickers or addemoji link), or refresh one
 //   npm run stickers:db -- list                      every pack, most installed first
 //   npm run stickers:db -- hide <name>               take a pack out of the marketplace
-//   npm run stickers:db -- show <name>               put it back
+//   npm run stickers:db -- show <name>               put it back (and clear its reports)
+//   npm run stickers:db -- reported                  packs people reported, and why
 //   npm run stickers:db -- delete <name>             remove it for good
 //
 // Packs already installed on phones stay there; this only changes what's offered.
@@ -35,6 +36,15 @@ const SCHEMA = [
   )`,
   `alter table sticker_market add column if not exists kind text not null default 'stickers'`,
   `create index if not exists sticker_market_popular on sticker_market (installs desc, added_at desc) where not hidden`,
+  // Reports from phones (src/app/api/stickers/market/[name]/report); three hide a pack.
+  `alter table sticker_market add column if not exists reports integer not null default 0`,
+  `create table if not exists sticker_market_reports (
+    name text not null references sticker_market(name) on delete cascade,
+    device text not null,
+    reason text not null default '',
+    created_at timestamptz not null default now(),
+    primary key (name, device)
+  )`,
   `create table if not exists sticker_market_installs (
     name text not null references sticker_market(name) on delete cascade,
     device text not null,
@@ -88,8 +98,24 @@ switch (command) {
 
   case 'hide':
   case 'show': {
-    const rows = await sql`update sticker_market set hidden = ${command === 'hide'} where name = ${arg} returning name`;
+    // Showing a pack again also clears its reports, so it isn't hidden again straight away.
+    const rows = command === 'show'
+      ? await sql`update sticker_market set hidden = false, reports = 0 where name = ${arg} returning name`
+      : await sql`update sticker_market set hidden = true where name = ${arg} returning name`;
+    if (command === 'show') await sql`delete from sticker_market_reports where name = ${arg}`;
     console.log(rows.length ? `${command === 'hide' ? 'Hid' : 'Showing'} ${arg}.` : `No pack called ${arg}.`);
+    break;
+  }
+
+  case 'reported': {
+    const rows = await sql`
+      select m.name, m.title, m.hidden, count(r.*)::int as n,
+             string_agg(distinct nullif(r.reason, ''), ', ') as reasons, max(r.created_at) as last
+      from sticker_market m join sticker_market_reports r on r.name = m.name
+      group by m.name, m.title, m.hidden order by last desc`;
+    if (!rows.length) console.log('No reported packs.');
+    for (const r of rows) console.log(`${r.hidden ? '(hidden) ' : ''}${r.title} [${r.name}]: ${r.n} reports (${r.reasons || 'no reason'}), last ${new Date(r.last).toISOString().slice(0, 16)}`);
+    if (rows.length) console.log('\nPut one back with: show <name>   Remove it with: delete <name>');
     break;
   }
 
@@ -100,5 +126,5 @@ switch (command) {
   }
 
   default:
-    console.log('Commands: setup, add <link> [title], list, hide <name>, show <name>, delete <name>');
+    console.log('Commands: setup, add <link> [title], list, reported, hide <name>, show <name>, delete <name>');
 }

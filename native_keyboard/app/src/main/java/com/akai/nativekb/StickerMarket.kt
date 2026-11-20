@@ -92,6 +92,25 @@ object StickerMarket {
         }
     }
 
+    /** Why a pack can be reported, as the server names them, with what the person sees. */
+    val REPORT_REASONS = listOf(
+        "offensive" to "Offensive or hateful",
+        "sexual" to "Sexual content",
+        "spam" to "Spam or scam",
+        "broken" to "Doesn't work",
+    )
+
+    /** Reports a marketplace pack, once per phone; true when the server took it. */
+    fun report(context: Context, name: String, reason: String, done: (Boolean) -> Unit) {
+        val url = "${server(context)}/api/stickers/market/${Uri.encode(name)}/report"
+        val body = org.json.JSONObject().put("reason", reason).toString()
+        val headers = mapOf("X-AkAI-Device" to Community.device(context))
+        Net.background {
+            val r = Net.request(url, body, headers = headers)
+            Net.ui { done(r != null && r.code == 200) }
+        }
+    }
+
     // ─── Preview pictures ────────────────────────────────────────────────
 
     private val previews = object : LruCache<String, Bitmap>(20 * 1024 * 1024) {

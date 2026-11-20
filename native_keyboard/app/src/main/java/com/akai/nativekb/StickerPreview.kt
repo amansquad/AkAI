@@ -63,6 +63,7 @@ class StickerPreviewActivity : ThemedActivity() {
         header.addView(ui.ghostButton("←") { finish() })
         header.addView(ui.title(title.ifEmpty { name }, 22f).apply { tag = "title"; maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END },
             LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(ui.ghostButton("⚑") { confirmReport() })
         c.addView(header, LinearLayout.LayoutParams(-1, -2))
         summary = ui.label("", 14f, ui.dim)
         c.addView(summary)
@@ -93,6 +94,23 @@ class StickerPreviewActivity : ThemedActivity() {
         c.addView(remove, LinearLayout.LayoutParams(-1, -2).apply { topMargin = ui.dp(8f) })
         refreshButtons()
         show(c, scroll = false)
+    }
+
+    /** Report the pack to the Akai team: three reports from different phones take it out of the marketplace. */
+    private fun confirmReport() {
+        val reasons = StickerMarket.REPORT_REASONS
+        android.app.AlertDialog.Builder(this)
+            .setTitle(ui.tr("Report this pack?"))
+            .setItems(reasons.map { ui.tr(it.second) }.toTypedArray()) { _, i ->
+                StickerMarket.report(this, name, reasons[i].first) { ok ->
+                    if (isFinishing) return@report
+                    android.widget.Toast.makeText(this,
+                        ui.tr(if (ok) "Thanks. The pack was reported" else "Couldn't send the report. Try again later"),
+                        android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(ui.tr("Cancel"), null)
+            .show()
     }
 
     private fun refreshButtons() {
