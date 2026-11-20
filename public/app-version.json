@@ -1,6 +1,6 @@
 {
-  "versionCode": 10025,
-  "versionName": "1.0.25",
+  "versionCode": 10026,
+  "versionName": "1.0.26",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Custom emoji now arrive small and sharp in Telegram and WhatsApp instead of big and blurry. Backup, crash reports and the dark-mode theme now follow your app language. Two new emoji packs in the Sticker Marketplace: Memes and Star Emoji."
+  "notes": "Moving custom emoji now have rounded corners in the emoji panel, matching the still ones and how they look when sent."
 }
