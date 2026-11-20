@@ -387,8 +387,13 @@ object Stickers {
 
     private val animWorker = Executors.newSingleThreadExecutor()
     private val animPending = HashSet<String>()
-    /** Only the stickers on screen play; ones scrolled away are stopped and dropped. */
-    private val anims = object : LruCache<String, android.graphics.drawable.Drawable>(20) {
+    /**
+     * Only the stickers on screen play; ones scrolled away are stopped and dropped.
+     * Room for a whole screen of custom emoji (eight to a row, plus the rows just
+     * off screen): with fewer slots than that, each one decoded pushed out another
+     * still on screen, which was stopped and decoded again, so none ever moved.
+     */
+    private val anims = object : LruCache<String, android.graphics.drawable.Drawable>(96) {
         override fun entryRemoved(evicted: Boolean, key: String, old: android.graphics.drawable.Drawable, new: android.graphics.drawable.Drawable?) {
             if (android.os.Build.VERSION.SDK_INT >= 28) (old as? android.graphics.drawable.AnimatedImageDrawable)?.stop()
             old.callback = null
