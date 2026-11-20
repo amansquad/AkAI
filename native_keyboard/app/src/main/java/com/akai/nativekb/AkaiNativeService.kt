@@ -127,6 +127,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
     private var keyGap = 5
     private var keyRadius = 8
     private var labelSize = 100
+    private var stripHeight = 100
     private var keyWeight = 400
     private var keyBorders = false
     private var autoSpace = false
@@ -264,6 +265,10 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         labelSize = p.getInt(Prefs.LABEL_SIZE, 100)
         keyWeight = p.getInt(Prefs.KEY_WEIGHT, 400)
         keyBorders = p.getBoolean(Prefs.KEY_BORDERS, false)
+        stripHeight = p.getInt(Prefs.STRIP_HEIGHT, 100)
+        KbFont.followPhone = p.getBoolean(Prefs.FOLLOW_PHONE_FONT, true)
+        KbFont.textScale = p.getInt(Prefs.STRIP_TEXT, 100).coerceIn(70, 140) / 100f
+        KbFont.family = p.getString(Prefs.KB_FONT, "default") ?: "default"
         autoSpace = p.getBoolean(Prefs.AUTO_SPACE, false)
         soundVolume = p.getInt(Prefs.SOUND_VOLUME, 60)
         cursorRow = p.getBoolean(Prefs.CURSOR_ROW, false)
@@ -308,7 +313,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     private fun look() = KeyLook(
         theme, heightPercent, hints, if (floating) 0 else oneHand, oneHandWidth, pressAnim, longPress, liveBg,
-        longPressMs, keyGap, keyRadius, labelSize, keyWeight, keyBorders, glide,
+        longPressMs, keyGap, keyRadius, labelSize, keyWeight, keyBorders, glide, stripHeight,
     )
 
     private fun savePref(block: android.content.SharedPreferences.Editor.() -> Unit) {
@@ -1635,6 +1640,14 @@ object Prefs {
     const val LABEL_SIZE = "label_size"
     const val KEY_WEIGHT = "key_weight"
     const val KEY_BORDERS = "key_borders"
+    /** Grow key and panel text with the phone's font size setting. */
+    const val FOLLOW_PHONE_FONT = "follow_phone_font"
+    /** The keyboard's font family; see [KbFont.FAMILIES]. */
+    const val KB_FONT = "keyboard_font"
+    /** Toolbar, suggestion and panel text size, in percent. */
+    const val STRIP_TEXT = "toolbar_text_size"
+    /** Suggestion bar height, in percent. */
+    const val STRIP_HEIGHT = "suggestion_bar_height"
     const val AUTO_SPACE = "auto_space_punctuation"
     const val SOUND_VOLUME = "sound_volume"
     const val CURSOR_ROW = "cursor_row"

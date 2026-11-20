@@ -94,6 +94,8 @@ data class KeyLook(
     val borders: Boolean = false,
     /** Swipe across the letters to type a word. */
     val glide: Boolean = true,
+    /** Suggestion bar height, as a percentage of the standard height. */
+    val stripHeight: Int = 100,
 )
 
 /** What the keys do; implemented by the input method service. */
@@ -178,14 +180,16 @@ class KeyboardView(context: Context) : View(context) {
     private var labelScale = 1f
     /** The phone's font size setting, read live so changing it applies at once. */
     private val sysFont get() = systemFontScale(context)
+    /** Toolbar and suggestion text: the phone's size times the user's own toolbar text size. */
+    private val stripFont get() = sysFont * KbFont.textScale
     private var borders = false
     private var glideOn = true
     private var letterFace: Typeface = Typeface.DEFAULT
     private var functionFace: Typeface = Typeface.DEFAULT_BOLD
 
     private fun face(weight: Int): Typeface =
-        if (Build.VERSION.SDK_INT >= 28) Typeface.create(Typeface.DEFAULT, weight.coerceIn(100, 900), false)
-        else if (weight >= 600) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        if (Build.VERSION.SDK_INT >= 28) Typeface.create(KbFont.regular, weight.coerceIn(100, 900), false)
+        else if (weight >= 600) KbFont.bold else KbFont.regular
 
     fun applySettings(look: KeyLook) {
         // A different theme fades in over the old one instead of snapping.
@@ -205,6 +209,7 @@ class KeyboardView(context: Context) : View(context) {
         gapY = gapX + dp(1f)
         radius = dp(look.radius.coerceIn(0, 28).toFloat())
         labelScale = look.labelSize.coerceIn(70, 140) / 100f
+        stripH = dp(40f) * look.stripHeight.coerceIn(80, 140) / 100f
         borders = look.borders
         glideOn = look.glide
         letterFace = face(look.weight)
@@ -308,7 +313,7 @@ class KeyboardView(context: Context) : View(context) {
         if (modeChanged) { requestLayout(); computeGeometry(width); invalidateCache() } else invalidate()
     }
 
-    private val stripH = dp(40f)
+    private var stripH = dp(40f)
     private var gapX = dp(5f)
     private var gapY = dp(6f)
     private val padSide = dp(4f)
@@ -339,12 +344,12 @@ class KeyboardView(context: Context) : View(context) {
         if (key == wotdKey) return wotdLines
         wotdKey = key
         val right = width - padSide - dp(8f)
-        text.typeface = Typeface.DEFAULT_BOLD
+        text.typeface = KbFont.bold
         text.textSize = wotdRowH * 0.36f
         var x = padSide + dp(8f) + text.measureText("✦ WORD OF THE DAY") + dp(10f)
         text.textSize = wotdRowH * 0.5f
         x += text.measureText(w.first) + dp(8f)
-        text.typeface = Typeface.DEFAULT
+        text.typeface = KbFont.regular
         text.textSize = wotdRowH * 0.4f
         wotdLines = if (text.measureText(w.second) <= right - x) null else {
             val avail = right - (padSide + dp(8f))
@@ -733,8 +738,8 @@ class KeyboardView(context: Context) : View(context) {
                 rect.set(cx - cell * 0.44f, stripH * 0.22f, cx + cell * 0.44f, stripH * 0.78f)
                 fill.color = palette.special
                 canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
-                text.typeface = Typeface.DEFAULT_BOLD
-                text.textSize = min(stripH * 0.32f * sysFont, cell * 0.36f)
+                text.typeface = KbFont.bold
+                text.textSize = min(stripH * 0.32f * stripFont, cell * 0.36f)
                 text.color = palette.specialText
                 canvas.drawText(label, cx, stripH / 2f - (text.descent() + text.ascent()) / 2f, text)
                 text.color = palette.text
@@ -756,7 +761,7 @@ class KeyboardView(context: Context) : View(context) {
         text.textAlign = Paint.Align.LEFT
         text.alpha = 255
         fun base() = h / 2f - (text.descent() + text.ascent()) / 2f
-        text.typeface = Typeface.DEFAULT_BOLD
+        text.typeface = KbFont.bold
         text.textSize = h * 0.36f
         text.color = palette.hint
         val tag = "✦ WORD OF THE DAY"
@@ -767,7 +772,7 @@ class KeyboardView(context: Context) : View(context) {
         val word = ellipsize(w.first, right - x)
         canvas.drawText(word, x, base(), text)
         x += text.measureText(word) + dp(8f)
-        text.typeface = Typeface.DEFAULT
+        text.typeface = KbFont.regular
         text.textSize = wotdRowH * 0.4f
         text.color = palette.hint
         if (lines != null) {
@@ -793,17 +798,17 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawSearch(canvas: Canvas) {
         val q = search ?: return
         text.textAlign = Paint.Align.CENTER
-        text.typeface = Typeface.DEFAULT
+        text.typeface = KbFont.regular
         text.alpha = 255
         text.color = palette.text
-        text.textSize = stripH * 0.42f * sysFont
+        text.textSize = stripH * 0.42f * stripFont
         canvas.drawText("✕", padSide + toolCell / 2f, stripBaseline(), text)
 
         rect.set(padSide + toolCell, dp(5f), searchBoxEnd(), stripH - dp(5f))
         fill.color = palette.key
         canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
         text.textAlign = Paint.Align.LEFT
-        text.textSize = stripH * 0.34f * sysFont
+        text.textSize = stripH * 0.34f * stripFont
         val shown = if (q.isEmpty()) UiText.t(context, "Search {what}", "what" to UiText.t(context, searchFor ?: "emoji")) else "$q▏"
         text.color = if (q.isEmpty()) palette.hint else palette.text
         val inner = rect.width() - dp(36f)
@@ -819,13 +824,13 @@ class KeyboardView(context: Context) : View(context) {
             rect.set(searchBoxEnd() + dp(8f), dp(6f), width - padSide - dp(6f), stripH - dp(6f))
             fill.color = if (q.isBlank()) palette.key else palette.accent
             canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
-            text.textSize = stripH * 0.32f * sysFont
+            text.textSize = stripH * 0.32f * stripFont
             text.color = if (q.isBlank()) palette.hint else palette.accentText
             canvas.drawText(UiText.t(context, "Search {what}", "what" to UiText.t(context, searchFor ?: "")).trim(), rect.centerX(), stripBaseline(), text)
             return
         }
         if (searchResults.isEmpty() && q.isNotEmpty()) {
-            text.textSize = stripH * 0.3f * sysFont
+            text.textSize = stripH * 0.3f * stripFont
             text.color = palette.hint
             canvas.drawText(UiText.t(context, "No emoji found"), (searchBoxEnd() + width) / 2f, stripBaseline(), text)
             return
@@ -841,8 +846,8 @@ class KeyboardView(context: Context) : View(context) {
         val start = toolsEnd()
         val each = (this.width - padSide - start) / suggestionSlots()
         text.textAlign = Paint.Align.CENTER
-        text.typeface = Typeface.DEFAULT
-        text.textSize = stripH * 0.4f * sysFont
+        text.typeface = KbFont.regular
+        text.textSize = stripH * 0.4f * stripFont
         text.color = palette.text
         text.alpha = (alpha * 255f).toInt()
         fill.color = palette.hint
@@ -869,7 +874,7 @@ class KeyboardView(context: Context) : View(context) {
         text.textAlign = Paint.Align.CENTER
         text.textSize = labelH * 0.3f * sysFont
         text.color = palette.hint
-        text.typeface = Typeface.DEFAULT
+        text.typeface = KbFont.regular
         canvas.drawText(UiText.t(context, "Tap a letter to see its vowel forms"), (areaLeft + areaRight) / 2f,
             rowTop[0] + rowH / 2f - (text.descent() + text.ascent()) / 2f, text)
     }
@@ -1021,7 +1026,7 @@ class KeyboardView(context: Context) : View(context) {
         }
 
         text.textSize = min(labelH * 0.46f * sysFont, t.popupCell * 0.7f).coerceAtLeast(labelH * 0.46f * min(1f, sysFont))
-        text.typeface = Typeface.DEFAULT
+        text.typeface = KbFont.regular
         val base = top + rowH / 2f - (text.descent() + text.ascent()) / 2f
         val rainbow = style == PopupStyle.SPARKLE && ("rainbow" in palette.def.live || "prism" in palette.def.live)
         for ((i, alt) in alts.withIndex()) {
@@ -1194,7 +1199,7 @@ class KeyboardView(context: Context) : View(context) {
         border.color = palette.accent
         canvas.drawRoundRect(rect, radius, radius, border)
         text.textAlign = Paint.Align.CENTER
-        text.typeface = Typeface.DEFAULT_BOLD
+        text.typeface = KbFont.bold
         text.textSize = labelH * 0.4f * sysFont
         text.color = palette.accent
         text.alpha = 255

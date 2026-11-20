@@ -30,7 +30,33 @@ import androidx.core.graphics.ColorUtils
  * Kept within [0.85, [max]] because keys and panel rows have a fixed size.
  */
 fun systemFontScale(context: Context, max: Float = 1.3f): Float =
-    context.resources.configuration.fontScale.coerceIn(0.85f, max)
+    if (!KbFont.followPhone) 1f else context.resources.configuration.fontScale.coerceIn(0.85f, max)
+
+/**
+ * The keyboard's own font choices (Settings → Keys → Labels), set by the
+ * service whenever settings load, and read by the keys, toolbar and panels.
+ */
+object KbFont {
+    /** Grow and shrink with the phone's font size setting. */
+    @Volatile var followPhone = true
+    /** Toolbar, suggestion and panel text, on top of the phone's size (1 = standard). */
+    @Volatile var textScale = 1f
+    /** Font family names offered in settings; "default" is the phone's own font. */
+    val FAMILIES = listOf("default", "sans-serif-condensed", "serif", "monospace")
+
+    var family = "default"
+        set(v) {
+            val f = if (v in FAMILIES) v else "default"
+            if (f == field) return
+            field = f
+            regular = if (f == "default") Typeface.DEFAULT else Typeface.create(f, Typeface.NORMAL)
+            bold = Typeface.create(regular, Typeface.BOLD)
+        }
+    @Volatile var regular: Typeface = Typeface.DEFAULT
+        private set
+    @Volatile var bold: Typeface = Typeface.DEFAULT_BOLD
+        private set
+}
 
 /** Bold in the phone's own font (Samsung/Xiaomi font styles replace [Typeface.DEFAULT], not always "sans-serif"). */
 val BOLD_FACE: Typeface get() = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)

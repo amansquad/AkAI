@@ -96,7 +96,8 @@ class PanelView(context: Context) : View(context) {
     private val density = resources.displayMetrics.density
     private fun dp(v: Float) = v * density
     /** Text size that follows the phone's font size setting (capped so it stays inside the fixed rows). */
-    private fun sp(v: Float) = v * density * systemFontScale(context)
+    private fun sp(v: Float) = v * density * textScale()
+    private fun textScale() = (systemFontScale(context) * KbFont.textScale).coerceAtMost(1.6f)
     private val handler = Handler(Looper.getMainLooper())
 
     private var palette = Themes.palette(context, Themes.DEFAULT)
@@ -329,8 +330,8 @@ class PanelView(context: Context) : View(context) {
         stickerResults = Stickers.search(context, query)
         resetScroll()
     }
-    private fun clipRowH() = dp(52f) * max(1f, systemFontScale(context))
-    private fun lyricRowH() = dp(46f) * max(1f, systemFontScale(context))
+    private fun clipRowH() = dp(52f) * max(1f, textScale())
+    private fun lyricRowH() = dp(46f) * max(1f, textScale())
     private fun themeCellH() = width / 3f * 0.74f + dp(24f)
 
     private fun contentHeight(): Float = when (tab) {
@@ -361,7 +362,7 @@ class PanelView(context: Context) : View(context) {
         text.textAlign = Paint.Align.CENTER
         text.textSize = size
         text.color = color
-        text.typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        text.typeface = if (bold) KbFont.bold else KbFont.regular
         canvas.drawText(tr(s), cx, cy - (text.descent() + text.ascent()) / 2f, text)
     }
 
@@ -448,7 +449,7 @@ class PanelView(context: Context) : View(context) {
                 else -> "🔍  Search songs and artists"
             }
             text.textSize = sp(13f)
-            text.typeface = Typeface.DEFAULT_BOLD
+            text.typeface = KbFont.bold
             val fit = TextUtils.ellipsize(tr(shown), TextPaint(text), rect.width() - dp(20f), TextUtils.TruncateAt.END).toString()
             label(canvas, fit, rect.centerX(), tabH + catH / 2f - dp(1f), sp(13f), if (lyricsQuery == null && song == null) palette.hint else palette.text, bold = true)
         } else if (tab == Tab.EMOJI) {
@@ -742,7 +743,7 @@ class PanelView(context: Context) : View(context) {
             rect.set(dp(8f), y + dp(3f), width - dp(8f), y + rowH - dp(3f))
             fill.color = palette.key
             canvas.drawRoundRect(rect, radius, radius, fill)
-            text.typeface = Typeface.DEFAULT
+            text.typeface = KbFont.regular
             text.color = palette.text
             val room = rect.width() - dp(24f)
             if (song != null) {
@@ -787,7 +788,7 @@ class PanelView(context: Context) : View(context) {
         val rowH = clipRowH()
         text.textAlign = Paint.Align.LEFT
         text.textSize = sp(14f)
-        text.typeface = Typeface.DEFAULT
+        text.typeface = KbFont.regular
         for ((i, clip) in clips.withIndex()) {
             val y = top + i * rowH - scrollY
             if (y + rowH < top || y > height) continue

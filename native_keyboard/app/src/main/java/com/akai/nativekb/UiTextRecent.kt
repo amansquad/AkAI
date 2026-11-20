@@ -87,6 +87,15 @@ internal val UI_TEXT_RECENT: Map<String, Array<String>> = mapOf(
     "Dark mode theme" to r("የጨለማ ሁነታ ገጽታ", "ገጽታ ጸልማት ኣገባብ", "Teemii haala dukkanaa", "Qaabka habka mugdiga", "سمة الوضع الداكن"),
     "Tap to choose another" to r("ሌላ ለመምረጥ ይንኩ", "ካልእ ንምምራጽ ትንክፍ", "Kan biraa filachuuf tuqi", "Taabo si aad mid kale u doorato", "اضغط لاختيار سمة أخرى"),
 
+    // ── Reporting a sticker pack ──
+    "Report this pack?" to r("ይህ ጥቅል ሪፖርት ይደረግ?", "እዚ ጥቕላል ይጸብጸብ?", "Kuusaa kana gabaasuu?", "Ma soo sheegtaa xirmadan?", "الإبلاغ عن هذه الحزمة؟"),
+    "Offensive or hateful" to r("አጸያፊ ወይም ጥላቻ ያለበት", "ዘጽይፍ ወይ ጽልኢ ዘለዎ", "Kan arrabsu ykn jibbiinsa qabu", "Xumaan ama nacayb", "مسيء أو يحض على الكراهية"),
+    "Sexual content" to r("ወሲባዊ ይዘት", "ጾታዊ ትሕዝቶ", "Qabiyyee saalqunnamtii", "Waxyaabo galmo", "محتوى جنسي"),
+    "Spam or scam" to r("አይፈለጌ ወይም ማጭበርበር", "ዘይተደልየ ወይ ምትላል", "Ergaa hin barbaachisne ykn gowwoomsaa", "Spam ama khiyaano", "رسائل مزعجة أو احتيال"),
+    "Doesn't work" to r("አይሰራም", "ኣይሰርሕን", "Hin hojjetu", "Ma shaqeeyo", "لا يعمل"),
+    "Thanks. The pack was reported" to r("እናመሰግናለን። ጥቅሉ ሪፖርት ተደርጓል", "የቐንየልና። እቲ ጥቕላል ተጸብጺቡ", "Galatoomi. Kuusaan gabaafameera", "Mahadsanid. Xirmada waa la soo sheegay", "شكرًا. تم الإبلاغ عن الحزمة"),
+    "Couldn't send the report. Try again later" to r("ሪፖርቱን መላክ አልተቻለም። ቆይተው እንደገና ይሞክሩ", "ጸብጻብ ክለኣኽ ኣይከኣለን። ደሓር ደጊምኩም ፈትኑ", "Gabaasa erguun hin danda'amne. Booda irra deebi'ii yaali", "Warbixinta lama diri karin. Mar dambe isku day", "تعذّر إرسال البلاغ. حاول مرة أخرى لاحقًا"),
+
     // ── Daily limit and privacy ──
     "Today's limit is reached - try again tomorrow" to r(
         "የዛሬው ገደብ ደርሷል - ነገ እንደገና ይሞክሩ",
@@ -102,4 +111,13 @@ internal val UI_TEXT_RECENT: Map<String, Array<String>> = mapOf(
         "Astaamahan AI waxay sidoo kale diraan lambar random ah oo telefoonkani sameeyay, si server-ku u tiriyo isticmaalka maalinlaha. Marnaba ma oga cidda aad tahay.",
         "ترسل ميزات الذكاء الاصطناعي هذه أيضًا رقمًا عشوائيًا أنشأه هذا الهاتف، ليحسب الخادم الاستخدام اليومي. ولا يعرف أبدًا من أنت.",
     ),
+    "Font" to r("ቅርጸ ቁምፊ", "ቅርጺ ፊደል", "Bocquu", "Farta", "الخط"),
+    "Phone font" to r("የስልኩ ቅርጸ ቁምፊ", "ቅርጺ ፊደል ተሌፎን", "Bocquu bilbilaa", "Farta taleefanka", "خط الهاتف"),
+    "Condensed" to r("የታመቀ", "ጽቡብ", "Cuunfame", "Cufan", "مضغوط"),
+    "Serif" to r("ሰሪፍ", "ሰሪፍ", "Serif", "Serif", "مذيل"),
+    "Mono" to r("እኩል ስፋት", "ማዕረ ስፍሓት", "Bal'ina walqixa", "Ballac siman", "ثابت العرض"),
+    "Follow phone font size" to r("የስልኩን የፊደል መጠን ተከተል", "ዓቐን ፊደል ተሌፎን ስዓብ", "Guddina bocquu bilbilaa hordofi", "Raac cabbirka farta taleefanka", "اتبع حجم خط الهاتف"),
+    "Keys and panels grow with the font size in your phone's settings" to r("ቁልፎችና ፓነሎች በስልክዎ ቅንብሮች ውስጥ ካለው የፊደል መጠን ጋር ያድጋሉ", "መፍትሕታትን ፓነላትን ምስ ዓቐን ፊደል ኣብ ቅጥዕታት ተሌፎንካ ይዓብዩ", "Furtuuwwanii fi paanaaleen guddina bocquu qindaa'ina bilbila keessanii wajjin guddatu", "Furayaasha iyo looxyadu waxay la koraan cabbirka farta ee dejinta taleefankaaga", "تكبر المفاتيح واللوحات مع حجم الخط في إعدادات هاتفك"),
+    "Toolbar & panel text" to r("የመሣሪያ አሞሌና የፓነል ጽሑፍ", "ጽሑፍ መሳርሒ ባርን ፓነልን", "Barreeffama meeshaalee fi paanaalii", "Qoraalka qalabka iyo looxa", "نص شريط الأدوات واللوحات"),
+    "Suggestion bar height" to r("የጥቆማ አሞሌ ቁመት", "ቁመት ባር ሓሳባት", "Dheerina sarara yaadaa", "Dhererka baarka soo jeedinta", "ارتفاع شريط الاقتراحات"),
 )

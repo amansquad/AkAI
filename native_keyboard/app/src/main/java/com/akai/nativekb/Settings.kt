@@ -273,6 +273,10 @@ class SettingsActivity : ThemedActivity() {
         Entry(KEYS, "Key borders", "outline border line"),
         Entry(KEYS, "Label size", "font text letters bigger smaller"),
         Entry(KEYS, "Letter weight", "bold thin light font boldness"),
+        Entry(KEYS, "Font", "typeface serif mono condensed style family"),
+        Entry(KEYS, "Follow phone font size", "system accessibility large text bigger font scale"),
+        Entry(KEYS, "Toolbar & panel text", "suggestions emoji clipboard text size bigger smaller font"),
+        Entry(SIZE, "Suggestion bar height", "toolbar strip taller shorter"),
         Entry(KEYS, "Corner hints", "symbols digits small hint"),
         Entry(LANGUAGES, "Typing languages", "enable add language amharic tigrinya ትግርኛ oromo oromoo afaan qubee arabic عربي العربية somali soomaali english"),
         Entry(LANGUAGES, "English layout", "qwerty dvorak azerty colemak qwertz"),
@@ -642,6 +646,7 @@ class SettingsActivity : ThemedActivity() {
     private fun sizePage(c: LinearLayout) {
         group(c, "Size",
             ui.sliderRow("Key height", 70, 140, prefs.getInt(Prefs.HEIGHT, 100), "%") { put(Prefs.HEIGHT, it) },
+            ui.sliderRow("Suggestion bar height", 80, 140, prefs.getInt(Prefs.STRIP_HEIGHT, 100), "%") { put(Prefs.STRIP_HEIGHT, it) },
         )
         val oneHand = prefs.getInt(Prefs.ONE_HAND, 0)
         val width = ui.sliderRow("Width", 50, 95, prefs.getInt(Prefs.ONE_HAND_WIDTH, 80), "%") { put(Prefs.ONE_HAND_WIDTH, it) }
@@ -674,6 +679,12 @@ class SettingsActivity : ThemedActivity() {
             ui.segmented("Letter weight", listOf("Light", "Regular", "Medium", "Bold", "Black"),
                 weights.indexOf(prefs.getInt(Prefs.KEY_WEIGHT, 400)).coerceAtLeast(0)) { put(Prefs.KEY_WEIGHT, weights[it]) },
             ui.switchRow("Corner hints", "Show the digit or symbol on letter keys", on(Prefs.HINTS, true)) { put(Prefs.HINTS, it) },
+        )
+        group(c, "Font",
+            ui.segmented("Font", listOf("Phone font", "Condensed", "Serif", "Mono"),
+                KbFont.FAMILIES.indexOf(prefs.getString(Prefs.KB_FONT, "default")).coerceAtLeast(0)) { put(Prefs.KB_FONT, KbFont.FAMILIES[it]) },
+            ui.switchRow("Follow phone font size", "Keys and panels grow with the font size in your phone's settings", on(Prefs.FOLLOW_PHONE_FONT, true)) { put(Prefs.FOLLOW_PHONE_FONT, it) },
+            ui.sliderRow("Toolbar & panel text", 70, 140, prefs.getInt(Prefs.STRIP_TEXT, 100), "%") { put(Prefs.STRIP_TEXT, it) },
         )
     }
 
