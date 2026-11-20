@@ -975,7 +975,7 @@ class SettingsActivity : ThemedActivity() {
             note("The Lyrics tab sends the song or artist you search for to LRCLIB (lrclib.net), and nothing else. Lyrics are shown, not saved. Lines you put in teach the keyboard which words follow which, on this phone only, like anything you type (switch off with Learn the words I type)."),
         )
         group(c, "Credits",
-            note("English word list from FrequencyWords by Hermit Dave, CC BY-SA 4.0.\nHandwriting by Google ML Kit digital ink recognition.\nGIFs powered by Giphy."),
+            note("English and Arabic word lists from FrequencyWords by Hermit Dave, CC BY-SA 4.0.\nAmharic word list and next-word suggestions from Amharic Wikipedia, and Amharic words from English Wiktionary, CC BY-SA 4.0.\nTigrinya, Oromo and Somali word lists from Tigrinya, Oromo and Somali Wikipedia, CC BY-SA 4.0.\nHandwriting by Google ML Kit digital ink recognition.\nGIFs powered by Giphy."),
         )
     }
 }
