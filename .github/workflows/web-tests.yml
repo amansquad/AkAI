@@ -1,0 +1,22 @@
+# Runs the website's API tests (npm test) on every push and pull request
+# that touches the web code.
+name: Web tests
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "package.json", "package-lock.json", "vitest.config.mts"]
+  pull_request:
+    paths: ["src/**", "package.json", "package-lock.json", "vitest.config.mts"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test

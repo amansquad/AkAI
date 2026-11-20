@@ -18,7 +18,8 @@
     "version:minor": "npm version minor --no-git-tag-version",
     "version:major": "npm version major --no-git-tag-version",
     "themes:db": "node --env-file=.env.local scripts/community-themes.mjs",
-    "stickers:db": "node --env-file=.env.local scripts/sticker-market.mjs"
+    "stickers:db": "node --env-file=.env.local scripts/sticker-market.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -104,7 +105,8 @@
     "eslint-config-next": "^16.1.1",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.4"
   },
   "overrides": {
     "postcss": "^8.5.15",
