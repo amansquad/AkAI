@@ -44,7 +44,7 @@ object UiText {
 
     private fun row(am: String, ti: String, om: String, so: String, ar: String) = arrayOf(am, ti, om, so, ar)
 
-    private val STRINGS: Map<String, Array<String>> = UI_TEXT_MORE + UI_TEXT_SCREENS + UI_TEXT_PANELS + mapOf(
+    private val STRINGS: Map<String, Array<String>> = UI_TEXT_MORE + UI_TEXT_SCREENS + UI_TEXT_PANELS + UI_TEXT_RECENT + mapOf(
         "Settings" to row("ቅንብሮች", "ቅጥዕታት", "Qindaa'inoota", "Dejinta", "الإعدادات"),
         "Look" to row("መልክ", "መልክዕ", "Bifa", "Muuqaalka", "المظهر"),
         "Typing" to row("መተየብ", "ምጽሓፍ", "Barreessuu", "Qorista", "الكتابة"),

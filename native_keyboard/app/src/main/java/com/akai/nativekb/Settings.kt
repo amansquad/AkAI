@@ -308,6 +308,7 @@ class SettingsActivity : ThemedActivity() {
         Entry(ABOUT, "Check for updates", "version upgrade new release"),
         Entry(ABOUT, "Back up settings", "backup export save copy new phone transfer"),
         Entry(ABOUT, "Restore from a backup", "restore import load new phone transfer"),
+        Entry(THEME, "Different theme in dark mode", "dark mode night theme light automatic system"),
         Entry(ABOUT, "Privacy", "data words learned microphone voice"),
     )
 
@@ -374,15 +375,15 @@ class SettingsActivity : ThemedActivity() {
         ui.gap(10f),
         ui.primaryButton("Send report") {
             CrashLog.send(this, Net.SITE) { ok ->
-                Toast.makeText(this, if (ok) "Sent. Thank you" else "Couldn't send it. Try again later", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, ui.tr(if (ok) "Sent. Thank you" else "Couldn't send it. Try again later"), Toast.LENGTH_SHORT).show()
                 if (ok && !isFinishing) build()
             }
         },
         ui.ghostButton("See what's sent") {
             android.app.AlertDialog.Builder(this)
-                .setTitle("Crash report")
+                .setTitle(ui.tr("Crash report"))
                 .setMessage(CrashLog.report(this, trace).toString(2))
-                .setPositiveButton("Close", null)
+                .setPositiveButton(ui.tr("Close"), null)
                 .show()
         },
         ui.ghostButton("Delete it") { CrashLog.clear(this); build() },
@@ -402,23 +403,23 @@ class SettingsActivity : ThemedActivity() {
 
     private fun startRestore() {
         android.app.AlertDialog.Builder(this)
-            .setTitle("Restore from a backup?")
-            .setMessage("Your settings, learned words, themes, shortcuts and sticker packs on this phone will be replaced by the backup's.")
-            .setPositiveButton("Choose file") { _, _ ->
+            .setTitle(ui.tr("Restore from a backup?"))
+            .setMessage(ui.tr("Your settings, learned words, themes, shortcuts and sticker packs on this phone will be replaced by the backup's."))
+            .setPositiveButton(ui.tr("Choose file")) { _, _ ->
                 pickFile(
                     Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                         .setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/zip", "application/octet-stream")),
                     requestRestore,
                 )
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(ui.tr("Cancel"), null)
             .show()
     }
 
     private fun pickFile(intent: Intent, request: Int) = try {
         @Suppress("DEPRECATION") startActivityForResult(intent, request)
     } catch (e: Exception) {
-        Toast.makeText(this, "No file picker on this phone", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, ui.tr("No file picker on this phone"), Toast.LENGTH_LONG).show()
     }
 
     @Deprecated("Activity result API, kept for plain Activity")
@@ -432,17 +433,18 @@ class SettingsActivity : ThemedActivity() {
                 val msg = try {
                     val packs = contentResolver.openOutputStream(uri)?.use { Backup.write(app, it) }
                         ?: throw java.io.IOException("can't open")
-                    if (packs > 0) "Backed up, with $packs sticker packs" else "Backed up"
-                } catch (e: Exception) { "Couldn't save the backup there" }
+                    if (packs > 0) UiText.t(app, "Backed up, with {n} sticker packs", "n" to packs) else UiText.t(app, "Backed up")
+                } catch (e: Exception) { UiText.t(app, "Couldn't save the backup there") }
                 Net.ui { Toast.makeText(app, msg, Toast.LENGTH_LONG).show() }
             }
             requestRestore -> Net.background {
                 val msg = try {
                     val r = contentResolver.openInputStream(uri)?.use { Backup.restore(app, it) }
                         ?: throw java.io.IOException("can't open")
-                    "Restored ${r.settings} settings" + if (r.packs > 0) " and ${r.packs} sticker packs" else ""
-                } catch (e: IllegalArgumentException) { e.message ?: "That isn't an Akai backup file" }
-                catch (e: Exception) { "Couldn't read that file" }
+                    if (r.packs > 0) UiText.t(app, "Restored {n} settings and {p} sticker packs", "n" to r.settings, "p" to r.packs)
+                    else UiText.t(app, "Restored {n} settings", "n" to r.settings)
+                } catch (e: IllegalArgumentException) { UiText.t(app, e.message ?: "That isn't an Akai backup file") }
+                catch (e: Exception) { UiText.t(app, "Couldn't read that file") }
                 Net.ui {
                     Toast.makeText(app, msg, Toast.LENGTH_LONG).show()
                     // Start again so every page shows the restored settings and theme.
@@ -957,7 +959,8 @@ class SettingsActivity : ThemedActivity() {
 
         group(c, "Privacy",
             note("Learned words and settings are kept on this phone, and words are never learned from password, email or number fields. Text goes to your Akai server only when you use Translate, or for handwriting the phone can't read. GIFs come from Giphy through the Akai server (or directly, with your own key), and voice typing uses your phone's speech service."),
-            note("Rewrite, and Tidy up voice typing when it is on, also send the text to your Akai server. These AI features send a random number this phone made, too, so the server can count daily use; it never learns who you are."),
+            note("Rewrite, and Tidy up voice typing when it is on, also send the text to your Akai server."),
+            note("These AI features also send a random number this phone made, so the server can count daily use. It never learns who you are."),
             note("The Lyrics tab sends the song or artist you search for to LRCLIB (lrclib.net), and nothing else. Lyrics are shown, not saved. Lines you put in teach the keyboard which words follow which, on this phone only, like anything you type (switch off with Learn the words I type)."),
         )
         group(c, "Credits",
