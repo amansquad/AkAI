@@ -26,13 +26,26 @@ const meta = {
 const q = (s) => JSON.stringify(s).split('$').join('\\$');
 const cps = (s) => [...s].filter((c) => c !== '️');
 
+// The Symbols tab's icon is ❤️, so the hearts (Unicode puts them at the end of
+// Smileys, 💌 through 🤍) open that tab instead, as on most phones.
+const lists = {};
+for (const g of groups) lists[g.slug] = g.emojis.filter((e) => parseFloat(e.emoji_version) <= MAX_VERSION);
+{
+  const s = lists.smileys_emotion;
+  const from = s.findIndex((e) => e.emoji === '💌');
+  const to = s.findIndex((e) => e.emoji === '🤍');
+  if (from < 0 || to < from) throw new Error('heart range not found in smileys_emotion');
+  const hearts = s.splice(from, to - from + 1);
+  lists.symbols = [...hearts, ...lists.symbols];
+}
+
 const toneable = [];
 const cats = [];
 const names = [];
 for (const g of groups) {
   const m = meta[g.slug];
   if (!m) continue;
-  let list = g.emojis.filter((e) => parseFloat(e.emoji_version) <= MAX_VERSION);
+  let list = lists[g.slug];
   // Home first.
   if (g.slug === 'flags') {
     const et = list.findIndex((e) => e.emoji === '🇪🇹');
@@ -79,8 +92,11 @@ ${cats.join(',\n')}
 
     /** Every category, without the emoji this phone's font can't draw (they'd show as boxes). */
     val categories: List<Category> by lazy {
-        val p = Paint()
-        raw.map { (icon, name, list) -> Category(icon, name, e(list).filter { p.hasGlyph(it) }) }
+        // Plain JVM unit tests have no font to ask, so there every emoji is kept.
+        val canDraw: (String) -> Boolean = try {
+            val p = Paint(); p.hasGlyph("a"); { p.hasGlyph(it) }
+        } catch (e: RuntimeException) { { true } }
+        raw.map { (icon, name, list) -> Category(icon, name, e(list).filter(canDraw)) }
     }
 
     private val rawNames = listOf(
