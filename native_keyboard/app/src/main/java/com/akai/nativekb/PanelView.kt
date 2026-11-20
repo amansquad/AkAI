@@ -583,10 +583,18 @@ class PanelView(context: Context) : View(context) {
                 val l = x + (px - w * k) / 2f
                 val t = y + (px - h * k) / 2f
                 moving.setBounds(l.toInt(), t.toInt(), (l + w * k).toInt(), (t + h * k).toInt())
+                // Rounded like the still photos and like the emoji as sent (a no-op on cut-outs).
+                val side = min(w * k, h * k)
+                emojiClip.reset()
+                emojiClip.addRoundRect(l, t, l + w * k, t + h * k, side * 0.22f, side * 0.22f, android.graphics.Path.Direction.CW)
+                canvas.save()
+                canvas.clipPath(emojiClip)
                 moving.draw(canvas)
+                canvas.restore()
             } else Stickers.thumbnail(list[i], px, redraw)?.let { canvas.drawBitmap(it, x, y, null) }
         }
     }
+    private val emojiClip = android.graphics.Path()
 
     /** Moving stickers ask for a redraw each frame, but only while they can be seen. */
     private val animCallback = object : android.graphics.drawable.Drawable.Callback {
