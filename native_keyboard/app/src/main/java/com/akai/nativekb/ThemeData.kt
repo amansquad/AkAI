@@ -71,7 +71,7 @@ object ThemeData {
         PaletteDef("geometric-flow", "Geometric Flow", "📐", "live", "geometric_flow_live",
             0xFF0A0A0A.toInt(), 0xFF171717.toInt(), 0xFF262626.toInt(), 0xFF404040.toInt(), 0xFF525252.toInt(), 0xFF0A0A0A.toInt(), 0xFF171717.toInt(), 0xFF3B82F6.toInt(), 0xFF60A5FA.toInt(), 0xFFFAFAFA.toInt(), 0xFFDBEAFE.toInt(), 0xFF3B82F6.toInt(), 0xFF1D4ED8.toInt(), 0xFF60A5FA.toInt()),
         PaletteDef("nebula", "Nebula Space", "🌌", "live", "nebula_live",
-            0xFF1E1B4B.toInt(), 0xFF312E81.toInt(), 0xFF3730A3.toInt(), 0xFF4338CA.toInt(), 0xFF4F46E5.toInt(), 0xFF1E1B4B.toInt(), 0xFF312E81.toInt(), 0xFFE879F9.toInt(), 0xFFF0ABFC.toInt(), 0xFFEEF2FF.toInt(), 0xFFFAE8FF.toInt(), 0xFFE879F9.toInt(), 0xFFC026D3.toInt(), 0xFFF0ABFC.toInt()),
+            0xFF1E1B4B.toInt(), 0xFF312E81.toInt(), 0xFF3730A3.toInt(), 0xCC4338CA.toInt(), 0xFF4F46E5.toInt(), 0xCC1E1B4B.toInt(), 0xFF312E81.toInt(), 0xFFE879F9.toInt(), 0xFFF0ABFC.toInt(), 0xFFEEF2FF.toInt(), 0xFFFAE8FF.toInt(), 0xFFE879F9.toInt(), 0xFFC026D3.toInt(), 0xFFF0ABFC.toInt()),
         PaletteDef("ocean-waves", "Ocean Waves", "🌊", "live", "ocean_waves_live",
             0xFF083344.toInt(), 0xFF164E63.toInt(), 0xFF155E75.toInt(), 0xFF0E7490.toInt(), 0xFF0891B2.toInt(), 0xFF083344.toInt(), 0xFF164E63.toInt(), 0xFF14B8A6.toInt(), 0xFF5EEAD4.toInt(), 0xFFECFEFF.toInt(), 0xFFF0FDFA.toInt(), 0xFF14B8A6.toInt(), 0xFF0D9488.toInt(), 0xFF5EEAD4.toInt()),
         PaletteDef("lava-lamp", "Lava Lamp", "🌋", "live", "lava_lamp_live",

@@ -41,6 +41,9 @@ const OVERRIDES = {
   plasma: { live: 'plasma_live' },
   bubbles: { live: 'bubbles_live' },
   'deep-sea': { live: 'deep_sea_live' },
+  // Nebula's bright, solid keys hid almost all of its scene; at about 80% (as
+  // the cultural scene themes) the nebula shows through and letters stay clear.
+  nebula: { key: 'CC4338CA', keySecondary: 'CC1E1B4B' },
   // nebula_live and ocean_waves_live are Flutter's own names; they now have
   // scenes in MoreLiveScenes instead of falling into aurora and ocean.
 };

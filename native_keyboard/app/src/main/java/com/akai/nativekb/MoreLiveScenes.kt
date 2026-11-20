@@ -158,25 +158,37 @@ object MoreLiveScenes {
         }
     }
 
-    // ── Plasma: a shifting electric field, drawn in coarse cells ────────────
+    // ── Plasma: a shifting electric field ───────────────────────────────────
+    // Worked out on a coarse grid (one value per CELL dp), written into a tiny
+    // bitmap and stretched with smoothing: soft gradients for the cost of the grid.
+    private const val CELL = 12f
+    private var plasmaBmp: android.graphics.Bitmap? = null
+    private var plasmaPixels = IntArray(0)
+    private val smooth = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val plasmaDst = android.graphics.RectF()
+
     private fun plasma(c: Canvas, w: Float, h: Float, time: Float) {
-        val cell = 14f
-        val t = time * TAU
-        reset()
-        var y = 0f
-        while (y < h) {
-            var x = 0f
-            while (x < w) {
-                val v = sin(x * 0.03f + t) + sin(y * 0.04f - t * 2) +
-                    sin((x + y) * 0.02f + t) + sin(sqrt(x * x + y * y) * 0.03f - t)
-                val hue = 250f + v * 30f                  // violet to cyan to magenta
-                val light = 0.18f + 0.12f * (v / 4f + 0.5f)
-                paint.color = ColorUtils.HSLToColor(floatArrayOf((hue + 360f) % 360f, 0.85f, light))
-                c.drawRect(x, y, x + cell + 0.5f, y + cell + 0.5f, paint)
-                x += cell
+        val cols = (w / CELL).toInt() + 2
+        val rows = (h / CELL).toInt() + 2
+        val bmp = plasmaBmp?.takeIf { it.width == cols && it.height == rows }
+            ?: android.graphics.Bitmap.createBitmap(cols, rows, android.graphics.Bitmap.Config.ARGB_8888).also {
+                plasmaBmp?.recycle(); plasmaBmp = it; plasmaPixels = IntArray(cols * rows)
             }
-            y += cell
+        val t = time * TAU
+        val hsl = FloatArray(3)
+        for (j in 0 until rows) for (i in 0 until cols) {
+            val x = i * CELL; val y = j * CELL
+            val v = sin(x * 0.03f + t) + sin(y * 0.04f - t * 2) +
+                sin((x + y) * 0.02f + t) + sin(sqrt(x * x + y * y) * 0.03f - t)
+            hsl[0] = (250f + v * 30f + 360f) % 360f           // violet to cyan to magenta
+            hsl[1] = 0.85f
+            hsl[2] = 0.18f + 0.12f * (v / 4f + 0.5f)
+            plasmaPixels[j * cols + i] = ColorUtils.HSLToColor(hsl)
         }
+        bmp.setPixels(plasmaPixels, 0, cols, 0, 0, cols, rows)
+        // Pixel centres sit on the grid points, so the picture lines up with the old cells.
+        plasmaDst.set(-CELL / 2f, -CELL / 2f, cols * CELL - CELL / 2f, rows * CELL - CELL / 2f)
+        c.drawBitmap(bmp, null, plasmaDst, smooth)
     }
 
     // ── Bubbles: rising, wobbling bubbles with a highlight ──────────────────
