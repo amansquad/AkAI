@@ -83,22 +83,24 @@ export type Output = 'still' | 'anim' | 'gif' | 'emoji_anim' | 'emoji_gif';
 // Corners are rounded as in the keyboard's emoji grid (a no-op on cut-outs,
 // whose corners are clear already).
 const EMOJI_FIT =
-  'fps=15,scale=160:160:force_original_aspect_ratio=decrease:flags=lanczos,format=rgba,' +
+  'fps=15:eof_action=pass,scale=160:160:force_original_aspect_ratio=decrease:flags=lanczos,format=rgba,' +
   "geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':" +
   "a='if(gt(hypot(max(0,abs(X-W/2)-(W/2-0.22*W)),max(0,abs(Y-H/2)-(H/2-0.22*W))),0.22*W),0,alpha(X,Y))'," +
   'pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0';
 
 // The same settings as native_keyboard/tools/fetch-sticker-pack.mjs, so built-in
-// and imported packs look alike.
+// and imported packs look alike. `eof_action=pass` keeps the last frame: some
+// "video" emoji are a single 0.03 s frame, which plain fps=12 turned into no
+// frames at all, so the WebP encoder failed and the server answered 501.
 const FILTERS: Record<Output, string[]> = {
   still: ['-frames:v', '1', '-c:v', 'libwebp', '-pix_fmt', 'yuva420p', '-quality', '85', '-f', 'webp'],
   anim: [
-    '-vf', 'fps=12,scale=288:288:force_original_aspect_ratio=decrease',
+    '-vf', 'fps=12:eof_action=pass,scale=288:288:force_original_aspect_ratio=decrease',
     '-c:v', 'libwebp_anim', '-loop', '0', '-quality', '55', '-compression_level', '3', '-pix_fmt', 'yuva420p', '-f', 'webp',
   ],
   gif: [
     '-vf',
-    'fps=12,scale=240:240:force_original_aspect_ratio=decrease:flags=lanczos,split[a][b];' +
+    'fps=12:eof_action=pass,scale=240:240:force_original_aspect_ratio=decrease:flags=lanczos,split[a][b];' +
       '[a]palettegen=reserve_transparent=1:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle:alpha_threshold=128',
     '-loop', '0', '-f', 'gif',
   ],

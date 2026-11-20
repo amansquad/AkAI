@@ -51,7 +51,7 @@ const FFMPEG = spawnSync('ffmpeg', ['-version']).status === 0;
 const SETTINGS = {
   still: ['-frames:v', '1', '-c:v', 'libwebp', '-pix_fmt', 'yuva420p', '-quality', '85', '-f', 'webp'],
   anim: [
-    '-vf', 'fps=12,scale=288:288:force_original_aspect_ratio=decrease',
+    '-vf', 'fps=12:eof_action=pass,scale=288:288:force_original_aspect_ratio=decrease',
     '-c:v', 'libwebp_anim', '-loop', '0', '-quality', '55', '-compression_level', '3', '-pix_fmt', 'yuva420p', '-f', 'webp',
   ],
 };
