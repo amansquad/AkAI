@@ -95,6 +95,8 @@ class PanelView(context: Context) : View(context) {
 
     private val density = resources.displayMetrics.density
     private fun dp(v: Float) = v * density
+    /** Text size that follows the phone's font size setting (capped so it stays inside the fixed rows). */
+    private fun sp(v: Float) = v * density * systemFontScale(context)
     private val handler = Handler(Looper.getMainLooper())
 
     private var palette = Themes.palette(context, Themes.DEFAULT)
@@ -327,8 +329,8 @@ class PanelView(context: Context) : View(context) {
         stickerResults = Stickers.search(context, query)
         resetScroll()
     }
-    private fun clipRowH() = dp(52f)
-    private fun lyricRowH() = dp(46f)
+    private fun clipRowH() = dp(52f) * max(1f, systemFontScale(context))
+    private fun lyricRowH() = dp(46f) * max(1f, systemFontScale(context))
     private fun themeCellH() = width / 3f * 0.74f + dp(24f)
 
     private fun contentHeight(): Float = when (tab) {
@@ -367,7 +369,7 @@ class PanelView(context: Context) : View(context) {
         rect.set(l, t, r, b)
         fill.color = if (accent) palette.accent else palette.key
         canvas.drawRoundRect(rect, radius, radius, fill)
-        label(canvas, s, rect.centerX(), rect.centerY(), dp(14f), if (accent) palette.accentText else palette.text, bold = true)
+        label(canvas, s, rect.centerX(), rect.centerY(), sp(14f), if (accent) palette.accentText else palette.text, bold = true)
     }
 
     /** When the tab last changed, so its content can fade in. */
@@ -420,15 +422,15 @@ class PanelView(context: Context) : View(context) {
             val color = if (active) palette.accentText else palette.text
             // The same line icons as the toolbar; only "ABC" (back to the keys) is a word.
             val icon = tabIcons[i]
-            if (icon == null) label(canvas, tabNames[i], cell * (i + 0.5f), tabH / 2f, dp(13f), color, bold = true)
+            if (icon == null) label(canvas, tabNames[i], cell * (i + 0.5f), tabH / 2f, min(sp(13f), max(dp(13f), cell * 0.36f)), color, bold = true)
             else Icons.draw(canvas, icon, cell * (i + 0.5f), tabH / 2f, min(dp(22f), cell * 0.6f), color)
         }
         // The last cell: backspace on emoji, "Clear" on the clipboard.
         val last = cell * (tabNames.size + 0.5f)
         when (tab) {
-            Tab.EMOJI, Tab.STICKERS, Tab.GIF -> label(canvas, "⌫", last, tabH / 2f, dp(18f), palette.text)
-            Tab.CLIPBOARD -> if (clips.isNotEmpty()) label(canvas, "Clear", last, tabH / 2f, dp(11f), palette.hint)
-            Tab.LYRICS -> if (lyricsSong != null) label(canvas, "All", last, tabH / 2f, dp(11f), palette.hint)
+            Tab.EMOJI, Tab.STICKERS, Tab.GIF -> label(canvas, "⌫", last, tabH / 2f, sp(18f), palette.text)
+            Tab.CLIPBOARD -> if (clips.isNotEmpty()) label(canvas, "Clear", last, tabH / 2f, min(sp(11f), max(dp(11f), tabCell() * 0.3f)), palette.hint)
+            Tab.LYRICS -> if (lyricsSong != null) label(canvas, "All", last, tabH / 2f, min(sp(11f), max(dp(11f), tabCell() * 0.3f)), palette.hint)
             else -> {}
         }
     }
@@ -445,10 +447,10 @@ class PanelView(context: Context) : View(context) {
                 lyricsQuery != null -> "🔍  $lyricsQuery"
                 else -> "🔍  Search songs and artists"
             }
-            text.textSize = dp(13f)
+            text.textSize = sp(13f)
             text.typeface = Typeface.DEFAULT_BOLD
             val fit = TextUtils.ellipsize(tr(shown), TextPaint(text), rect.width() - dp(20f), TextUtils.TruncateAt.END).toString()
-            label(canvas, fit, rect.centerX(), tabH + catH / 2f - dp(1f), dp(13f), if (lyricsQuery == null && song == null) palette.hint else palette.text, bold = true)
+            label(canvas, fit, rect.centerX(), tabH + catH / 2f - dp(1f), sp(13f), if (lyricsQuery == null && song == null) palette.hint else palette.text, bold = true)
         } else if (tab == Tab.EMOJI) {
             // The first cell searches; the rest are recent and the categories.
             // Then a cell for each installed custom emoji pack, showing its first emoji.
@@ -462,7 +464,7 @@ class PanelView(context: Context) : View(context) {
                     canvas.drawRoundRect(rect, radius, radius, fill)
                 }
                 if (i < icons.size) {
-                    label(canvas, icons[i], cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(18f), palette.text)
+                    label(canvas, icons[i], cell * (i + 0.5f), tabH + catH / 2f - dp(1f), sp(18f), palette.text)
                 } else {
                     // The same height as the emoji glyphs beside it, on the same line.
                     val px = min(dp(24f), cell - dp(6f)).toInt().coerceAtLeast(1)
@@ -473,7 +475,7 @@ class PanelView(context: Context) : View(context) {
         } else if (tab == Tab.STICKERS) {
             val search = gifSearchCell()
             if (searchRow(canvas, stickerQuery)) return
-            label(canvas, "🔍", search / 2f, tabH + catH / 2f - dp(1f), dp(16f), palette.text)
+            label(canvas, "🔍", search / 2f, tabH + catH / 2f - dp(1f), sp(16f), palette.text)
             val packs = stickerPacks()
             val cell = packCell()
             packScrollX = packScrollX.coerceIn(0f, maxPackScroll())
@@ -492,13 +494,13 @@ class PanelView(context: Context) : View(context) {
                 val bmp = icon?.let { Stickers.thumbnail(it, px, redraw) }
                 if (bmp != null) canvas.drawBitmap(bmp, l + (cell - px) / 2f, tabH + dp(3f), null)
                 else if (icon == null) {
-                    text.textSize = dp(11f)
+                    text.textSize = sp(11f)
                     val name = TextUtils.ellipsize(pack.name, TextPaint(text), cell - dp(8f), TextUtils.TruncateAt.END).toString()
-                    label(canvas, name, l + cell / 2f, tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == stickerSet)
+                    label(canvas, name, l + cell / 2f, tabH + catH / 2f - dp(1f), sp(11f), palette.text, bold = i == stickerSet)
                 }
             }
             val add = search + cell * packs.size - packScrollX
-            if (add < width) label(canvas, "+", add + cell / 2f, tabH + catH / 2f - dp(2f), dp(22f), palette.hint)
+            if (add < width) label(canvas, "+", add + cell / 2f, tabH + catH / 2f - dp(2f), sp(22f), palette.hint)
             canvas.restore()
         } else if (tab == Tab.THEMES) {
             val cell = width.toFloat() / themeFilters.size
@@ -508,12 +510,12 @@ class PanelView(context: Context) : View(context) {
                     fill.color = palette.key
                     canvas.drawRoundRect(rect, radius, radius, fill)
                 }
-                label(canvas, f.second, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == themeFilter)
+                label(canvas, f.second, cell * (i + 0.5f), tabH + catH / 2f - dp(1f), sp(11f), palette.text, bold = i == themeFilter)
             }
         } else {
             val search = gifSearchCell()
             if (searchRow(canvas, gifQuery)) return
-            label(canvas, "🔍", search / 2f, tabH + catH / 2f - dp(1f), dp(16f), palette.text)
+            label(canvas, "🔍", search / 2f, tabH + catH / 2f - dp(1f), sp(16f), palette.text)
             val cell = (width - search) / Gifs.categories.size
             for ((i, name) in Gifs.categories.withIndex()) {
                 val l = search + cell * i
@@ -522,7 +524,7 @@ class PanelView(context: Context) : View(context) {
                     fill.color = palette.key
                     canvas.drawRoundRect(rect, radius, radius, fill)
                 }
-                label(canvas, name, l + cell / 2f, tabH + catH / 2f - dp(1f), dp(11f), palette.text, bold = i == gifCategory)
+                label(canvas, name, l + cell / 2f, tabH + catH / 2f - dp(1f), sp(11f), palette.text, bold = i == gifCategory)
             }
         }
     }
@@ -537,8 +539,8 @@ class PanelView(context: Context) : View(context) {
         rect.set(dp(4f), tabH, width - search, tabH + catH - dp(3f))
         fill.color = palette.key
         canvas.drawRoundRect(rect, radius, radius, fill)
-        label(canvas, "🔍  $q", rect.centerX(), tabH + catH / 2f - dp(1f), dp(13f), palette.text, bold = true)
-        label(canvas, "✕", width - search / 2f, tabH + catH / 2f - dp(1f), dp(15f), palette.text)
+        label(canvas, "🔍  $q", rect.centerX(), tabH + catH / 2f - dp(1f), sp(13f), palette.text, bold = true)
+        label(canvas, "✕", width - search / 2f, tabH + catH / 2f - dp(1f), sp(15f), palette.text)
         return true
     }
 
@@ -547,7 +549,7 @@ class PanelView(context: Context) : View(context) {
         customEmoji()?.let { drawCustomEmoji(canvas, it.stickers); return }
         val list = emojiList()
         if (list.isEmpty()) {
-            label(canvas, "Emoji you use will appear here", width / 2f, top + dp(60f), dp(14f), palette.hint)
+            label(canvas, "Emoji you use will appear here", width / 2f, top + dp(60f), sp(14f), palette.hint)
             return
         }
         val cell = width / emojiCols.toFloat()
@@ -610,8 +612,8 @@ class PanelView(context: Context) : View(context) {
         val top = contentTop()
         val list = stickerList()
         if (list.isEmpty() && stickerQuery != null) {
-            label(canvas, UiText.t(context, "No stickers for \"{q}\"", "q" to stickerQuery.orEmpty()), width / 2f, top + dp(50f), dp(14f), palette.hint)
-            label(canvas, "Try a feeling, like happy, sad, love or laugh", width / 2f, top + dp(74f), dp(12f), palette.hint)
+            label(canvas, UiText.t(context, "No stickers for \"{q}\"", "q" to stickerQuery.orEmpty()), width / 2f, top + dp(50f), sp(14f), palette.hint)
+            label(canvas, "Try a feeling, like happy, sad, love or laugh", width / 2f, top + dp(74f), sp(12f), palette.hint)
             return
         }
         val cell = stickerCell()
@@ -650,11 +652,11 @@ class PanelView(context: Context) : View(context) {
     private fun drawGifs(canvas: Canvas) {
         val top = contentTop()
         if (gifLoading && gifs.isEmpty()) {
-            label(canvas, "Loading GIFs…", width / 2f, top + dp(60f), dp(14f), palette.hint)
+            label(canvas, "Loading GIFs…", width / 2f, top + dp(60f), sp(14f), palette.hint)
             return
         }
         if (gifs.isEmpty() && gifQuery != null) {
-            label(canvas, UiText.t(context, "No GIFs found for \"{q}\"", "q" to gifQuery.orEmpty()), width / 2f, top + dp(60f), dp(14f), palette.hint)
+            label(canvas, UiText.t(context, "No GIFs found for \"{q}\"", "q" to gifQuery.orEmpty()), width / 2f, top + dp(60f), sp(14f), palette.hint)
         }
         val cell = gifCell()
         val first = max(0, (scrollY / cell).toInt())
@@ -681,7 +683,7 @@ class PanelView(context: Context) : View(context) {
         gifNote?.let { note ->
             fill.color = palette.popup
             canvas.drawRect(0f, height - dp(26f), width.toFloat(), height.toFloat(), fill)
-            label(canvas, note, width / 2f, height - dp(13f), dp(11f), palette.hint)
+            label(canvas, note, width / 2f, height - dp(13f), sp(11f), palette.hint)
         }
     }
 
@@ -710,7 +712,7 @@ class PanelView(context: Context) : View(context) {
                 fill.style = Paint.Style.FILL
             }
             val name = TextUtils.ellipsize((if (def.live.isNotEmpty()) "● " else "") + def.name, TextPaint(text), w, TextUtils.TruncateAt.END).toString()
-            label(canvas, name, x + w / 2f, y + h + dp(10f), dp(11f), if (def.id == themeId) palette.accent else palette.text, bold = def.id == themeId)
+            label(canvas, name, x + w / 2f, y + h + dp(10f), sp(11f), if (def.id == themeId) palette.accent else palette.text, bold = def.id == themeId)
         }
     }
 
@@ -720,12 +722,12 @@ class PanelView(context: Context) : View(context) {
         if (song == null && lyricsSongs.isEmpty()) {
             val q = lyricsQuery
             when {
-                lyricsLoading -> label(canvas, "Searching…", width / 2f, top + dp(60f), dp(14f), palette.hint)
-                lyricsNote != null -> label(canvas, lyricsNote.orEmpty(), width / 2f, top + dp(60f), dp(14f), palette.hint)
-                q != null -> label(canvas, UiText.t(context, "No songs found for \"{q}\"", "q" to q), width / 2f, top + dp(60f), dp(14f), palette.hint)
+                lyricsLoading -> label(canvas, "Searching…", width / 2f, top + dp(60f), sp(14f), palette.hint)
+                lyricsNote != null -> label(canvas, lyricsNote.orEmpty(), width / 2f, top + dp(60f), sp(14f), palette.hint)
+                q != null -> label(canvas, UiText.t(context, "No songs found for \"{q}\"", "q" to q), width / 2f, top + dp(60f), sp(14f), palette.hint)
                 else -> {
-                    label(canvas, "Search a song or an artist,", width / 2f, top + dp(50f), dp(14f), palette.hint)
-                    label(canvas, "then tap the lines you want to use", width / 2f, top + dp(74f), dp(14f), palette.hint)
+                    label(canvas, "Search a song or an artist,", width / 2f, top + dp(50f), sp(14f), palette.hint)
+                    label(canvas, "then tap the lines you want to use", width / 2f, top + dp(74f), sp(14f), palette.hint)
                 }
             }
             return
@@ -733,7 +735,7 @@ class PanelView(context: Context) : View(context) {
         val rowH = lyricRowH()
         val count = song?.lines?.size ?: lyricsSongs.size
         text.textAlign = Paint.Align.LEFT
-        text.textSize = dp(14f)
+        text.textSize = sp(14f)
         for (i in 0 until count) {
             val y = top + i * rowH - scrollY
             if (y + rowH < top || y > height) continue
@@ -749,17 +751,17 @@ class PanelView(context: Context) : View(context) {
             } else {
                 val s = lyricsSongs[i]
                 val shown = TextUtils.ellipsize(s.title, TextPaint(text), room, TextUtils.TruncateAt.END)
-                canvas.drawText(shown.toString(), rect.left + dp(12f), rect.centerY() - dp(5f) - (text.descent() + text.ascent()) / 2f, text)
-                text.textSize = dp(11f)
+                canvas.drawText(shown.toString(), rect.left + dp(12f), rect.centerY() - sp(5f) - (text.descent() + text.ascent()) / 2f, text)
+                text.textSize = sp(11f)
                 text.color = palette.hint
                 canvas.drawText(TextUtils.ellipsize(s.artist, TextPaint(text), room, TextUtils.TruncateAt.END).toString(),
-                    rect.left + dp(12f), rect.centerY() + dp(10f) - (text.descent() + text.ascent()) / 2f, text)
-                text.textSize = dp(14f)
+                    rect.left + dp(12f), rect.centerY() + sp(10f) - (text.descent() + text.ascent()) / 2f, text)
+                text.textSize = sp(14f)
             }
         }
         text.textAlign = Paint.Align.CENTER
         // Lyrics come from LRCLIB and belong to their writers, so say where they are from.
-        if (song != null) label(canvas, "Lyrics from LRCLIB", width / 2f, top + count * rowH - scrollY + dp(12f), dp(10f), palette.hint)
+        if (song != null) label(canvas, "Lyrics from LRCLIB", width / 2f, top + count * rowH - scrollY + dp(12f), sp(10f), palette.hint)
     }
 
     private val clipThumbs = HashMap<String, android.graphics.Bitmap?>()
@@ -779,12 +781,12 @@ class PanelView(context: Context) : View(context) {
     private fun drawClips(canvas: Canvas) {
         val top = contentTop()
         if (clips.isEmpty()) {
-            label(canvas, "Copy something and it appears here", width / 2f, top + dp(60f), dp(14f), palette.hint)
+            label(canvas, "Copy something and it appears here", width / 2f, top + dp(60f), sp(14f), palette.hint)
             return
         }
         val rowH = clipRowH()
         text.textAlign = Paint.Align.LEFT
-        text.textSize = dp(14f)
+        text.textSize = sp(14f)
         text.typeface = Typeface.DEFAULT
         for ((i, clip) in clips.withIndex()) {
             val y = top + i * rowH - scrollY
@@ -812,13 +814,13 @@ class PanelView(context: Context) : View(context) {
             val room = rect.right - dp(if (clip.pinned) 76f else 48f) - textLeft
             val shown = TextUtils.ellipsize(shownText, TextPaint(text), room, TextUtils.TruncateAt.END)
             canvas.drawText(shown.toString(), textLeft, rect.centerY() - (text.descent() + text.ascent()) / 2f, text)
-            if (clip.pinned) label(canvas, "📌", rect.right - dp(44f), rect.centerY(), dp(14f), palette.text)
+            if (clip.pinned) label(canvas, "📌", rect.right - dp(44f), rect.centerY(), sp(14f), palette.text)
             text.textAlign = Paint.Align.CENTER
-            label(canvas, "✕", rect.right - dp(18f), rect.centerY(), dp(15f), palette.hint)
+            label(canvas, "✕", rect.right - dp(18f), rect.centerY(), sp(15f), palette.hint)
             text.textAlign = Paint.Align.LEFT
         }
         text.textAlign = Paint.Align.CENTER
-        label(canvas, "Hold an item to pin it", width / 2f, height - dp(10f), dp(10f), palette.hint)
+        label(canvas, "Hold an item to pin it", width / 2f, height - dp(10f), sp(10f), palette.hint)
     }
 
     // ─── Handwriting ─────────────────────────────────────────────────────
@@ -839,7 +841,7 @@ class PanelView(context: Context) : View(context) {
         val chip = chipH()
         if (candidates.isEmpty()) {
             label(canvas, writeStatus ?: "Write a letter or a word below",
-                width / 2f, top + chip / 2f, dp(12f), palette.hint)
+                width / 2f, top + chip / 2f, sp(12f), palette.hint)
         } else {
             val cell = width / 6f
             for ((i, c) in candidates.take(6).withIndex()) {
@@ -847,7 +849,7 @@ class PanelView(context: Context) : View(context) {
                 fill.color = palette.key
                 canvas.drawRoundRect(rect, radius, radius, fill)
                 val shown = TextUtils.ellipsize(c, TextPaint(text), cell - dp(8f), TextUtils.TruncateAt.END).toString()
-                label(canvas, shown, rect.centerX(), rect.centerY(), dp(18f), palette.text)
+                label(canvas, shown, rect.centerX(), rect.centerY(), sp(18f), palette.text)
             }
         }
         rect.set(dp(6f), writeAreaTop(), width - dp(6f), writeAreaBottom())
@@ -1005,7 +1007,7 @@ class PanelView(context: Context) : View(context) {
      * lines; words being spoken keep to one, dropping the oldest words first.
      */
     private fun drawCaption(canvas: Canvas, s: String, cy: Float, color: Int, wrap: Boolean = true) {
-        val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = dp(14f); this.color = color }
+        val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = sp(14f); this.color = color }
         val inner = (width - dp(32f)).toInt().coerceAtLeast(1)
         val shown = if (wrap) tr(s) else TextUtils.ellipsize(s, paint, inner.toFloat(), TextUtils.TruncateAt.START).toString()
         val layout = StaticLayout.Builder.obtain(shown, 0, shown.length, paint, inner)
@@ -1022,7 +1024,7 @@ class PanelView(context: Context) : View(context) {
         fill.color = palette.key
         canvas.drawRoundRect(rect, radius, radius, fill)
         val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            textSize = dp(14f)
+            textSize = sp(14f)
             color = if (dim) palette.hint else palette.text
         }
         val inner = (r - l - dp(20f)).toInt().coerceAtLeast(1)

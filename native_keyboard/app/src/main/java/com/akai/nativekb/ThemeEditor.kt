@@ -33,7 +33,7 @@ class ThemeEditorPreview(context: Context) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
-        typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        typeface = Typeface.DEFAULT
     }
     private val r = RectF()
     private val start = System.currentTimeMillis()

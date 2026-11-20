@@ -176,6 +176,8 @@ class KeyboardView(context: Context) : View(context) {
     private var longPressOn = true
     private var longPressMs = 250L
     private var labelScale = 1f
+    /** The phone's font size setting, read live so changing it applies at once. */
+    private val sysFont get() = systemFontScale(context)
     private var borders = false
     private var glideOn = true
     private var letterFace: Typeface = Typeface.DEFAULT
@@ -732,7 +734,7 @@ class KeyboardView(context: Context) : View(context) {
                 fill.color = palette.special
                 canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
                 text.typeface = Typeface.DEFAULT_BOLD
-                text.textSize = min(stripH * 0.32f, cell * 0.36f)
+                text.textSize = min(stripH * 0.32f * sysFont, cell * 0.36f)
                 text.color = palette.specialText
                 canvas.drawText(label, cx, stripH / 2f - (text.descent() + text.ascent()) / 2f, text)
                 text.color = palette.text
@@ -794,14 +796,14 @@ class KeyboardView(context: Context) : View(context) {
         text.typeface = Typeface.DEFAULT
         text.alpha = 255
         text.color = palette.text
-        text.textSize = stripH * 0.42f
+        text.textSize = stripH * 0.42f * sysFont
         canvas.drawText("✕", padSide + toolCell / 2f, stripBaseline(), text)
 
         rect.set(padSide + toolCell, dp(5f), searchBoxEnd(), stripH - dp(5f))
         fill.color = palette.key
         canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
         text.textAlign = Paint.Align.LEFT
-        text.textSize = stripH * 0.34f
+        text.textSize = stripH * 0.34f * sysFont
         val shown = if (q.isEmpty()) UiText.t(context, "Search {what}", "what" to UiText.t(context, searchFor ?: "emoji")) else "$q▏"
         text.color = if (q.isEmpty()) palette.hint else palette.text
         val inner = rect.width() - dp(36f)
@@ -817,13 +819,13 @@ class KeyboardView(context: Context) : View(context) {
             rect.set(searchBoxEnd() + dp(8f), dp(6f), width - padSide - dp(6f), stripH - dp(6f))
             fill.color = if (q.isBlank()) palette.key else palette.accent
             canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
-            text.textSize = stripH * 0.32f
+            text.textSize = stripH * 0.32f * sysFont
             text.color = if (q.isBlank()) palette.hint else palette.accentText
             canvas.drawText(UiText.t(context, "Search {what}", "what" to UiText.t(context, searchFor ?: "")).trim(), rect.centerX(), stripBaseline(), text)
             return
         }
         if (searchResults.isEmpty() && q.isNotEmpty()) {
-            text.textSize = stripH * 0.3f
+            text.textSize = stripH * 0.3f * sysFont
             text.color = palette.hint
             canvas.drawText(UiText.t(context, "No emoji found"), (searchBoxEnd() + width) / 2f, stripBaseline(), text)
             return
@@ -840,7 +842,7 @@ class KeyboardView(context: Context) : View(context) {
         val each = (this.width - padSide - start) / suggestionSlots()
         text.textAlign = Paint.Align.CENTER
         text.typeface = Typeface.DEFAULT
-        text.textSize = stripH * 0.4f
+        text.textSize = stripH * 0.4f * sysFont
         text.color = palette.text
         text.alpha = (alpha * 255f).toInt()
         fill.color = palette.hint
@@ -865,7 +867,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawVowelHint(canvas: Canvas, l: Layout) {
         if (l.id != LayoutId.FIDEL || vowels.isNotEmpty()) return
         text.textAlign = Paint.Align.CENTER
-        text.textSize = labelH * 0.3f
+        text.textSize = labelH * 0.3f * sysFont
         text.color = palette.hint
         text.typeface = Typeface.DEFAULT
         canvas.drawText(UiText.t(context, "Tap a letter to see its vowel forms"), (areaLeft + areaRight) / 2f,
@@ -900,7 +902,7 @@ class KeyboardView(context: Context) : View(context) {
         }
         if (icon >= 0) {
             val color = if (key.special) palette.specialText else palette.text
-            val size = min(labelH * 0.5f * labelScale, rect.width() * 0.6f)
+            val size = min(labelH * 0.5f * labelScale * sysFont, rect.width() * 0.6f)
             Icons.draw(canvas, icon, rect.centerX(), rect.centerY(), size, color)
             return
         }
@@ -912,7 +914,7 @@ class KeyboardView(context: Context) : View(context) {
         val big = key.kind == KeyKind.CHAR && pad && !key.special
         text.textAlign = Paint.Align.CENTER
         text.alpha = 255
-        text.textSize = labelScale * when {
+        val baseSize = labelScale * when {
             key.kind == KeyKind.SPACE -> labelH * 0.26f
             // Twelve forms make narrow keys, so their letters shrink to fit.
             key.kind == KeyKind.VOWEL -> labelH * if (vowels.size > 8) 0.42f else 0.5f
@@ -922,12 +924,21 @@ class KeyboardView(context: Context) : View(context) {
             layout?.id == LayoutId.FIDEL -> labelH * 0.46f
             else -> labelH * 0.44f
         }
+        text.textSize = baseSize * sysFont
         text.color = when {
             accent -> palette.accentText
             key.special -> palette.specialText
             else -> palette.text
         }
         text.typeface = if (key.kind == KeyKind.CHAR || key.kind == KeyKind.VOWEL) letterFace else functionFace
+
+        // A bigger phone font may not fit a narrow key ("123", "Space"): shrink back toward
+        // the usual size, never below it.
+        if (sysFont > 1f) {
+            val w = text.measureText(label)
+            val room = rect.width() * 0.86f
+            if (w > room) text.textSize = max(baseSize, text.textSize * room / w)
+        }
 
         // A hint sits in the corner, so push the letter down a touch to keep
         // the two from ever touching.
@@ -937,7 +948,7 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawText(label, rect.centerX(), baseline, text)
 
         if (hint != null) {
-            hintPaint.textSize = labelH * 0.2f
+            hintPaint.textSize = labelH * 0.2f * min(sysFont, 1.15f)
             hintPaint.color = palette.hint
             canvas.drawText(hint, rect.right - dp(4f), rect.top + dp(2f) - hintPaint.ascent(), hintPaint)
         }
@@ -1009,7 +1020,7 @@ class KeyboardView(context: Context) : View(context) {
             canvas.drawRect(rect, fill)
         }
 
-        text.textSize = labelH * 0.46f
+        text.textSize = min(labelH * 0.46f * sysFont, t.popupCell * 0.7f).coerceAtLeast(labelH * 0.46f * min(1f, sysFont))
         text.typeface = Typeface.DEFAULT
         val base = top + rowH / 2f - (text.descent() + text.ascent()) / 2f
         val rainbow = style == PopupStyle.SPARKLE && ("rainbow" in palette.def.live || "prism" in palette.def.live)
@@ -1184,7 +1195,7 @@ class KeyboardView(context: Context) : View(context) {
         canvas.drawRoundRect(rect, radius, radius, border)
         text.textAlign = Paint.Align.CENTER
         text.typeface = Typeface.DEFAULT_BOLD
-        text.textSize = labelH * 0.4f
+        text.textSize = labelH * 0.4f * sysFont
         text.color = palette.accent
         text.alpha = 255
         val base = rect.centerY() - (text.descent() + text.ascent()) / 2f

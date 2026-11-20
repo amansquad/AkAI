@@ -25,6 +25,17 @@ import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 
 /**
+ * The phone's font size (Settings → Display → Font size) as a multiplier, for
+ * text drawn by hand on a canvas (TextViews already follow it through sp).
+ * Kept within [0.85, [max]] because keys and panel rows have a fixed size.
+ */
+fun systemFontScale(context: Context, max: Float = 1.3f): Float =
+    context.resources.configuration.fontScale.coerceIn(0.85f, max)
+
+/** Bold in the phone's own font (Samsung/Xiaomi font styles replace [Typeface.DEFAULT], not always "sans-serif"). */
+val BOLD_FACE: Typeface get() = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+
+/**
  * The look of the Flutter app: a near-black page with a soft glow of the theme's
  * accent at the top, rounded cards, pill buttons and big, tightly-spaced titles.
  * Every colour comes from the selected theme, so the app screens, the theme
@@ -55,7 +66,7 @@ class Ui(val context: Context, val p: Palette) {
         this.text = tr(t)
         textSize = sizeSp
         setTextColor(color)
-        typeface = if (bold) Typeface.create("sans-serif", Typeface.BOLD) else Typeface.DEFAULT
+        typeface = if (bold) BOLD_FACE else Typeface.DEFAULT
         letterSpacing = spacing
         this.gravity = gravity
     }
@@ -94,7 +105,7 @@ class Ui(val context: Context, val p: Palette) {
         text = tr(t)
         isAllCaps = false
         textSize = 16f
-        typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        typeface = BOLD_FACE
         setTextColor(if (ColorUtils.calculateLuminance(p.accent) > 0.5) Color.BLACK else Color.WHITE)
         stateListAnimator = null
         background = round(p.accent, 12f, if (ColorUtils.calculateLuminance(p.accent) > 0.5) Color.BLACK else Color.WHITE, 2f)
