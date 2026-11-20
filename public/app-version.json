@@ -1,6 +1,6 @@
 {
-  "versionCode": 10024,
-  "versionName": "1.0.24",
+  "versionCode": 10025,
+  "versionName": "1.0.25",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Hearts now open in the Symbols tab (the one with the heart). Also from 1.0.23: every live theme has its own animation, backup and restore, and a second theme for dark mode."
+  "notes": "Custom emoji now arrive small and sharp in Telegram and WhatsApp instead of big and blurry. Backup, crash reports and the dark-mode theme now follow your app language. Two new emoji packs in the Sticker Marketplace: Memes and Star Emoji."
 }
