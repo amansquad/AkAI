@@ -154,16 +154,33 @@ object StickerPacks {
 
     /** Downloads a sticker as a GIF from the Akai website (cached after the first time); a content:// link, or null. */
     fun fetchGif(context: Context, st: Stickers.Sticker, done: (Uri?) -> Unit) {
-        init(context)
         val path = st.gif ?: return done(null)
+        fetch(context, path, "akai_gif_${st.id}.gif", "GIF", done)
+    }
+
+    /**
+     * A moving custom emoji as the website sends it: small in the middle of a
+     * clear sticker-sized square ([gif] or animated WebP), so apps don't stretch
+     * it. The link is worked out from the sticker's GIF link, so packs installed
+     * before this existed get it too. Null when there's no link or no connection.
+     */
+    fun fetchEmojiToSend(context: Context, st: Stickers.Sticker, gif: Boolean, done: (Uri?) -> Unit) {
+        val path = st.gif?.takeIf { it.contains("as=gif") } ?: return done(null)
+        val (kind, ext, magic) = if (gif) Triple("emoji_gif", "gif", "GIF") else Triple("emoji_anim", "webp", "RIFF")
+        fetch(context, path.replace("as=gif", "as=$kind"), "akai_${kind}_${st.id}.$ext", magic, done)
+    }
+
+    /** Downloads [path] once into the cache as [name], checking it starts with [magic]; a content:// link, or null. */
+    private fun fetch(context: Context, path: String, name: String, magic: String, done: (Uri?) -> Unit) {
+        init(context)
         val url = if (path.startsWith("http")) path else server(context) + path
         Net.background {
             val uri = try {
                 val dir = File(app.cacheDir, "stickers").apply { mkdirs() }
-                val file = File(dir, "akai_gif_${st.id}.gif")
+                val file = File(dir, name)
                 if (!file.exists()) {
                     val r = Net.request(url)
-                    if (r != null && r.code == 200 && r.body.size > 6 && String(r.body, 0, 3) == "GIF") {
+                    if (r != null && r.code == 200 && r.body.size > 6 && String(r.body, 0, magic.length) == magic) {
                         val tmp = File(dir, "${file.name}.tmp")
                         tmp.writeBytes(r.body)
                         tmp.renameTo(file)

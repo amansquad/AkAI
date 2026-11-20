@@ -1417,6 +1417,16 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             )
         }
         fun still() = sendStill(sticker, asText)
+        // A custom emoji goes out small on a clear sticker-sized square, so apps don't stretch it.
+        if (sticker.isEmoji && sticker.gif != null) {
+            when {
+                mimes.contains(webp) || (any && !mimes.contains("image/gif")) ->
+                    StickerPacks.fetchEmojiToSend(this, sticker, gif = false) { if (!commit(it, webp)) still() }
+                gif -> StickerPacks.fetchEmojiToSend(this, sticker, gif = true) { if (!commit(it, "image/gif")) still() }
+                else -> return false
+            }
+            return true
+        }
         fun asWebp() = StickerPacks.exportAnimated(this, sticker) { if (!commit(it, webp)) still() }
         when {
             mimes.contains(webp) -> asWebp()

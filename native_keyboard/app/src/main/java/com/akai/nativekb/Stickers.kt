@@ -432,10 +432,22 @@ object Stickers {
     const val MIME = "image/png"
     /** WhatsApp's sticker size. */
     private const val SEND_SIZE = 512
-    /** A custom emoji goes out small, like an emoji, not as a sticker. */
-    private const val EMOJI_SEND_SIZE = 128
+    /**
+     * A custom emoji is only ~100 px. Sent at that size, Telegram and WhatsApp
+     * stretch it to sticker size, huge and blurry; so it goes out drawn at
+     * [EMOJI_SIZE] in the middle of a clear sticker-sized square, and shows small and sharp.
+     */
+    private const val EMOJI_SIZE = 160
     /** Bump when the drawing changes, so files cached by an older version aren't sent. */
-    private const val LOOK = 3
+    private const val LOOK = 4
+
+    /** [small] centred on a clear [SEND_SIZE] square (and recycled). */
+    private fun padded(small: Bitmap): Bitmap {
+        val out = Bitmap.createBitmap(SEND_SIZE, SEND_SIZE, Bitmap.Config.ARGB_8888)
+        Canvas(out).drawBitmap(small, (SEND_SIZE - small.width) / 2f, (SEND_SIZE - small.height) / 2f, null)
+        small.recycle()
+        return out
+    }
 
     /** Writes [st] as a PNG in the cache and hands back a content:// link to it, off the main thread. */
     fun export(context: Context, st: Sticker, done: (Uri?) -> Unit) {
@@ -445,7 +457,7 @@ object Stickers {
                 val dir = File(app.cacheDir, "stickers").apply { mkdirs() }
                 val file = File(dir, "akai_${LOOK}_${st.id}.png")
                 if (!file.exists()) {
-                    val bmp = render(st, if (st.isEmoji) EMOJI_SEND_SIZE else SEND_SIZE)
+                    val bmp = if (st.isEmoji) padded(render(st, EMOJI_SIZE)) else render(st, SEND_SIZE)
                     val tmp = File(dir, "${file.name}.tmp")
                     tmp.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     bmp.recycle()
