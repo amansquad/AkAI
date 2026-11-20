@@ -415,7 +415,8 @@ class ThemeEditorActivity : ThemedActivity() {
     private fun save() {
         if (theme.name.isBlank()) theme = theme.copy(name = "My theme")
         CustomThemes.save(this, theme)
-        prefs.edit().putString(Prefs.THEME, theme.id).apply()
+        // In dark mode with a dark-mode theme set, the new theme becomes that one.
+        prefs.edit().putString(Themes.activeKey(this), theme.id).apply()
         Toast.makeText(this, "${theme.name} is now your theme", Toast.LENGTH_SHORT).show()
         finish()
     }

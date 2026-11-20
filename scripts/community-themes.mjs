@@ -8,6 +8,8 @@
 //   npm run themes:db -- restore <id>   show a hidden theme again and clear its reports
 //   npm run themes:db -- delete <id>    remove a theme for good
 //   npm run themes:db -- ai             today's translate/rewrite/handwriting calls
+//   npm run themes:db -- crashes        the newest crash reports from the app, grouped
+//   npm run themes:db -- crashes clear  delete all crash reports
 import { neon } from '@neondatabase/serverless';
 
 const url = process.env.DATABASE_URL;
@@ -54,6 +56,17 @@ const SCHEMA = [
     calls integer not null default 0,
     primary key (caller, feature, day)
   )`,
+  // Crash reports the app's users chose to send (src/app/api/crash).
+  `create table if not exists crash_reports (
+    id bigserial primary key,
+    app text not null,
+    app_code integer not null,
+    android text not null,
+    sdk integer not null,
+    model text not null,
+    trace text not null,
+    created_at timestamptz not null default now()
+  )`,
 ];
 
 switch (command) {
@@ -61,6 +74,26 @@ switch (command) {
     for (const statement of SCHEMA) await sql.query(statement);
     console.log('Community themes tables are ready.');
     break;
+  case 'crashes': {
+    if (id === 'clear') {
+      const rows = await sql`delete from crash_reports returning id`;
+      console.log(`Deleted ${rows.length} crash reports.`);
+      break;
+    }
+    // Same first lines of the trace = the same crash; newest groups first.
+    const rows = await sql`
+      select split_part(trace, chr(10), 2) || ' ' || split_part(trace, chr(10), 3) as sig,
+             count(*)::int as n, max(created_at) as last, max(app) as app,
+             (array_agg(trace order by created_at desc))[1] as trace,
+             (array_agg(model || ', Android ' || android order by created_at desc))[1] as phone
+      from crash_reports group by sig order by last desc limit 20`;
+    if (!rows.length) console.log('No crash reports.');
+    for (const r of rows) {
+      console.log(`\n=== ${r.n}× · last ${new Date(r.last).toISOString().slice(0, 16)} · v${r.app} · ${r.phone}`);
+      console.log(r.trace.split('\n').slice(0, 14).join('\n'));
+    }
+    break;
+  }
   case 'ai': {
     const rows = await sql`select feature, calls from ai_usage where caller = '*' and day = current_date order by feature`;
     const [callers] = await sql`select count(distinct caller)::int as n from ai_usage where caller <> '*' and day = current_date`;

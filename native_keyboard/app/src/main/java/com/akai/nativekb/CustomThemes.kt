@@ -146,6 +146,7 @@ object CustomThemes {
         write(context, themes.filter { it.id != id })
         val prefs = context.getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
         if (prefs.getString(Prefs.THEME, "") == id) prefs.edit().putString(Prefs.THEME, Themes.DEFAULT).apply()
+        if (prefs.getString(Prefs.THEME_DARK, "") == id) prefs.edit().putString(Prefs.THEME_DARK, Themes.firstDark(Themes.DEFAULT)).apply()
     }
 
     fun newId() = "custom-" + System.currentTimeMillis().toString(36)

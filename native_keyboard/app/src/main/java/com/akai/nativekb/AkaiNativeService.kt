@@ -214,6 +214,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         return container
     }
 
+    /** The RESTORED_AT this keyboard last loaded; -1 before the first load. */
+    private var restoredSeen = -1L
+
     private fun loadPrefs() {
         val p = getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
         CustomThemes.refresh(this)
@@ -228,7 +231,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         lang = Lang.fromCode(p.getString(Prefs.LANG, null)) ?: if (p.getBoolean(Prefs.AMHARIC, false)) Lang.AM else Lang.EN
         if (lang !in enabledLangs()) lang = Lang.EN
         phonetic = p.getBoolean(Prefs.PHONETIC, false)
-        theme = p.getString(Prefs.THEME, "system") ?: "system"
+        theme = Themes.activeId(this)
         heightPercent = p.getInt(Prefs.HEIGHT, 100)
         oneHand = p.getInt(Prefs.ONE_HAND, 0)
         hints = p.getBoolean(Prefs.HINTS, true)
@@ -275,6 +278,12 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
                 val a = org.json.JSONArray(p.getString(Prefs.PINNED, "[]"))
                 for (i in 0 until a.length()) pinned.add(a.getString(i))
             } catch (e: Exception) { /* a bad value just means nothing is pinned */ }
+        }
+        // A restore replaced learned words and pins: drop the ones in memory and read the new ones.
+        val restored = p.getLong(Prefs.RESTORED_AT, 0L)
+        if (restored != restoredSeen) {
+            if (restoredSeen != -1L) { habits.clear(); pinned.clear() }
+            restoredSeen = restored
         }
         // "Forget learned words" removes the saved copy; drop the one in memory too.
         if (habits.dirty == 0 && !p.contains(Prefs.LEARNED)) habits.clear()
@@ -473,6 +482,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     private fun saveLearned() {
         habits.dirty = 0
+        // A restore happened since these were loaded: the backup's words win.
+        val p = getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
+        if (p.getLong(Prefs.RESTORED_AT, 0L) != restoredSeen) return
         savePref {
             putString(Prefs.LEARNED, Habits.encode(habits.words))
             putString(Prefs.LEARNED_PAIRS, Habits.encode(habits.pairs))
@@ -1314,7 +1326,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     /** A theme was picked in the keyboard's Themes tab: save it and recolour right away. */
     override fun onPanelTheme(id: String) {
-        savePref { putString(Prefs.THEME, id) }
+        // In dark mode with a dark-mode theme set, the pick replaces that one.
+        val key = Themes.activeKey(this)
+        savePref { putString(key, id) }
         theme = id
         keys.applySettings(look())
         panel.applyTheme(theme)
@@ -1623,4 +1637,8 @@ object Prefs {
     const val AUTOCORRECT_AM = "autocorrect_amharic"
     /** Swipe across the letters to type a word. */
     const val GLIDE = "glide_typing"
+    /** The theme while the phone is in dark mode; blank uses [THEME] always. */
+    const val THEME_DARK = "theme_dark"
+    /** When settings were last restored from a backup (Backup.kt); the keyboard then reloads its memory. */
+    const val RESTORED_AT = "restored_at"
 }

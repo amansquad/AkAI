@@ -10,13 +10,15 @@
 import { createHash } from 'node:crypto';
 import { sql, deviceOf } from './community-themes';
 
-export type AiFeature = 'translate' | 'rewrite' | 'handwriting';
+/** The AI features, plus crash reports, which are counted the same way. */
+export type AiFeature = 'translate' | 'rewrite' | 'handwriting' | 'crash';
 
 /** Calls one phone (or IP address) may make a day, per feature. */
 export const PER_CALLER: Record<AiFeature, number> = {
   translate: 300,
   rewrite: 150,
   handwriting: 300,
+  crash: 5,
 };
 
 /** Calls everyone together may make a day, per feature. AI_DAILY_CAP overrides it. */

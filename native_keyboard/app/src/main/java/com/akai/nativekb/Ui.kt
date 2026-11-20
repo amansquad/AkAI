@@ -314,7 +314,7 @@ abstract class ThemedActivity : Activity() {
     protected val prefs by lazy { getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE) }
 
     protected fun loadTheme() {
-        palette = Themes.palette(this, prefs.getString(Prefs.THEME, Themes.DEFAULT) ?: Themes.DEFAULT)
+        palette = Themes.palette(this, Themes.activeId(this))
         ui = Ui(this, palette)
         window.statusBarColor = palette.background
         window.navigationBarColor = palette.background

@@ -315,6 +315,16 @@ class ThemePreview(context: Context, def: PaletteDef) : View(context) {
 }
 
 class ThemesActivity : ThemedActivity() {
+    companion object {
+        /** Which setting a pick saves to: Prefs.THEME, or Prefs.THEME_DARK for the dark-mode theme. */
+        const val EXTRA_KEY = "key"
+
+        fun pickDark(c: Context) =
+            c.startActivity(Intent(c, ThemesActivity::class.java).putExtra(EXTRA_KEY, Prefs.THEME_DARK))
+    }
+
+    /** The setting a tap on a theme changes. */
+    private val key by lazy { intent.getStringExtra(EXTRA_KEY) ?: Prefs.THEME }
     private var filter = "all"
     private var resumed = false
 
@@ -483,7 +493,7 @@ class ThemesActivity : ThemedActivity() {
                     Community.countInstall(this@ThemesActivity, t.id)
                     toast("${t.name} added to Mine and in use")
                 }
-                prefs.edit().putString(Prefs.THEME, custom.id).apply()
+                prefs.edit().putString(key, custom.id).apply()
                 loadTheme()
                 build()
             }
@@ -559,7 +569,7 @@ class ThemesActivity : ThemedActivity() {
         val c = column()
         val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         header.addView(ui.ghostButton("←") { finish() })
-        header.addView(ui.title("Themes", 28f))
+        header.addView(ui.title(if (key == Prefs.THEME_DARK) "Dark mode theme" else "Themes", 28f))
         c.addView(header, LP_MATCH_WRAP)
         c.addView(ui.label(ui.tr("{n} themes. Tap one to use it; long-press to customize it.", "n" to Themes.all.size), 14f, ui.dim), LP_MATCH_WRAP)
         c.addView(ui.gap(14f))
@@ -584,7 +594,7 @@ class ThemesActivity : ThemedActivity() {
         communityGrid = null; moreButton = null
         if (filter == COMMUNITY) { buildCommunity(c); show(c); return }
 
-        val current = Themes.find(prefs.getString(Prefs.THEME, Themes.DEFAULT) ?: Themes.DEFAULT).id
+        val current = Themes.find(prefs.getString(key, Themes.DEFAULT) ?: Themes.DEFAULT).id
         val grid = GridLayout(this).apply { columnCount = 2 }
         fun cell() = GridLayout.LayoutParams(
             GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f),
@@ -625,7 +635,7 @@ class ThemesActivity : ThemedActivity() {
                 addView(ui.gap(8f))
                 addView(label)
                 setOnClickListener {
-                    prefs.edit().putString(Prefs.THEME, def.id).apply()
+                    prefs.edit().putString(key, def.id).apply()
                     loadTheme()
                     build()
                 }

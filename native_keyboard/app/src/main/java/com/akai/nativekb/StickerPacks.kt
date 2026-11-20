@@ -24,7 +24,7 @@ import java.io.File
  * Telegram bot token, so the phone never needs one.
  */
 object StickerPacks {
-    private const val DIR = "sticker_packs"
+    const val DIR = "sticker_packs"
     /** Telegram's own limits: 120 stickers in a pack, 200 custom emoji. */
     private const val MAX_STICKERS = 120
     private const val MAX_EMOJI = 200
@@ -90,6 +90,9 @@ object StickerPacks {
         cache = null
         version++
     }
+
+    /** Reads the packs again after a restore replaced their folder. */
+    fun reload() = changed()
 
     fun remove(context: Context, key: String) {
         init(context)

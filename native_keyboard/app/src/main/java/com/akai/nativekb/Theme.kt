@@ -47,6 +47,31 @@ object Themes {
 
     fun label(id: String) = find(id).name
 
+    /** True while the phone is in dark mode. */
+    fun isNight(context: Context) =
+        (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+
+    /**
+     * Which setting holds the theme in use now: [Prefs.THEME_DARK] while the
+     * phone is in dark mode and a dark-mode theme is chosen, else [Prefs.THEME].
+     */
+    fun activeKey(context: Context): String {
+        val p = context.getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
+        return if (isNight(context) && !p.getString(Prefs.THEME_DARK, null).isNullOrBlank()) Prefs.THEME_DARK else Prefs.THEME
+    }
+
+    /** The id of the theme in use now (see [activeKey]). */
+    fun activeId(context: Context): String =
+        context.getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE).getString(activeKey(context), DEFAULT) ?: DEFAULT
+
+    /** A dark theme to start dark mode with: [current] if it is dark, else the first dark built-in one. */
+    fun firstDark(current: String): String {
+        val c = find(current)
+        if (!palette(c).isLight) return c.id
+        return (ThemeData.all + SolidThemes.all).first { !palette(it).isLight }.id
+    }
+
     // Live themes use translucent colours so an animation shows through. Until
     // that animation is painted, blend them onto a dark base so they are solid.
     private val base = 0xFF0B0B12.toInt()

@@ -216,6 +216,8 @@ class SettingsActivity : ThemedActivity() {
                 ui.primaryButton("Set it up") { open(this, SETUP) },
             ), wrap)
         }
+        // The app crashed last time: offer the report, which stays here unless sent.
+        CrashLog.pending(this)?.let { trace -> c.addView(ui.gap(12f)); c.addView(crashCard(trace), wrap) }
         // Search: typing swaps the topic list for matching settings.
         val results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
         val topics = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -304,6 +306,8 @@ class SettingsActivity : ThemedActivity() {
         Entry(SETUP, "Turn the keyboard on", "enable choose select default input method set up"),
         Entry(SETUP, "Try the keyboard", "test field password number email phone"),
         Entry(ABOUT, "Check for updates", "version upgrade new release"),
+        Entry(ABOUT, "Back up settings", "backup export save copy new phone transfer"),
+        Entry(ABOUT, "Restore from a backup", "restore import load new phone transfer"),
         Entry(ABOUT, "Privacy", "data words learned microphone voice"),
     )
 
@@ -361,6 +365,92 @@ class SettingsActivity : ThemedActivity() {
                 setOnClickListener { onClick() }
             }
         }
+
+    // ─── Crash report ───────────────────────────────────────────────────────
+
+    private fun crashCard(trace: String): View = ui.card(
+        ui.label("Akai stopped unexpectedly", 16f, palette.text, bold = true),
+        ui.label("A report of what went wrong is saved on this phone. Sending it helps fix it. It holds the error, the app and Android versions and the phone model, never what you typed.", 13f, ui.dim),
+        ui.gap(10f),
+        ui.primaryButton("Send report") {
+            CrashLog.send(this, Net.SITE) { ok ->
+                Toast.makeText(this, if (ok) "Sent. Thank you" else "Couldn't send it. Try again later", Toast.LENGTH_SHORT).show()
+                if (ok && !isFinishing) build()
+            }
+        },
+        ui.ghostButton("See what's sent") {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Crash report")
+                .setMessage(CrashLog.report(this, trace).toString(2))
+                .setPositiveButton("Close", null)
+                .show()
+        },
+        ui.ghostButton("Delete it") { CrashLog.clear(this); build() },
+    )
+
+    // ─── Backup ─────────────────────────────────────────────────────────────
+
+    private val requestBackup = 41
+    private val requestRestore = 42
+
+    /** Asks where to save the backup; the system's file picker can save to Drive too. */
+    private fun startBackup() = pickFile(
+        Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("application/zip").putExtra(Intent.EXTRA_TITLE, Backup.fileName()),
+        requestBackup,
+    )
+
+    private fun startRestore() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Restore from a backup?")
+            .setMessage("Your settings, learned words, themes, shortcuts and sticker packs on this phone will be replaced by the backup's.")
+            .setPositiveButton("Choose file") { _, _ ->
+                pickFile(
+                    Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                        .setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/zip", "application/octet-stream")),
+                    requestRestore,
+                )
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun pickFile(intent: Intent, request: Int) = try {
+        @Suppress("DEPRECATION") startActivityForResult(intent, request)
+    } catch (e: Exception) {
+        Toast.makeText(this, "No file picker on this phone", Toast.LENGTH_LONG).show()
+    }
+
+    @Deprecated("Activity result API, kept for plain Activity")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION") super.onActivityResult(requestCode, resultCode, data)
+        val uri = data?.data
+        if (resultCode != RESULT_OK || uri == null) return
+        val app = applicationContext
+        when (requestCode) {
+            requestBackup -> Net.background {
+                val msg = try {
+                    val packs = contentResolver.openOutputStream(uri)?.use { Backup.write(app, it) }
+                        ?: throw java.io.IOException("can't open")
+                    if (packs > 0) "Backed up, with $packs sticker packs" else "Backed up"
+                } catch (e: Exception) { "Couldn't save the backup there" }
+                Net.ui { Toast.makeText(app, msg, Toast.LENGTH_LONG).show() }
+            }
+            requestRestore -> Net.background {
+                val msg = try {
+                    val r = contentResolver.openInputStream(uri)?.use { Backup.restore(app, it) }
+                        ?: throw java.io.IOException("can't open")
+                    "Restored ${r.settings} settings" + if (r.packs > 0) " and ${r.packs} sticker packs" else ""
+                } catch (e: IllegalArgumentException) { e.message ?: "That isn't an Akai backup file" }
+                catch (e: Exception) { "Couldn't read that file" }
+                Net.ui {
+                    Toast.makeText(app, msg, Toast.LENGTH_LONG).show()
+                    // Start again so every page shows the restored settings and theme.
+                    if (!isFinishing) recreate()
+                }
+            }
+        }
+    }
 
     // ─── Updates ────────────────────────────────────────────────────────────
 
@@ -521,6 +611,25 @@ class SettingsActivity : ThemedActivity() {
             mine.addView(navRow(d.emoji, d.name, "Tap to edit") { ThemeEditorActivity.edit(this, d.id) }, wrap)
         }
         c.addView(mine, wrap)
+
+        val dark = prefs.getString(Prefs.THEME_DARK, "").orEmpty()
+        c.addView(ui.section("Dark mode"))
+        val darkCard = ui.card(pad = 6f)
+        darkCard.addView(ui.switchRow("Different theme in dark mode", "Switches when the phone goes dark, and back", dark.isNotBlank()) { onNow ->
+            prefs.edit().putString(Prefs.THEME_DARK, if (onNow) Themes.firstDark(current.id) else "").apply()
+            loadTheme(); build()
+        }.apply {
+            // This card is padded for nav rows; line the switch up with the switches in other cards.
+            setPadding(paddingLeft + ui.dp(10f), paddingTop + ui.dp(8f), paddingRight + ui.dp(10f), paddingBottom + ui.dp(8f))
+        }, wrap)
+        if (dark.isNotBlank()) {
+            darkCard.addView(divider())
+            val d = Themes.find(dark)
+            darkCard.addView(navRow(d.emoji, ui.tr("Dark mode theme: {name}", "name" to d.name), "Tap to choose another") {
+                ThemesActivity.pickDark(this)
+            }, wrap)
+        }
+        c.addView(darkCard, wrap)
 
         group(c, "Motion",
             ui.switchRow("Animated backgrounds", "Live themes move behind the keys (pauses while you type)", on(Prefs.LIVE_BG, true)) { put(Prefs.LIVE_BG, it) },
@@ -836,6 +945,10 @@ class SettingsActivity : ThemedActivity() {
         updateRow.setOnClickListener { checkForUpdates(updateRow.findViewWithTag("sub")) }
         val links = ui.card(pad = 6f).apply {
             addView(updateRow, wrap)
+            addView(divider())
+            addView(navRow("💾", "Back up settings", "Settings, learned words, your themes and sticker packs, in one file") { startBackup() }, wrap)
+            addView(divider())
+            addView(navRow("📥", "Restore from a backup", "Replaces what's on this phone with the backup's") { startRestore() }, wrap)
             addView(divider())
             addView(navRow("🌐", "Website", Net.SITE.removePrefix("https://")) { openLink(Net.SITE) }, wrap)
         }
