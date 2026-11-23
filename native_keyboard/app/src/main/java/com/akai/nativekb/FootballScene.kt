@@ -428,7 +428,12 @@ object FootballScene {
     // paints) is not.
 
     private val stills = HashMap<String, Bitmap>()
-    private val decoding = HashSet<String>()
+    /**
+     * Who is waiting for each still being built. The picker rebuilds its
+     * previews (switching tabs, coming back to it), so a still can be asked
+     * for by several views; every one of them is told when it's ready.
+     */
+    private val waiting = HashMap<String, MutableList<() -> Unit>>()
 
     /**
      * The club's background, [pw] x [ph] pixels, for the theme picker. Null
@@ -437,8 +442,10 @@ object FootballScene {
     fun still(context: Context, type: String, pw: Int, ph: Int, ready: () -> Unit): Bitmap? {
         stills[type]?.let { return it }
         attach(context)
-        if (pw <= 0 || ph <= 0 || !decoding.add(type)) return null
+        if (pw <= 0 || ph <= 0) return null
         val am = assets ?: return null
+        waiting[type]?.let { it.add(ready); return null }
+        waiting[type] = mutableListOf(ready)
         val wantCrest = hasCrest(type)
         Thread {
             val crest = if (!wantCrest) null else try {
@@ -449,8 +456,7 @@ object FootballScene {
                 buildArt(Canvas(bmp), pw, ph, type, crest, withCrest = true)
                 crest?.recycle()
                 stills[type] = bmp
-                decoding.remove(type)
-                ready()
+                waiting.remove(type)?.forEach { it() }
             }
         }.start()
         return null

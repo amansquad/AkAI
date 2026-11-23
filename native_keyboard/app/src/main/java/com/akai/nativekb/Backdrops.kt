@@ -74,6 +74,9 @@ object Backdrops {
             glow.shader = null; glow.style = Paint.Style.FILL
         }
 
+        // A faith picture's verse, in Amharic or Arabic
+        FaithQuotes.draw(canvas, w, h, live)
+
         // Gold sparkles drifting up, so a picture is never quite still.
         for (i in 0 until 26) {
             val seed = i * 7919

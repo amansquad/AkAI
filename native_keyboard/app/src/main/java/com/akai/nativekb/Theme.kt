@@ -108,7 +108,12 @@ object Themes {
         // and faith scenes, the pictures, and every football club's stage.
         val scene = CulturalScenes.has(d.live) || Backdrops.isPicture(d.live) || d.category == "football" || d.category == "faith"
         val football = d.category == "football"
-        val keyAlpha = if (football) footballFill * 255 / 100 else 0xCC
+        // A faith picture with a verse: keys at about 55%, so the verse reads through them.
+        val keyAlpha = when {
+            football -> footballFill * 255 / 100
+            FaithQuotes.has(d.live) -> 0x8C
+            else -> 0xCC
+        }
         fun k(c: Int) = if (scene) seeThrough(c, keyAlpha) else keep(c, bg, live)
         val key = k(d.key); val special = k(d.keySecondary)
         // A football club's photo is toned dark, so text on it is light, and each

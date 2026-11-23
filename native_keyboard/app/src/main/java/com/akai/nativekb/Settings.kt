@@ -979,6 +979,7 @@ class SettingsActivity : ThemedActivity() {
         )
         group(c, "Credits",
             note("English and Arabic word lists from FrequencyWords by Hermit Dave, CC BY-SA 4.0.\nAmharic word list and next-word suggestions from Amharic Wikipedia, and Amharic words from English Wiktionary, CC BY-SA 4.0.\nTigrinya, Oromo and Somali word lists from Tigrinya, Oromo and Somali Wikipedia, CC BY-SA 4.0.\nHandwriting by Google ML Kit digital ink recognition.\nGIFs powered by Giphy."),
+            note("Faith theme photos from Wikimedia Commons: Bete Giyorgis by Bernard Gagnon (CC BY-SA 3.0); Debre Berhan Selassie ceiling by Rod Waddington (CC BY-SA 2.0); Holy Trinity Cathedral stained glass by DoGoodResearch (CC BY-SA 4.0); St Mary of Zion by A.Savin (Free Art License); Kidus Giorgis icon by Felitsata (CC BY-SA 4.0); St Abbo painting, Bete Mercurios, by A. Davey (CC BY 2.0); Amist Kilo Mekane Yesus (CC0); Wittenberg Castle Church by Toni Klemm (CC BY-SA 4.0); the cross on the Hochries by Diego Delso (CC BY-SA 4.0); Nativity Catholic Cathedral, Addis Ababa, by A.Savin (Free Art License); St Peter's Basilica by Alvesgaspar (CC BY-SA 4.0); The Creation of Adam by Michelangelo (public domain);the Kaaba by Adli Wahid (CC BY-SA 4.0); the Green Dome by TheHadiRahim (CC0); Anwar Mosque by Gangaddis (CC BY-SA 4.0); Negash Mosque by Evan Williams (CC BY-SA 4.0); Jamia Mosque, Harar, by Bikoadem (CC BY-SA 4.0). Resized and cropped to fit the keyboard."),
         )
     }
 }

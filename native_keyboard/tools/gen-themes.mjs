@@ -90,6 +90,50 @@ for (const f of files) {
   }
 }
 
+// Native-only faith themes: a photo of a church, mosque or saint's icon from
+// public/faith (bundled by gen-backdrops.mjs) with a verse over it, Amharic
+// for the Christian ones and Arabic for the Islamic ones (FaithQuotes.kt).
+// The colours follow the faith palettes above: gold on purple for icons, gold
+// on warm stone for rock and stone churches, gold on navy, and Islamic green.
+const PALETTES = {
+  icon: ['1B0F2E', '2A1A44', '3B2B5A', '4B356F', '5A447E', '2F1B4D', '3B275F', 'DAA520', 'E0C060', 'F6F0FF', 'CBB9E5', 'DAA520', 'B8860B', 'FFD36B'],
+  stone: ['1C130B', '2B1D10', '3D2A17', '4A3320', '5C4129', '2E2013', '3B2918', 'DAA520', 'E0C060', 'FFF8EC', 'E8D3B0', 'DAA520', 'B8860B', 'FFD36B'],
+  navy: ['0F172A', '1E293B', '334155', '1E3A8A', '1E40AF', '0F172A', '1E293B', 'FACC15', 'FDE047', 'FFFFFF', 'A5F3FC', 'FACC15', 'EAB308', 'FDE047'],
+  night: ['020617', '0F172A', '1E293B', '1E293B', '334155', '020617', '0F172A', 'FACC15', 'FDE047', 'FFFFFF', 'FDE047', 'FACC15', 'EAB308', 'FDE047'],
+  green: ['064E3B', '065F46', '047857', '059669', '10B981', '064E3B', '065F46', '34D399', '6EE7B7', 'ECFDF5', 'A7F3D0', '34D399', '059669', '6EE7B7'],
+};
+const NATIVE_FAITH = [
+  ['faith_lalibela', 'Bete Giyorgis', '⛪', 'stone'],
+  ['faith_debre_berhan', 'Debre Berhan Selassie', '👼', 'icon'],
+  ['faith_trinity', 'Holy Trinity Cathedral', '⛪', 'navy'],
+  ['faith_zion', 'St Mary of Zion', '✝️', 'stone'],
+  ['faith_giorgis', 'Kidus Giorgis', '🐎', 'icon'],
+  ['faith_abo', 'Abune Gebre Menfes Kidus', '🦁', 'icon'],
+  // Protestant
+  ['faith_mekane_yesus', 'Mekane Yesus', '⛪', 'navy'],
+  ['faith_wittenberg', 'Wittenberg Castle Church', '📖', 'night'],
+  ['faith_cross', 'The Cross at Dawn', '✝️', 'stone'],
+  // Catholic
+  ['faith_nativity_addis', 'Nativity Cathedral, Addis', '⛪', 'icon'],
+  ['faith_st_peter', "St Peter's Basilica", '⛪', 'navy'],
+  ['faith_creation', 'The Creation of Adam', '🎨', 'stone'],
+  // Islamic
+  ['faith_kaaba', 'The Kaaba', '🕋', 'night'],
+  ['faith_nabawi', "The Prophet's Mosque", '🕌', 'green'],
+  ['faith_anwar', 'Anwar Mosque', '🕌', 'green'],
+  ['faith_negash', 'Negash Mosque', '🕌', 'green'],
+  ['faith_jamia_harar', 'Jamia Mosque, Harar', '🕌', 'navy'],
+];
+for (const [id, name, emoji, pal] of NATIVE_FAITH) {
+  if (seen.has(id)) continue;
+  seen.add(id);
+  const p = { id, name, emoji, category: 'faith', live: '/faith/' + id.replace(/^faith_/, '') };
+  COLORS.forEach((c, i) => { p[c] = 'FF' + PALETTES[pal][i]; });
+  // After the last faith theme, so the Faith filter lists them together.
+  const lastFaith = out.map(x => x.category).lastIndexOf('faith');
+  out.splice(lastFaith + 1, 0, p);
+}
+
 const hex = (h) => `0x${h}.toInt()`;
 const rows = out.map(p =>
   `        PaletteDef(${q(p.id)}, ${q(p.name)}, ${q(p.emoji)}, ${q(p.category)}, ${q(p.live)},\n` +
