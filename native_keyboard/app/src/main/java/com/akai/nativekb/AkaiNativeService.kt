@@ -1646,6 +1646,8 @@ object Prefs {
     const val KB_FONT = "keyboard_font"
     /** Toolbar, suggestion and panel text size, in percent. */
     const val STRIP_TEXT = "toolbar_text_size"
+    /** How filled football themes' keys are, 0-100%. */
+    const val FOOTBALL_FILL = "football_key_fill"
     /** Suggestion bar height, in percent. */
     const val STRIP_HEIGHT = "suggestion_bar_height"
     const val AUTO_SPACE = "auto_space_punctuation"

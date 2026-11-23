@@ -281,10 +281,12 @@ object MiniKeyboard {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val r = RectF()
 
-    fun draw(canvas: Canvas, left: Float, top: Float, w: Float, h: Float, pal: Palette) {
-        paint.color = pal.background
-        r.set(left, top, left + w, top + h)
-        canvas.drawRoundRect(r, h * 0.1f, h * 0.1f, paint)
+    fun draw(canvas: Canvas, left: Float, top: Float, w: Float, h: Float, pal: Palette, background: Boolean = true) {
+        if (background) {
+            paint.color = pal.background
+            r.set(left, top, left + w, top + h)
+            canvas.drawRoundRect(r, h * 0.1f, h * 0.1f, paint)
+        }
         val pad = w * 0.05f
         val rows = 4
         val gap = h * 0.04f
@@ -308,10 +310,23 @@ object MiniKeyboard {
     }
 }
 
-class ThemePreview(context: Context, def: PaletteDef) : View(context) {
+class ThemePreview(context: Context, private val def: PaletteDef) : View(context) {
     // From the definition itself: a shared theme being browsed isn't installed, so it can't be found by id.
     private val pal = run { CustomThemes.refresh(context); Themes.palette(def) }
-    override fun onDraw(canvas: Canvas) = MiniKeyboard.draw(canvas, 0f, 0f, width.toFloat(), height.toFloat(), pal)
+    private val club = def.category == "football"
+    private val clip = android.graphics.Path()
+
+    override fun onDraw(canvas: Canvas) {
+        val w = width.toFloat(); val h = height.toFloat()
+        // A football club shows its own backdrop and crest behind the keys, at half resolution.
+        val still = if (club) FootballScene.still(context, def.live, width / 2, height / 2) { invalidate() } else null
+        if (still == null) { MiniKeyboard.draw(canvas, 0f, 0f, w, h, pal); return }
+        clip.reset(); clip.addRoundRect(RectF(0f, 0f, w, h), h * 0.1f, h * 0.1f, android.graphics.Path.Direction.CW)
+        canvas.save(); canvas.clipPath(clip)
+        canvas.drawBitmap(still, null, RectF(0f, 0f, w, h), Paint(Paint.FILTER_BITMAP_FLAG))
+        canvas.restore()
+        MiniKeyboard.draw(canvas, 0f, 0f, w, h, pal, background = false)
+    }
 }
 
 class ThemesActivity : ThemedActivity() {

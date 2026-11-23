@@ -18,6 +18,8 @@ class Palette(
     val text: Int, val specialText: Int,
     val accentMuted: Int, val glow: Int,
     val def: PaletteDef,
+    /** Text drawn straight on the background (toolbar, suggestions, word of the day) and its dimmer hint. */
+    val barText: Int = text, val barHint: Int = specialText,
 ) {
     /** The accent key's label colour: white, as in the Flutter keyboard, unless the key is very light. */
     val accentText: Int = if (ColorUtils.calculateLuminance(keyAccent) > 0.7) 0xFF111111.toInt() else 0xFFFFFFFF.toInt()
@@ -81,10 +83,20 @@ object Themes {
      * The cultural themes with a scene of their own were designed with solid
      * keys; at about 80% the scene shows through them while letters stay clear.
      */
-    private fun seeThrough(c: Int): Int = ColorUtils.setAlphaComponent(c, minOf(android.graphics.Color.alpha(c), 0xCC))
+    private fun seeThrough(c: Int, max: Int = 0xCC): Int = ColorUtils.setAlphaComponent(c, minOf(android.graphics.Color.alpha(c), max))
+
+    /**
+     * How filled football themes' keys are, in percent (Settings › Keys ›
+     * Football themes). By default they're nearly clear glass, so the club's
+     * motif and crest show through them; the letters stay solid.
+     */
+    const val FOOTBALL_FILL_DEFAULT = 10
+    @Volatile private var footballFill = FOOTBALL_FILL_DEFAULT
 
     fun palette(context: Context, id: String): Palette {
         CustomThemes.refresh(context)
+        footballFill = context.getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
+            .getInt(Prefs.FOOTBALL_FILL, FOOTBALL_FILL_DEFAULT).coerceIn(0, 100)
         return palette(find(id))
     }
 
@@ -95,17 +107,37 @@ object Themes {
         // Themes whose scene or picture was hidden behind solid keys: the cultural
         // and faith scenes, the pictures, and every football club's stage.
         val scene = CulturalScenes.has(d.live) || Backdrops.isPicture(d.live) || d.category == "football" || d.category == "faith"
-        fun k(c: Int) = if (scene) seeThrough(c) else keep(c, bg, live)
+        val football = d.category == "football"
+        val keyAlpha = if (football) footballFill * 255 / 100 else 0xCC
+        fun k(c: Int) = if (scene) seeThrough(c, keyAlpha) else keep(c, bg, live)
+        val key = k(d.key); val special = k(d.keySecondary)
+        // A football club's photo is toned dark, so text on it is light, and each
+        // key's label is whichever of its own colour or white reads better there.
+        val text = if (football) readable(d.keyText, key) else d.keyText
+        val specialText = if (football) readable(d.keySecondaryText, special) else d.keySecondaryText
         return Palette(
             background = bg, surface = solid(d.surface), surfaceVariant = solid(d.surfaceVariant),
             // A live theme's keys stay translucent so its animation shows through them.
-            key = k(d.key), pressed = keep(d.keyPressed, bg, live),
-            special = k(d.keySecondary),
+            key = key, pressed = keep(d.keyPressed, bg, live),
+            special = special,
             specialPressed = keep(d.keySecondaryPressed, bg, live),
             keyAccent = d.keyAccent, accentPressed = d.keyAccentPressed, accent = d.accent,
-            text = d.keyText, specialText = d.keySecondaryText,
+            text = text, specialText = specialText,
             accentMuted = d.accentMuted, glow = d.glow,
             def = d,
+            barText = if (football) 0xF2FFFFFF.toInt() else text,
+            barHint = if (football) 0xB3FFFFFF.toInt() else specialText,
         )
+    }
+
+    /** The dark club background behind a key: what a see-through key really shows over. */
+    private const val PHOTO_SHADE = 0xFF141414.toInt()
+
+    /** [label] if it reads clearly on [keyColour] laid over the photo's shade, else white or near-black, whichever reads better. */
+    private fun readable(label: Int, keyColour: Int): Int {
+        val seen = ColorUtils.compositeColors(keyColour, PHOTO_SHADE)
+        if (ColorUtils.calculateContrast(solid(label), seen) >= 4.5) return label
+        val white = 0xFFFFFFFF.toInt(); val black = 0xFF111111.toInt()
+        return if (ColorUtils.calculateContrast(white, seen) >= ColorUtils.calculateContrast(black, seen)) white else black
     }
 }

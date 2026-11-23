@@ -10,7 +10,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RadialGradient
@@ -23,52 +22,221 @@ import androidx.core.graphics.ColorUtils
 import java.util.Random
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * The football-club scenes. Every club looks like a photo of its shirt with the
- * crest on it: the kit's own pattern (stripes, hoops, sash, PSG's centre band,
- * Bayern's diamonds...) in felt-textured fabric with diagonal folds, and the
- * club's crest from assets/crests/<theme id>.webp. A club with no crest there
- * gets a drawn oval badge with its initials and founding year instead. A club
- * with a full picture in assets/kits/<theme id>.webp shows that picture.
- * Either way the image breathes with a slow zoom under a drifting sheen.
+ * The football-club scenes. Each club's motif (ClubMotifs: what the club is
+ * known by, like Arsenal's cannon for the Gunners or lightning for Ethio
+ * Electric) plays over the background, casting a shadow onto it. A club with
+ * a crest in assets/crests/<theme id>.webp gets the crest's own colours glowing
+ * behind, and the crest itself as a solid 3D badge: it has real thickness,
+ * tilts gently in perspective, casts a shadow that moves with it and catches
+ * a glint of light as it turns. A club with no crest gets its shirt in the kit
+ * pattern with its name across it (never a made-up badge).
  */
 object FootballScene {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bmpPaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val dst = RectF()
-    private val add = PorterDuffXfermode(PorterDuff.Mode.ADD)
 
     private fun a(color: Int, o: Float) = ColorUtils.setAlphaComponent(color, (o * 255f).toInt().coerceIn(0, 255))
     private fun reset() { paint.shader = null; paint.xfermode = null; paint.style = Paint.Style.FILL; paint.strokeWidth = 1f; paint.maskFilter = null }
 
     fun paint(canvas: Canvas, w: Float, h: Float, time: Float, type: String) {
-        val bmp = photo(type) ?: kitArt(w, h, type)
-        val breathe = 1.04f + 0.03f * sin(time * 0.25f * 2f * PI.toFloat())
-        val scale = max(w / bmp.width, h / bmp.height) * breathe
+        // The kit photo is only for a club with neither a crest nor a name to show.
+        val photo = if (hasCrest(type) || type in wordmarks) null else photo(type)
+        val bmp = photo ?: kitArt(w, h, type)
+        val scale = max(w / bmp.width, h / bmp.height)
         val bw = bmp.width * scale; val bh = bmp.height * scale
         dst.set((w - bw) / 2f, (h - bh) / 2f, (w + bw) / 2f, (h + bh) / 2f)
         canvas.drawBitmap(bmp, null, dst, bmpPaint)
-        sheen(canvas, w, h, time)
+        if (photo != null) return
+        // The club's motif: what it is known by (Arsenal's cannon for the Gunners,
+        // lightning for Ethio Electric, Gondar's castle for Fasil Kenema...)
+        FootballStyles.all[type]?.let { st -> motif(canvas, w, h, time, st, motifOf(type) ?: st.motif) }
+        val b = badge
+        if (b != null && badgeKey == artKey) badge3d(canvas, time, b, dst.width() / bmp.width)
     }
 
-    /** A slow sheen drifting diagonally across the shirt. */
-    private fun sheen(c: Canvas, w: Float, h: Float, time: Float) {
-        val t = (time * 0.6f) % 1f
-        val sx = -w * 0.6f + t * w * 2.2f
-        reset()
-        paint.xfermode = add
-        paint.shader = LinearGradient(
-            sx, 0f, sx + w * 0.35f, h * 0.6f,
-            intArrayOf(0, a(0xFFFFFFFF.toInt(), 0.07f), 0), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP,
-        )
-        c.drawRect(0f, 0f, w, h, paint)
-        reset()
+    // ── The club's motif ────────────────────────────────────────────────────
+
+    /**
+     * The motifs were timed for a faster clock; at this pace the cannon fires
+     * and the lightning strikes every couple of seconds instead of twice a second.
+     */
+    private const val MOTIF_SPEED = 0.25f
+    /** The motifs were drawn for a smaller stage; scaled up they read past the keys. */
+    private const val MOTIF_SCALE = 1.5f
+
+    /** Where the generated FootballStyles motif misses the club: Chelsea's crest is a lion, not a sun. */
+    private val motifOverrides = mapOf("fb_chelsea" to "lion")
+
+    /** Turns everything drawn in its layer into a translucent black silhouette: the motif's shadow. */
+    private val shadowLayer = Paint().apply {
+        colorFilter = android.graphics.PorterDuffColorFilter(0x73000000, PorterDuff.Mode.SRC_IN)
+    }
+
+    /**
+     * Draws the motif twice: first as a shadow, dropped down and to the right
+     * onto the background, then itself, so it stands off the background
+     * instead of lying flat on it.
+     */
+    private fun motif(c: Canvas, w: Float, h: Float, time: Float, st: TeamStyle, name: String) {
+        val t = time * MOTIF_SPEED
+        c.saveLayer(null, shadowLayer)
+        c.translate(w * 0.012f, h * 0.03f)
+        motifPass(c, w, h, t, st, name)
+        c.restore()
+        motifPass(c, w, h, t, st, name)
+    }
+
+    /**
+     * Motifs that read well as a matching pair, one on each side of the crest:
+     * cannons flanking it, a row of wind turbines, Axum's stelae. The right one
+     * is mirrored and half a beat behind, so the two take turns (the cannons
+     * fire one after the other).
+     */
+    private val pairMotifs = setOf("cannon", "windmill", "obelisk")
+
+    /**
+     * Motifs that are one emblem (the trident, a crown, the Eiffel Tower, a
+     * lion, a castle...): drawn once, big, in the middle, rising out from
+     * behind the crest. The swords are already a crossed pair on their own.
+     */
+    private val bigMotifs = setOf(
+        "knight", "coffee", "castle", "shield", "lion", "temple", "swords", "branch",
+        "devil", "crown", "eiffel", "bull", "wings",
+    )
+
+    /** How much of the width each side's motif has, and how much bigger a pair or a big emblem is drawn. */
+    private const val SIDE_SHARE = 0.4f
+    private const val SIDE_SCALE = 1.8f
+    private const val BIG_GROW = 1.9f
+
+    /** How far down its stage each big emblem's middle is drawn, as a share of the height. */
+    private val emblemMiddle = mapOf(
+        "devil" to 0.44f, "knight" to 0.42f, "coffee" to 0.46f, "castle" to 0.48f, "shield" to 0.48f,
+        "lion" to 0.38f, "temple" to 0.48f, "swords" to 0.40f, "branch" to 0.38f, "crown" to 0.34f,
+        "eiffel" to 0.42f, "bull" to 0.46f, "wings" to 0.38f,
+    )
+
+    /** How far down the crest's centre sits, as a share of the height. */
+    private const val CREST_Y = 0.54f
+
+    /** The club's motif name, after any override. */
+    private fun motifOf(type: String): String? = FootballStyles.all[type]?.let { motifOverrides[type] ?: it.motif }
+
+    private fun motifPass(c: Canvas, w: Float, h: Float, t: Float, st: TeamStyle, name: String) {
+        if (name !in pairMotifs) {
+            c.save()
+            if (name in bigMotifs) {
+                // Centred on the crest and grown about it: the emblem's own middle
+                // (where each motif draws it) is moved onto the crest's middle.
+                val cx = w / 2f; val cy = h * CREST_Y
+                val ay = h * (emblemMiddle[name] ?: 0.45f)
+                c.translate(cx, cy); c.scale(BIG_GROW, BIG_GROW); c.translate(-cx, -ay)
+            }
+            c.scale(MOTIF_SCALE, MOTIF_SCALE)
+            ClubMotifs.paint(c, w / MOTIF_SCALE, h / MOTIF_SCALE, t, st, name)
+            c.restore()
+            return
+        }
+        for (side in 0..1) {
+            c.save()
+            if (side == 1) { c.translate(w, 0f); c.scale(-1f, 1f) }
+            // Each copy keeps to its own half, so the two never draw over each other.
+            c.clipRect(0f, 0f, w / 2f, h)
+            c.scale(SIDE_SCALE, SIDE_SCALE)
+            ClubMotifs.paint(c, w * SIDE_SHARE / SIDE_SCALE, h / SIDE_SCALE, t + side * 0.05f, st, name)
+            c.restore()
+        }
+    }
+
+    private val add = PorterDuffXfermode(PorterDuff.Mode.ADD)
+
+    // ── The 3D badge ────────────────────────────────────────────────────────
+
+    /**
+     * The crest at its drawn size, its silhouette (for the edge and the glint),
+     * a blurred silhouette for the shadow, where it sits in the art's pixels,
+     * the colour of its edge and of the light.
+     */
+    private class Badge(val crest: Bitmap, val mask: Bitmap, val shadow: Bitmap, val shadowPad: Float, val box: RectF, val edge: Int, val light: Int)
+
+    private var badge: Badge? = null
+    private var badgeKey = ""
+    private val camera = android.graphics.Camera()
+    private val matrix = android.graphics.Matrix()
+    private val layerRect = RectF()
+    private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+
+    /** How many slices make up the badge's thickness, and how thick it is (as a share of its width). */
+    private const val SLICES = 10
+    private const val DEPTH = 0.06f
+
+    /**
+     * The badge turned by [time]: it rocks about its upright axis and nods a
+     * little, on two unrelated slow cycles, so it never repeats exactly.
+     * [k] maps the art's pixels to the view.
+     */
+    private fun badge3d(c: Canvas, time: Float, b: Badge, k: Float) {
+        val turn = sin(time / 2.2f * 2f * PI.toFloat()) * 16f
+        val nod = sin(time / 3.3f * 2f * PI.toFloat() + 0.9f) * 7f
+        val cw = b.box.width() * k; val ch = b.box.height() * k
+        val cx = dst.left + b.box.centerX() * k; val cy = dst.top + b.box.centerY() * k
+        val depth = cw * DEPTH
+        // The camera sits further back for a big badge, so the perspective stays gentle.
+        val back = -max(cw, ch) / 72f * 2.6f
+
+        // Shadow: falls down and away from the light, sliding as the badge turns
+        val sx = -turn / 16f * cw * 0.06f + cw * 0.03f
+        val sy = ch * 0.06f + nod / 7f * ch * 0.02f
+        val pw = b.shadowPad * k
+        layerRect.set(cx - cw / 2f - pw + sx, cy - ch / 2f - pw + sy, cx + cw / 2f + pw + sx, cy + ch / 2f + pw + sy)
+        maskPaint.shader = null; maskPaint.xfermode = null
+        maskPaint.color = a(0xFF000000.toInt(), 0.7f)
+        c.drawBitmap(b.shadow, null, layerRect, maskPaint)
+
+        fun place(z: Float) {
+            camera.save()
+            camera.setLocation(0f, 0f, back)
+            camera.rotateY(turn)
+            camera.rotateX(nod)
+            camera.translate(0f, 0f, z)
+            camera.getMatrix(matrix)
+            camera.restore()
+            matrix.preTranslate(-cw / 2f, -ch / 2f)
+            matrix.postTranslate(cx, cy)
+        }
+        layerRect.set(0f, 0f, cw, ch)
+
+        // The edge: slices from the back forward, darker at the back
+        for (i in SLICES downTo 1) {
+            place(depth * i / SLICES)
+            c.save(); c.concat(matrix)
+            val shade = 0.55f + 0.45f * (1f - i / SLICES.toFloat())
+            maskPaint.color = ColorUtils.blendARGB(0xFF000000.toInt(), b.edge, shade)
+            c.drawBitmap(b.mask, null, layerRect, maskPaint)
+            c.restore()
+        }
+
+        // The face
+        place(0f)
+        c.save(); c.concat(matrix)
+        c.drawBitmap(b.crest, null, layerRect, bmpPaint)
+        // The glint: a soft band of light across the face, placed by the turn
+        val g = (0.5f - turn / 32f) * cw * 1.6f - cw * 0.3f
+        maskPaint.xfermode = add
+        maskPaint.shader = LinearGradient(g - cw * 0.22f, 0f, g + cw * 0.22f, ch * 0.5f,
+            intArrayOf(0, a(0xFFFFFFFF.toInt(), 0.32f), 0), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+        c.drawBitmap(b.mask, null, layerRect, maskPaint)
+        maskPaint.shader = null; maskPaint.xfermode = null
+        c.restore()
     }
 
     // ── Club photos ─────────────────────────────────────────────────────────
@@ -86,7 +254,11 @@ object FootballScene {
         val am = context.applicationContext.assets
         assets = am
         kits = try { am.list("kits")?.map { it.substringBeforeLast('.') }?.toSet() ?: emptySet() } catch (e: Exception) { emptySet() }
+        crests = try { am.list("crests")?.map { it.substringBeforeLast('.') }?.toSet() ?: emptySet() } catch (e: Exception) { emptySet() }
     }
+
+    private var crests: Set<String> = emptySet()
+    private fun hasCrest(type: String) = type in crests
 
     private fun photo(type: String): Bitmap? {
         photos[type]?.let { return it }
@@ -99,7 +271,7 @@ object FootballScene {
         return null
     }
 
-    // ── The drawn shirt and badge ───────────────────────────────────────────
+    // ── The drawn shirt, for clubs with no crest ────────────────────────────
 
     /** How a kit is laid out across the shirt. */
     private enum class Pat { STRIPES, PINSTRIPES, HOOPS, HALVES, DIAGONAL, SASH, SLEEVES, CENTRE, DIAMONDS, CHEVRONS, TONAL }
@@ -158,47 +330,14 @@ object FootballScene {
         return try { am.open("crests/$type.webp").use { BitmapFactory.decodeStream(it) } } catch (e: Exception) { null }
     }
 
-    /** Initials for the top of the badge and the founding year (or country) for the bottom. */
-    private val badges = mapOf(
-        "fb_stgeorge" to ("SGFC" to "1935"),
-        "fb_coffee" to ("EBFC" to "1976"),
-        "club_sidama" to ("SCFC" to "ETHIOPIA"),
-        "fb_mekelle" to ("MK70" to "ETHIOPIA"),
-        "fb_diredawa" to ("DDK" to "ETHIOPIA"),
-        "club_awash" to ("AKFC" to "ETHIOPIA"),
-        "club_arba" to ("AMC" to "ETHIOPIA"),
-        "fb_hawassa" to ("HCFC" to "ETHIOPIA"),
-        "club_bahirdar" to ("BDK" to "ETHIOPIA"),
-        "club_electric" to ("EEFC" to "ETHIOPIA"),
-        "club_insurance" to ("EIFC" to "ETHIOPIA"),
-        "club_mekel" to ("MEK" to "ETHIOPIA"),
-        "club_dicha" to ("WDFC" to "ETHIOPIA"),
-        "fb_cbe" to ("CBE" to "ETHIOPIA"),
-        "club_cbe" to ("CBE" to "ETHIOPIA"),
-        "club_negede" to ("NAFC" to "ETHIOPIA"),
-        "fb_negele_arsi" to ("NAFC" to "ETHIOPIA"),
-        "club_shire" to ("SEFC" to "ETHIOPIA"),
-        "club_welwalo" to ("WAU" to "ETHIOPIA"),
-        "club_fasil" to ("FKFC" to "ETHIOPIA"),
-        "club_woldia" to ("WSC" to "ETHIOPIA"),
-        "club_hamb" to ("HCFC" to "ETHIOPIA"),
-        "club_adama" to ("ACFC" to "ETHIOPIA"),
-        "club_hadiya" to ("HHFC" to "ETHIOPIA"),
-        "fb_leipzig" to ("RBL" to "2009"),
-        "fb_arsenal" to ("AFC" to "1886"),
-        "fb_manutd" to ("MUFC" to "1878"),
-        "fb_milan" to ("ACM" to "1899"),
-        "fb_realmadrid" to ("RMCF" to "1902"),
-        "fb_monaco" to ("ASM" to "1924"),
-        "fb_barca" to ("FCB" to "1899"),
-        "fb_juventus" to ("JFC" to "1897"),
-        "fb_inter" to ("FCIM" to "1908"),
-        "fb_mancity" to ("MCFC" to "1880"),
-        "fb_liverpool" to ("LFC" to "1892"),
-        "fb_chelsea" to ("CFC" to "1905"),
-        "fb_psg" to ("PSG" to "1970"),
-        "fb_bayern" to ("FCB" to "1900"),
-        "fb_dortmund" to ("BVB" to "1909"),
+    /**
+     * The club's name, for the few clubs whose real crest we don't have. We
+     * never draw a made-up badge in its place: a stand-in would look like a
+     * crest the club doesn't actually use.
+     */
+    private val wordmarks = mapOf(
+        "club_awash" to ("AWASH" to "KETEMA"),
+        "club_negede" to ("NEGEDE" to "AMHARA"),
     )
 
     /** The art is costly to build, so it is rendered once per club and size. */
@@ -215,27 +354,106 @@ object FootballScene {
         return ColorUtils.HSLToColor(hsl)
     }
 
-    /** Built at the screen's real pixel size so the badge lettering stays sharp. */
+    /**
+     * Built at the screen's real pixel size so the crest and lettering stay
+     * sharp. The crest is left off the background and kept as a [Badge], which
+     * is drawn in 3D on every frame.
+     */
     private fun kitArt(w: Float, h: Float, type: String): Bitmap {
         val density = Resources.getSystem().displayMetrics.density
         val pw = max(1, (w * density).toInt()); val ph = max(1, (h * density).toInt())
         val key = "$type:$pw:$ph"
         art?.let { if (artKey == key && !it.isRecycled) return it }
-        val st = FootballStyles.all[type] ?: TeamStyle(0xFF2E7D32.toInt(), 0xFFFFFFFF.toInt(), "")
-        val kit = kitSpecs[type] ?: Kit(Pat.STRIPES, st.primary, st.secondary)
-        val bmp = Bitmap.createBitmap(pw, ph, Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmp)
-        val fabric = fabric(pw / 2, ph / 2, type, kit)
-        dst.set(0f, 0f, pw.toFloat(), ph.toFloat())
-        c.drawBitmap(fabric, null, dst, bmpPaint)
-        fabric.recycle()
         val crest = crest(type)
-        if (crest != null) { placeCrest(c, pw.toFloat(), ph.toFloat(), crest); crest.recycle() }
-        else badge(c, pw.toFloat(), ph.toFloat(), st, badges[type] ?: ("FC" to ""))
-        vignette(c, pw.toFloat(), ph.toFloat())
+        val bmp = Bitmap.createBitmap(pw, ph, Bitmap.Config.ARGB_8888)
+        buildArt(Canvas(bmp), pw, ph, type, crest, withCrest = false)
+        badge?.let { it.crest.recycle(); it.mask.recycle(); it.shadow.recycle() }
+        badge = crest?.let { makeBadge(it, crestBox(pw.toFloat(), ph.toFloat(), it, type), FootballStyles.all[type]) }
+        badgeKey = key
+        crest?.recycle()
         art?.recycle()
         art = bmp; artKey = key
         return bmp
+    }
+
+    /** The crest drawn at [box]'s size, with its silhouette and soft shadow, ready to turn in 3D. */
+    private fun makeBadge(crest: Bitmap, box: RectF, st: TeamStyle?): Badge {
+        val bw = max(1, box.width().roundToInt()); val bh = max(1, box.height().roundToInt())
+        val face = Bitmap.createScaledBitmap(crest, bw, bh, true)
+        val mask = face.extractAlpha()
+        // The shadow, blurred once here rather than on every frame
+        val pad = max(bw, bh) * 0.08f
+        val sh = Bitmap.createBitmap((bw + pad * 2).roundToInt(), (bh + pad * 2).roundToInt(), Bitmap.Config.ALPHA_8)
+        Canvas(sh).drawBitmap(mask, pad, pad, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            maskFilter = BlurMaskFilter(pad * 0.6f, BlurMaskFilter.Blur.NORMAL)
+        })
+        val (main, accent) = crestColours(crest, st ?: TeamStyle(0xFF2E7D32.toInt(), 0xFFFFFFFF.toInt(), ""))
+        val edge = ColorUtils.blendARGB(main, 0xFF8A8F98.toInt(), 0.35f)
+        val light = ColorUtils.blendARGB(accent, 0xFFFFFFFF.toInt(), 0.6f)
+        return Badge(face, mask, sh, pad, box, edge, light)
+    }
+
+    /** Paints the club's background onto [c], [pw] x [ph] pixels, with the crest flat on it if [withCrest]. */
+    private fun buildArt(c: Canvas, pw: Int, ph: Int, type: String, crest: Bitmap?, withCrest: Boolean) {
+        val st = FootballStyles.all[type] ?: TeamStyle(0xFF2E7D32.toInt(), 0xFFFFFFFF.toInt(), "")
+        val fw = pw.toFloat(); val fh = ph.toFloat()
+        val box = crest?.let { crestBox(fw, fh, it, type) }
+        if (crest != null && box != null) crestStage(c, fw, fh, crest, st, box)
+        else {
+            val kit = kitSpecs[type] ?: Kit(Pat.STRIPES, st.primary, st.secondary)
+            val fabric = fabric(max(1, pw / 2), max(1, ph / 2), type, kit)
+            c.drawBitmap(fabric, null, RectF(0f, 0f, fw, fh), bmpPaint)
+            fabric.recycle()
+        }
+        vignette(c, fw, fh)
+        if (crest != null && box != null) { if (withCrest) placeCrest(c, box, crest) }
+        else wordmarks[type]?.let { wordmark(c, fw, fh, st, it) }
+    }
+
+    /**
+     * Where the crest sits: centred, a little low, about half the height; a
+     * little smaller when the club has a big emblem rising behind it.
+     */
+    private fun crestBox(w: Float, h: Float, crest: Bitmap, type: String): RectF {
+        val share = if (motifOf(type) in bigMotifs) 0.4f else 0.5f
+        val s = min(h * share / crest.height, w * share * 0.84f / crest.width)
+        val cw = crest.width * s; val ch = crest.height * s
+        val cx = w / 2f; val cy = h * CREST_Y
+        return RectF(cx - cw / 2f, cy - ch / 2f, cx + cw / 2f, cy + ch / 2f)
+    }
+
+    // ── Stills for the theme picker ─────────────────────────────────────────
+    // Each club's background with its crest, small, built once. The crest is
+    // decoded off the main thread; the drawing (which shares this object's
+    // paints) is not.
+
+    private val stills = HashMap<String, Bitmap>()
+    private val decoding = HashSet<String>()
+
+    /**
+     * The club's background, [pw] x [ph] pixels, for the theme picker. Null
+     * until ready; [ready] then runs on the main thread.
+     */
+    fun still(context: Context, type: String, pw: Int, ph: Int, ready: () -> Unit): Bitmap? {
+        stills[type]?.let { return it }
+        attach(context)
+        if (pw <= 0 || ph <= 0 || !decoding.add(type)) return null
+        val am = assets ?: return null
+        val wantCrest = hasCrest(type)
+        Thread {
+            val crest = if (!wantCrest) null else try {
+                am.open("crests/$type.webp").use { BitmapFactory.decodeStream(it) }
+            } catch (e: Exception) { null }
+            main.post {
+                val bmp = Bitmap.createBitmap(pw, ph, Bitmap.Config.ARGB_8888)
+                buildArt(Canvas(bmp), pw, ph, type, crest, withCrest = true)
+                crest?.recycle()
+                stills[type] = bmp
+                decoding.remove(type)
+                ready()
+            }
+        }.start()
+        return null
     }
 
     /**
@@ -334,12 +552,115 @@ object FootballScene {
     /** Antialiased step: 1 where [d] (pixels) is well above zero, 0 well below. */
     private fun edge(d: Float) = (0.5f + d / 1.2f).coerceIn(0f, 1f)
 
-    /** The real crest, centred where a crest sits on a shirt photo, with a soft shadow beneath. */
-    private fun placeCrest(c: Canvas, w: Float, h: Float, crest: Bitmap) {
-        val s = min(h * 0.6f / crest.height, w * 0.5f / crest.width)
-        val cw = crest.width * s; val ch = crest.height * s
-        val cx = w / 2f; val cy = h * 0.54f
-        val r = RectF(cx - cw / 2f, cy - ch / 2f, cx + cw / 2f, cy + ch / 2f)
+    // ── The crest stage, for a club with a crest and no photo ───────────────
+
+    /** Paints the crest's colours, bloomed out behind where it sits in [box]. */
+    private fun crestStage(c: Canvas, w: Float, h: Float, crest: Bitmap, st: TeamStyle, box: RectF) {
+        val (main, accent) = crestColours(crest, st)
+        val deep = deepen(main, 0.09f)
+        val cw = box.width(); val ch = box.height()
+        val cx = box.centerX(); val cy = box.centerY()
+
+        // 1. The crest's colours, blurred and blown up behind it in its own layout
+        c.drawColor(deep)
+        val bloom = blurred(crest, deep)
+        val bs = max(w / bloom.width, h / bloom.height) * 1.25f
+        val bw = bloom.width * bs; val bh = bloom.height * bs
+        c.drawBitmap(bloom, null, RectF(cx - bw / 2f, cy - bh / 2f, cx + bw / 2f, cy + bh / 2f), bmpPaint)
+        bloom.recycle()
+        reset()
+        paint.shader = LinearGradient(0f, 0f, 0f, h, a(deep, 0.68f), a(0xFF000000.toInt(), 0.76f), Shader.TileMode.CLAMP)
+        c.drawRect(0f, 0f, w, h, paint)
+        reset()
+
+        // 2. A glow in the crest's second colour where the crest will sit
+        reset()
+        paint.shader = RadialGradient(cx, cy, max(cw, ch) * 0.95f, a(accent, 0.38f), 0, Shader.TileMode.CLAMP)
+        c.drawCircle(cx, cy, max(cw, ch) * 0.95f, paint)
+        reset()
+    }
+
+    /** Keeps the hue, sets the lightness: the deep tone the stage is built on. */
+    private fun deepen(color: Int, l: Float): Int {
+        val hsl = FloatArray(3)
+        ColorUtils.colorToHSL(color, hsl)
+        hsl[2] = l
+        hsl[1] = min(hsl[1], 0.7f)
+        return ColorUtils.HSLToColor(hsl)
+    }
+
+    /**
+     * The crest's two strongest colours: its pixels are grouped by hue and the
+     * two biggest groups win. Black-and-white crests fall back to the kit colours.
+     */
+    private fun crestColours(crest: Bitmap, st: TeamStyle): Pair<Int, Int> {
+        val sw = 40; val sh = max(1, sw * crest.height / crest.width)
+        val small = Bitmap.createScaledBitmap(crest, sw, sh, true)
+        val px = IntArray(sw * sh)
+        small.getPixels(px, 0, sw, 0, 0, sw, sh)
+        if (small !== crest) small.recycle()
+        val weight = FloatArray(12); val rs = FloatArray(12); val gs = FloatArray(12); val bs = FloatArray(12)
+        val hsl = FloatArray(3)
+        for (p in px) {
+            if (Color.alpha(p) < 200) continue
+            ColorUtils.colorToHSL(p, hsl)
+            if (hsl[1] < 0.3f || hsl[2] < 0.15f || hsl[2] > 0.85f) continue
+            val b = (hsl[0] / 30f).toInt().coerceIn(0, 11)
+            val wgt = 0.5f + hsl[1]
+            weight[b] += wgt; rs[b] += Color.red(p) * wgt; gs[b] += Color.green(p) * wgt; bs[b] += Color.blue(p) * wgt
+        }
+        fun avg(b: Int) = Color.rgb((rs[b] / weight[b]).toInt(), (gs[b] / weight[b]).toInt(), (bs[b] / weight[b]).toInt())
+        val order = (0 until 12).sortedByDescending { weight[it] }
+        val first = order[0]
+        if (weight[first] < px.size * 0.04f) return st.primary to st.secondary
+        // The second colour must be a different hue (not the next bucket over) and not a speck.
+        val second = order.drop(1).firstOrNull { b ->
+            val d = abs(b - first).let { min(it, 12 - it) }
+            d >= 2 && weight[b] > weight[first] * 0.12f
+        }
+        return avg(first) to (if (second != null) avg(second) else st.secondary)
+    }
+
+    /** A small, heavily blurred copy of the crest over [base]: a field of its colours in its layout. */
+    private fun blurred(crest: Bitmap, base: Int): Bitmap {
+        val sw = 48; val sh = max(1, sw * crest.height / crest.width)
+        val small = Bitmap.createBitmap(sw, sh, Bitmap.Config.ARGB_8888)
+        Canvas(small).apply {
+            drawColor(base)
+            drawBitmap(crest, null, RectF(0f, 0f, sw.toFloat(), sh.toFloat()), bmpPaint)
+        }
+        val px = IntArray(sw * sh)
+        small.getPixels(px, 0, sw, 0, 0, sw, sh)
+        repeat(3) { boxBlur(px, sw, sh, 3) }
+        small.setPixels(px, 0, sw, 0, 0, sw, sh)
+        return small
+    }
+
+    /** One horizontal and one vertical box-blur pass of radius [r], edges clamped. */
+    private fun boxBlur(px: IntArray, w: Int, h: Int, r: Int) {
+        val tmp = IntArray(px.size)
+        val n = 2 * r + 1
+        for (y in 0 until h) for (x in 0 until w) {
+            var rr = 0; var gg = 0; var bb = 0
+            for (k in -r..r) {
+                val p = px[y * w + (x + k).coerceIn(0, w - 1)]
+                rr += Color.red(p); gg += Color.green(p); bb += Color.blue(p)
+            }
+            tmp[y * w + x] = Color.rgb(rr / n, gg / n, bb / n)
+        }
+        for (y in 0 until h) for (x in 0 until w) {
+            var rr = 0; var gg = 0; var bb = 0
+            for (k in -r..r) {
+                val p = tmp[(y + k).coerceIn(0, h - 1) * w + x]
+                rr += Color.red(p); gg += Color.green(p); bb += Color.blue(p)
+            }
+            px[y * w + x] = Color.rgb(rr / n, gg / n, bb / n)
+        }
+    }
+
+    /** The real crest in [r], with a soft shadow beneath. */
+    private fun placeCrest(c: Canvas, r: RectF, crest: Bitmap) {
+        val cw = r.width(); val ch = r.height()
         val alpha = crest.extractAlpha()
         reset()
         paint.color = a(0xFF000000.toInt(), 0.75f)
@@ -351,98 +672,30 @@ object FootballScene {
     }
 
     /**
-     * The oval badge, centred, with a star above: a white rim, a ring in the
-     * club's darker colour, a white field with the initials on top and the year
-     * below, and a disc of kit stripes between them.
+     * For a club whose crest we don't have: its name, set large across the
+     * shirt with a rule in the kit's second colour. Plainly a name, not a badge.
      */
-    private fun badge(c: Canvas, w: Float, h: Float, st: TeamStyle, text: Pair<String, String>) {
-        val bh = h * 0.6f; val bw = bh * 0.68f
-        val cx = w / 2f; val cy = h * 0.54f
-        val oval = RectF(cx - bw / 2f, cy - bh / 2f, cx + bw / 2f, cy + bh / 2f)
-        // The ring and lettering take whichever kit colour is darker, deepened.
-        val dark = if (ColorUtils.calculateLuminance(st.primary) <= ColorUtils.calculateLuminance(st.secondary)) st.primary else st.secondary
-        val ring = ColorUtils.blendARGB(dark, 0xFF000000.toInt(), 0.35f)
-
-        // Shadow on the fabric
-        reset()
-        paint.color = a(0xFF000000.toInt(), 0.65f)
-        paint.maskFilter = BlurMaskFilter(bh * 0.05f, BlurMaskFilter.Blur.NORMAL)
-        c.drawOval(RectF(oval).apply { offset(bw * 0.02f, bh * 0.025f) }, paint)
-        reset()
-
-        // White outer rim, then the coloured ring
-        paint.color = 0xFFE9E6E6.toInt(); c.drawOval(oval, paint)
-        val rimIn = bw * 0.03f
-        val ringOval = RectF(oval).apply { inset(rimIn, rimIn) }
-        paint.color = ring; c.drawOval(ringOval, paint)
-        val ringIn = bw * 0.075f
-        val field = RectF(ringOval).apply { inset(ringIn, ringIn) }
-        paint.shader = LinearGradient(0f, field.top, 0f, field.bottom, 0xFFFFFFFF.toInt(), 0xFFD9D6D6.toInt(), Shader.TileMode.CLAMP)
-        c.drawOval(field, paint)
-        reset()
-
-        // Disc of kit stripes across the middle of the field
-        val r = field.width() / 2f
-        val disc = Path().apply { addCircle(cx, cy, r, Path.Direction.CW) }
-        c.save()
-        c.clipPath(disc)
-        val n = 7
-        val sw = r * 2f / n
-        for (i in 0 until n) {
-            paint.color = ColorUtils.blendARGB(if (i % 2 == 0) st.primary else st.secondary, 0xFF000000.toInt(), 0.12f)
-            c.drawRect(cx - r + i * sw, cy - r, cx - r + (i + 1) * sw + 0.5f, cy + r, paint)
+    private fun wordmark(c: Canvas, w: Float, h: Float, st: TeamStyle, text: Pair<String, String>) {
+        val cx = w / 2f; val cy = h * 0.52f
+        val maxW = w * 0.72f
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
         }
-        // Thin dark seams between the stripes
-        paint.color = a(ring, 0.8f)
-        for (i in 1 until n) c.drawRect(cx - r + i * sw - sw * 0.06f, cy - r, cx - r + i * sw + sw * 0.06f, cy + r, paint)
-        c.restore()
-        reset()
-        paint.style = Paint.Style.STROKE; paint.strokeWidth = bw * 0.025f; paint.color = ring
-        c.drawCircle(cx, cy, r, paint)
-        reset()
-
-        // Lettering in the white segments above and below the disc
-        paint.color = ring
-        paint.typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
-        paint.textAlign = Paint.Align.CENTER
-        fun label(s: String, top: Float, bottom: Float, maxW: Float) {
-            if (s.isEmpty()) return
-            val segH = bottom - top
-            paint.textSize = segH * 0.62f
-            val tw = paint.measureText(s)
-            if (tw > maxW) paint.textSize *= maxW / tw
-            val fm = paint.fontMetrics
-            c.drawText(s, cx, (top + bottom) / 2f - (fm.ascent + fm.descent) / 2f, paint)
+        fun line(s: String, size: Float, spacing: Float, y: Float, color: Int, shadow: Float) {
+            p.textSize = size
+            p.letterSpacing = spacing
+            val tw = p.measureText(s)
+            if (tw > maxW) p.textSize *= maxW / tw
+            p.color = color
+            p.setShadowLayer(shadow, 0f, shadow * 0.3f, a(0xFF000000.toInt(), 0.7f))
+            c.drawText(s, cx, y, p)
         }
-        label(text.first, field.top, cy - r, field.width() * 0.62f)
-        label(text.second, cy + r, field.bottom, field.width() * 0.6f)
-        paint.typeface = null; paint.textAlign = Paint.Align.LEFT
-
-        // Gloss over the upper left
-        paint.shader = RadialGradient(cx - bw * 0.2f, cy - bh * 0.25f, bw * 0.7f, a(0xFFFFFFFF.toInt(), 0.18f), 0, Shader.TileMode.CLAMP)
-        c.drawOval(oval, paint)
-        reset()
-
-        // Star above the badge
-        star(c, cx, oval.top - bh * 0.1f, bh * 0.055f, 0xFFF2CFC2.toInt())
-    }
-
-    private fun star(c: Canvas, cx: Float, cy: Float, r: Float, color: Int) {
-        val p = Path()
-        for (i in 0 until 10) {
-            val rr = if (i % 2 == 0) r else r * 0.42f
-            val ang = -PI / 2 + i * PI / 5
-            val x = cx + (cos(ang) * rr).toFloat(); val y = cy + (sin(ang) * rr).toFloat()
-            if (i == 0) p.moveTo(x, y) else p.lineTo(x, y)
-        }
-        p.close()
-        reset()
-        paint.color = a(0xFF000000.toInt(), 0.5f)
-        paint.maskFilter = BlurMaskFilter(r * 0.3f, BlurMaskFilter.Blur.NORMAL)
-        c.save(); c.translate(r * 0.08f, r * 0.12f); c.drawPath(p, paint); c.restore()
-        reset()
-        paint.color = color
-        c.drawPath(p, paint)
+        line(text.first, h * 0.2f, 0.06f, cy - h * 0.03f, a(0xFFFFFFFF.toInt(), 0.94f), h * 0.02f)
+        p.clearShadowLayer()
+        p.color = ColorUtils.blendARGB(st.secondary, 0xFFFFFFFF.toInt(), 0.2f)
+        c.drawRect(cx - w * 0.09f, cy + h * 0.015f, cx + w * 0.09f, cy + h * 0.025f, p)
+        line(text.second, h * 0.085f, 0.32f, cy + h * 0.13f, a(0xFFFFFFFF.toInt(), 0.78f), h * 0.015f)
     }
 
     private fun vignette(c: Canvas, w: Float, h: Float) {

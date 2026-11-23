@@ -107,34 +107,197 @@ object ClubMotifs {
         glow(c, cx, cy, 20f, a(WHITE, 0.9f), a(st.primary, 0.4f), 0)
     }
 
-    // St George: a glowing sword with a dragon-fire at its tip.
+    // St George: his lance, as on the crest where he slays the dragon: a turned
+    // wooden shaft with a leather grip and steel hand guard, a ridged steel
+    // spearhead, a St George's cross pennant fluttering behind it, and the
+    // dragon's fire licking at the point.
     private fun knight(c: Canvas, w: Float, h: Float, time: Float, st: TeamStyle) {
-        glow(c, w * 0.35f, h * 0.28f, w * 0.20f, a(st.primary, 0.35f), 0)
-        val tipX = w * 0.78f; val tipY = h * 0.62f
-        val tailX = w * 0.18f; val tailY = h * 0.22f
-        reset()
-        p.shader = LinearGradient(tailX, tailY, tipX, tipY, intArrayOf(hex(0xFFB8860B), st.primary, hex(0xFFFFF8E1)), null, Shader.TileMode.CLAMP)
-        p.strokeWidth = 5f; p.strokeCap = Paint.Cap.ROUND
-        c.drawLine(tailX, tailY, tipX, tipY, p); reset()
+        glow(c, w * 0.35f, h * 0.28f, w * 0.20f, a(st.primary, 0.30f), 0)
+        val tailX = w * 0.14f; val tailY = h * 0.20f
+        val tipX = w * 0.80f; val tipY = h * 0.64f
         val dx = tipX - tailX; val dy = tipY - tailY
         val len = sqrt(dx * dx + dy * dy)
-        val ux = dx / len; val uy = dy / len
-        val px = -uy; val py = ux
+
+        // Fire behind the point first, so the steel sits in it
+        dragonFire(c, tipX, tipY, dx / len, dy / len, time, st)
+
+        c.save()
+        c.translate(tailX, tailY)
+        c.rotate(rad2deg(kotlin.math.atan2(dy.toDouble(), dx.toDouble())))
+        val head = 44f; val socket = 14f
+        val shaftEnd = len - head - socket
+
+        // Soft shadow under the whole lance
         path.reset()
-        path.moveTo(tipX + ux * 16, tipY + uy * 16)
-        path.lineTo(tipX + px * 7, tipY + py * 7)
-        path.lineTo(tipX - px * 7, tipY - py * 7)
-        path.close(); fillPath(c, path, hex(0xFFFFF8E1))
-        val gt = (time * 4) % 1f
-        dot(c, tailX + (tipX - tailX) * gt, tailY + (tipY - tailY) * gt, 7f, a(WHITE, 0.8f * (1f - abs(gt - 0.5f) * 2f)))
-        val rand = Random(13)
-        for (i in 0 until 16) {
-            val t = ((time * 2 + rand.nextDouble()) % 1.0).toFloat()
-            val fx = w * 0.86f + (rand.nextDouble().toFloat() - 0.5f) * w * 0.14f - t * w * 0.10f
-            val fy = h * 0.72f - t * h * 0.30f
+        path.moveTo(0f, -5f); path.lineTo(shaftEnd, -3.6f); path.lineTo(len, 0f); path.lineTo(shaftEnd, 3.6f); path.lineTo(0f, 5f); path.close()
+        c.save(); c.translate(3f, 6f)
+        reset(); p.color = a(hex(0xFF000000), 0.45f); p.maskFilter = BlurMaskFilter(5f, BlurMaskFilter.Blur.NORMAL); c.drawPath(path, p); reset()
+        c.restore()
+
+        // The shaft: tapering, shaded round, with a few grain lines
+        path.reset()
+        path.moveTo(0f, -5f); path.lineTo(shaftEnd, -3.6f); path.lineTo(shaftEnd, 3.6f); path.lineTo(0f, 5f); path.close()
+        reset()
+        p.shader = LinearGradient(0f, -5f, 0f, 5f,
+            intArrayOf(hex(0xFF3A210E), hex(0xFFB07A45), hex(0xFFD9A86E), hex(0xFF7A4A22), hex(0xFF2A170A)),
+            floatArrayOf(0f, 0.25f, 0.4f, 0.75f, 1f), Shader.TileMode.CLAMP)
+        c.drawPath(path, p); reset()
+        c.save(); c.clipPath(path)
+        val grain = Random(29)
+        for (i in 0 until 6) {
+            val gy = -4f + grain.nextFloat() * 8f
+            val g = Path(); g.moveTo(0f, gy)
+            var x = 0f
+            while (x < shaftEnd) { x += 18f; g.lineTo(x, gy + sin(x * 0.05f + i).toFloat() * 0.6f) }
+            strokePath(c, g, a(hex(0xFF2A170A), 0.35f), 0.6f)
+        }
+        c.restore()
+
+        // Steel butt cap
+        metalBand(c, 0f, 6f, 5.4f)
+        // Leather grip, wrapped on the bias
+        val g0 = len * 0.12f; val g1 = len * 0.24f
+        reset(); p.color = hex(0xFF2B1A12); r.set(g0, -5.2f, g1, 5.2f); c.drawRect(r, p)
+        c.save(); c.clipRect(r)
+        var x = g0 - 10f
+        while (x < g1 + 10f) {
+            line(c, x, 5.2f, x + 6f, -5.2f, a(hex(0xFF6B4630), 0.9f), 1.6f)
+            line(c, x + 1.4f, 5.2f, x + 7.4f, -5.2f, a(hex(0xFF120A06), 0.6f), 0.8f)
+            x += 4.2f
+        }
+        c.restore()
+        reset(); p.shader = LinearGradient(0f, -5.2f, 0f, 5.2f, intArrayOf(a(WHITE, 0.18f), 0, a(hex(0xFF000000), 0.35f)), null, Shader.TileMode.CLAMP)
+        c.drawRect(g0, -5.2f, g1, 5.2f, p); reset()
+
+        // The vamplate: a steel cone guarding the hand
+        val v0 = g1 + 2f; val v1 = v0 + 22f
+        path.reset(); path.moveTo(v0, -4.6f); path.lineTo(v1, -15f); path.lineTo(v1, 15f); path.lineTo(v0, 4.6f); path.close()
+        reset()
+        p.shader = LinearGradient(0f, -15f, 0f, 15f,
+            intArrayOf(hex(0xFF5A626D), hex(0xFFE9EEF3), hex(0xFFA7B0BA), hex(0xFF4A515B), hex(0xFF1E2228)),
+            floatArrayOf(0f, 0.22f, 0.42f, 0.75f, 1f), Shader.TileMode.CLAMP)
+        c.drawPath(path, p); reset()
+        reset(); p.color = hex(0xFF2A2F36); r.set(v1 - 2.5f, -15.5f, v1 + 1.5f, 15.5f); c.drawRoundRect(r, 2f, 2f, p)
+        reset(); p.color = a(hex(0xFFD4AF37), 0.9f); r.set(v1 - 1.8f, -15f, v1 + 0.8f, 15f); c.drawRoundRect(r, 1.4f, 1.4f, p); reset()
+
+        // Gilded bands where the head is socketed
+        metalBand(c, shaftEnd - 12f, 3.5f, 4.4f, gold = true)
+        metalBand(c, shaftEnd - 5f, 3.5f, 4.2f, gold = true)
+
+        // The pennant: red, with the white cross of St George, fluttering behind the head
+        pennant(c, shaftEnd - 8f, time)
+
+        // Socket: a steel collar tapering into the blade
+        path.reset(); path.moveTo(shaftEnd, -4.2f); path.lineTo(shaftEnd + socket, -2.6f); path.lineTo(shaftEnd + socket, 2.6f); path.lineTo(shaftEnd, 4.2f); path.close()
+        reset()
+        p.shader = LinearGradient(0f, -4.2f, 0f, 4.2f, intArrayOf(hex(0xFF5A626D), hex(0xFFDDE3E9), hex(0xFF3A4048)), null, Shader.TileMode.CLAMP)
+        c.drawPath(path, p); reset()
+
+        // The blade: leaf-shaped, two faces either side of a raised ridge
+        val b0 = shaftEnd + socket
+        val wide = b0 + head * 0.38f
+        val upper = Path().apply {
+            moveTo(b0, 0f); lineTo(b0, -2.6f)
+            cubicTo(b0 + head * 0.15f, -6f, wide - 6f, -11f, wide, -11f)
+            cubicTo(wide + 10f, -10f, len - 8f, -3f, len, 0f); close()
+        }
+        val lower = Path().apply {
+            moveTo(b0, 0f); lineTo(b0, 2.6f)
+            cubicTo(b0 + head * 0.15f, 6f, wide - 6f, 11f, wide, 11f)
+            cubicTo(wide + 10f, 10f, len - 8f, 3f, len, 0f); close()
+        }
+        reset()
+        p.shader = LinearGradient(0f, -11f, 0f, 0f, intArrayOf(hex(0xFF8E98A3), hex(0xFFF4F7FA)), null, Shader.TileMode.CLAMP)
+        c.drawPath(upper, p); reset()
+        p.shader = LinearGradient(0f, 0f, 0f, 11f, intArrayOf(hex(0xFF6C757F), hex(0xFF2A3038)), null, Shader.TileMode.CLAMP)
+        c.drawPath(lower, p); reset()
+        // Honed edges catch the light; the ridge runs down the middle
+        strokePath(c, upper, a(WHITE, 0.55f), 0.8f)
+        strokePath(c, lower, a(hex(0xFF0E1116), 0.7f), 0.8f)
+        line(c, b0, 0f, len - 2f, 0f, a(WHITE, 0.85f), 0.9f)
+        line(c, b0, 0.9f, len - 3f, 0.6f, a(hex(0xFF1A1E24), 0.6f), 0.7f)
+        // The firelight on the steel, and a shine running down the blade now and then
+        reset(); p.xfermode = addMode
+        p.shader = RadialGradient(len, 0f, head * 0.7f, a(hex(0xFFFF8A00), 0.45f), 0, Shader.TileMode.CLAMP)
+        c.drawPath(upper, p); c.drawPath(lower, p); reset()
+        val sweep = (time * 1.6f) % 1f
+        if (sweep < 0.4f) {
+            val sx = b0 + (sweep / 0.4f) * head
+            c.save(); c.clipPath(upper)
             reset(); p.xfermode = addMode
-            p.color = a(lerp(st.secondary, hex(0xFFFF9800), t), 0.5f * (1f - t))
-            c.drawCircle(fx, fy, 6f + (1f - t) * 10f, p); reset()
+            p.shader = LinearGradient(sx - 8f, 0f, sx + 8f, 0f, intArrayOf(0, a(WHITE, 0.7f), 0), null, Shader.TileMode.CLAMP)
+            c.drawRect(b0, -12f, len, 0f, p); reset()
+            c.restore()
+        }
+        c.restore()
+    }
+
+    /** A turned metal ring around the shaft at [x], [width] long and [rad] in radius. */
+    private fun metalBand(c: Canvas, x: Float, width: Float, rad: Float, gold: Boolean = false) {
+        val colours = if (gold) intArrayOf(hex(0xFF7A5A12), hex(0xFFFFE9A0), hex(0xFFD4AF37), hex(0xFF5C430C))
+        else intArrayOf(hex(0xFF3E444C), hex(0xFFE9EEF3), hex(0xFF8E97A1), hex(0xFF22262C))
+        reset()
+        p.shader = LinearGradient(0f, -rad, 0f, rad, colours, floatArrayOf(0f, 0.3f, 0.6f, 1f), Shader.TileMode.CLAMP)
+        r.set(x, -rad, x + width, rad); c.drawRoundRect(r, 1.2f, 1.2f, p); reset()
+    }
+
+    /**
+     * A swallow-tailed pennant tied on at [x] (in the lance's frame), rippling
+     * in the wind: red, with the white cross of St George.
+     */
+    private fun pennant(c: Canvas, x: Float, time: Float) {
+        val len = 46f; val tall = 18f
+        val cols = 12
+        fun pt(u: Float, v: Float): Pair<Float, Float> {
+            // u along the flag (0 at the lance), v across (0 at the top edge); the wave grows towards the tail
+            val wave = sin((u * 2.4f - time * 9f) * PI).toFloat() * 3.2f * u
+            return Pair(x - u * len * 0.92f, -5f - (1f - v) * tall + wave + u * 4f)
+        }
+        val flag = Path()
+        for (i in 0..cols) { val (fx, fy) = pt(i / cols.toFloat(), 0f); if (i == 0) flag.moveTo(fx, fy) else flag.lineTo(fx, fy) }
+        // Swallow tail
+        val (nx, ny) = pt(0.78f, 0.5f)
+        val (bx, by) = pt(1f, 1f)
+        flag.lineTo(nx, ny); flag.lineTo(bx, by)
+        for (i in cols downTo 0) { val (fx, fy) = pt(i / cols.toFloat(), 1f); flag.lineTo(fx, fy) }
+        flag.close()
+        reset(); p.color = a(hex(0xFF000000), 0.3f); p.maskFilter = BlurMaskFilter(3f, BlurMaskFilter.Blur.NORMAL)
+        c.save(); c.translate(2f, 4f); c.drawPath(flag, p); c.restore(); reset()
+        reset(); p.color = hex(0xFFC8102E); c.drawPath(flag, p)
+        c.save(); c.clipPath(flag)
+        // The white cross on the field
+        val (hx0, hy0) = pt(0f, 0.5f); val (hx1, hy1) = pt(0.85f, 0.5f)
+        line(c, hx0, hy0, hx1, hy1, hex(0xFFF5F5F5), 3.6f)
+        val (vx, vy) = pt(0.32f, 0f); val (vx1, vy1) = pt(0.32f, 1f)
+        line(c, vx, vy, vx1, vy1, hex(0xFFF5F5F5), 3.6f)
+        // Folds: light and shadow following the ripple
+        for (i in 0 until cols) {
+            val u = (i + 0.5f) / cols
+            val shade = sin((u * 2.4f - time * 9f) * PI + PI / 2).toFloat()
+            val (sx, sy) = pt(u, 0f); val (ex, ey) = pt(u, 1f)
+            line(c, sx, sy - 2f, ex, ey + 2f, a(if (shade > 0) WHITE else hex(0xFF000000), abs(shade) * 0.22f), len / cols + 1f)
+        }
+        c.restore()
+        // Lashed to the shaft
+        line(c, x - 0.5f, -5f - tall, x - 0.5f, -3.5f, hex(0xFF2B1A12), 1.6f)
+    }
+
+    /** The dragon's fire at the lance's point: layered tongues of flame streaming back. */
+    private fun dragonFire(c: Canvas, x: Float, y: Float, ux: Float, uy: Float, time: Float, st: TeamStyle) {
+        glow(c, x + ux * 10f, y + uy * 10f, 46f, a(hex(0xFFFF6D00), 0.45f), a(hex(0xFFFF3D00), 0.15f), 0, add = true)
+        val rand = Random(13)
+        for (i in 0 until 18) {
+            val t = ((time * 2 + rand.nextDouble()) % 1.0).toFloat()
+            val spread = (rand.nextDouble().toFloat() - 0.5f) * 30f
+            // Flames rise from just past the point and drift up and back
+            val fx = x + ux * (14f + t * 10f) - uy * spread - t * 14f
+            val fy = y + uy * (14f + t * 10f) + ux * spread - t * 42f
+            val rad = (5f + (1f - t) * 11f)
+            reset(); p.xfermode = addMode
+            p.shader = RadialGradient(fx, fy, rad,
+                intArrayOf(a(hex(0xFFFFF3C4), 0.8f * (1f - t)), a(lerp(hex(0xFFFF9800), st.secondary, t), 0.55f * (1f - t)), 0),
+                floatArrayOf(0f, 0.45f, 1f), Shader.TileMode.CLAMP)
+            c.drawCircle(fx, fy, rad, p); reset()
         }
     }
 

@@ -727,7 +727,7 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun drawStripIcons(canvas: Canvas) {
         text.textAlign = Paint.Align.CENTER
-        text.color = palette.text
+        text.color = palette.barText
         text.alpha = 255
         val cell = toolCell
         for ((i, id) in shownTools().withIndex()) {
@@ -740,12 +740,12 @@ class KeyboardView(context: Context) : View(context) {
                 canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
                 text.typeface = KbFont.bold
                 text.textSize = min(stripH * 0.32f * stripFont, cell * 0.36f)
-                text.color = palette.specialText
+                text.color = palette.barHint
                 canvas.drawText(label, cx, stripH / 2f - (text.descent() + text.ascent()) / 2f, text)
-                text.color = palette.text
+                text.color = palette.barText
                 continue
             }
-            Icons.draw(canvas, id, cx, stripH / 2f, min(dp(23f), cell * 0.62f), palette.text)
+            Icons.draw(canvas, id, cx, stripH / 2f, min(dp(23f), cell * 0.62f), palette.barText)
         }
     }
 
@@ -763,18 +763,18 @@ class KeyboardView(context: Context) : View(context) {
         fun base() = h / 2f - (text.descent() + text.ascent()) / 2f
         text.typeface = KbFont.bold
         text.textSize = h * 0.36f
-        text.color = palette.hint
+        text.color = palette.barHint
         val tag = "✦ WORD OF THE DAY"
         canvas.drawText(tag, x, base(), text)
         x += text.measureText(tag) + dp(10f)
         text.textSize = h * 0.5f
-        text.color = palette.text
+        text.color = palette.barText
         val word = ellipsize(w.first, right - x)
         canvas.drawText(word, x, base(), text)
         x += text.measureText(word) + dp(8f)
         text.typeface = KbFont.regular
         text.textSize = wotdRowH * 0.4f
-        text.color = palette.hint
+        text.color = palette.barHint
         if (lines != null) {
             for ((i, l) in lines.withIndex()) {
                 val top = h + i * wotdLineH
@@ -785,7 +785,7 @@ class KeyboardView(context: Context) : View(context) {
         }
         // A hairline separates it from the toolbar.
         val bottom = wotdH()
-        fill.color = palette.hint
+        fill.color = palette.barHint
         fill.alpha = 60
         canvas.drawRect(padSide, bottom - 1f, width - padSide, bottom, fill)
         fill.alpha = 255
@@ -800,7 +800,7 @@ class KeyboardView(context: Context) : View(context) {
         text.textAlign = Paint.Align.CENTER
         text.typeface = KbFont.regular
         text.alpha = 255
-        text.color = palette.text
+        text.color = palette.barText
         text.textSize = stripH * 0.42f * stripFont
         canvas.drawText("✕", padSide + toolCell / 2f, stripBaseline(), text)
 
@@ -810,7 +810,7 @@ class KeyboardView(context: Context) : View(context) {
         text.textAlign = Paint.Align.LEFT
         text.textSize = stripH * 0.34f * stripFont
         val shown = if (q.isEmpty()) UiText.t(context, "Search {what}", "what" to UiText.t(context, searchFor ?: "emoji")) else "$q▏"
-        text.color = if (q.isEmpty()) palette.hint else palette.text
+        text.color = if (q.isEmpty()) palette.barHint else palette.barText
         val inner = rect.width() - dp(36f)
         // Long queries show their end, which is where the typing is.
         var s = shown
@@ -819,19 +819,19 @@ class KeyboardView(context: Context) : View(context) {
 
         text.textAlign = Paint.Align.CENTER
         text.textSize = stripH * 0.55f
-        text.color = palette.text
+        text.color = palette.barText
         if (searchGifs) {
             rect.set(searchBoxEnd() + dp(8f), dp(6f), width - padSide - dp(6f), stripH - dp(6f))
             fill.color = if (q.isBlank()) palette.key else palette.accent
             canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fill)
             text.textSize = stripH * 0.32f * stripFont
-            text.color = if (q.isBlank()) palette.hint else palette.accentText
+            text.color = if (q.isBlank()) palette.barHint else palette.accentText
             canvas.drawText(UiText.t(context, "Search {what}", "what" to UiText.t(context, searchFor ?: "")).trim(), rect.centerX(), stripBaseline(), text)
             return
         }
         if (searchResults.isEmpty() && q.isNotEmpty()) {
             text.textSize = stripH * 0.3f * stripFont
-            text.color = palette.hint
+            text.color = palette.barHint
             canvas.drawText(UiText.t(context, "No emoji found"), (searchBoxEnd() + width) / 2f, stripBaseline(), text)
             return
         }
@@ -848,9 +848,9 @@ class KeyboardView(context: Context) : View(context) {
         text.textAlign = Paint.Align.CENTER
         text.typeface = KbFont.regular
         text.textSize = stripH * 0.4f * stripFont
-        text.color = palette.text
+        text.color = palette.barText
         text.alpha = (alpha * 255f).toInt()
-        fill.color = palette.hint
+        fill.color = palette.barHint
         fill.alpha = (alpha * 255f * 0.6f).toInt()
         for ((i, word) in suggestions.take(suggestionSlots()).withIndex()) {
             val cx = start + each * (i + 0.5f)

@@ -180,7 +180,7 @@ object ClubMotifs4 {
         }
     }
 
-    // Barcelona / Juventus: kit stripes with a passing shine and a star.
+    // Barcelona (the Blaugrana) / Juventus (the Zebras): kit stripes with a passing shine.
     private fun stripes(c: Canvas, w: Float, h: Float, time: Float, st: TeamStyle) {
         val top = h * 0.16f; val bottom = h * 0.72f
         val n = 7
@@ -192,18 +192,6 @@ object ClubMotifs4 {
         reset()
         p.shader = LinearGradient(sx, 0f, sx + w * 0.28f, 0f, intArrayOf(0, a(WHITE, 0.10f), 0), null, Shader.TileMode.CLAMP)
         c.drawRect(0f, top, w, bottom, p); reset()
-        val cx = w * 0.5f; val cy = h * 0.28f
-        val pulse = (0.8 + sin(time * 4 * PI) * 0.2).toFloat()
-        path.reset()
-        for (i in 0 until 10) {
-            val rr = (if (i % 2 == 0) 16f else 7f) * pulse
-            val ang = -PI / 2 + i * PI / 5
-            val px = cx + cos(ang).toFloat() * rr; val py = cy + sin(ang).toFloat() * rr
-            if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
-        }
-        path.close()
-        reset(); p.color = a(hex(0xFFFFD700), 0.9f); p.maskFilter = BlurMaskFilter(3f, BlurMaskFilter.Blur.SOLID)
-        c.drawPath(path, p); reset()
     }
 
     // Inter: a serpent gliding across the screen.

@@ -674,6 +674,9 @@ class SettingsActivity : ThemedActivity() {
             ui.sliderRow("Corner roundness", 0, 24, prefs.getInt(Prefs.KEY_RADIUS, 8), " dp") { put(Prefs.KEY_RADIUS, it) },
             ui.switchRow("Key borders", "A thin outline round every key", on(Prefs.KEY_BORDERS, false)) { put(Prefs.KEY_BORDERS, it) },
         )
+        group(c, "Football themes",
+            ui.sliderRow("Key fill", 0, 100, prefs.getInt(Prefs.FOOTBALL_FILL, Themes.FOOTBALL_FILL_DEFAULT), "%") { put(Prefs.FOOTBALL_FILL, it) },
+        )
         group(c, "Labels",
             ui.sliderRow("Label size", 70, 140, prefs.getInt(Prefs.LABEL_SIZE, 100), "%") { put(Prefs.LABEL_SIZE, it) },
             ui.segmented("Letter weight", listOf("Light", "Regular", "Medium", "Bold", "Black"),
