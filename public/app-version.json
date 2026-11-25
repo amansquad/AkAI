@@ -1,6 +1,6 @@
 {
-  "versionCode": 10029,
-  "versionName": "1.0.29",
+  "versionCode": 10030,
+  "versionName": "1.0.30",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Football themes come alive: each club's crest is a 3D badge over its own colours, with what the club is known by moving behind it, like Arsenal's cannons, Man United's trident and Ethio Electric's lightning. Keys on football themes are see-through, and you can set how see-through in Settings > Keys. The theme list shows each club's crest. Awash Ketema and Negede Amhara no longer show a made-up badge."
+  "notes": "New faith themes: 17 photo themes of churches and mosques, from Bete Giyorgis and Holy Trinity Cathedral to the Kaaba and the Negash Mosque, each with a verse over the picture: Amharic from the Bible on Christian themes, Arabic from the Quran on Islamic ones. Keys on these themes are partly see-through so the verse reads through. Football previews in the theme picker now always appear, and the crown sits on top of the crest."
 }
