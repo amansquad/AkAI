@@ -137,7 +137,8 @@ object FootballScene {
             if (name in bigMotifs) {
                 // Centred on the crest and grown about it: the emblem's own middle
                 // (where each motif draws it) is moved onto the crest's middle.
-                val cx = w / 2f; val cy = h * CREST_Y
+                // A crown is seated on top of the crest instead, where a crown belongs.
+                val cx = w / 2f; val cy = h * (if (name == "crown") CREST_Y - 0.25f else CREST_Y)
                 val ay = h * (emblemMiddle[name] ?: 0.45f)
                 c.translate(cx, cy); c.scale(BIG_GROW, BIG_GROW); c.translate(-cx, -ay)
             }
