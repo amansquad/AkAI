@@ -1,6 +1,6 @@
 {
-  "versionCode": 10031,
-  "versionName": "1.0.31",
+  "versionCode": 10032,
+  "versionName": "1.0.32",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Translate works without internet for English and Amharic: when the server cannot be reached, a built-in dictionary gives the word or phrase, or the meaning of each word it knows. Swipe typing on the Arabic board. Spelling fixes in the suggestions for Oromo, Somali and Arabic. More Tigrinya and Oromo words. Amharic corrections leave more real words alone. Animated Telegram stickers now move."
+  "notes": "The next word is suggested in every language now: English, Tigrinya, Oromo, Somali and Arabic join Amharic. The offline dictionary types one translation when you tap Replace, with the others shown beside it."
 }
