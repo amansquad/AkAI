@@ -117,6 +117,18 @@ object Words {
     /** Words that most often follow a word, in Amharic (assets/nextword_am.txt), once loaded. */
     @Volatile var nextAm: Map<String, List<String>>? = null
         private set
+    /** The same for the other languages (assets/nextword_<code>.txt), once loaded. */
+    private val nextOther = java.util.concurrent.ConcurrentHashMap<Lang, Map<String, List<String>>>()
+
+    /** What usually follows a word in [lang], from its bundled table, once loaded. */
+    fun nextOf(lang: Lang): Map<String, List<String>>? = if (lang == Lang.AM) nextAm else nextOther[lang]
+
+    /** The few next words written by hand for [lang]. */
+    private fun builtInNext(lang: Lang): Map<String, List<String>> = when (lang) {
+        Lang.EN -> KeyboardData.nextWordEn; Lang.TI -> TigrinyaData.nextWord; Lang.OM -> OromoData.nextWord
+        Lang.AR -> ArabicData.nextWord; Lang.SO -> SomaliData.nextWord; Lang.AM -> KeyboardData.nextWordAm
+    }
+
     private var started = false
 
     /** The word list of [lang], once loaded. */
@@ -157,6 +169,10 @@ object Words {
             try { om = Dictionary(read(Lang.OM.wordsAsset)) } catch (e: Exception) { }
             try { ar = Dictionary(read(Lang.AR.wordsAsset), listOf(Spelling.ARABIC)) } catch (e: Exception) { }
             try { so = Dictionary(read(Lang.SO.wordsAsset)) } catch (e: Exception) { }
+            // The built-in everyday pairs first: Wikipedia's are formal ("new" → york).
+            for (l in Lang.entries) if (l != Lang.AM) {
+                try { nextOther[l] = mergeNext(builtInNext(l), parseNextWords(read("nextword_${l.code}.txt"))) } catch (e: Exception) { }
+            }
         }.start()
     }
 }

@@ -454,7 +454,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
             else Suggest.forText(
                 before, geez, if (learnOn) learned else emptyMap(), Words.of(lang),
                 pairs = if (learnOn) habits.pairs else emptyMap(), emojiHabits = if (learnOn) habits.emoji else emptyMap(),
-                lang = lang, nextWords = if (lang == Lang.AM) Words.nextAm else null,
+                lang = lang, nextWords = Words.nextOf(lang),
             ),
         )
     }

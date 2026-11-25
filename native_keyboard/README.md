@@ -218,7 +218,7 @@ then run, from this folder:
 
     node tools/gen-words-am.mjs path/to/amwiki-latest-pages-articles.xml
 
-## Amharic next-word prediction
+## Next-word prediction
 After a finished Amharic word and a space, the strip offers the words that
 usually come next. The user's own habits come first, then a few built-in
 everyday pairs, then `app/src/main/assets/nextword_am.txt`: for about 8,000 of the
@@ -230,6 +230,14 @@ adjusts to the person. To rebuild it, unpack the same dump as the word list and
 run, from this folder:
 
     node tools/gen-nextword-am.mjs path/to/amwiki-latest-pages-articles.xml
+
+The other languages have tables of their own (`nextword_en.txt`, `_ti`, `_om`,
+`_so`, `_ar`), built the same way from their Wikipedias (CC BY-SA 4.0); English
+from Simple English Wikipedia, whose plainer sentences suit typing. Arabic's and
+Simple English's dumps are large, so only the start of each is used (see the
+notes in the tool). From this folder:
+
+    node tools/gen-nextword.mjs <en|ti|om|so|ar> path/to/<code>wiki-latest-pages-articles.xml
 
 ## Privacy
 - Clipboard history is kept in memory only. Pinned items are saved, because you
