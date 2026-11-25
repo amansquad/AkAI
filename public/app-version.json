@@ -1,6 +1,6 @@
 {
-  "versionCode": 10033,
-  "versionName": "1.0.33",
+  "versionCode": 10034,
+  "versionName": "1.0.34",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Turn your phone sideways: the keyboard now fits in half the screen, with every key in view. Emoji are suggested for everyday words in Amharic, Tigrinya, Oromo, Somali and Arabic (ቡና, buna, bun or قهوة gives ☕). Swipe typing works on Arabic's Latin-letter board. The last untranslated settings are now in every language."
+  "notes": "Translate works without internet in every language now: when the server cannot be reached, a built-in dictionary between English and Tigrinya, Oromo, Somali or Arabic (as well as Amharic) gives you the word or phrase, or the meaning of each word it knows."
 }
