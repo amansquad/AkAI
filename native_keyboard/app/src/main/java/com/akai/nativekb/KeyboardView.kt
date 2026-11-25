@@ -1212,10 +1212,11 @@ class KeyboardView(context: Context) : View(context) {
     private fun shown(alt: String) =
         if (alt.length == 1 && (alt[0] in 'ً'..'ٟ' || alt[0] == 'ٰ')) "ـ$alt" else alt
 
-    /** A letter a swipe can pass over: English and phonetic letters, and the fidel consonants. */
+    /** A letter a swipe can pass over: English and phonetic letters, the fidel consonants and the Arabic letters. */
     private fun swipeable(l: Layout, k: Key): Boolean = k.kind == KeyKind.CHAR && k.output.length == 1 && when (l.id) {
         LayoutId.LETTERS, LayoutId.PHONETIC -> k.cased
         LayoutId.FIDEL -> Amharic.isFidel(k.output[0])
+        LayoutId.ARABIC -> k.output[0] in Spelling.ARABIC_KEYS
         else -> false
     }
 

@@ -16,6 +16,25 @@ fun interface Spelling {
     companion object {
         /** English: the word's own letters, apostrophes left out. */
         val LETTERS = Spelling { listOf(Dictionary.lettersOf(it)) }
+
+        /** The letters printed on the Arabic board. */
+        const val ARABIC_KEYS = "ضصثقفغعهخحجشسيبلاتنمكطظزرذدءؤوةى"
+
+        /**
+         * Arabic on its board: a hamza on alef (أ إ آ ٱ) is swiped through ا and ئ through ي,
+         * the keys they are long-pressed from; vowel marks and the tatweel are not keys.
+         */
+        val ARABIC = Spelling { w ->
+            val sb = StringBuilder()
+            for (c in w) when {
+                c in "أإآٱ" -> sb.append('ا')
+                c == 'ئ' -> sb.append('ي')
+                c in 'ً'..'ٟ' || c == 'ٰ' || c == 'ـ' -> {}
+                c in ARABIC_KEYS -> sb.append(c)
+                else -> return@Spelling emptyList()
+            }
+            listOf(sb.toString())
+        }
     }
 }
 
@@ -136,7 +155,7 @@ object Words {
             } catch (e: Exception) { }
             try { ti = Amharic.dictionary(read(Lang.TI.wordsAsset)) } catch (e: Exception) { }
             try { om = Dictionary(read(Lang.OM.wordsAsset)) } catch (e: Exception) { }
-            try { ar = Dictionary(read(Lang.AR.wordsAsset)) } catch (e: Exception) { }
+            try { ar = Dictionary(read(Lang.AR.wordsAsset), listOf(Spelling.ARABIC)) } catch (e: Exception) { }
             try { so = Dictionary(read(Lang.SO.wordsAsset)) } catch (e: Exception) { }
         }.start()
     }

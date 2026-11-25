@@ -21,10 +21,15 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
 - Swipe typing: slide across the letters to type a word; the other readings
   appear in the suggestion strip. In English; in phonetic Amharic over the
   word's Latin spelling ("selam", or the usual "salam" for ሰላም); and on the
-  fidel board over its consonants, whatever their vowels (ሰ ለ መ gives ሰላም)
+  fidel board over its consonants, whatever their vowels (ሰ ለ መ gives ሰላም); and
+  on the Arabic board, where أ إ آ are swiped through ا and ئ through ي
 - Auto-correct for English (common typos, missing apostrophes, one-letter
   slips); backspace straight after a correction puts back what you typed, and
   that word is then left alone
+- Oromo, Somali and Arabic: a misspelt word gets a fix from that language's
+  own list, offered in the strip after the completions (never applied on its
+  own, since those lists hold few of the endings a word can take). Arabic words
+  with a common prefix or ending (ال، و، ب… / ها، هم، ات…) are left alone
 - Amharic completions from a 20,000-word list, allowing for the vowel not yet
   chosen (ሰለ or phonetic "sel" already offers ሰላም). A misspelt Amharic word
   (a wrong vowel, or a sound-alike letter such as ሰ for ሠ) gets its fix
