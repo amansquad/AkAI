@@ -10,7 +10,9 @@
 // Every sticker gets a still picture. A video sticker (.webm) also gets an
 // animated WebP, which the keyboard plays and sends, and a link to the website's
 // GIF of it, for apps that only take GIFs. Converting locally needs ffmpeg on the
-// PATH; it uses the same settings as src/lib/telegram-stickers.ts.
+// PATH; it uses the same settings as src/lib/telegram-stickers.ts. A vector (.tgs)
+// sticker is drawn by the website (ffmpeg can't), so it is fetched from there
+// as a still and an animated WebP, like a video sticker.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -82,8 +84,10 @@ async function get(url) {
   return Buffer.from(await r.arrayBuffer());
 }
 
-/** The website's GIF of a video sticker: a path the keyboard asks its server for. */
+/** The website's GIF of a moving sticker: a path the keyboard asks its server for. */
 const gifPath = (pack, id) => `/api/stickers/file?pack=${pack}&sticker=${id}&as=gif`;
+/** The website's still or animated WebP of a sticker, for .tgs ones that only it can draw. */
+const fromSite = (pack, id, as) => get(`${site}/api/stickers/file?pack=${pack}&sticker=${id}${as ? `&as=${as}` : ''}`);
 
 /** { key, title, stickers: [{ id, emoji, still(), anim()?, gif? }] } */
 async function load() {
@@ -93,7 +97,14 @@ async function load() {
     const file = async (fileId) => get(`https://api.telegram.org/file/bot${TOKEN}/${(await bot('getFile', { file_id: fileId })).file_path}`);
     const stickers = set.stickers.flatMap((s) => {
       const preview = s.thumbnail?.file_id;
-      if (s.is_animated && !preview) return [];
+      if (s.is_animated) {
+        return [{
+          id: s.file_unique_id, emoji: s.emoji || '',
+          still: async () => fromSite(set.name, s.file_unique_id).catch(() => (preview ? file(preview) : Promise.reject(new Error('no still picture')))),
+          anim: async () => fromSite(set.name, s.file_unique_id, 'anim').catch(() => null),
+          gif: gifPath(set.name, s.file_unique_id),
+        }];
+      }
       let video;
       const webm = async () => (video ??= await file(s.file_id));
       const moving = s.is_video && FFMPEG;
