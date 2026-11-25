@@ -133,7 +133,7 @@ class WordsTest {
     }
 
     @Test fun faithThemesAreInTheFaithGroup() {
-        assertEquals(7, Themes.all.count { it.category == "faith" })
+        assertEquals(24, Themes.all.count { it.category == "faith" })
     }
 
     @Test fun suggestionsOfferTheCorrectionFirst() {
