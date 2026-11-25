@@ -46,6 +46,8 @@ internal val UI_TEXT_PANELS: Map<String, Array<String>> = mapOf(
     "The translation appears here" to r("ትርጉሙ እዚህ ይታያል", "ትርጉም ኣብዚ ይርአ", "Hiikkaan as mul'ata", "Turjumaaddu halkan ayay ka muuqataa", "تظهر الترجمة هنا"),
     "Set the server address in the app's settings" to r("በመተግበሪያው ቅንብሮች ውስጥ የአገልጋዩን አድራሻ ያዘጋጁ", "ኣብ ቅጥዕታት ኣፕሊኬሽን ኣድራሻ ኣገልጋሊ ኣዳልው", "Qindaa'inoota appii keessatti teessoo sarvaraa qopheessi", "Ka deji cinwaanka server-ka dejinta app-ka", "اضبط عنوان الخادم في إعدادات التطبيق"),
     "Translating…" to r("በመተርጎም ላይ…", "ይትርጎም ኣሎ…", "Hiikaa jira…", "Waa la turjumayaa…", "جارٍ الترجمة…"),
+    "Server unavailable - from the offline dictionary" to r("አገልጋዩ አይገኝም - ከከመስመር ውጭ መዝገበ ቃላት", "ኣገልጋሊ ኣይርከብን - ካብ ብዘይ መስመር መዝገበ ቃላት", "Sarvarri hin argamu - galmee jechootaa offline irraa", "Server-ku lama heli karo - qaamuuska offline-ka ah", "الخادم غير متاح - من القاموس دون اتصال"),
+    "Server unavailable - word meanings from the offline dictionary" to r("አገልጋዩ አይገኝም - የቃላት ትርጉም ከከመስመር ውጭ መዝገበ ቃላት", "ኣገልጋሊ ኣይርከብን - ትርጉም ቃላት ካብ ብዘይ መስመር መዝገበ ቃላት", "Sarvarri hin argamu - hiika jechootaa galmee offline irraa", "Server-ku lama heli karo - macnaha erayada qaamuuska offline-ka ah", "الخادم غير متاح - معاني الكلمات من القاموس دون اتصال"),
     "Translation failed - is the server reachable?" to r("ትርጉም አልተሳካም - አገልጋዩ ይገኛል?", "ትርጉም ኣይተዓወተን - ኣገልጋሊ ይርከብ ዶ?", "Hiikkaan hin milkoofne - sarvarri ni argamaa?", "Turjumaaddu way guuldarraysatay - server-ku ma la gaadhi karaa?", "فشلت الترجمة - هل الخادم متاح؟"),
 
     "አማርኛ   (tap for English)" to r("አማርኛ   (ለእንግሊዝኛ ይንኩ)", "አማርኛ   (ንእንግሊዝኛ ትንክፍ)", "አማርኛ   (Ingliffaaf tuqi)", "አማርኛ   (taabo Ingiriisi)", "አማርኛ   (اضغط للإنجليزية)"),

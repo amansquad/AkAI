@@ -93,6 +93,19 @@ because ML Kit's on-device translation has no Amharic. It uses the AkAI website
 (`Net.SITE`) unless another server address is entered in settings; the site
 needs `OPENAI_API_KEY` set in Vercel. Nothing is sent anywhere until you use it.
 
+When the server can't be reached (or has hit its daily limit), English↔Amharic
+falls back on a word dictionary bundled in the APK: a known word or short phrase
+("thank you", ቤቶች → house) becomes the result, and otherwise each word it knows is
+listed with its meaning, to read. It comes from English Wiktionary (CC BY-SA 4.0,
+so the files are too): the Amharic translation tables on English entries, kept in
+`tools/data/wiktionary-en-am.tsv` (`node tools/fetch-wiktionary-en-am.mjs`
+refreshes it), and the meanings on Amharic entries from Wiktextract. To rebuild
+`assets/dict_en_am.txt` and `dict_am_en.txt`, download
+`https://kaikki.org/dictionary/Amharic/kaikki.org-dictionary-Amharic.jsonl`, then
+run, from this folder:
+
+    node tools/gen-dict-am.mjs path/to/kaikki.org-dictionary-Amharic.jsonl
+
 ## Updates
 Settings → Help → Check for updates reads `app-version.json` from the Vercel
 site, `https://ak-ai-opal.vercel.app` (`Net.SITE`; it's the web app's
@@ -225,7 +238,8 @@ run, from this folder:
   are never learned in email, URL, password or number fields.
 
 ## Not here
-Translation without a server, and a desktop-style layout (the web keyboard's desktop view has no use on a phone).
+Translation of whole sentences without a server (offline, there is only the
+English↔Amharic word dictionary), and a desktop-style layout (the web keyboard's desktop view has no use on a phone).
 
 Voice typing needs a speech service on the phone, such as Google's, and the
 internet for Amharic.

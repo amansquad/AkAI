@@ -641,7 +641,7 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         // Part of a longer token such as an address or a number: leave it.
         if (i > 0 && (before[i - 1].isLetterOrDigit() || before[i - 1] in "@/_.-#")) return
         val known = if (learnOn) learned else emptyMap()
-        val fix = (if (geez) Amharic.correct(typed, Words.of(lang), known) else AutoCorrect.correct(typed, Words.en, known)) ?: return
+        val fix = (if (geez) Amharic.correct(typed, Words.of(lang), known, strict = true) else AutoCorrect.correct(typed, Words.en, known)) ?: return
         if (fix == typed) return
         ic.beginBatchEdit()
         ic.deleteSurroundingText(typed.length, 0)

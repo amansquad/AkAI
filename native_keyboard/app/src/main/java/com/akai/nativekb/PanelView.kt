@@ -198,6 +198,8 @@ class PanelView(context: Context) : View(context) {
     private var source = ""
     private var result: String? = null
     private var translateStatus: String? = null
+    /** Shown above [result] when it came from the offline dictionary. */
+    private var resultNote: String? = null
     /** 0 translates; the rest rewrite in the same language (see [Net.REWRITE_STYLES]). */
     private var aiMode = 0
     private val aiModes = listOf("Translate", "Fix spelling", "Formal", "Friendly", "Shorter")
@@ -937,8 +939,9 @@ class PanelView(context: Context) : View(context) {
         drawBox(canvas, pad, y, w - pad, y + boxH,
             source.ifBlank { "Type something in the app first, then open this tab" }, source.isBlank())
         y += boxH + dp(4f)
+        val shown = result?.let { r -> resultNote?.let { tr(it) + "\n" + r } ?: r }
         drawBox(canvas, pad, y, w - pad, y + boxH,
-            result ?: translateStatus ?: (if (aiMode == 0) "The translation appears here" else "The rewritten text appears here"), result == null)
+            shown ?: translateStatus ?: (if (aiMode == 0) "The translation appears here" else "The rewritten text appears here"), result == null)
         val by = height - dp(44f)
         button(canvas, pad, by, w / 2f - dp(3f), height - dp(4f), if (aiMode == 0) "Translate" else "Rewrite", accent = true)
         button(canvas, w / 2f + dp(3f), by, w - pad, height - dp(4f), "Replace")
@@ -1040,24 +1043,53 @@ class PanelView(context: Context) : View(context) {
 
     private fun translate() {
         if (source.isBlank()) return
-        if (serverUrl.isBlank()) { translateStatus = "Set the server address in the app's settings"; invalidate(); return }
+        val from = if (toForeign) Lang.EN else foreign
+        val to = if (toForeign) foreign else Lang.EN
         result = null
+        resultNote = null
         val asked = source
+        if (serverUrl.isBlank()) {
+            translateStatus = "Set the server address in the app's settings"
+            if (aiMode == 0) offlineTranslate(asked, from, to, translateStatus!!)
+            invalidate()
+            return
+        }
         val done = { out: String? ->
             if (tab == Tab.TRANSLATE && source == asked) {
                 result = out
                 if (out == null) translateStatus = if (Net.limited) Net.LIMIT_MESSAGE else if (aiMode == 0) "Translation failed - is the server reachable?" else "Rewrite failed - is the server reachable?"
+                if (out == null && aiMode == 0) offlineTranslate(asked, from, to, translateStatus!!)
                 invalidate()
             }
         }
         if (aiMode == 0) {
             translateStatus = "Translating…"
-            Net.translate(serverUrl, source, if (toForeign) Lang.EN else foreign, if (toForeign) foreign else Lang.EN, done)
+            Net.translate(serverUrl, source, from, to, done)
         } else {
             translateStatus = "Rewriting…"
             Net.rewrite(serverUrl, source, Net.REWRITE_STYLES[aiMode - 1], done)
         }
         invalidate()
+    }
+
+    /**
+     * The server couldn't translate [asked]: look it up in the offline English↔Amharic
+     * dictionary. A known word or phrase becomes the result (Replace types it); otherwise
+     * the words it knows are shown with their meanings, to read only. [why] stays if it knows none.
+     */
+    private fun offlineTranslate(asked: String, from: Lang, to: Lang, why: String) {
+        Net.background {
+            val found = OfflineDict.get(context)?.lookup(asked, from, to)
+            Net.ui {
+                if (tab != Tab.TRANSLATE || source != asked || result != null) return@ui
+                when {
+                    found == null -> translateStatus = why
+                    found.wordByWord -> translateStatus = tr("Server unavailable - word meanings from the offline dictionary") + "\n" + found.text
+                    else -> { result = found.text; resultNote = "Server unavailable - from the offline dictionary" }
+                }
+                invalidate()
+            }
+        }
     }
 
     // ─── Touch ───────────────────────────────────────────────────────────

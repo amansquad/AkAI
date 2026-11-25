@@ -141,10 +141,23 @@ object Amharic {
             .sortedWith(compareByDescending<String> { learned[it] ?: 0 }.thenBy { dict.rankOf(it) })
     }
 
-    private val prefixes = listOf("እንደ", "ስለ", "ከ", "በ", "ለ", "የ", "ም", "አል", "አይ", "እስከ", "ወደ", "ያ", "ይህ")
+    // Longest first where one starts another (የሚ before የ), so the longer one is tried too.
+    private val prefixes = listOf(
+        "እንደ", "ስለሚ", "ስለ", "ከ", "በ", "ለ", "የሚ", "የተ", "የ", "ም", "አል", "አይ", "እስከ", "ወደ", "ያ", "ይህ",
+        // Verb prefixes: while (ሲ, ሳ), -ing (እየ), so that (እንዲ), that (ሚ).
+        "እየ", "እንዲ", "ሲ", "ሳ", "ሚ",
+    )
     private val suffixes = listOf(
         "ቻቸው", "ቻችን", "ቻችሁ", "ዎቹ", "ዎች", "ቸው", "ችን", "ችሁ", "ነት", "ዋ", "ኝ", "ህ", "ሽ", "ው", "ን", "ም", "ች", "ና", "ዎ", "ዋል", "ል",
+        // "and what about" (ይህንንስ).
+        "ስ",
+        // Verb endings: that she (የኖረችው), I did (አሰብኩ), my (ዕድሜዬ), and the will/has of ይሰማሃል, ደርሻለሁ.
+        "ችው", "ኩ", "ዬ", "ሃል", "ሻል", "ኛል", "ናል", "ኋል", "ለሁ",
     )
+
+    /** The vowel order of a letter that carries a fused ending: ኡ "the" (ኮሚሽኑ) and ʷa "her" (መጽሐፏ). */
+    private const val ORDER_U = 1
+    private const val ORDER_WA = 7
 
     /** The base form of a word ending in a plural "ቶች": the ት before ች comes back to its sixth order. */
     private fun pluralStem(w: String): String? {
@@ -164,15 +177,28 @@ object Amharic {
         // Stems under three letters are too easy to hit by accident (ሰለ + ም would excuse the typo ሰለም).
         fun listed(x: String) = x.length >= 3 && (x in dict || x in learned)
         if (w in dict || w in learned) return true
+        return stems(w).any { it != w && listed(it) }
+    }
+
+    /**
+     * [w] and the words it may be built on: without a common prefix (የ, በ, ለ…) and/or
+     * suffix (ች, ን, ዎች, ቸው…), a vowel ending put back to its sixth order, and a plural
+     * ቶች back to its ት. The first is [w] itself; stems are at least two letters
+     * (callers that need more, like [isKnown], check for themselves).
+     */
+    fun stems(w: String): List<String> {
         fun sixth(x: String): String? {
             val (base, _) = familyOf[x.lastOrNull() ?: return null] ?: return null
             return KeyboardData.amharicVowels[base.toString()]?.getOrNull(5)?.let { x.dropLast(1) + it }
         }
         val stems = ArrayList<String>()
         stems.add(w)
-        for (p in prefixes) if (w.startsWith(p) && w.length - p.length >= 3) stems.add(w.substring(p.length))
+        for (p in prefixes) if (w.startsWith(p) && w.length - p.length >= 2) stems.add(w.substring(p.length))
         for (st in stems.toList()) {
-            for (sfx in suffixes) if (st.endsWith(sfx) && st.length - sfx.length >= 3) {
+            // An ending fused into the last letter: ኮሚሽኑ is ኮሚሽን + the, ቤተሰቦቿ is ቤተሰቦች + her.
+            val last = familyOf[st.last()]
+            if (last != null && (last.second == ORDER_U || last.second == ORDER_WA)) sixth(st)?.let { stems.add(it) }
+            for (sfx in suffixes) if (st.endsWith(sfx) && st.length - sfx.length >= 2) {
                 val bare = st.dropLast(sfx.length)
                 stems.add(bare)
                 // A vowel suffix (ው, ኧ) leaves the last letter in another order: ሰላሙ is ሰላም + ው.
@@ -180,13 +206,21 @@ object Amharic {
             }
             pluralStem(st)?.let { stems.add(it) }
         }
-        return stems.any { it != w && listed(it) }
+        return stems.distinct()
     }
 
-    /** The correction for [typed], or null to leave it. Known and learned words are never changed. */
-    fun correct(typed: String, dict: Dictionary?, learned: Map<String, Int> = emptyMap()): String? {
-        if (dict == null || typed.length < 3 || !typed.all(::isFidel)) return null
+    /**
+     * The correction for [typed], or null to leave it. Known and learned words are never changed.
+     * [strict] is for fixing a word on its own (auto-correct on space), not offering a fix:
+     * the first letter is left alone, since a prefix or a causative ማ/መ there makes real words
+     * the list lacks (እያገኙ is not a slip for ያገኙ, ማጫወት not for መጫወት), and words are four letters or more.
+     */
+    fun correct(typed: String, dict: Dictionary?, learned: Map<String, Int> = emptyMap(), strict: Boolean = false): String? {
+        if (dict == null || typed.length < (if (strict) 4 else 3) || !typed.all(::isFidel)) return null
         if (isKnown(typed, dict, learned)) return null
-        return candidates(typed, dict, learned).firstOrNull()
+        // A two-letter word is too easy to reach by dropping a letter from a real word (ደባስ is not ደስ).
+        return candidates(typed, dict, learned).firstOrNull {
+            it.length >= 3 && (!strict || it[0] == typed[0])
+        }
     }
 }
