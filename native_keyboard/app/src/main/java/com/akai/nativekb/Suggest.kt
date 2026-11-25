@@ -104,10 +104,13 @@ object Suggest {
                 .map { it.key }
             // A word that is not a word gets offered the same fix auto-correct would make.
             // (Not while an apostrophe is the last thing typed: "there'" is heading for "there's", not "there".)
-            // (English fixes such as "dont" are not Oromo, so Oromo gets completions only.)
-            val fix = if (cur.endsWith("'") || lang.ownLatin || lang == Lang.AR) emptyList() else listOfNotNull(
-                if (amharic) Amharic.correct(cur, dict, learned) else dict?.let { AutoCorrect.correct(cur, it, learned) },
-            )
+            // (English fixes such as "dont" are not Oromo: Oromo, Somali and Arabic get their own, from their own lists.)
+            val other = lang.ownLatin || lang == Lang.AR
+            val fix = when {
+                cur.endsWith("'") && !other -> emptyList()
+                other -> listOfNotNull(AutoCorrect.correctIn(lang, cur, dict, learned))
+                else -> listOfNotNull(if (amharic) Amharic.correct(cur, dict, learned) else dict?.let { AutoCorrect.correct(cur, it, learned) })
+            }
             val fromDict = when {
                 dict == null -> emptyList()
                 amharic -> Amharic.completions(cur, dict, 3)
@@ -119,7 +122,8 @@ object Suggest {
                 if (cur == "ዛሬ") "ዛሬ " + Ethiopic.today().spoken() else null,
             )
             // A half-typed contraction, or the start of a longer English word ("riz" for "rizz"), completes before it gets "fixed".
-            val completing = "'" in cur || (!amharic && cur.length >= 3 && fromDict.isNotEmpty() && cur !in AutoCorrect.fixes)
+            // Oromo, Somali and Arabic words take many endings their lists don't hold, so their fix comes after the completions.
+            val completing = other || "'" in cur || (!amharic && cur.length >= 3 && fromDict.isNotEmpty() && cur !in AutoCorrect.fixes)
             val words3 = if (completing) own + fromDict + fix else fix + own + fromDict
             ethiopic + words3 + (suggestions[cur] ?: suggestions[cur.take(2)] ?: suggestions[cur.take(1)] ?: emptyList())
         }

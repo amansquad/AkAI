@@ -175,10 +175,52 @@ object AutoCorrect {
         return matchCase(typed, best)
     }
 
+    /** Letters a one-letter slip may bring in, per language (Oromo and Somali write ayn and hamza with an apostrophe). */
+    const val LATIN = "abcdefghijklmnopqrstuvwxyz"
+    private const val LATIN_APOSTROPHE = LATIN + "'"
+    private const val ARABIC = "ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأإؤئةى"
+
+    private val arabicPrefixes = listOf("وال", "بال", "فال", "كال", "لل", "ال", "و", "ف", "ب", "ل", "ك")
+    private val arabicSuffixes = listOf("هما", "كما", "ها", "هم", "هن", "كم", "كن", "نا", "ات", "ون", "ين", "ان", "ة", "ه", "ك", "ي")
+
+    /**
+     * A fix for [typed] in Oromo, Somali or Arabic, or null. These words take many
+     * endings the lists don't hold, so this is only offered in the strip, never applied.
+     * Arabic words that are a listed word with a common prefix (ال، و، ب…) or ending are left alone.
+     */
+    fun correctIn(lang: Lang, typed: String, dict: Dictionary?, learned: Map<String, Int> = emptyMap()): String? {
+        if (dict == null || typed.length < 4) return null
+        val arabic = lang == Lang.AR
+        val abc = if (arabic) ARABIC else LATIN_APOSTROPHE
+        val w = typed.lowercase()
+        if (!w.all { it in abc }) return null
+        if (w in dict || w in learned) return null
+        if (arabic && arabicKnown(w, dict, learned)) return null
+        // These lists come from the web and hold some misspellings too, so a common word
+        // beats a rare one even when the rare one is a neighbouring key away.
+        val best = candidates(w, dict, learned, abc).minByOrNull {
+            if (it in learned) -1f else dict.rankOf(it) / (if (neighbourBonus(w, it) > 0) 3f else 1f)
+        } ?: return null
+        return matchCase(typed, best)
+    }
+
+    private fun arabicKnown(w: String, dict: Dictionary, learned: Map<String, Int>): Boolean {
+        fun listed(x: String) = x.length >= 2 && (x in dict || x in learned)
+        val stems = mutableListOf(w)
+        for (p in arabicPrefixes) if (w.startsWith(p) && w.length - p.length >= 2) stems.add(w.substring(p.length))
+        for (st in stems.toList()) for (sx in arabicSuffixes) if (st.endsWith(sx) && st.length - sx.length >= 2) {
+            val bare = st.dropLast(sx.length)
+            stems.add(bare)
+            // ة becomes ت before an ending: مدرستها is مدرسة + ها.
+            if (bare.endsWith("ت")) stems.add(bare.dropLast(1) + "ة")
+        }
+        return stems.any { it != w && listed(it) }
+    }
+
     /** Known words one edit from [w], best first: words the user types, then the most common. */
-    fun candidates(w: String, dict: Dictionary, learned: Map<String, Int> = emptyMap()): List<String> {
+    fun candidates(w: String, dict: Dictionary, learned: Map<String, Int> = emptyMap(), abc: String = LATIN): List<String> {
         val found = HashSet<String>()
-        for (e in edits(w)) if (e in dict || e in learned) found.add(e)
+        for (e in edits(w, abc)) if (e in dict || e in learned) found.add(e)
         // Short words have many neighbours; only a common one is a safe guess.
         val cap = when { w.length <= 3 -> 1500; w.length == 4 -> 6000; else -> Int.MAX_VALUE }
         return found
@@ -187,8 +229,7 @@ object AutoCorrect {
     }
 
     /** Every string one deletion, swap, replacement or insertion away. */
-    fun edits(w: String): Sequence<String> = sequence {
-        val abc = "abcdefghijklmnopqrstuvwxyz"
+    fun edits(w: String, abc: String = LATIN): Sequence<String> = sequence {
         for (i in w.indices) yield(w.removeRange(i, i + 1))
         for (i in 0 until w.length - 1) yield(w.substring(0, i) + w[i + 1] + w[i] + w.substring(i + 2))
         for (i in w.indices) for (c in abc) if (c != w[i]) yield(w.substring(0, i) + c + w.substring(i + 1))
