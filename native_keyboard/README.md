@@ -22,7 +22,9 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
   appear in the suggestion strip. In English; in phonetic Amharic over the
   word's Latin spelling ("selam", or the usual "salam" for ሰላም); and on the
   fidel board over its consonants, whatever their vowels (ሰ ለ መ gives ሰላም); and
-  on the Arabic board, where أ إ آ are swiped through ا and ئ through ي
+  on the Arabic board, where أ إ آ are swiped through ا and ئ through ي, and
+  on Arabic's Latin board over the keys a word is typed with (s-l-a-m for سلام;
+  و and ي as w/u and y/i)
 - Auto-correct for English (common typos, missing apostrophes, one-letter
   slips); backspace straight after a correction puts back what you typed, and
   that word is then left alone

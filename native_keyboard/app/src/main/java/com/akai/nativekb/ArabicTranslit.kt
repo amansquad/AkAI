@@ -27,6 +27,37 @@ object ArabicTranslit {
 
     private const val VOWELS = "aeiou"
 
+    /**
+     * The keys of the Latin board each Arabic letter is swiped through, usual first
+     * (capitals are the same keys, so lower case). A doubled vowel is one key on a swipe.
+     */
+    private val swipeKeys: Map<Char, List<String>> = mapOf(
+        'ب' to listOf("b"), 'ت' to listOf("t"), 'ث' to listOf("th"), 'ج' to listOf("j", "g"),
+        'ح' to listOf("h"), 'خ' to listOf("kh"), 'د' to listOf("d"), 'ذ' to listOf("dh"),
+        'ر' to listOf("r"), 'ز' to listOf("z"), 'س' to listOf("s"), 'ش' to listOf("sh"),
+        'ص' to listOf("s"), 'ض' to listOf("d"), 'ط' to listOf("t"), 'ظ' to listOf("z"),
+        'ع' to listOf("e", "a"), 'غ' to listOf("gh"), 'ف' to listOf("f"), 'ق' to listOf("q", "k"),
+        'ك' to listOf("k"), 'ل' to listOf("l"), 'م' to listOf("m"), 'ن' to listOf("n"),
+        'ه' to listOf("h"), 'و' to listOf("w", "u"), 'ي' to listOf("y", "i"),
+        'ا' to listOf("a"), 'أ' to listOf("a"), 'إ' to listOf("i"), 'آ' to listOf("a"), 'ٱ' to listOf("a"),
+        'ة' to listOf("h", "a"), 'ى' to listOf("a", "y"), 'ؤ' to listOf("w"), 'ئ' to listOf("y"),
+        // The hamza is the apostrophe key, which a swipe doesn't pass over.
+        'ء' to listOf(""),
+    )
+    private const val MAX_PATHS = 4
+
+    /** Swipe typing on the Latin board for Arabic: سلام is swiped s-l-a-m. */
+    val SWIPE = Spelling { w ->
+        var paths = listOf("")
+        for (c in w) {
+            if (c in 'ً'..'ٟ' || c == 'ٰ' || c == 'ـ') continue
+            val keys = swipeKeys[c] ?: return@Spelling emptyList()
+            paths = paths.flatMap { p -> keys.map { p + it } }.take(MAX_PATHS)
+        }
+        // A doubled key ("aa", or ل then ل) is one key on a swipe.
+        paths.map { p -> p.filterIndexed { i, ch -> i == 0 || ch != p[i - 1] } }.filter { it.length >= 2 }.distinct()
+    }
+
     /** What a doubled vowel writes. */
     private fun long(v: Char) = when (v) { 'a' -> "ا"; 'e', 'i' -> "ي"; else -> "و" }
 

@@ -167,7 +167,7 @@ object Words {
             } catch (e: Exception) { }
             try { ti = Amharic.dictionary(read(Lang.TI.wordsAsset)) } catch (e: Exception) { }
             try { om = Dictionary(read(Lang.OM.wordsAsset)) } catch (e: Exception) { }
-            try { ar = Dictionary(read(Lang.AR.wordsAsset), listOf(Spelling.ARABIC)) } catch (e: Exception) { }
+            try { ar = Dictionary(read(Lang.AR.wordsAsset), listOf(Spelling.ARABIC, ArabicTranslit.SWIPE)) } catch (e: Exception) { }
             try { so = Dictionary(read(Lang.SO.wordsAsset)) } catch (e: Exception) { }
             // The built-in everyday pairs first: Wikipedia's are formal ("new" → york).
             for (l in Lang.entries) if (l != Lang.AM) {

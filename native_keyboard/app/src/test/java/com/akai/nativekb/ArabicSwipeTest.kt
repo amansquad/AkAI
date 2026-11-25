@@ -8,7 +8,7 @@ import java.io.File
 /** Swipe typing on the Arabic board, with the real Arabic list. */
 class ArabicSwipeTest {
     private val ar by lazy {
-        Dictionary(File("src/main/assets/words_ar.txt").readLines().filter { it.isNotBlank() }, listOf(Spelling.ARABIC))
+        Dictionary(File("src/main/assets/words_ar.txt").readLines().filter { it.isNotBlank() }, listOf(Spelling.ARABIC, ArabicTranslit.SWIPE))
     }
 
     /** Key centres of the Arabic board as printed (11, 11 and 10 keys), 100 px per key. */
@@ -53,5 +53,25 @@ class ArabicSwipeTest {
 
     @Test fun wordWithHamzaDecodesFromItsBaseKeys() {
         assertTrue(decode("انت").toString(), "أنت" in decode("انت"))
+    }
+
+    /** On the Latin board: the Latin keys a word is typed with, swiped on QWERTY. */
+    private fun latin(path: String): List<String> {
+        val (xs, ys) = WordsTest.swipe(path)
+        return Glide.decode(xs, ys, WordsTest.qwerty, 100f, ar, spelling = ArabicTranslit.SWIPE)
+    }
+
+    @Test fun latinSpellingsOfArabicWords() {
+        assertTrue("slam" in ArabicTranslit.SWIPE.paths("سلام"))
+        assertTrue("shkra" in ArabicTranslit.SWIPE.paths("شكرا"))
+        // و and ي are swiped as w/y or as the vowel they stand for.
+        assertTrue(ArabicTranslit.SWIPE.paths("نور").containsAll(listOf("nwr", "nur")))
+        assertTrue(ArabicTranslit.SWIPE.paths("hello").isEmpty())
+    }
+
+    @Test fun latinSwipesGiveArabicWords() {
+        assertTrue(latin("slam").toString(), "سلام" in latin("slam").take(3))
+        assertTrue(latin("shkra").toString(), "شكرا" in latin("shkra").take(3))
+        assertTrue(latin("ktab").toString(), "كتاب" in latin("ktab").take(3))
     }
 }

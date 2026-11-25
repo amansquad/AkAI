@@ -887,11 +887,11 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
 
     override fun onGlide(xs: FloatArray, ys: FloatArray, keys: Map<Char, FloatArray>, keyW: Float, shifted: Boolean) {
         val ic = currentInputConnection ?: return
-        // Arabic swipes on its own board; its Latin (phonetic) board has no swipe spelling.
-        if (lang == Lang.AR && layoutId != LayoutId.ARABIC) { onKeyFeedback(); return }
+        // Arabic swipes on its own board and on its Latin (phonetic) one, not on others.
+        if (lang == Lang.AR && layoutId != LayoutId.ARABIC && layoutId != LayoutId.PHONETIC) { onKeyFeedback(); return }
         val spelling = when (layoutId) {
             LayoutId.FIDEL -> Amharic.FIDEL
-            LayoutId.PHONETIC -> Amharic.PHONETIC
+            LayoutId.PHONETIC -> if (lang == Lang.AR) ArabicTranslit.SWIPE else Amharic.PHONETIC
             LayoutId.ARABIC -> Spelling.ARABIC
             else -> Spelling.LETTERS
         }
