@@ -2,7 +2,7 @@
 
 import React, { useEffect, useId, useState, lazy, Suspense } from 'react';
 import Image from 'next/image';
-import { ArrowDown, Download, Languages, PenLine, ShieldCheck, Smile } from 'lucide-react';
+import { ArrowDown, Download, Languages, PenLine, ShieldCheck, Smile, Waypoints, WifiOff } from 'lucide-react';
 import apkInfo from '@/lib/apk-info.json';
 import './landing.css';
 
@@ -377,7 +377,15 @@ function Sheet() {
         </Sign>
         <Sign className="md:col-span-4" bg="var(--enamel)" fg="var(--ink)" cap="Stickers · GIFs" val={<Smile size={46} aria-hidden="true" />} mark="Expression">
           <h3 className="land-display" style={h}>Say it with a sticker</h3>
-          <p style={p}>Ethiopian collections and Giphy GIFs, inside the keyboard.</p>
+          <p style={p}>Ethiopian collections, a Sticker Marketplace of Telegram packs (animated ones play) and Giphy GIFs, inside the keyboard.</p>
+        </Sign>
+        <Sign className="md:col-span-5" bg="var(--ink)" fg="var(--on-ink)" cap="Swipe · Predict" val={<Waypoints size={46} aria-hidden="true" />} mark="Speed">
+          <h3 className="land-display" style={h}>Slide to type, in every script</h3>
+          <p style={p}>Swipe across the letters in English, Oromo and Somali, on the fidel board and on the Arabic board. The next word is offered before you type it, in all six languages.</p>
+        </Sign>
+        <Sign className="md:col-span-7" bg="var(--saffron)" fg="var(--ink)" cap="Offline" val={<WifiOff size={46} aria-hidden="true" />} mark="No signal">
+          <h3 className="land-display" style={h}>Keeps working without a signal</h3>
+          <p style={p}>Handwriting is read on the phone. When translation can&apos;t reach the server, a built-in English–Amharic dictionary still gives you the word.</p>
         </Sign>
       </div>
     </section>
