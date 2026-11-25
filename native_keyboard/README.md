@@ -67,13 +67,16 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
   punctuation, hold-backspace to delete the sentence (optional), space-bar
   swipe to move the cursor, and an optional row of cursor keys (⇤ ◀ ▲ ▼ ▶ ⇥)
 - Enter shows the field's action (Go, Search, Send, Next, Done)
-- 98 themes in five groups (live, solid, cultural, faith, football); live
+- 131 themes in five groups (live, solid, cultural, faith, football); live
   themes animate behind the keys at four times the Flutter app's pace, which
   otherwise looked frozen. Key height, spacing, corner roundness,
   label size, letter weight and borders; one-handed mode with an adjustable
   width; number row, corner hints, long-press delay, vibration strength,
   click sound and volume
 - TalkBack support: every key is announced and can be activated
+- Landscape: the keyboard takes at most 55% of the screen's height, its rows
+  squeezed to fit (never under 30 dp) and the word of the day left out; the
+  emoji, sticker and GIF grids add columns so their cells stay their usual size
 
 ## GIFs and the Giphy key
 The GIF tab works with no setup. It asks the AkAI server's `/api/giphy`, which

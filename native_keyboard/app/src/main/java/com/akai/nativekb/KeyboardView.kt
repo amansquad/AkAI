@@ -326,7 +326,7 @@ class KeyboardView(context: Context) : View(context) {
     private val wotdRowH = dp(28f)
     private val wotdLineH = dp(15f)
     private fun wotdH(): Float {
-        if (!showStrip || wordOfDay == null || search != null) return 0f
+        if (!showStrip || wordOfDay == null || search != null || landscape) return 0f
         val lines = wotdPlan() ?: return wotdRowH
         return dp(22f) + lines.size * wotdLineH + dp(4f)
     }
@@ -424,20 +424,41 @@ class KeyboardView(context: Context) : View(context) {
         palette = Themes.palette(context, themeName)
         setBackgroundColor(palette.background)
         invalidateCache()
+        // Turning the phone changes how tall the keyboard may be.
+        requestLayout()
     }
 
     private fun stripHeight() = if (showStrip) wotdH() + stripH else 0f
 
+    /**
+     * Turned sideways the screen is short (about 400 dp), and a keyboard of the usual
+     * height would cover the field being typed in. So there the keyboard takes at most
+     * [LANDSCAPE_SHARE] of the screen's height, its rows squeezed to fit, and the word
+     * of the day is left out.
+     */
+    private val landscape get() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     /** The height this layout needs, which is also how tall the keyboard will measure. */
     private fun heightFor(l: Layout, strip: Boolean): Int {
-        return ((if (strip) wotdH() + stripH else 0f) + padTop + keysHeight(l) + padBottom).toInt()
+        return ((if (strip) wotdH() + stripH else 0f) + padTop + keysHeight(l, strip) + padBottom).toInt()
     }
 
     /** The rows and the gaps between them, as [Layout.rowHeightDp] makes them. */
     private fun naturalKeysHeight(l: Layout) = l.rows.size * dp(l.rowHeightDp) * heightScale + (l.rows.size - 1) * gapY
 
-    /** Height of the key area: the tallest of its own and the boards it matches. */
-    private fun keysHeight(l: Layout) = (l.sameHeightAs + l).maxOf { naturalKeysHeight(it) }
+    /**
+     * Height of the key area: the tallest of its own and the boards it matches; in
+     * landscape no more than what is left of [LANDSCAPE_SHARE] of the screen, though
+     * never so little that a row is under [MIN_LANDSCAPE_ROW].
+     */
+    private fun keysHeight(l: Layout, strip: Boolean = showStrip): Float {
+        val natural = (l.sameHeightAs + l).maxOf { naturalKeysHeight(it) }
+        if (!landscape) return natural
+        val above = if (strip) wotdH() + stripH else 0f
+        val room = resources.displayMetrics.heightPixels * LANDSCAPE_SHARE - above - padTop - padBottom
+        val floor = l.rows.size * dp(MIN_LANDSCAPE_ROW) + (l.rows.size - 1) * gapY
+        return min(natural, max(room, floor))
+    }
 
     /** One row's height, stretched or squeezed so the rows fill [keysHeight]. */
     private fun rowHeight(l: Layout) = (keysHeight(l) - (l.rows.size - 1) * gapY) / l.rows.size
@@ -597,7 +618,7 @@ class KeyboardView(context: Context) : View(context) {
             val l = layout
             if (l != null) {
                 if (showStrip && search == null) {
-                    wordOfDay?.let { drawWordOfDay(cv, it) }
+                    if (wotdH() > 0f) wordOfDay?.let { drawWordOfDay(cv, it) }
                     cv.save(); cv.translate(0f, wotdH())
                     drawStripIcons(cv)
                     cv.restore()
@@ -1569,6 +1590,10 @@ class KeyboardView(context: Context) : View(context) {
         const val REPEAT_MIN_MS = 28L
         const val STRIP_ID = 10000
         const val WOTD_ID = 9999
+        /** The most of the screen's height the keyboard takes when the phone is sideways. */
+        const val LANDSCAPE_SHARE = 0.55f
+        /** The shortest a row of keys gets in landscape, in dp: still easy to hit. */
+        const val MIN_LANDSCAPE_ROW = 30f
         const val A11Y_TOUCH = -1000
     }
 }

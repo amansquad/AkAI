@@ -317,11 +317,18 @@ class PanelView(context: Context) : View(context) {
         emojiPacks().getOrNull(emojiCategory - 1 - EmojiData.categories.size)
     private fun emojiCount() = customEmoji()?.stickers?.size ?: emojiList().size
 
-    private fun gifCell() = width / 3f
+    private fun gifCols() = max(3, (width / dp(150f)).toInt())
+    private fun gifCell() = width / gifCols().toFloat()
     /** The search button before the GIF categories (and ✕ after a search). */
     private fun gifSearchCell() = dp(44f)
     /** Four stickers to a row. (Custom emoji packs live in the emoji tab.) */
-    private fun stickerCols() = 4
+    /**
+     * Columns in the emoji, sticker and GIF grids: the usual count, or more when the panel
+     * is wide (a phone turned sideways), so a cell stays about its usual size instead of
+     * growing until one row fills the panel.
+     */
+    private val shownEmojiCols get() = max(emojiCols, (width / dp(60f)).toInt())
+    private fun stickerCols() = max(4, (width / dp(110f)).toInt())
     private fun stickerCell() = width / stickerCols().toFloat()
     private fun stickerList() =
         if (stickerQuery != null) stickerResults else stickerPacks().getOrNull(stickerSet)?.stickers.orEmpty()
@@ -337,9 +344,9 @@ class PanelView(context: Context) : View(context) {
     private fun themeCellH() = width / 3f * 0.74f + dp(24f)
 
     private fun contentHeight(): Float = when (tab) {
-        Tab.EMOJI -> ((emojiCount() + emojiCols - 1) / emojiCols) * (width / emojiCols.toFloat())
+        Tab.EMOJI -> ((emojiCount() + shownEmojiCols - 1) / shownEmojiCols) * (width / shownEmojiCols.toFloat())
         Tab.STICKERS -> ((stickerList().size + stickerCols() - 1) / stickerCols()) * stickerCell()
-        Tab.GIF -> ((gifs.size + 2) / 3) * gifCell()
+        Tab.GIF -> ((gifs.size + gifCols() - 1) / gifCols()) * gifCell()
         Tab.CLIPBOARD -> clips.size * clipRowH()
         Tab.LYRICS -> (lyricsSong?.lines?.size ?: lyricsSongs.size) * lyricRowH() + if (lyricsSong != null) dp(24f) else 0f
         Tab.THEMES -> ((themeList().size + 2) / 3) * themeCellH()
@@ -555,11 +562,11 @@ class PanelView(context: Context) : View(context) {
             label(canvas, "Emoji you use will appear here", width / 2f, top + dp(60f), sp(14f), palette.hint)
             return
         }
-        val cell = width / emojiCols.toFloat()
+        val cell = width / shownEmojiCols.toFloat()
         val first = max(0, (scrollY / cell).toInt())
-        val last = min((list.size + emojiCols - 1) / emojiCols, first + ((height - top) / cell).toInt() + 2)
-        for (r in first until last) for (c in 0 until emojiCols) {
-            val i = r * emojiCols + c
+        val last = min((list.size + shownEmojiCols - 1) / shownEmojiCols, first + ((height - top) / cell).toInt() + 2)
+        for (r in first until last) for (c in 0 until shownEmojiCols) {
+            val i = r * shownEmojiCols + c
             if (i >= list.size) break
             label(canvas, EmojiData.withTone(list[i], skinTone), cell * (c + 0.5f), top + r * cell + cell / 2f - scrollY, cell * 0.55f, palette.text)
         }
@@ -570,12 +577,12 @@ class PanelView(context: Context) : View(context) {
     /** A custom emoji pack, eight to a row like the ordinary emoji, moving ones playing. */
     private fun drawCustomEmoji(canvas: Canvas, list: List<Stickers.Sticker>) {
         val top = contentTop()
-        val cell = width / emojiCols.toFloat()
+        val cell = width / shownEmojiCols.toFloat()
         val px = (cell * 0.82f).toInt().coerceAtLeast(1)
         val first = max(0, (scrollY / cell).toInt())
-        val last = min((list.size + emojiCols - 1) / emojiCols, first + ((height - top) / cell).toInt() + 2)
-        for (r in first until last) for (c in 0 until emojiCols) {
-            val i = r * emojiCols + c
+        val last = min((list.size + shownEmojiCols - 1) / shownEmojiCols, first + ((height - top) / cell).toInt() + 2)
+        for (r in first until last) for (c in 0 until shownEmojiCols) {
+            val i = r * shownEmojiCols + c
             if (i >= list.size) break
             val x = cell * c + (cell - px) / 2f
             val y = top + r * cell - scrollY + (cell - px) / 2f
@@ -662,10 +669,11 @@ class PanelView(context: Context) : View(context) {
             label(canvas, UiText.t(context, "No GIFs found for \"{q}\"", "q" to gifQuery.orEmpty()), width / 2f, top + dp(60f), sp(14f), palette.hint)
         }
         val cell = gifCell()
+        val cols = gifCols()
         val first = max(0, (scrollY / cell).toInt())
-        val last = min((gifs.size + 2) / 3, first + ((height - top) / cell).toInt() + 2)
-        for (r in first until last) for (c in 0 until 3) {
-            val i = r * 3 + c
+        val last = min((gifs.size + cols - 1) / cols, first + ((height - top) / cell).toInt() + 2)
+        for (r in first until last) for (c in 0 until cols) {
+            val i = r * cols + c
             if (i >= gifs.size) break
             val y = top + r * cell - scrollY
             rect.set(cell * c + dp(2f), y + dp(2f), cell * (c + 1) - dp(2f), y + cell - dp(2f))
@@ -1345,12 +1353,12 @@ class PanelView(context: Context) : View(context) {
         if (y < top) return
         when (tab) {
             Tab.EMOJI -> {
-                val cell = width / emojiCols.toFloat()
-                val c = (x / cell).toInt().coerceIn(0, emojiCols - 1)
+                val cell = width / shownEmojiCols.toFloat()
+                val c = (x / cell).toInt().coerceIn(0, shownEmojiCols - 1)
                 val r = ((y - top + scrollY) / cell).toInt()
                 val custom = customEmoji()
-                if (custom != null) custom.stickers.getOrNull(r * emojiCols + c)?.let { host?.onPanelSticker(it) }
-                else emojiList().getOrNull(r * emojiCols + c)?.let { host?.onPanelText(EmojiData.withTone(it, skinTone), true) }
+                if (custom != null) custom.stickers.getOrNull(r * shownEmojiCols + c)?.let { host?.onPanelSticker(it) }
+                else emojiList().getOrNull(r * shownEmojiCols + c)?.let { host?.onPanelText(EmojiData.withTone(it, skinTone), true) }
             }
             Tab.STICKERS -> {
                 val cell = stickerCell()
@@ -1361,9 +1369,10 @@ class PanelView(context: Context) : View(context) {
             }
             Tab.GIF -> {
                 val cell = gifCell()
-                val c = (x / cell).toInt().coerceIn(0, 2)
+                val cols = gifCols()
+                val c = (x / cell).toInt().coerceIn(0, cols - 1)
                 val r = ((y - top + scrollY) / cell).toInt()
-                gifs.getOrNull(r * 3 + c)?.let { host?.onPanelGif(it) }
+                gifs.getOrNull(r * cols + c)?.let { host?.onPanelGif(it) }
             }
             Tab.THEMES -> {
                 val c = (x / (width / 3f)).toInt().coerceIn(0, 2)
