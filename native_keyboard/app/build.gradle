@@ -13,8 +13,8 @@ android {
         targetSdk = 36
         // Read by scripts/apk-info.mjs for the website's download button and
         // public/app-version.json, so the update check sees the same numbers.
-        versionCode = 10033
-        versionName = "1.0.33"
+        versionCode = 10034
+        versionName = "1.0.34"
 
         // The Google Play build (`./gradlew -Pplay=true :app:bundleRelease`).
         // Play doesn't allow an app to update itself from elsewhere, so that
