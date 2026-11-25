@@ -71,9 +71,11 @@ switch (command) {
     const r = await (await fetch(`https://api.telegram.org/bot${token}/getStickerSet?name=${name}`)).json();
     if (!r.ok) { console.error(`Telegram: ${r.description}`); process.exit(1); }
     const set = r.result;
-    const usable = set.stickers.filter((s) => !s.is_animated || s.thumbnail);
+    // The site draws .tgs stickers itself, so every sticker is usable, preview or not.
+    const usable = set.stickers;
     const previews = usable.slice(0, 5).map((s) => s.file_unique_id);
-    const moving = usable.filter((s) => s.is_video).length;
+    // Video (.webm) and vector (.tgs) stickers both move: the site converts both.
+    const moving = usable.filter((s) => s.is_video || s.is_animated).length;
     // The pack's most common emoji, so it can be found by feeling.
     const counts = {};
     for (const s of usable) if (s.emoji) counts[s.emoji] = (counts[s.emoji] || 0) + 1;

@@ -28,6 +28,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.1.1",
+    "@lottiefiles/dotlottie-web": "^0.83.2",
     "@mdxeditor/editor": "^3.39.1",
     "@neondatabase/serverless": "^1.2.0",
     "@prisma/client": "^6.11.1",

@@ -52,7 +52,8 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
   the "+" at the end of the sticker pack row, Settings → Sticker packs or the
   home screen. Any other Telegram pack can be added from its t.me/addstickers
   link in Settings → Sticker packs. Video stickers play in the panel (Android 9+) and send as
-  animated WebP or GIF; vector-animated (.tgs) ones are stills. 🔍 at the start
+  animated WebP or GIF; vector-animated (.tgs) ones are drawn on the server and
+  play and send the same way. 🔍 at the start
   of the pack row searches every pack by word or emoji
 - Emoji search: type a word ("dog", "lol", "ethiopia") into the strip and tap a
   result
@@ -293,7 +294,9 @@ picture per sticker. The website's `/api/stickers` and `/api/stickers/file`
 read Telegram with `TELEGRAM_BOT_TOKEN` (make a bot with @BotFather and set it
 in Vercel), so phones never hold the token. Video stickers are converted there
 with `ffmpeg-static` (animated WebP at 288px/12fps, GIF at 240px, and a full-size
-first frame), once each, then cached by the CDN. To build a pack into the APK
+first frame), once each, then cached by the CDN. Vector (.tgs) stickers are
+first drawn frame by frame with ThorVG (`@lottiefiles/dotlottie-web`, WebAssembly),
+then go through the same ffmpeg step. To build a pack into the APK
 instead (it then can't be removed, and adds to the download):
 
     node native_keyboard/tools/fetch-sticker-pack.mjs https://t.me/addstickers/PackName

@@ -7,6 +7,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { gunzipSync } from 'node:zlib';
 
 export const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.trim() || '';
 
@@ -60,7 +61,7 @@ export async function download(fileId: string, maxBytes: number): Promise<{ path
 }
 
 // ─── Video stickers ────────────────────────────────────────────────────────
-// A keyboard can't send Telegram's .webm stickers, so ffmpeg turns them into an
+// A keyboard can't send Telegram's .webm (or .tgs) stickers, so ffmpeg turns them into an
 // animated WebP (played in the keyboard, sent to apps that take WebP), a GIF
 // (for apps that only take GIFs) or a still (the first frame, full size).
 
@@ -116,18 +117,86 @@ const FILTERS: Record<Output, string[]> = {
   ],
 };
 
-/** A .webm sticker converted to [out], or null if ffmpeg is missing or fails. */
-export async function convert(webm: Buffer, out: Output): Promise<Buffer | null> {
+// ─── Vector (.tgs) stickers ────────────────────────────────────────────────
+// A .tgs sticker is a gzipped Lottie animation. ThorVG (compiled to WebAssembly,
+// in @lottiefiles/dotlottie-web) draws its frames into memory, and ffmpeg then
+// makes the same WebP, GIF and still as for a video sticker.
+
+const TGS_SIZE = 512;
+const TGS_FPS = 12;
+/** Telegram allows three seconds; a little room, so a bad file can't run long. */
+const TGS_MAX_FRAMES = TGS_FPS * 4;
+
+type DotLottieClass = typeof import('@lottiefiles/dotlottie-web').DotLottie;
+let lottieReady: Promise<DotLottieClass> | null = null;
+
+function lottie(): Promise<DotLottieClass> {
+  lottieReady ??= (async () => {
+    const { DotLottie } = await import('@lottiefiles/dotlottie-web');
+    // From the project folder: the bundler rewrites require.resolve, and next.config.ts
+    // ships this file with the route (outputFileTracingIncludes).
+    const wasmPath = join(process.cwd(), 'node_modules', '@lottiefiles', 'dotlottie-web', 'dist', 'dotlottie-player.wasm');
+    // Node's fetch reads data: URLs but not files, so the WebAssembly goes in as one.
+    DotLottie.setWasmUrl(`data:application/wasm;base64,${(await readFile(wasmPath)).toString('base64')}`);
+    return DotLottie;
+  })().catch((e) => {
+    lottieReady = null;
+    throw e;
+  });
+  return lottieReady;
+}
+
+/**
+ * The frames of a .tgs sticker at 12 a second (only the first when firstOnly),
+ * as raw RGBA, TGS_SIZE square, one after another; or null if it can't be drawn.
+ */
+export async function tgsFrames(tgs: Buffer, firstOnly = false): Promise<{ rgba: Buffer; count: number } | null> {
+  let player: InstanceType<DotLottieClass> | null = null;
+  try {
+    const json = gunzipSync(tgs, { maxOutputLength: 4 * 1024 * 1024 }).toString('utf8');
+    const fr = Number(JSON.parse(json).fr) || 60;
+    const DotLottie = await lottie();
+    const p = new DotLottie({ canvas: { width: TGS_SIZE, height: TGS_SIZE }, data: json, autoplay: false });
+    player = p;
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('timeout')), 10_000);
+      p.addEventListener('load', () => { clearTimeout(timer); resolve(); });
+      p.addEventListener('loadError', (e) => { clearTimeout(timer); reject(e.error); });
+    });
+    const frames: Buffer[] = [];
+    const max = firstOnly ? 1 : TGS_MAX_FRAMES;
+    for (let f = 0; f < p.totalFrames && frames.length < max; f += fr / TGS_FPS) {
+      p.setFrame(f);
+      const b = p.buffer;
+      if (!b || b.length !== TGS_SIZE * TGS_SIZE * 4) return null;
+      frames.push(Buffer.from(b));
+    }
+    return frames.length ? { rgba: Buffer.concat(frames), count: frames.length } : null;
+  } catch (error) {
+    console.error('Drawing a .tgs sticker failed:', error);
+    return null;
+  } finally {
+    player?.destroy();
+  }
+}
+
+/** A .webm or .tgs sticker converted to [out], or null if it can't be. */
+export async function convert(sticker: Buffer, out: Output, kind: 'webm' | 'tgs' = 'webm'): Promise<Buffer | null> {
   const ffmpeg = ffmpegPath();
   if (!ffmpeg) return null;
+  const frames = kind === 'tgs' ? await tgsFrames(sticker, out === 'still') : null;
+  if (kind === 'tgs' && !frames) return null;
   const dir = await mkdtemp(join(tmpdir(), 'sticker-'));
   try {
-    const input = join(dir, 'in.webm');
+    const input = join(dir, frames ? 'in.rgba' : 'in.webm');
     const output = join(dir, 'out');
-    await writeFile(input, webm);
-    // libvpx-vp9 is the decoder that keeps the transparent background.
+    await writeFile(input, frames ? frames.rgba : sticker);
+    const source = frames
+      ? ['-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${TGS_SIZE}x${TGS_SIZE}`, '-r', String(TGS_FPS), '-i', input]
+      // libvpx-vp9 is the decoder that keeps the transparent background.
+      : ['-c:v', 'libvpx-vp9', '-i', input];
     const code = await new Promise<number>((resolve) => {
-      const p = spawn(ffmpeg, ['-v', 'error', '-y', '-c:v', 'libvpx-vp9', '-i', input, ...FILTERS[out], output]);
+      const p = spawn(ffmpeg, ['-v', 'error', '-y', ...source, ...FILTERS[out], output]);
       const timer = setTimeout(() => p.kill('SIGKILL'), 45_000);
       p.on('close', (c) => { clearTimeout(timer); resolve(c ?? 1); });
       p.on('error', () => { clearTimeout(timer); resolve(1); });

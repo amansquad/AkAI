@@ -20,8 +20,8 @@ async function marketTitle(name: string): Promise<string | null> {
  *
  * A Telegram sticker pack as links the keyboard downloads from /api/stickers/file:
  * every sticker has a still picture; a video sticker also has an animated WebP
- * (to play and send) and a GIF (for apps that only take GIFs). Animated .tgs
- * stickers (vector animations) come as their still preview only. kind is
+ * (to play and send) and a GIF (for apps that only take GIFs), and so does an
+ * animated .tgs sticker (a vector animation), drawn on the server. kind is
  * "emoji" for a custom emoji pack (t.me/addemoji), "stickers" otherwise.
  */
 
@@ -44,12 +44,12 @@ export async function GET(request: NextRequest) {
     const file = (sticker: string, as?: string) =>
       `/api/stickers/file?pack=${encodeURIComponent(set.name)}&sticker=${encodeURIComponent(sticker)}${as ? `&as=${as}` : ''}`;
     const stickers = set.stickers
-      .filter((s) => !s.is_animated || s.thumbnail)
+      .filter((s) => !s.is_animated || s.thumbnail || moving)
       .map((s) => ({
         id: s.file_unique_id,
         emoji: s.emoji || '',
         still: file(s.file_unique_id),
-        ...(s.is_video && moving ? { anim: file(s.file_unique_id, 'anim'), gif: file(s.file_unique_id, 'gif') } : {}),
+        ...((s.is_video || s.is_animated) && moving ? { anim: file(s.file_unique_id, 'anim'), gif: file(s.file_unique_id, 'gif') } : {}),
       }));
     if (stickers.length === 0) return json({ error: 'That pack has no stickers the keyboard can use' }, 422);
 

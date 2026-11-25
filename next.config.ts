@@ -26,9 +26,14 @@ const nextConfig: NextConfig = {
   // /api/stickers/file runs ffmpeg to turn Telegram video stickers into
   // animated WebP and GIF. Keep the package unbundled so it can find its
   // binary, and ship the binary with that route.
-  serverExternalPackages: ['ffmpeg-static'],
+  // .tgs (vector) stickers are drawn first by ThorVG's WebAssembly build in
+  // @lottiefiles/dotlottie-web, read from the package folder.
+  serverExternalPackages: ['ffmpeg-static', '@lottiefiles/dotlottie-web'],
   outputFileTracingIncludes: {
-    '/api/stickers/file': ['./node_modules/ffmpeg-static/ffmpeg*'],
+    '/api/stickers/file': [
+      './node_modules/ffmpeg-static/ffmpeg*',
+      './node_modules/@lottiefiles/dotlottie-web/dist/dotlottie-player.wasm',
+    ],
   },
 
   // Performance optimizations
