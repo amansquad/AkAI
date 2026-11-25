@@ -210,6 +210,7 @@
 መልካም	cheers
 መልካም ልደት	happy birthday
 መልካም አዲስ አመት	happy new year
+መልካም ዕድል	good luck
 መልካም ገና	merry christmas
 መሐመድ	muhammad
 መመሪያ	guide
@@ -1526,6 +1527,8 @@
 አማራ	An Amhara person; amhara
 አማራ ክልል	amhara
 አማርኛ	Amharic, Amharan; Amharic language; amharic
+አማርኛ ትችላለህ	do you speak english
+አማርኛ ትችያለሽ	do you speak english
 አማን	amman
 አማካሪ	Advisor, counselor; advisor
 አሜሪካ	americas

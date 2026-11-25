@@ -1087,7 +1087,7 @@ class PanelView(context: Context) : View(context) {
      */
     private fun offlineTranslate(asked: String, from: Lang, to: Lang, why: String) {
         Net.background {
-            val found = OfflineDict.get(context)?.lookup(asked, from, to)
+            val found = OfflineDict.get(context, if (from == Lang.EN) to else from)?.lookup(asked, from, to)
             Net.ui {
                 if (tab != Tab.TRANSLATE || source != asked || result != null) return@ui
                 when {

@@ -1,0 +1,1336 @@
+a poor beggar	ጨርቃማ
+a wolf	ተኹላ
+accept	ተቐበለ
+accident	ሓደጋ, ሃንደበት
+achoo	ሕንጥሸው
+active	ንጡፍ
+activity	ንጥፈት
+actor	ተዋሳኣይ, ተዋሳኢ
+add	ወሰኸ, ወስኽ
+addis ababa	ኣዲስ ኣበባ
+address	ኣድራሻ
+adjective	ቅጽል
+afar	ዓፋር
+africa	ኣፍሪቃ
+african	ኣፍሪቃዊ
+african bowstring hemp	ዒቃ
+african boxwood	ጸጾ
+african caper	ዓንደል
+african pencil cedar	ጽሕዲ
+afrikaans	አፍሪቃንሰኛ
+agriculture	ሕርሻ
+aid	ኣገልጋሊ
+air	ኣየር
+airplane	ነፋሪት
+airport	መዓርፎ ነፈርቲ
+albania	አልባኒያ
+albanian	አልቤኒኛ
+algeria	ኣልጀርያ
+allah	አላህ
+almond	ለውዝ
+alphabet	ፊደል
+altar	መንበር
+ambassador	ኣምባስደር
+americas	ኣመሪካ
+amharic	ኣምሓርኛ
+ampoule	ኣምፑል
+amulet	ክታብ
+anchor	መልህቕ, መልሕቕ
+and	ከኣ
+and so forth	ወዘተረፈ
+andrew	እንድርያስ
+angel	መልኣኽ
+angola	ኣንጎላ
+animal	እንስሳ
+answer	መልሲ
+ant	ጻጸ
+antarctica	ኣንታርቲካ
+antiquity	ጥንቲ
+anus	መሃንቱስ
+apostle	ሓዋርያ
+apple	ቱፋሕ, ሜለ
+application	መተግበሪ
+apricot	ምሽምሽ
+april	ሚያዝያ
+arabic	ዓረብ
+arctic	ኣርክቲክ
+argentina	ኣርጀንቲና
+arm	ምናት
+armenia	አርሜኒያ
+army	ሰራዊት
+arrest	ኣሰረ
+arrow	ኵናት, መንትግ, ፍላጻ
+art	ጥበብ
+artery	ኣርተሪ
+article	ፅሑፍ
+artillery	መድፍዕ
+aruba	ኣሩባ
+ash	ሓሙኽሽቲ
+asia	እስያ
+asmara	ኣስመራ
+atlantic ocean	ኣትላንቲካዊ ውቅያኖስ
+atmosphere	ሃዋህው
+attract flies	ሃዘዘ
+august	ነሓሰ
+aureole	ኣኽሊል
+australia	ኣውስትራልያ, ኣውስትራሊያ
+austria	ኦስትሪያ
+automobile	መኪና, ኣውቶሞቢል
+autumn	ቀውዒ
+avocado	ኣቮካዶ
+axe	ፋስ
+axum	ኣኽሱም
+azerbaijan	አዘርባጃን
+back	ሕቖ
+bad	ሕማቕ
+bag	ቦርሳ, ልቖታ, ቈርባቦ
+balloon	ባላንቺና
+banana	ባናና, ሙዝ
+bangladesh	ባንግላደሽ
+bank	ባንክ
+barentu	ባረንቱ
+bark	ልሕጺ
+barley	ስገም
+bartholomew	በርተሎሜዎስ
+bat	መንካዕ
+battery	ባተሪ
+battle	ውግእ
+be	እዩ, ነበረ, ምህላው
+be believed	ተኣምነ
+be discontented	ምሕዝንዛን
+be divided	ተማቐለ
+be late	ደንጐየ
+be trapped	ተቐርቀረ
+be washed	ተሓጸበ
+be written	ተጻሕፈ
+bead	ሉል
+bean	ባልደንጓ
+bear	ድቢ
+beard	ጭሕሚ
+beat	ሃረመ
+become	ምዃን
+bed	ዓራት
+bee	ንህቢ, ንሕቢ
+beer	ቢራ
+beet	ሱር, ብንጅር
+beetle	ሕንዚዝ
+beggar	ጨርቃም
+begin	ሰረቐ
+behind	ድሕሪ
+belarus	ቤላሩስ
+belgium	ቤልጄም
+bell	ደወል
+belly	ከብዲ, ከርሲ
+belt	ቁልፊ
+benin	ቤኒን
+bible	መጽሓፍ ቅዱስ
+bicycle	ብሽክለታ
+big	ዓቢ
+biography	ዛንታ
+bird	ጭሩ, ዑፍ
+birthday	ዕለተ ልደት
+bishop	ጳጳስ
+black	ጸሊም
+black and white	በሮክቶ
+blackberry	ጸሊም ጐምጠጥ, ሮቮ
+blade	ላማ
+bless	በረኸ, ባረኸ
+blood	ደም
+bloom	ቘቘበ
+blue	ሰማያዊ
+blueberry	ሰማያዊ ጐምጠጥ
+board	ጣውላ
+boat	መርከብ, ሳምቡቕ
+bomb	ቦምባ
+bone	ዓጽሚ
+book	መጽሓፍ, መጽሐፍ
+border	ዶብ
+bosnia and herzegovina	ቦዝንያን ሄርዘጎቪናን
+bottle	ጥርሙዝ, ጥርሙስ
+boy	ወዲ
+brain	ሓንጎል
+branch	ቃራና
+brazil	ብራዚል
+bread	ባኒ, ሕብስቲ
+break	ሰበረ
+break several things	ሰባበረ
+break slightly	ሰባበረ
+breath	ትንፋስ
+brick	ጡብ, ሑጡብ
+bride	መርዓት
+bridegroom	መርዓዊ
+bridge	ድልድል
+bridle	ልጓም
+broom	መኾስተር
+brother	ሓው, ሓወ
+brown	ቡናዊ
+bug	ቱኻን
+bulgaria	ቡልጋርያ
+bulgarian	ቡልጋሪኛ
+bull	ኣርሓ, ሶር
+bullet	ዓረር
+burkina faso	ቡርኪና ፋሶ
+bus	ኣውቶቡስ
+bush	ጊፍ
+butter	ጠስሚ
+butterfly	ጽምብላሊዕ
+cabbage	ካውሎ
+cake	ቕጫ
+calculator	መተሓሳሰቢ, መሕሰቢት
+calf	ዳንጋ
+cambodia	ካምቦድያ
+camel	ገመል
+camera	ካሜራ, ካመራ
+canada	ካናዳ
+cancel	ኣትርፍ
+cancer	መንሽሮ
+candle	ሽምዓ, ቀንዴል
+cane	ምርኩስ
+cannon	መድፍዕ
+cantaloupe	ሓብሓብ
+cap	ቆቢዕ
+capital city	ርእሲ ከተማ
+captcha	ካፕቻ
+capture	መረኸ
+car	መኪና
+caramel	ከረመላ
+caravan	ቃፍላይ
+careless	ገርሂ
+caring	ሓላይ
+carpet	ምንጻፍ
+carrot	ካሮቲ, ካሮት
+carry	ምጽያር
+castrated goat	ሶር
+cat	ድሙ
+catch	ቈለበ
+caterpillar	ኣባጮጎራ
+cave	በዓቲ, ባዓቲ
+century	ዘመን
+ceremonial tent	ዳስ
+chad	ቻድ
+chair	መንበር, ኵርሲ
+chalkboard	ሰሌዳ
+chancellor	ቻንስለር
+cheap	ሕሱር
+cheek	ጉንጪ
+cheese	ጅብና
+cheetah	ቺታ
+chemical reaction	ከሚካል ሪኣክሽን
+chess	ቸስ
+chick	ጫጩት
+chicken	ደርሆ
+child	ቈልዓ, ቆልዓ, ሕጻን
+chile	ቺሌ
+chilli	ጉዕ
+chin	መንከስ
+china	ቻይና
+chocolate	ችኮላታ
+christianity	ክርስትና
+church	ቤተ ክርስትያን, ቅዳሴ
+cigarette	ሽጋራ
+cinnamon	ቃርፋ
+circumstance	ኩነት
+cistern	ጋው
+citron	ትርንጒ
+city	ከተማ
+civilization	ስልጣኔ
+claw	ጭፍሪ
+click on	ምጥዋቕ
+clock	ሰዓት
+cloth	ዓለባ
+clothing	ክዳን
+cloud	ደበና
+cockroach	ድዱዕ
+coconut	ዶማ, ኮኮናት
+coffee	ቡን
+cognac	ኮኛክ
+coin	ሳንቲም
+collard greens	ሓምሊ
+colombia	ኮሎምብያ
+colorful	ሕብራዊ
+comb	መመሸጥ
+complete	ፈጸመ
+computer	ኮምፕዩተር
+conglomeration	እኽብካብ
+congress	ጉባኤ
+conjunction	መስተጻምር
+conscience	ሕልና
+continent	ኣህጉር
+cook islands	ኩክ ደሴቶች
+copyright	መሰል ደራሲ
+cork	ባሊቃ
+corner	ጫፍ
+coronavirus	ኮሮናቫይረስ
+corpse	ሬሳ, በድኒ
+cotton	ጡጥ
+country	ሃገር, ዓዲ
+courgette	ዙኪኒ
+cover	መኽደኒ, ከደነ
+cow	ላም
+creative	መሃዚ
+crescent	ሂላል
+cricket	ዕንጭራር
+crime	ገበን, ወንጀል
+croatia	ክሮኤሽያ
+crocodile	ሓርገጽ
+cross	መስቀል
+crow	ኳክ, ኳኽ
+crown	ዘውዲ
+cucumber	ኩኩምበር, ቺትርዮለ
+culture	ባህሊ
+cup	ዋንጫ
+curse	ኢንቶ
+cut	ቁረጽ
+cyprus	ቆጵሮስ
+czech	ቼክኛ
+czech republic	ሪፓብሊክ ቸክ, ቼክ ሪፓብሊክ
+dagger	ሽነት
+daily	መዓልታዊ
+dam	ግድብ
+dancer	ሳዕሰዓይ
+dandruff	ፎሮፎር
+danish	ዴኒሽ
+dark	ጸሊም
+dark-skinned	ጸሊም
+date	ተምሪ
+date palm	ተምሪ
+daughter	ጓል
+day	መዓልቲ
+death	ሞት
+december	ታኅሣሥ
+decide	ወሰነ
+deer	ዓጋዜን
+dekemhare	ደቀምሓረ
+delay	ደንጐየ, ድንጓየ, ደንጎየ
+democracy	ዲሞክራሲ, ደሞክራሲ
+demon	ጋኔን
+denmark	ዴንማርክ
+descend	ወረደ
+despise	ነዓቐ
+devil	ሰይጣን
+dialect	ላህጃ
+diamond	ኣልማዝ
+dictionary	መዝገበ ቃላት
+die	ሞተ, ምሟት
+dig	ኰዓተ
+digestive system	ስርዓተ ምሕቃቕ መግቢ
+dill	ሽላን
+dirty	ረሳሕ
+dismount	ወረደ
+djibouti	ጂቡቲ
+do	ገበረ
+doctor	ሓኪም, ዶክተር
+dog	ከልቢ
+doll	ባምቡላ
+dollar	ዶላር
+dolphin	ኣቡ ሰላማ
+donkey	ኣድጊ
+door	ማዕጾ, ኣፍደገ
+doubt	ጠርጠረ
+dove	ርግቢት, ርግቢ
+download	ኣውርድ
+dragonfly	ፈረሰኛ
+dramatic	ድራማዊ
+dream	ሕልሚ
+drill	መንደል
+driver's license	ፍቓድ መምህርሒ መኪና
+drought	ድርቂ
+drunk	ሰኽራም
+dry	ንቑስ
+duck	ደርሆ ማይ
+dutch	ዳች, ሆላንድኛ
+eagle	ንስሪ
+ear	እዝኒ
+earth	መሬት, ምድሪ
+earthquake	ምንቅጥቃጥ መሬት
+east	ምብራቕ
+eastern	ምብራቓዊ
+eat	በልዐ
+ecuador	ኤኳዶር
+edit	ኣርትዖት
+editor	ኣርታዒ, ዓራያይ
+educate	መሃረ
+education	ትምህርቲ
+egg	እንቋቑሖ, እንቛቝሖ, እንቋቕሖ
+eggplant	መለንዛና
+egypt	ግብጺ
+eight	ሸሞንተ
+eighteen	ዓሰርተ ሸሞንተ
+eighth	ሳምናይ
+eighty	ሰማንያ
+el salvador	ኤል ሳልቫዶር
+elastic band	ላስቲክ
+elbow	ኩርናዕ
+election	ምርጫ, ምምራጽ
+electric light	መብራህቲ
+elephant	ሓርማዝ
+eleven	ዓሰርተ ሓደ
+email	ኢመይል
+embassy	ኤምባሲ
+emoji	ኢሞጂ, ስሜት ገላጭ ምስል
+encyclopedia	ኢንሳይክሎፐድያ, መዝገበ ፍልጠት
+enemy	ጻላኢ
+engineer	መሃንድስ, መራሕ ባቡር
+england	ዓዲ እንግሊዝ
+english	እንግሊዝኛ
+envelope	ሰታሪት
+eraser	መደምሰስ
+eritrea	ኤርትራ
+eritrean	ኤርትራዊ, ኤርትራዊት
+escape	ሃደመ
+estonia	ኤስቶኒያ
+estonian	ኤስቶኒአን
+ethiopia	ኢትዮጵያ
+ethiopian	ኢትዮጵያዊ, ኢትዮጵያዊት
+europe	ኤውሮጳ
+european union	ኤውሮጳዊ ሕብረት
+evening	ምሸት
+ewe	ሽበን
+example	ኣብነት
+excellent	ጽቡቕ
+expensive	ክቡር
+eye	ዓይኒ
+eyelash	ቀርነብ, ቅርኒብ ዓይኒ
+face	ገጽ
+factory	ፋብሪካ
+fail	ወደቐ
+fairy tale	ጽውጽዋይ
+falcon	ሊላ
+fall	ወደቐ
+family	ስድራ
+faq	ብሕ
+farmer	ሓረስታይ
+father	ኣቦ
+fear	ፍርሓት
+february	ለካቲት
+feces	ሓርኢ
+federation	ፈደረሽን
+feed	ኸለበ
+fence	ሓጹር
+festivity	ጽሞብል
+fever	ምርባጽ
+fifteen	ዓሰርተ ሓሙሽተ
+fifty	ሓምሳ
+fig	በለስ
+file	ፋይል
+film	ፊልም
+filter	ሊፍ
+finger	ኣጻብዕ, ኣጽባዕቲ
+fingernail	ጽፍሪ
+finish	ለፈፈ
+finland	ፊንላንድ
+finnish	ፊኒሽ
+fire	ሓዊ, ባርዕ
+firmament	ሰማይ
+first	ቀዳማይ, ፈለማ
+fish	ዓሳ
+fishing net	መርበብ
+five	ሓሙሽተ
+flame	ፋና, ሃልሃልታ
+flashlight	ላምባዲና
+flea	ቁንጪ
+flesh	ስጋ
+flour	ሓርጭ
+flower	ዕምባባ
+fly	ሃመማ
+fly around	ሃዘዘ
+foam	ዓፍራ
+fodder	ሰዓዕ
+fog	ዕምብረ
+follow	ሰዓበ, ኸተለ
+food	መግቢ
+fool	ዓሻ
+foot	እግሪ
+football	ኩዕሶ እግሪ
+forearm	ቅልጽም
+forefinger	ኣመልካቲቶ
+forehead	ግንባር
+foremost	ቀዳማይ
+forest	ጫካ, ዱር
+forget	ረስዐ
+fork	ፋርኬታ
+forty	ኣርብዓ, ኣርባዓ
+four	ኣርባዕተ
+fourteen	ዓሰርተ ኣርባዕተ
+fox	ወኻርያ
+france	ፈረንሳይ
+freedom	ናጽነት, ሓርነት, ሐርነት
+french	ፈረንሳይኛ
+frequently asked questions	ብዝተደጋገመ ሕቶታት
+friday	ዓርቢ
+friend	ዓርኪ, መሓዛ
+frog	እንቍርዖብ, እንቁርዖብ
+from	ካብ
+fruit	ፍረ, ፍሩታ
+fundamentalism	ኣኽራርነት
+fundamentalist	ኣኽራሪ
+galician	ጋለቪኛ
+garden	ጀርዲን
+gasoline	በንዚን
+gazelle	ሰስሓ
+gb	ጊባ
+ge'ez	ግእዝ, ግዕዝ
+georgia	ጆርጂያ
+german	ጀርመን
+germany	ጀርመን
+get up	ተስአ
+gift	ጌጽ, ህያብ
+ginbot	ግንቦት
+giraffe	ዘራፍ, ዝዖታ
+girl	ጓል
+give	ምውሃብ
+glass	ጥርሙዝ, ጥርሙስ
+glove	ግዋንቲ
+glue	ኮላ
+gnat	ቃርማ, ጻጾት
+go	ምኽያድ
+goal	ማዕጾ
+goat	ጤል
+goat kid	ማሕስእ
+god	እግዚኣብሄር, ኣምላክ
+gold	ወርቂ
+good	ጽቡቕ
+google	ጉግል
+government	መንግስቲ
+grain	እኽሊ
+grape	ወይኒ
+grapefruit	ናርገ
+grass	ሳዕሪ
+grave	መቓብር
+gray	ሓሙኹሽታይ
+greece	ግሪክ
+greed	ትህርፍቲ
+greek	ግሪከኛ
+green	ቀጠልያ
+grieve	ሓዘነ
+grindstone	መዲድ
+guava	ዘይቱን
+guest	ጋሻ
+guitar	ጊታር
+gun	ሽጉጥ
+hair	ጸጉሪ, ጨጕር
+hammer	ማርተሎ
+hand	ኢድ
+harmful	ተጓድኢ
+harp	በገና
+hat	ቆብዕ, ባርኔጣ
+haul away	ወሰደ
+haystack	ቅሚጦ
+he	ንሱ, ንሶም
+head	ርእሲ, ሊቅ
+health	ጥዕና
+heart	ልቢ
+heaven	ሰማይ
+heavenly	ሰማያዊ
+hebrew	እብራይስጢ, ኣይሁዳዊ, እብራዊ
+hedgehog	ቅንፍዝ
+heifer	ኣርሒ
+helicopter	ሄሊኮፕተር
+hell	ገሃነም
+hello	ሰላም
+here	እንሀለ
+hi	ሰላም
+hill	ኩርባ
+hippopotamus	ጉማረ
+his	ናቱ
+history	ታሪኽ, ዛንታ
+hold	ምትሓዝ
+homosexual	ግብረ ሰዶማዊ, ግብረ ሰዶማዊት, ግብረ ሰዶመኛ
+honesty	ቅንዕና
+honey	መዓር
+hope	ተስፋ
+horn	ቀርኒ
+horn of africa	ቀርኒ ኣፍሪቃ
+horse	ፈረስ
+hospital	ሆስፒታል, ቤት ሕክምና
+hotel	ሆቴል
+hour	ሰዓት
+house	ቤት, ገዛ
+how	ከመይ
+http cookie	ኩኪ
+hundred	ሚእቲ
+hungarian	ሀንጋሪኛ
+hungary	ሀንጋሪ
+hunger	ህርፊ
+hurricane	ሃቦብላ
+hurry	ቀልጠፈ
+husband	በዓል ቤት
+hyena	ዝብኢ
+i	ኣነ
+ice	በረድ
+ice cream	ኣይስክሪም
+iceland	አይስላንድ
+icelandic	አይስላንደኛ
+identification	ምልላይ
+identity card	ወረቐት መንነት
+if	ምስ
+ill	ሕሙም
+imam	ኢማም
+important	ኣገዳሲ
+in the evening	ምሸት
+incense	ዕጣን
+incise	ቀረጸ
+increase	ሰሰነ
+independence	ሓርነት
+india	ህንዲ
+indian ocean	ህንዳዊ ውቅያኖስ
+indonesian	እንዶኑሲኛ
+inferior	ታሕታዋይ
+information	ሓበሬታ
+injera	እንጀራ
+insect	ሓሽራ
+instagram	ኢንስታግራም
+intelligence	ሓንጎል
+interesting	ኣገዳሲ
+internet	መርበብ, ኢንተርነት
+interpret	ተርጐመ
+interrogate	ኰርኰረ
+intestine	መዓንጣ
+invite	ጸውዐ
+iran	ኢራን
+iraq	ዒራቕ
+ireland	አየርላንድ
+irish	አይሪሽ
+iron	ሓጺን
+isaac	ይስሓቕ
+isaiah	ኢሳይያስ
+islamic	ኣስላማይ
+islamic fundamentalism	እስላማዊ ኣኽራርነት
+island	ደሴት
+israel	እስራኤል
+it	ንሱ
+italian	ጣሊያንኛ
+italy	ኢጣልያ
+item	ውልቀ ነገር
+january	ትሪ
+japanese	ጃፓንኛ
+jellyfish	ዓሳ ለግለግ
+jerusalem	የሩሳሌም
+jesus	የሱስ, እየሱስ
+john	ዮሃንስ
+joke	ቀለደ
+journalist	ጋዜጠኛ
+joy	ፍስሃ
+judas	ይሁዳ
+judas iscariot	ይሁዳ ኣስቆሮታዊ
+judge	ዳኛ, ፈራዲ
+judicial	ፍርዳዊ
+juice	ጽሟቕ
+july	ሓምለ
+june	ሰነ
+jupiter	ጁፒተር
+kangaroo	ካንጋሮ
+kenya	ኬንያ
+kernel	ፍረ
+kerosene	ላምባ
+kerosene lamp	ላምባዲና
+key	መፍትሕ
+kid	ጃዲ
+kidney	ኵሊት
+kilil	ክልል
+kill	ኸተለ
+killer	ቀታላይ
+kind	ኬር
+king	ንጉስ, ንጉሥ
+kiss	ሰዓመ
+kiwifruit	ኪዊ
+knead	ለወሰ
+knee	ብርኪ
+know	ፈለጠ
+knowledge	ፍልጠት
+korea	ኮርያ
+korean	ኮሪያኛ
+ladder	መሳልል
+lake	ቀላይ
+lamp	ፋና, ፋኑስ
+language	ቋንቋ, ልሳን
+latvia	ላትቪያ
+laugh	ሰሓቐ
+law	ስርዓት, ሕጊ
+lawyer	ጠበቓ, ጠበቃ
+laziness	ትህኪት
+lazy	ሃካይ, ሰነፍ
+leader	መራሒ
+leaf	ቈጽሊ
+leaven	ብሑቕ
+leg	እግሪ
+legume	ኣእካል ጥረ
+lemon	ለሚን
+lentil	ብርስን, ዓደስ
+leprosy	ለምጺ
+leprous	ለምጻም
+lesson	ትምህርቲ
+letter	ፊደል, ደብዳበ
+libya	ሊቢያ
+lid	መኽደን
+life	ሂወት
+light	ፋና
+light bulb	ኣምፑል
+light-skinned	ቀይሕ
+lighthouse	መናራ
+lightning	በርቂ
+lion	ኣንበሳ
+lip	ከንፈር
+lithuania	ሊቱዌኒያ
+little finger	ሕንጥሊቶ, ሕንጥል ሕንጥሊቶ
+liver	ከብዲ, ጸላም ከብዲ
+lizard	ጠበቕ
+locust	ኣንበጣ
+log in	ብመንነት እተው
+log out	ብመንነት ውጻእ
+login	ብመንነት እተው
+long	ነዊሕ
+louse	ቍማል
+love	ፍቕሪ
+luke	ሉቃስ
+lung	ሳንቡእ
+macdonald	ማክዶናልድ
+macedonia	መቆዶንያ
+macedonian	ማክዶኒኛ
+machine	መኪና, መዘወር
+madagascar	ማዳጋስካር
+madrasa	ማድራሳ
+madrid	ማድሪድ
+magazine	መጽሔት
+main	መበገሲ
+maize	ዕፉን
+make amulets	ከተበ
+make wiser	ለበመ
+malawi	ማላዊ
+male baboon	ጋውና
+mali	ማሊ
+malicious spirit	ቈለ
+malta	ማልታ
+man	ሰብኣይ, ሰብእ
+mandarin orange	መንደሪኒ
+mango	ማንጉስ
+mantis	ከዳኒቶ
+map	ካርታ
+marathi	ማራቲኛ
+march	መጋቢት
+mario	ማርዮ
+market	ዕዳጋ, ሹቕ
+marriage	መውስቦ
+mask	ማስኬራ
+massawa	ምጽዋዕ
+master	በዓል, ጐይታ
+masturbation	ግብረ ሕቡእ
+matthew	ማቴዎስ
+matthias	ማትያስ
+mauritania	ሞሪታኒያ
+maxim	ምሳሌ
+may	ግንቦት
+meat	ስጋ
+medicine	መድሃኒት, ሕክምና
+meggabit	መጋቢት
+mekele	መቐለ
+melon	ሓብሓብ
+merchant	ቃፍላይ
+merciful	ኬር
+meskerem	መስከረም
+meter	ሜትሮ
+metre	ሜትሮ
+mexico	ሜክሲኮ
+microsoft	ማይክሮሶፍት
+middle east	ማእከላይ ምብራቕ
+middle finger	ማእከለይቶ
+midnight	ፍርቂ ለይቲ
+milk	ጸባ
+mindfulness	ምሉእ ኣቓልቦ, ምሉእ ሕልና
+ministry	ሚኒስትሪ
+minute	ደቒቕ
+miracle	ተኣምር, ትኣምር
+mirror	መስትያት
+mode of transport	መጓዓዝያ
+mogadishu	ሞቓድሾ
+moldova	ሞልዶቫ
+monday	ሰኑይ
+money	ገንዘብ
+money transfer	ሓዋላ
+mongolia	ሞንጎልያ
+monkey	ህበይ
+montenegro	ሞንቴኔግሮ
+month	ወርሒ
+moon	ወርሒ, ዋርሒ
+morocco	ሞሮኮ
+mosque	መስጊድ
+mosquito	ጣንጡ
+mother	ኣደ
+mother tongue	ቋንቋ ኣደ
+motorcycle	ሞቶ
+mountain	እምባ
+mountain plum	ምልዖ
+mouse	ኣንጭዋ
+mouth	ኣፍ, አፍ
+move	ኣንቀሳቐሰ
+movie	ፊልም, ሲነማ, ቺነማ
+mozambique	ሞዛምቢክ
+mud	ሊን
+mug	ኩባያ
+mullah	ሙላህ
+muscle	ጭዋዳ
+museum	ቤተ መዘክር
+mushroom	ቃንጥሻ
+music	ሙዚቃ
+muslim	ኣስላማይ
+mustard	ኣድሪ, ሰናፍጭ
+myrtle	ኣደስ
+nail	መስማር
+name	ስም, ሽም
+nathanael	ናትናኤል
+national	ህዝባዊ
+nationality	ዜግነት
+nature	ተፈጥሮ
+navel	ሕምብርቲ
+neck	ክሳድ
+necktie	ክራባታ
+needle	መርፍእ
+negus	ንጉስ
+neighbour	ጎር, ጐረቤት
+nepal	ኔፓል
+netherlands	ኔዘርላንድ, ሆላንድ
+network	መርበብ
+new	ሓድሽ, ሓዲስ
+new zealand	ኒው ዘይላንድ
+newly-weds	መርዓዊ
+news	ዜና, ወረ
+newspaper	ጋዜጣ
+nicaragua	ኒካራጓ
+nice	ንፉዕ
+nickname	ሳጓ
+nietzsche	ኒሺ, ኒትሸ
+niger	ናይጀር
+nigeria	ናይጂሪያ
+night	ለይቲ
+nine	ትሽዓተ, ትሸዓተ
+nineteen	ዓሰርተ ትሽዓተ
+ninety	ተስዓ
+nipple	ጡብ
+nobody	ሓደ
+north	ሰሜን
+north america	ሰሜን ኣሜሪካ
+north korea	ሰሜን ኮርያ
+north macedonia	ሰሜን መቆዶንያ
+norway	ኖርዌ
+norwegian	ኖርወያዊ, ኖርወያዊት, ኖርወይኛ
+nose	ኣፍንጫ, ኣንፈተ
+notebook	ጥራዝ
+noun	ስም
+november	ኅዳር
+now	ሕጂ
+number	ቍጽሪ
+nun	መበለት
+nurse	ኣላይት
+nut	ካዕካዕ
+oats	ሰዓዕ
+object	ተሰሓቢ
+obstacle	ዕንቅፋት
+ocean	ውቅያኖስ
+october	ጥቅምቲ
+of	ናይ, ካብ
+offend	በደደ
+oil	ዘይቲ, ነዳዲ ዘይቲ
+old	ኣረጊት
+olive tree	ኣውሊዕ
+one	ሓደ
+onion	ሽጉርቲ
+open	ከፈተ
+opera	ኦፔራ
+optional	ኣማራጽያዊ
+orange	ኣራንሺ
+oromo	ኦሮሞ
+ostrich	ሰገን
+otter	ጣቑስታ
+our	ናትና
+owl	ጉንጓ, ጋን
+ox	ብዕራይ
+pacific ocean	ሰላማዊ ውቅያኖስ
+pad	ሶል
+page	ገጽ
+pail	ዳሉ
+pain	ቃንዛ
+paint	ለቕለቐ
+palestine	ፍልስጤም
+palm	ከብዲ ኢድ
+papaya	ፓፓዮ, ፓፓያ
+paper	ወረቐት
+paprika	ፔፔሮኒ
+parachute	ጋንጽላ
+paradise	ገነት
+parchment	ብራና
+parent	ወላዲ
+park	መዘናግዒ, መናፈሻ
+parrot	ሕንጻይ
+passport	ፓስፖርት
+paste	ለጥፍ
+patience	ትዕግሥቲ
+paul	ጳውሎስ
+peace	ሰላም
+peach	ኩክ, ኩኽ
+peacock	ጣውስ
+pear	ፔረ
+pearl	ሉል
+pen	ብርዒ, ፒሮ
+pencil	ርሳስ
+penis	መሸኒ
+people	ህዝቢ
+pepper	በርበረ
+persimmon	ፐርሲሞን, ካኪ
+peter	ጴጥሮስ
+philosophy	ፍልስፍና
+physician	ዶክተር
+piano	ፒያኖ
+picture	ስእሊ
+pig	ሓሰማ
+pigeon	ርግቢ
+pill	ከኒና
+pineapple	ኣናናስ
+pistol	ሽጉጥ
+place	ቦታ
+planet	ፕላነት
+plant	ተኽሊ, ፋብሪካ
+plough	ማሕረሻ
+plum	በርቁቕ, ፕሩኞ
+pocket	ጁባ
+poet	ገጣሚ
+poison	መርዚ
+poisonous	መርዛም
+poland	ፖላንድ
+police	ፖሊስ
+polish	ፖሊሽ
+political party	ፓርቲ
+politics	ፖለቲካ
+pomegranate	ሮማን
+pop-up	ተቐልቃሊ
+porcupine	ቅንፍዝ
+port	ወደብ
+portugal	ፖርቱጋል
+portuguese	ፖርቱጋላዊ, ፖርቱጋላዊት, ፖርቱጋሊኛ
+position	ኣቀማምጣ
+potato	ድንሽ, በጣጢስ
+powder	ሓርጭ
+power	ቆር
+prayer	ጸሎት
+precaution	ጥንቃቐ
+preceding	ቀዳማይ
+preposition	መስተዋድድ
+president	ፕረዚደንት, ፕረሲደንት
+preview	ቅድመ ትርኢት
+price	ዋጋ
+prickly pear	በለስ
+priest	ቀሺ
+print	ሓተመ
+prison	ቤት ማእሰርቲ
+project	ፕሮጀክት
+pronoun	ክንድስም
+prophecy	ትንቢት
+prophet	ነቢይ
+prostitute	ፋይቶት, ኣመንዝራ
+proverb	ምሳሌ
+proxy	ወኪል
+pull	ሰሓበ
+pull somewhat	ሰሓሓበ
+pump	መንፍሒ
+pumpkin	ዱባ
+punishment	መቕጻዕቲ, ኢንቶ, ምቕጻዕ
+pursue	ሰዓበ
+queen	ንግስቲ, ንግሥቲ
+question	ሕቶ
+quince	ኮቶኛ
+quintet	ኲንተት
+rabbit	ማንቲለ
+rachel	ራሔል
+radio	ሬድዮ, ራድዮ
+railroad car	ባጎኒ
+rain	ዝናብ, ዝናም, ሃረመ
+rainbow	ቀስተ ደበና
+raisin	ዘቢብ
+rake	መግፈፊ
+ram	ድዑል
+random	ዘፈቀዳዊ
+rasp	መብረድ
+rat	ኣንጭዋ
+raw	ጥረ
+razor	መላጸ
+read	መበበ
+receive	ተቐበለ
+red	ቀይሕ
+refrigerator	መዝሓሊት
+reprimand	ተግሳጽ
+republic	ሪፓብሊክ
+reservoir	ሓጽቢ
+resource	ሃብቲ
+restaurant	ቤት መግቢ
+revolution	ሰውራ
+rhinoceros	ሓርሽ, ሓሪሽ
+rice	ሩዝ
+righteousness	ጽድቂ
+ring	ሽቦ
+ring finger	ቀለቤቶ
+rise	ሰረቐ
+river	ዋሕዚ, ፈለግ
+road	መንገዲ
+robot	ሮቦት
+robust	ጐልማሳ
+rock	ከውሒ
+romania	ሮሜኒያ
+romanian	ሮማኒያን
+roof	ናሕሲ
+room	ከፍሊ
+root	ሱር
+rope	ገመድ
+rug	ምሔ
+ruin	ኢንቶ
+ruler	መስመር
+run	ጐየየ
+rush hour	መኪና ዝበዝሓሉ እዋን, ግዜ ዋሕዚ
+russia	ሩስያ, ራሻ
+russian	ራሽኛ
+rwanda	ሩዋንዳ
+saddle	ኮር, ኮረሻ
+salaam	ሰላም
+salaam alaikum	ሰላም
+salt	ጨው
+sand	ሑጻ
+sandwich	እምበቲቶ, ፓኒኖ
+saturday	ዓርቢ, ቀዳም
+saudi arabia	ስዑዲ ዓረብ
+save	ኣቐምጥ
+saw	መጋዝ
+say	በለ, ምብሃል
+saying	ምሳሌ
+scar	በሰላ
+scissors	መቐዝ, መቕጠፊ
+scorpion	ዕንቅርቢት
+scottish gaelic	እስኮትስ ጌልክኛ
+screenshot	ቅጽበታዊ ገጽ ትርኢት, ቅጽበታዊ ምስሊ
+sea	ባሕሪ
+seat	መንበር
+second	ካልኢት
+seed	ዘርኢ
+sene	ሰነ
+september	መስከረም
+serbia	ሰርቢያ
+serbian	ሰርቢኛ
+servant	ኣገልጋሊ, ከዳሚ
+setting	ምምዕርራይ
+seven	ሸውዓተ
+seventeen	ዓሰርተ ሸውዓተ
+seventy	ሰብዓ
+sex	ጾታዊ ርክብ, ወሲብ
+shade	ድነ
+shadow	ጽላሎት
+shaitan	ሰይጣን
+shape	ቅርጺ, ቅርፂ
+share	ኣካፍል
+sharpener	መጽረቢ
+she	ንሳ, ንሰን
+sheep	በጊዕ, በግዕ
+ship	መርከብ
+shit	መቀዘ
+shoe	ጫማ
+shop	ድኳን, ዱኳን
+sick	ሕሙም
+sieve	መንፊት
+silence	ሱቕታ
+silver	ብሩር
+sing	ደረፈ
+singer	ደራፊ
+sister	ሓውቲ, ሓብቲ
+six	ሽድሽተ
+sixteen	ዓሰርተ ሽድሽተ
+sixty	ስሳ
+skateboard	መንሻተቲ ጣውላ
+skeleton	ዓስከሬን, ኣስከረን
+skin	ቈርበት
+skull	ሽክና ርእሲ, ሓምሓም ርእሲ
+sky	ሰማይ
+slaughter	ሓረደ
+slave	ባርያ
+sledge	ማሳ
+sleeve	እጅገ
+slime	ሊን
+slovak	ስሎቨክኛ
+slovakia	ስሎቫኪያ
+slovenia	ስሎቬኒያ
+small	ንእሽቶ
+smear	ለቕለቐ
+smile	ፍሽኽታ, ፍሽኸታ
+smoke	ትኪ
+snail	ኣረነ
+snake	ተመን
+snow	ውርጪ
+soap	ሳሙና
+social media	ማሕበራዊ መራኸቢ, ማሕበራዊ መራኸቢታት
+soft drink	ለስላሳ
+soldier	ወተሃደር
+solution	መፍትሕ
+somali	ሶማሊ
+somalia	ሶማሊያ
+son	ወዲ
+song	መዝሙር
+sorghum	መሸላ
+soul	ነፍስ
+sound	ድምጺ
+soup	መረቕ
+south	ደቡብ
+south africa	ደቡብ ኣፍሪቃ
+south america	ደቡብ ኣመሪካ
+sow	ዘርአ
+spain	ስጳኛ
+spanish	ስጳንኛ, ስጳኛዊ
+speak	ዘረበ
+spectacles	መነጽር
+spice	ቀመም
+spider	ሳሬት
+spinach	ስፒናቺ
+spoon	ማንካ
+sport	ስፖርት
+spotted	በሮክቶ
+squid	ኣቡ ቐለም
+squirrel	ምጹጽላይ
+stadium	እስታዲዮም
+stapler	መጣበቒት, ስተፕረ
+star	ኮኾብ, ዃኾብ
+state	መንግስቲ, ሃገረ
+state of eritrea	ሃገረ ኤርትራ
+station	መደበር
+statistics	ስታቲስቲክስ
+statue	ሓወልቲ
+steam	ሃፋ
+steel	ኣቻዮ
+stiff porridge	ጋኣት
+stomach	ከስዐ
+stone	እምኒ
+storey	ደርቢ
+storm	ማዕበል
+story	ጽውጽዋይ
+stove	እቶን
+strange	ዘይልሙድ, ዘደንጹ
+strawberry	ፍራጎላ, ፍራውለ
+stream	ሩባ
+street	ጐደና
+strength	ቆር
+strengthen	ደልደለ
+strong desire	ትህርፍቲ
+student	ተመሃራይ
+stupid	ሕማቕ
+sudan	ሱዳን
+suddenly	ብሃንደበት
+sugar	ሽኰር
+suit	ሱፍ
+suitcase	ባልጃ ልብሲ
+sulphur	ዲን
+summer	ሓጋይ
+summit	ጬፍ
+sun	ጸሓይ
+sunday	ሰንበት
+suriname	ሱሪናም
+swahili	ሰዋሂሊኛ
+swaziland	ስዋዚላንድ
+sweat	ረሃጽ
+sweden	ስዊድን
+swedish	ስዊድንኛ
+switzerland	ስዊዘርላንድ
+sword	ሴፍ
+syringe	ስሪንጋ
+table	ጣውላ, ጠረጴዛ
+tail	ጭራ, ዘነብ
+taiwan	ታይዋን
+take	ወሰደ
+take a photo	ሰኣለ
+talkative	ተዛራባይ
+tamarind	ሖመር
+tanzania	ታንዛኒያ
+taste	ጥዒሙ
+taxi	ታክሲ
+taxonomy	ስነ ምደባ
+tea	ሻሂ
+teacher	መምህር
+teaching	ምህሮ
+team	ጋንታ
+tear	ንብዓት
+technology	ተክኖሎጊ
+teff	ጣፍ
+telegram	ተለግራም
+telephone	ተለፎን, ስልኪ
+television	ተለቪዥን
+tell	ነገረ
+ten	ዓሰርተ
+tennis	ተኒስ
+terebinth	ቡጥም
+terminalia brownii	ወይባ
+test	ምዕቃቕ
+testify	መስከረ
+textbook	መጽሓፈ ትምህርቲ
+thaddaeus	ታዴዎስ
+thaler	ቀርሺ
+thank you	የቐንየለይ, የመስግነካ
+thanks	የመስግነካ
+the chinese	ቻይና
+the tigrinya language	ትግርኛ
+theater	ትያትር
+thermometer	ተርሞሜተር
+they	ንሳቶም, ንሳተን
+thick wheat flatbread	ሕምባሻ
+thief	ጕሒላ
+thigh	ሰለፍ
+think	ሓሰበ
+thirst	ጽምኢ, ጽምኣት, ጸምኤ
+thirteen	ዓሰርተ ሰለስተ
+thirty	ሰላሳ
+thomas	ቶማስ
+thought	ሓሳብ
+thousand	ሽሕ
+thread	ፈትሊ
+three	ሰለስተ
+thumb	ዓባይ ዓባይቶ
+thursday	ሓሙስ, ኃሙስ
+tick	ቍርዲድ
+ticket	ቲከት
+tiger	ነብሪ
+tigray	ትግራይ
+tigrinya	ትግርኛ, ትግርኛ ፊደል
+tiktok	ቲክቶክ
+tip	ጫፍ
+tiqimt	ጥቅምቲ
+tobacco	ትምባኾ
+today	ሎሚ
+together	ብሓደ
+toilet	ሽቓቕ, ዓይኒ ምድሪ, ቤት ንጽህና
+tomato	ኮሚደረ
+tomorrow	ጽባሕ
+tongue	መልሓስ, ልሳን
+tool	መሳርሒ
+tooth	ስኒ
+torch	ፋና, ሽግ
+tornado	ህቦብላ ንፋስ
+tower	ጸብለለ, ግምቢ
+town	ከተማ
+tractor	ትራክተር
+traffic	ትራፊክ
+traffic jam	ጭቕጭቕ ትራፊክ, ጽቕጥቅጥ ትራፊክ
+train	ባቡር
+transgender	ስግረ ጾተኛ, ስግረ ጾተኛዊት
+translate	ተርጐመ
+translation	ትርጉም, ተርጓሚ
+translator	ተርጓሚ, ተርጓሚት
+tree	ኦም
+trial	ፍርዲ
+trinidad and tobago	ትሪኒዳድን ቶባጎን
+tropical cyclone	ሃቦብላ
+trumpet	ጥሩምባ
+trunk	ሳንዱቕ
+tuesday	ሰሉስ
+tunisia	ቱኒዝያ
+turkey	ቱርኪ, ታኪን
+turkish	ቱርከኛ
+turn on	ከፈተ
+tutorial	ሓጋዚ ስልጠና
+twelve	ዓሰርተ ክልተ
+twenty	ዕስራ
+twist	ፈተለ
+twitter	ትዊተር
+two	ክልተ
+udder	ጡብ
+ugly	ሕማቕ
+uk	ዩኬይ
+ukraine	ዩክረይን
+unicode	ዩኒኮድ
+union	ሓድነት
+united states	ሕቡራት መንግስታት
+united states of america	ሕቡራት መንግስታት ኣመሪካ
+universe	ዓለማት
+unpeppered	ጻዕዳ
+update	ምሕዳስ, ኣሐዲስ
+urdu	ኡርዱኛ
+use	ተጠቐመ
+useful	ጠቓሚ
+user	ተጠቃሚ, ተጠቃሚት
+vaccinate	ከተበ
+vagina	ጉሕጓሕ
+vegetable	ሓምሊ
+venezuela	ቬኔዝዌላ
+venus	ቨኑስ
+verb	ግሲ
+video game console	ኮንሶል ቪድዮ
+village	ቍሸት
+vinegar	መጺጽ
+virgin	ድንግል
+virtue	ቆር
+virus	ቫይረስ
+voice	ድምጺ, ደሃይ
+wait	ጸበየ
+war	ውግእ, ኩናት
+warehouse	መኽዘን
+warm	ምዉቕ
+warthog	መፍለስ
+wash oneself	ተሓጸበ
+wasp	ዕኮት
+water	ማይ
+watermelon	ብርጭቕ
+way	መንገዲ
+we	ንሕና
+weak	ሰነፍ
+wealth	ማል
+weapon	ብረት
+weather	ኩነታት ኣየር, ተጻወረ
+website	መርበብ መካን
+wedding	መርዓ
+wednesday	ረቡዕ, ረብዓ
+week	ሰሙን
+weekly	ሰሙናዊ
+weigh	መዘነ
+welcome	እንቋዕ ብደሐን መጻእካ, እንቋዕ ብደሐን መጻእኪ, እንቋዕ ብደሓን መጻእኩም
+wergeld	ጋር
+west	ምዕራብ
+western sahara	ምዕራብ ሰሃራ
+wether	ሶር
+whale	ዓሳ ነባሪ
+what	እንታይ
+wheel	መዘወር, መንኰርኰር, ዕንክሊል
+wheelchair	ዓረብያ
+when	ምስ
+where	ኣበይ
+whip	ገረፈ
+white	ጻዕዳ
+who	መን
+widow	መበለት
+wife	መርዓት, ሰበይቲ, ብዓልቲ ቤት
+wikipedia	ዊኪፐድያ
+wild dove	ኳትራ
+wind	ንፋስ
+window	መስኮት, ፍኒስትራ
+wine	ነቢት, ወይኒ
+winter	ክረምቲ
+wisdom	ጥበብ
+wisdom tooth	ኩርምቲ ሓይሊ
+wish	ሕልሚ
+with	ምስ
+without	ብዘይ
+wizard	ጠቢብ
+wolaita	ዎላይታ
+wolaita sodo	ዎላይታ ሶዶ
+wolayttattuwa	ወላይትኛ
+wolf	ተዅላ, ቶክላ
+woman	ሰበይቲ, ሴት
+wood	ዕንጨይቲ
+wool	ጸምሪ
+word	ቃል
+work	ስራሕ
+worker	ሰራሕተኛ
+worm	ሓሰኻ
+write	ጸሓፈ
+year	ዓመት
+yellow	ብጫ, ቢጫ
+yes	እወ
+yesterday	ትማሊ
+yogurt	ርግኦ, ሩግኦ
+yoke	አርዑት
+you	ንስኻ, ንስኺ, ንስኻትኩም
+you're welcome	መርሓባ, ገንዘብካ
+young donkey	ዒሉ
+zambia	ዛምቢያ
+zebra	ኣድጊ በረኻ, ዘብራ
+zero	ባዶ, ዜሮ
+zimbabwe	ዚምባብዌ

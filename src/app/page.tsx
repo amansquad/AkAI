@@ -385,7 +385,7 @@ function Sheet() {
         </Sign>
         <Sign className="md:col-span-7" bg="var(--saffron)" fg="var(--ink)" cap="Offline" val={<WifiOff size={46} aria-hidden="true" />} mark="No signal">
           <h3 className="land-display" style={h}>Keeps working without a signal</h3>
-          <p style={p}>Handwriting is read on the phone. When translation can&apos;t reach the server, a built-in English–Amharic dictionary still gives you the word.</p>
+          <p style={p}>Handwriting is read on the phone. When translation can&apos;t reach the server, built-in dictionaries between English and each language still give you the word.</p>
         </Sign>
       </div>
     </section>
