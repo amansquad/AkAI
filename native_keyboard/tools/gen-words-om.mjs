@@ -11,6 +11,11 @@
 // are common English words (words_en.txt) are left out unless Oromo uses them
 // a lot more than the English list would suggest. The everyday words from
 // OromoData.kt are slotted in near the top.
+//
+// Every single-word entry of English Wiktionary's Oromo lemmas (CC BY-SA 4.0,
+// tools/data/wiktionary-om-lemmas.txt, refreshed by
+// `node tools/fetch-wiktionary-am.mjs om`) is kept too: one already ranked
+// keeps its place, the rest go at the end, most frequent in Wikipedia first.
 import fs from 'node:fs';
 
 const input = process.argv[2];
@@ -67,5 +72,11 @@ for (const w of ranked) {
   if (out.length >= LIMIT) break;
 }
 
+// Wiktionary's lemmas that Wikipedia didn't rank, most frequent there first (stable for ties).
+const lemmas = fs.readFileSync('tools/data/wiktionary-om-lemmas.txt', 'utf8').split('\n')
+  .map((w) => w.trim()).filter((w) => w && w.match(word)?.[0] === w);
+const unranked = lemmas.filter((w) => !seen.has(w)).sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0));
+unranked.forEach(add);
+
 fs.writeFileSync('app/src/main/assets/words_om.txt', out.join('\n') + '\n');
-console.log(`${pages} pages, ${counts.size} distinct words, ${everyday.length} everyday; wrote ${out.length}`);
+console.log(`${pages} pages, ${counts.size} distinct words, ${everyday.length} everyday, ${lemmas.length} lemmas (${unranked.length} added); wrote ${out.length}`);

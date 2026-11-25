@@ -1,9 +1,10 @@
-// Refreshes tools/data/wiktionary-am-lemmas.txt: the single-word entries of
-// English Wiktionary's "Amharic lemmas" category (CC BY-SA 4.0), one per line.
-// gen-words-am.mjs adds them to the Amharic word list, since Wikipedia's formal
-// text misses many everyday words and verbs in their dictionary form.
+// Refreshes tools/data/wiktionary-<am|ti|om>-lemmas.txt: the single-word entries
+// of English Wiktionary's "Amharic lemmas" (or Tigrinya, Oromo) category
+// (CC BY-SA 4.0), one per line. gen-words-am.mjs (ti, om) adds them to that
+// language's word list, since Wikipedia's formal text misses many everyday words
+// and verbs in their dictionary form.
 //
-// Run from native_keyboard/:  node tools/fetch-wiktionary-am.mjs
+// Run from native_keyboard/:  node tools/fetch-wiktionary-am.mjs [am|ti|om]
 //
 // It pages with MediaWiki's own cursor (cmcontinue): starting a page at the last
 // title skips entries whose sort key differs from their spelling.
@@ -11,11 +12,20 @@
 // NODE_OPTIONS=--no-network-family-autoselection.
 import fs from 'node:fs';
 
-const OUT = 'tools/data/wiktionary-am-lemmas.txt';
+const LANGS = {
+  am: { category: 'Amharic_lemmas', word: /^[ሀ-ፚᎀ-ᎏⶀ-⷟]{2,}$/u },
+  ti: { category: 'Tigrinya_lemmas', word: /^[ሀ-ፚᎀ-ᎏⶀ-⷟]{2,}$/u },
+  // Qubee, lower case (no names), with ' (hudhaa) inside a word.
+  om: { category: 'Oromo_lemmas', word: /^[a-z]+(?:'[a-z]+)*$/ },
+};
+const code = process.argv[2] || 'am';
+const lang = LANGS[code];
+if (!lang) throw new Error(`usage: node tools/fetch-wiktionary-am.mjs [${Object.keys(LANGS).join('|')}]`);
+const OUT = `tools/data/wiktionary-${code}-lemmas.txt`;
 const API = 'https://en.wiktionary.org/w/api.php?action=query&list=categorymembers'
-  + '&cmtitle=Category:Amharic_lemmas&cmnamespace=0&cmlimit=500&format=json';
-// Ethiopic letters only, two or more: no phrases, prefixes or suffixes.
-const word = /^[ሀ-ፚᎀ-ᎏⶀ-⷟]{2,}$/u;
+  + `&cmtitle=Category:${lang.category}&cmnamespace=0&cmlimit=500&format=json`;
+// One word only, two letters or more: no phrases, prefixes or suffixes.
+const word = lang.word;
 
 const titles = [];
 let cursor;
