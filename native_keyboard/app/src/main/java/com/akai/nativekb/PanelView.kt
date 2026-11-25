@@ -1085,7 +1085,11 @@ class PanelView(context: Context) : View(context) {
                 when {
                     found == null -> translateStatus = why
                     found.wordByWord -> translateStatus = tr("Server unavailable - word meanings from the offline dictionary") + "\n" + found.text
-                    else -> { result = found.text; resultNote = "Server unavailable - from the offline dictionary" }
+                    else -> {
+                        result = found.text
+                        val also = if (found.others.isEmpty()) "" else " (" + tr("also") + " " + found.others.joinToString(", ") + ")"
+                        resultNote = tr("Server unavailable - from the offline dictionary") + also
+                    }
                 }
                 invalidate()
             }

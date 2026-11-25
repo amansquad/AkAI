@@ -10,7 +10,7 @@ import android.content.Context
  */
 class OfflineDict(enAm: List<String>, amEn: List<String>) {
     /** What a lookup found: the translation of the whole text, or the meaning of each word it knew. */
-    class Result(val text: String, val wordByWord: Boolean)
+    class Result(val text: String, val wordByWord: Boolean, val others: List<String> = emptyList())
 
     private val toAm = parse(enAm)
     private val toEn = parse(amEn)
@@ -28,7 +28,11 @@ class OfflineDict(enAm: List<String>, amEn: List<String>) {
         val table = if (amharic) toEn else toAm
         val clean = text.trim().trim { it in TRIM }.replace(Regex("\\s+"), " ").let { if (amharic) it else it.lowercase() }
         if (clean.isEmpty()) return null
-        find(clean, table, amharic)?.let { return Result(it, wordByWord = false) }
+        // The first (most common) is the one Replace types; the rest are shown beside it.
+        find(clean, table, amharic)?.let { line ->
+            val all = line.split(if (amharic) "; " else ", ")
+            return Result(all.first(), wordByWord = false, others = all.drop(1))
+        }
         val words = clean.split(' ').map { it.trim { c -> c in TRIM } }.filter { it.isNotEmpty() }.distinct()
         if (words.size < 2) return null
         val found = words.take(MAX_WORDS).mapNotNull { w -> find(w, table, amharic)?.let { "$w: ${it.substringBefore(',').substringBefore(';')}" } }

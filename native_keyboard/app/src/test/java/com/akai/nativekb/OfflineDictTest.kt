@@ -21,7 +21,9 @@ class OfflineDictTest {
 
     @Test fun amharicToEnglish() {
         val r = small.lookup("ሰላም።", Lang.AM, Lang.EN)!!
-        assertEquals("peace; hello", r.text)
+        // Replace types the first meaning; the others are shown beside it.
+        assertEquals("peace", r.text)
+        assertEquals(listOf("hello"), r.others)
         assertFalse(r.wordByWord)
     }
 
@@ -29,7 +31,7 @@ class OfflineDictTest {
         assertEquals("ቤት", small.lookup("houses", Lang.EN, Lang.AM)!!.text)
         assertEquals("መጣ", small.lookup("coming", Lang.EN, Lang.AM)!!.text)
         // ቤቶች (houses) and ውሃው (the water) are built on ቤት and ውሃ.
-        assertEquals("house; room; family", small.lookup("ቤቶች", Lang.AM, Lang.EN)!!.text)
+        assertEquals("house", small.lookup("ቤቶች", Lang.AM, Lang.EN)!!.text)
         assertEquals("water", small.lookup("ውሃው", Lang.AM, Lang.EN)!!.text)
     }
 
