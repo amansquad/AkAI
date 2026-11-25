@@ -57,6 +57,9 @@ vibration and sound come after. No WebView, JavaScript, React or bridge.
   of the pack row searches every pack by word or emoji
 - Emoji search: type a word ("dog", "lol", "ethiopia") into the strip and tap a
   result
+- An emoji in the strip for an everyday word you type, in every language (ቡና,
+  buna, bun or قهوة gives ☕), from a small hand-written table per language
+  (`EmojiWordsData.kt`), after the emoji you yourself use with that word
 - Long-press bubble: a letter's accents, or a consonant's whole vowel family
 - Shift, caps lock, auto-capitals, double-space period, optional space after
   punctuation, hold-backspace to delete the sentence (optional), space-bar

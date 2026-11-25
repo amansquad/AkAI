@@ -83,7 +83,7 @@ object Suggest {
 
         // The word an emoji would stand for: the one just finished, or the one being typed if it is complete.
         val subject = words.lastOrNull()
-        val emoji = if (withEmoji && subject != null && (lang == Lang.EN || lang.geez)) emojiFor(clean(subject), amharic, emojiHabits) else null
+        val emoji = if (withEmoji && subject != null) emojiFor(clean(subject), lang, emojiHabits) else null
         val room = if (emoji != null) 2 else 3
 
         val list = if (endsWithSpace || words.isEmpty()) {
@@ -149,11 +149,11 @@ object Suggest {
     fun isWord(w: String) = w.length >= 2 && w.all { it.isLetter() || it == '\'' }
 
     /** The emoji for [word]: the one this person uses with it, else a common match. */
-    fun emojiFor(word: String, amharic: Boolean, habits: Map<String, Int>): String? {
+    fun emojiFor(word: String, lang: Lang, habits: Map<String, Int>): String? {
         if (word.length < 2) return null
         val head = "$word\t"
         habits.entries.filter { it.key.startsWith(head) }.maxByOrNull { it.value }?.let { return it.key.substring(head.length) }
-        return if (amharic) null else EmojiSearch.forWord(word)
+        return if (lang == Lang.EN) EmojiSearch.forWord(word) else EmojiWords.forWord(lang, word)
     }
 
     /** True for a suggestion that is an emoji rather than a word. */
