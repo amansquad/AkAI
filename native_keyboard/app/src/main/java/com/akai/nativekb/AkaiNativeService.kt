@@ -408,7 +408,11 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         keys.setSearch(emojiQuery, searchResults(), searchLabel())
         // Its own row above the toolbar, the same whether or not you have typed,
         // so the keyboard never changes height mid-sentence.
-        keys.setWordOfDay(if (wordOfDayOn && !plainField && !layout.isPad) wordOfDay() else null)
+        // The row is sized for every enabled language's word, so switching doesn't change the height.
+        keys.setWordOfDay(
+            if (wordOfDayOn && !plainField && !layout.isPad) wordOfDay(lang) else null,
+            enabledLangs().mapNotNull { wordOfDay(it) },
+        )
         keys.setLayout(layout, strip = !layout.isPad)
         scheduleSuggestions()
     }
@@ -459,10 +463,9 @@ class AkaiNativeService : InputMethodService(), KeyListener, PanelHost, VoiceLis
         )
     }
 
-    private fun wordOfDay(): Pair<String, String>? {
-        // Only Amharic and English have a word of the day so far.
-        if (lang == Lang.TI) return null
-        val list = if (geez) KeyboardData.wordOfTheDayAm else KeyboardData.wordOfTheDayEn
+    private fun wordOfDay(l: Lang): Pair<String, String>? {
+        // Only Amharic and English have a word of the day so far; the other languages show the English one.
+        val list = if (l == Lang.AM) KeyboardData.wordOfTheDayAm else KeyboardData.wordOfTheDayEn
         if (list.isEmpty()) return null
         return list[java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH) % list.size]
     }

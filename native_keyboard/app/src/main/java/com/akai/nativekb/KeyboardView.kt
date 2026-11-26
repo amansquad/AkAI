@@ -287,10 +287,16 @@ class KeyboardView(context: Context) : View(context) {
 
     /** Word of the day, on its own row above the toolbar. */
     private var wordOfDay: Pair<String, String>? = null
-    fun setWordOfDay(w: Pair<String, String>?) {
-        if (wordOfDay == w) return
+    /**
+     * Today's words in the other languages switched on. The row is as tall as the
+     * longest of them needs, so switching language doesn't change the keyboard's height.
+     */
+    private var wotdReserve: List<Pair<String, String>> = emptyList()
+    fun setWordOfDay(w: Pair<String, String>?, others: List<Pair<String, String>> = emptyList()) {
+        if (wordOfDay == w && wotdReserve == others) return
         val before = wotdH()
         wordOfDay = w
+        wotdReserve = others
         val heightChanges = before != wotdH()
         cacheValid = false
         if (heightChanges) { requestLayout(); computeGeometry(width) }
@@ -326,23 +332,38 @@ class KeyboardView(context: Context) : View(context) {
     private val wotdRowH = dp(28f)
     private val wotdLineH = dp(15f)
     private fun wotdH(): Float {
-        if (!showStrip || wordOfDay == null || search != null || landscape) return 0f
-        val lines = wotdPlan() ?: return wotdRowH
-        return dp(22f) + lines.size * wotdLineH + dp(4f)
+        val w = wordOfDay
+        if (!showStrip || w == null || search != null || landscape) return 0f
+        return (wotdReserve + w).maxOf { o -> wotdPlan(o)?.let { dp(22f) + it.size * wotdLineH + dp(4f) } ?: wotdRowH }
     }
 
     /**
      * How the word of the day is laid out: null when the definition fits beside the word,
      * otherwise the definition wrapped onto up to two lines under it, so a long one is still readable.
      */
-    private var wotdKey = ""
-    private var wotdLines: List<String>? = null
-    private fun wotdPlan(): List<String>? {
-        val w = wordOfDay ?: return null
-        if (width <= 0) return null
-        val key = "${w.first}|${w.second}|$width"
-        if (key == wotdKey) return wotdLines
-        wotdKey = key
+    private var wotdWidth = 0
+    private val wotdPlans = HashMap<Pair<String, String>, List<String>?>()
+    /**
+     * The width to wrap the definition at. The keyboard is measured before it is laid
+     * out, when [getWidth] is still 0 (or the old width), so use the width being measured.
+     */
+    private var measuringWidth = 0
+    private fun wotdWidthNow() = when {
+        measuringWidth > 0 -> measuringWidth
+        width > 0 -> width
+        else -> resources.displayMetrics.widthPixels
+    }
+    private fun wotdPlan(w: Pair<String, String>? = wordOfDay): List<String>? {
+        if (w == null) return null
+        val width = wotdWidthNow()
+        if (wotdWidth != width) { wotdWidth = width; wotdPlans.clear() }
+        if (w in wotdPlans) return wotdPlans[w]
+        val plan = planWotd(w, width)
+        wotdPlans[w] = plan
+        return plan
+    }
+
+    private fun planWotd(w: Pair<String, String>, width: Int): List<String>? {
         val right = width - padSide - dp(8f)
         text.typeface = KbFont.bold
         text.textSize = wotdRowH * 0.36f
@@ -351,7 +372,7 @@ class KeyboardView(context: Context) : View(context) {
         x += text.measureText(w.first) + dp(8f)
         text.typeface = KbFont.regular
         text.textSize = wotdRowH * 0.4f
-        wotdLines = if (text.measureText(w.second) <= right - x) null else {
+        return if (text.measureText(w.second) <= right - x) null else {
             val avail = right - (padSide + dp(8f))
             val lines = ArrayList<String>()
             var line = ""
@@ -367,7 +388,6 @@ class KeyboardView(context: Context) : View(context) {
             else lines[lines.size - 1] = ellipsize(lines.last(), avail)
             lines
         }
-        return wotdLines
     }
 
     /** Where the suggestions start: right of the toolbar buttons. */
@@ -466,7 +486,10 @@ class KeyboardView(context: Context) : View(context) {
     override fun onMeasure(widthSpec: Int, heightSpec: Int) {
         val w = MeasureSpec.getSize(widthSpec)
         val l = layout
-        setMeasuredDimension(w, if (l == null) 0 else heightFor(l, showStrip))
+        measuringWidth = w
+        val h = if (l == null) 0 else heightFor(l, showStrip)
+        measuringWidth = 0
+        setMeasuredDimension(w, h)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -776,12 +799,15 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawWordOfDay(canvas: Canvas, w: Pair<String, String>) {
         val lines = wotdPlan()
         val h = if (lines == null) wotdRowH else dp(22f)
+        // The row may be taller than this word needs (it fits the longest language's), so centre it.
+        val own = if (lines == null) wotdRowH else dp(22f) + lines.size * wotdLineH + dp(4f)
+        val dy = max(0f, (wotdH() - own) / 2f)
         var x = padSide + dp(8f)
         val left = x
         val right = width - padSide - dp(8f)
         text.textAlign = Paint.Align.LEFT
         text.alpha = 255
-        fun base() = h / 2f - (text.descent() + text.ascent()) / 2f
+        fun base() = dy + h / 2f - (text.descent() + text.ascent()) / 2f
         text.typeface = KbFont.bold
         text.textSize = h * 0.36f
         text.color = palette.barHint
@@ -798,7 +824,7 @@ class KeyboardView(context: Context) : View(context) {
         text.color = palette.barHint
         if (lines != null) {
             for ((i, l) in lines.withIndex()) {
-                val top = h + i * wotdLineH
+                val top = dy + h + i * wotdLineH
                 canvas.drawText(l, left, top + wotdLineH / 2f - (text.descent() + text.ascent()) / 2f, text)
             }
         } else if (x < right - dp(30f)) {
