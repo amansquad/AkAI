@@ -140,10 +140,12 @@ object LiveScenes {
         }
     }
 
-    // ── Matrix rain, in Ethiopic letters ────────────────────────────────────
+    // ── Matrix rain, in Ethiopic, English and Arabic letters ────────────────
     private const val GLYPHS = "ሀሁሂሃሄህሆለሉሊላሌልሎሐሑሒሓሔሕሖመሙሚማሜምሞረሩሪራሬርሮሰሱሲሳሴስሶሸሹሺሻሼሽሾ" +
         "ቀቁቂቃቄቅቆበቡቢባቤብቦተቱቲታቴትቶነኑኒናኔንኖአኡኢኣኤእኦከኩኪካኬክኮወዉዊዋዌውዎዘዙዚዛዜዝዞ" +
-        "የዩዪያዬይዮደዱዲዳዴድዶገጉጊጋጌግጎፈፉፊፋፌፍፎ0123456789"
+        "የዩዪያዬይዮደዱዲዳዴድዶገጉጊጋጌግጎፈፉፊፋፌፍፎ0123456789" +
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" +
+        "ابتثجحخدذرزسشصضطظعغفقكلمنهوي٠١٢٣٤٥٦٧٨٩"
     private val glyphPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
     }
@@ -166,27 +168,30 @@ object LiveScenes {
 
         val charSize = 10f
         val cols = kotlin.math.ceil(w / charSize).toInt()
-        val trail = 20
-        val levels = 8
-        glyphPaint.textSize = charSize
+        val rows = kotlin.math.ceil(h / charSize).toInt() + 1
+        val flick = (time * 5).toInt()
+        // Every column is a solid, unbroken stream: the letters slide down without gaps and
+        // trails follow one another back-to-back, each fading from a bright head to a dim tail.
         for (i in 0 until cols) {
             val speedFactor = 1.0 + ((i * 13 + i * i) % 20) / 15.0
-            val baseSpeed = 450.0 * speedFactor
-            for (segment in 0 until 3) {
-                val phaseOffset = (i * 157 + segment * (h / 1.5)) % 4000
-                val totalY = (time * baseSpeed + phaseOffset) % (h + trail * charSize + 500)
-                val headY = (totalY - trail * charSize).toFloat()
-                for (j in 0 until trail) {
-                    val cy = headY + j * charSize
-                    if (cy < -charSize || cy > h + charSize) continue
-                    val isHead = j == trail - 1
-                    val level = ((j.toFloat() / trail) * levels).toInt()
-                    // Dimmer than Flutter's (0.9 head, 0.7 trail) so the letters on the keys stay readable.
-                    glyphPaint.color = if (isHead) a(0xFFB8FFC8.toInt(), 0.55f) else a(c(0xFF00FF41), (level.toFloat() / levels) * 0.38f)
-                    glyphPaint.textSize = if (isHead) 12f else 10f
-                    val ch = GLYPHS[(i + j + (time * 5).toInt()) % GLYPHS.length].toString()
-                    canvas.drawText(ch, i * charSize, cy + charSize, glyphPaint)
-                }
+            val scroll = time * 450.0 * speedFactor + i * 157
+            val base = kotlin.math.floor(scroll / charSize).toInt()
+            val shift = (scroll - base * charSize.toDouble()).toFloat()
+            val trail = 12 + (i * 7) % 11
+            for (r in -1 until rows) {
+                val cy = r * charSize + shift
+                val cell = r - base                          // moves with the stream
+                val d = Math.floorMod(-cell, trail)          // 0 = head, grows up the trail
+                val isHead = d == 0
+                val fade = 1f - d.toFloat() / trail
+                // Dim (head 0.55, trail ≤ 0.38) so the letters on the keys stay readable; a floor keeps
+                // the tail from ever going fully dark, so there is no empty space between trails.
+                glyphPaint.color = if (isHead) a(0xFFB8FFC8.toInt(), 0.55f) else a(c(0xFF00FF41), 0.07f + fade * 0.31f)
+                glyphPaint.textSize = if (isHead) 12f else 10f
+                // Letters ride with the stream; a few flicker to a new glyph now and then.
+                val seed = cell * 7 + i * 31 + if (Math.floorMod(cell + i, 5) == 0) flick else 0
+                val ch = GLYPHS[Math.floorMod(seed, GLYPHS.length)].toString()
+                canvas.drawText(ch, i * charSize, cy, glyphPaint)
             }
         }
         // Top glow
