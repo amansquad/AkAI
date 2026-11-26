@@ -1,6 +1,6 @@
 {
-  "versionCode": 10034,
-  "versionName": "1.0.34",
+  "versionCode": 10035,
+  "versionName": "1.0.35",
   "url": "/AkAI-keyboard.apk",
-  "notes": "Translate works without internet in every language now: when the server cannot be reached, a built-in dictionary between English and Tigrinya, Oromo, Somali or Arabic (as well as Amharic) gives you the word or phrase, or the meaning of each word it knows."
+  "notes": ""
 }
