@@ -9,10 +9,12 @@ import './landing.css';
 // The demo is built for this page: English, the full fidel with its seven forms, and AI translation.
 const DemoKeyboard = lazy(() => import('./landing-demo'));
 
-const APK = '/AkAI-keyboard.apk';
 // The saved file is named with its version, so it can be told apart from an
-// older download in the phone's Downloads folder.
+// older download in the phone's Downloads folder. Phone browsers often ignore
+// the download attribute and name the file after the URL, so the URL carries
+// the version too (next.config.ts rewrites it to public/AkAI-keyboard.apk).
 const APK_FILE = `AkAI-keyboard-v${apkInfo.version}.apk`;
+const APK = `/${APK_FILE}`;
 const APK_SIZE_MB = Math.round(apkInfo.sizeBytes / 1_000_000);
 
 /** What the visitor is about to download: the version, the size, and what it runs on. */

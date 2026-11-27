@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import { readFileSync } from "node:fs";
+
+// The APK's version (written by `npm run apk:info`), for its download name.
+const apkVersion: string = JSON.parse(readFileSync("./src/lib/apk-info.json", "utf8")).version;
 
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
@@ -35,6 +39,26 @@ const nextConfig: NextConfig = {
       './node_modules/@lottiefiles/dotlottie-web/dist/dotlottie-player.wasm',
     ],
   },
+
+  // The download is served as /AkAI-keyboard-v<version>.apk, so phones save it
+  // under a name that says which version it is; there is still one file,
+  // public/AkAI-keyboard.apk. The header names it the same way for browsers
+  // that take the name from there, and for old links to /AkAI-keyboard.apk.
+  ...(isCapacitorBuild ? {} : {
+    async rewrites() {
+      return [{ source: "/AkAI-keyboard-v:version.apk", destination: "/AkAI-keyboard.apk" }];
+    },
+    async headers() {
+      const apk = [
+        { key: "Content-Type", value: "application/vnd.android.package-archive" },
+        { key: "Content-Disposition", value: `attachment; filename="AkAI-keyboard-v${apkVersion}.apk"` },
+      ];
+      return [
+        { source: "/AkAI-keyboard.apk", headers: apk },
+        { source: "/AkAI-keyboard-v:version.apk", headers: apk },
+      ];
+    },
+  }),
 
   // Performance optimizations
   compiler: {

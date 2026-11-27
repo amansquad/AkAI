@@ -35,7 +35,9 @@ try {
   const prev = JSON.parse(readFileSync('public/app-version.json', 'utf8'));
   if (prev.versionCode === versionCode) notes = prev.notes ?? '';
 } catch {}
-const release = { versionCode, versionName, url: '/AkAI-keyboard.apk', notes };
+// A versioned link (rewritten by next.config.ts to the one APK file), so the phone
+// saves it as AkAI-keyboard-v1.0.35.apk rather than another AkAI-keyboard.apk.
+const release = { versionCode, versionName, url: `/AkAI-keyboard-v${versionName}.apk`, notes };
 writeFileSync('public/app-version.json', JSON.stringify(release, null, 2) + '\n');
 
 console.log('apk-info:', info, release);
